@@ -1,7 +1,18 @@
+//! An error reported during parsing, semantic analysis, or linting.
+//!
+//! An error's memory is entirely borrowed. It is the caller's responsibility to
+//! alloc/free it correctly.
+//!
+//! Errors are most commonly managed by a `Result`. In this form, the `Result`
+//! holds ownership over allocations.
+
 message: string,
 severity: Severity = .err,
+/// Text ranges over problematic parts of the source code.
 labels: []Span = undefined,
+/// Name of the file being linted.
 source_name: ?string = null,
+/// Optional help text. This will go under the code snippet.
 help: ?string = null,
 
 pub fn new(message: string) Error {
@@ -38,15 +49,23 @@ const Severity = enum {
 };
 
 pub const ErrorList = std.ArrayListUnmanaged(Error);
+/// Results hold a value and a list of errors. Useful for error-recoverable
+/// situations, where a value may still be produced even if errors are
+/// encountered.
+///
+/// All errors in a `Result` must be allocated with the same allocator, which
+/// must be `Result.alloc`.
 pub fn Result(comptime T: type) type {
     return struct {
         value: T,
+        ///
         errors: ErrorList = .{},
         alloc: Allocator,
 
         const Self = @This();
         const type_info = @typeInfo(T);
 
+        /// Create a new `Result`. No memory is allocated.
         pub fn new(alloc: Allocator, value: T, errors: ErrorList) Self {
             return .{
                 .value = value,
@@ -55,6 +74,7 @@ pub fn Result(comptime T: type) type {
             };
         }
 
+        /// Create a successful `Result` instance. No memory is allocated.
         pub fn fromValue(alloc: std.mem.Allocator, value: T) Self {
             return .{
                 .value = value,
@@ -62,6 +82,8 @@ pub fn Result(comptime T: type) type {
             };
         }
 
+        /// Free both the success value and the error list. The result is no
+        /// longer usable after calls to this method.
         pub fn deinit(self: *Self) void {
             if (@hasDecl(T, "deinit")) {
                 self.value.deinit();
@@ -86,7 +108,9 @@ pub fn Result(comptime T: type) type {
             self.deinitErrors();
         }
 
-        /// Free the error list, leaving `semantic` untouched.
+        /// Free the error list, leaving `value` untouched. Caller must ensure
+        /// that `value` gets de-alloc'd later. Following calls to
+        /// `Result.deinit` will result in a double-free.
         pub fn deinitErrors(self: *Self) void {
             var i: usize = 0;
             const len = self.errors.items.len;

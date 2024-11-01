@@ -29,6 +29,8 @@ pub fn main() !void {
 
     const opts = Options.parseArgv();
 
+    // While under development, I'm unconditionally linting fixtures/foo.zig.
+    // I'll add file walking later.
     print("opening foo.zig\n", .{});
     const file = try fs.cwd().openFile("fixtures/foo.zig", .{});
     var source = try Source.init(alloc, file);
@@ -41,6 +43,8 @@ pub fn main() !void {
     var linter = Linter.init(alloc);
     defer linter.deinit();
 
+    // TODO: better error printing. Show line/column numbers, a code snippet,
+    // and underline relevant sections. Maybe steal from miette's graphical reporter?
     var errors = try linter.runOnSource(&source);
     for (errors.items) |err| {
         print("{s}\n", .{err.message});

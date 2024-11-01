@@ -1,4 +1,4 @@
-// todo: re-parse from user-friendly "rules" object into this AoS.
+// todo: re-parse from user-friendly "rules" object into this Array-of-Structs (AoS).
 rules: []RuleFilter,
 
 /// Read and parse a config JSON file.

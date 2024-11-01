@@ -1,4 +1,10 @@
+//! CLI options. Not necessarily linting-specific.
+
+/// Enable verbose logging.
 verbose: bool = false,
+/// Instead of linting a file, print its AST as JSON to stdout.
+///
+/// This is primarily for debugging purposes.
 print_ast: bool = false,
 
 pub fn parseArgv() Options {
