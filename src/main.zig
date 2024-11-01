@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const lint = @import("lint.zig");
 const Source = @import("source.zig").Source;
 const semantic = @import("semantic.zig");
@@ -13,20 +14,31 @@ const print = std.debug.print;
 const Ast = std.zig.Ast;
 const Linter = lint.Linter;
 
+const IS_DEBUG = builtin.mode == .Debug;
+
 pub fn main() !void {
-    const gpa = std.heap.page_allocator;
+    // in debug builds, include more information for debugging memory leaks,
+    // double-frees, etc.
+    var gpa = std.heap.GeneralPurposeAllocator(.{
+        .never_unmap = IS_DEBUG,
+        .retain_metadata = IS_DEBUG,
+    }){};
+
+    defer _ = gpa.deinit();
+    const alloc = gpa.allocator();
+
     const opts = Options.parseArgv();
 
     print("opening foo.zig\n", .{});
     const file = try fs.cwd().openFile("fixtures/foo.zig", .{});
-    var source = try Source.init(gpa, file);
+    var source = try Source.init(alloc, file);
     defer source.deinit();
 
     if (opts.print_ast) {
-        return print_cmd.parseAndPrint(gpa, opts, source);
+        return print_cmd.parseAndPrint(alloc, opts, source);
     }
 
-    var linter = Linter.init(gpa);
+    var linter = Linter.init(alloc);
     defer linter.deinit();
 
     var errors = try linter.runOnSource(&source);
