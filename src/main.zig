@@ -4,7 +4,7 @@ const lint = @import("lint.zig");
 const Source = @import("source.zig").Source;
 const semantic = @import("semantic.zig");
 const print_cmd = @import("cmd/print_command.zig");
-const Options = @import("cli/Options.zig");
+const Options = @import("./cli/Options.zig");
 
 const fs = std.fs;
 const path = std.path;
