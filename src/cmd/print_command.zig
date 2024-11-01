@@ -1,17 +1,19 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const NodeId = Ast.Node.Index;
-const Writer = std.fs.File.Writer;
 
-const Options = @import("../cli/options.zig");
+const Options = @import("../cli/Options.zig");
 const Source = @import("../source.zig").Source;
 const semantic = @import("../semantic.zig");
+const Printer = @import("./Printer.zig");
 
 const assert = std.debug.assert;
-const print = std.debug.print;
-const stringify = std.json.fmt;
+const IS_DEBUG = builtin.mode == .Debug;
+
+const NULL_NODE_ID: NodeId = 0;
 
 pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source) !void {
     var sema_result = try semantic.Builder.build(alloc, source.contents);
@@ -24,194 +26,156 @@ pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source) !void {
     }
     const ast = sema_result.semantic.ast;
     const writer = std.io.getStdOut().writer();
-    var printer = Printer.init(alloc, writer, opts, source.contents, &ast);
-    defer printer.deinit();
-    try printer.printAst();
+    var ast_printer = AstPrinter.init(alloc, opts, writer, source, &ast);
+    defer ast_printer.deinit();
+    try ast_printer.printAst();
 }
 
-pub const Printer = struct {
-    container_stack: ContainerStack,
-    alloc: Allocator,
-    writer: Writer,
+const AstPrinter = struct {
     opts: Options,
+    source: Source,
     ast: *const Ast,
-    source: [:0]const u8,
+    printer: Printer,
+    max_node_id: NodeId,
 
-    const ContainerKind = enum { object, array };
-    const ContainerStack = std.ArrayList(ContainerKind);
-    const NULL_NODE_ID: NodeId = 0;
-
-    pub fn init(alloc: Allocator, writer: Writer, opts: Options, source: [:0]const u8, ast: *const Ast) Printer {
-        const stack = ContainerStack.initCapacity(alloc, 16) catch @panic("failed to allocate memory for printer's container stack");
-        return Printer{
-            .container_stack = stack,
-            .alloc = alloc,
-            .opts = opts,
-            .writer = writer,
-            .source = source,
-            .ast = ast,
-        };
+    fn init(alloc: Allocator, opts: Options, writer: Printer.Writer, source: Source, ast: *const Ast) AstPrinter {
+        const printer = Printer.init(alloc, writer);
+        return .{ .opts = opts, .source = source, .ast = ast, .printer = printer, .max_node_id = @intCast(ast.nodes.len - 1) };
     }
-    pub fn deinit(self: *Printer) void {
-        self.container_stack.deinit();
-    }
-    pub fn printAst(self: *Printer) !void {
-        try self.pushArray();
-        defer self.pop();
 
-        for (self.ast.rootDecls()) |decl| {
-            try self.printAstNode(decl);
+    fn deinit(self: *AstPrinter) void {
+        self.printer.deinit();
+    }
+
+    fn printAst(self: *AstPrinter) !void {
+        try self.printer.pushObject();
+        defer self.printer.pop();
+
+        try self.printPropNodeArray("root", self.ast.rootDecls());
+    }
+
+    fn printAstNode(self: *AstPrinter, node_id: NodeId) anyerror!void {
+        if (node_id > self.max_node_id) {
+            try self.printer.print("\"<out of bounds: {d}>\"", .{node_id});
+            return;
         }
-    }
 
-    fn printAstNode(self: *Printer, node_id: NodeId) !void {
         const node = self.ast.nodes.get(node_id);
         if (node.tag == .root) {
-            return self.pNull();
+            self.printer.pNull();
+            self.printer.pComma();
+            return;
         }
 
         // Node object curly braces
-        try self.pushObject();
-        defer self.pop();
-        // NOTE: node.tag has something like `Ast.Node.Tag` as its prefix
-        try self.pPropWithNamespacedValue("tag", node.tag);
-        try self.pProp("id", "{d}", node_id);
+        try self.printer.pushObject();
+        defer self.printer.pop();
+
+        // Data common to all nodes
+        {
+            // NOTE: node.tag has something like `Ast.Node.Tag` as its prefix
+            try self.printer.pPropWithNamespacedValue("tag", node.tag);
+            try self.printer.pProp("id", "{d}", node_id);
+        }
 
         // Print main token information. In verbose mode, we print all available
         // information (tag, id, location). Otherwise, we only print the tag.
         if (self.opts.verbose) {
             const main_token = self.ast.tokens.get(node.main_token);
             const main_token_loc = self.ast.tokenLocation(main_token.start, node.main_token);
-            try self.pPropName("main_token");
-            try self.pushObject();
-            defer self.pop();
+            try self.printer.pPropName("main_token");
+            try self.printer.pushObject();
+            defer self.printer.pop();
 
-            try self.pPropWithNamespacedValue("tag", main_token.tag);
-            try self.pProp("id", "{d}", node.main_token);
-            try self.pPropJson("loc", main_token_loc);
+            try self.printer.pPropWithNamespacedValue("tag", main_token.tag);
+            try self.printer.pProp("id", "{d}", node.main_token);
+            try self.printer.pPropJson("loc", main_token_loc);
         } else {
             const tag = self.ast.tokens.items(.tag)[node.main_token];
-            try self.pPropWithNamespacedValue("main_token", tag);
+            try self.printer.pPropWithNamespacedValue("main_token", tag);
         }
 
         // Print node-specific data.
         switch (node.tag) {
             .string_literal => {
                 const main_value = self.ast.tokenSlice(node.main_token);
-                try self.pPropStr("value", main_value);
-            },
-            .local_var_decl, .simple_var_decl, .aligned_var_decl => {
-                const identifier_tok_id = node.main_token + 1;
-                const id_tok = self.ast.tokens.get(identifier_tok_id);
-                assert(id_tok.tag == .identifier);
-                const ident = self.ast.tokenSlice(identifier_tok_id);
-                try self.pPropStr("ident", ident);
-                const decl = self.ast.fullVarDecl(node_id) orelse unreachable;
-                try self.pPropJson("data", decl);
+                try self.printer.pPropStr("value", main_value);
             },
             .root => unreachable,
-            else => {},
+            else => {
+                var call_buf: [1]NodeId = undefined;
+                var container_buf: [2]NodeId = undefined;
+                if (self.ast.fullVarDecl(node_id)) |decl| {
+                    try self.printVarDecl(node, decl);
+                } else if (self.ast.fullCall(&call_buf, node_id)) |call| {
+                    try self.printCall(node, call);
+                } else if (self.ast.fullContainerDecl(&container_buf, node_id)) |container| {
+                    try self.printContainerDecl(node, container);
+                }
+            },
         }
 
-        if (node.data.lhs == NULL_NODE_ID and node.data.lhs == NULL_NODE_ID) {
-            return;
+        // Recurse down lhs/rhs. To keep things succinct, skip printing entirely if
+        // at a leaf node.
+        {
+            if (node.data.lhs == NULL_NODE_ID and node.data.rhs == NULL_NODE_ID) {
+                return;
+            }
+
+            try self.printer.pPropName("lhs");
+            if (node.data.lhs == NULL_NODE_ID) {
+                self.printer.pNull();
+                self.printer.pComma();
+            } else {
+                try self.printAstNode(node.data.lhs);
+            }
+
+            try self.printer.pPropName("rhs");
+            try self.printAstNode(node.data.rhs);
         }
-        try self.pPropName("lhs");
-        try self.printAstNode(node.data.lhs);
-
-        try self.pPropName("rhs");
-        try self.printAstNode(node.data.rhs);
     }
 
-    /// Print a `"key": value` pair with a trailing comma. Value is formatted
-    /// using `fmt` as a format string.
-    fn pProp(self: *Printer, key: []const u8, comptime fmt: []const u8, value: anytype) !void {
-        try self.pPropName(key);
-        try self.writer.print(fmt, .{value});
-        self.pComma();
-    }
+    fn printVarDecl(self: *AstPrinter, node: Node, var_decl: Ast.full.VarDecl) !void {
+        const identifier_tok_id = node.main_token + 1;
 
-    inline fn pPropStr(self: *Printer, key: []const u8, value: []const u8) !void {
-        if (value.len >= 2 and value[0] == '"' and value[value.len - 1] == '"') {
-            return self.pProp(key, "{s}", value);
+        if (IS_DEBUG) {
+            const id_tok = self.ast.tokens.get(identifier_tok_id);
+            assert(id_tok.tag == .identifier);
         }
-        return self.pProp(key, "\"{s}\"", value);
+
+        const ident = self.ast.tokenSlice(identifier_tok_id);
+        try self.printer.pPropStr("ident", ident);
+        // const decl = ast.fullVarDecl(node_id) orelse unreachable;
+        try self.printer.pPropJson("data", var_decl);
+        const _init = var_decl.ast.init_node;
+        try self.printer.pPropName("init");
+        try self.printAstNode(_init);
     }
 
-    fn pPropJson(self: *Printer, key: []const u8, value: anytype) !void {
-        try self.pPropName(key);
-        try stringify(value, .{}).format("{any}", .{}, self.writer);
-        self.pComma();
+    fn printCall(self: *AstPrinter, _: Node, call: Ast.full.Call) !void {
+        try self.printer.pProp("async_token", "{any}", call.async_token);
+        //     try self.printPropNode("fn_node", call.ast.fn_expr);
+        try self.printPropNodeArray("params", call.ast.params);
     }
 
-    /// Print an object property key with a trailing `:`, without printing a value.
-    fn pPropName(self: *Printer, key: []const u8) !void {
-        try self.pString(key);
-        try self.writer.writeAll(": ");
+    fn printContainerDecl(self: *AstPrinter, _: Node, container: Ast.full.ContainerDecl) !void {
+        return self.printPropNodeArray("members", container.ast.members);
     }
 
-    /// Print a `"key": "value"` object property pair where `value` is a
-    /// `dot.separated.namespaced.value`.  Only the last part of the value is
-    /// printed.
-    fn pPropWithNamespacedValue(self: *Printer, key: []const u8, value: anytype) !void {
-        var value_buf: [256]u8 = undefined;
-        const value_str = try std.fmt.bufPrintZ(&value_buf, "{any}", .{value});
+    fn printPropNode(self: *AstPrinter, key: []const u8, node: NodeId) !void {
+        try self.printer.pPropName(key);
+        try self.printAstNode(node);
+    }
 
-        // Get the last part of the dot-separated value string.
-        var iter = std.mem.split(u8, value_str, ".");
-        // Always the previous result from `iter.next()`. Stop once we've
-        // reached the end, then `segment` will contain the last part.
-        var segment = iter.next();
-        while (iter.peek()) |part| {
-            segment = part;
-            _ = iter.next();
+    fn printPropNodeArray(self: *AstPrinter, key: []const u8, nodes: []const NodeId) !void {
+        try self.printer.pPropName(key);
+        try self.printer.pushArray();
+        defer self.printer.pop();
+
+        // try self.printer.pPropName(key);
+
+        for (nodes) |node| {
+            try self.printAstNode(node);
         }
-        if (segment == null) @panic("tag should have at least one '.'");
-        return self.pProp(key, "\"{s}\"", segment.?);
-    }
-
-    /// Print a `null` literal.
-    inline fn pNull(self: *Printer) void {
-        self.writer.writeAll("null") catch @panic("failed to write null");
-    }
-
-    /// Print a string literal.
-    inline fn pString(self: *Printer, s: []const u8) !void {
-        try self.writer.writeAll("\"");
-        try self.writer.writeAll(s);
-        try self.writer.writeAll("\"");
-    }
-
-    /// Print a comma with a trailing space (`, `).
-    inline fn pComma(self: *Printer) void {
-        self.writer.writeAll(", ") catch @panic("failed to write comma");
-    }
-
-    /// Enter into an object container. When exited (i.e. `pop()`), a closing curly brace will
-    /// be printed.
-    fn pushObject(self: *Printer) !void {
-        try self.container_stack.append(ContainerKind.object);
-        _ = try self.writer.write("{");
-    }
-
-    /// Enter into an array container. When exited (i.e. `pop()`), a closing square bracket will
-    /// be printed.
-    fn pushArray(self: *Printer) !void {
-        try self.container_stack.append(ContainerKind.array);
-        _ = try self.writer.write("[");
-    }
-
-    /// Exit out of an object or array container, printing the correspodning
-    /// closing token.
-    fn pop(self: *Printer) void {
-        const kind = self.container_stack.pop();
-        const res = switch (kind) {
-            ContainerKind.object => self.writer.write("}"),
-            ContainerKind.array => self.writer.write("]"),
-        };
-        if (self.container_stack.items.len > 0) {
-            self.pComma();
-        }
-        _ = res catch @panic("failed to write container end");
     }
 };

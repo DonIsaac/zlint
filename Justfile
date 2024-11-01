@@ -57,6 +57,8 @@ clear-run cmd:
 
 
 # temporary scripts for testing. Will be removed later
-print-ast:
+print-ast filename="ast.json":
     @mkdir -p tmp
-    zig build run -- --print-ast | prettier --stdin-filepath ast.json > tmp/ast.json
+    rm -f ./tmp/{{filename}}
+    zig build run -- --print-ast > ./tmp/{{filename}}
+    prettier --write ./tmp/{{filename}}
