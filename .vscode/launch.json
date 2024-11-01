@@ -19,10 +19,7 @@
             "request": "launch",
             "args": ["--print-ast"],
             "program": "${workspaceRoot}/zig-out/bin/zlint",
-            // "target": "./zig-out/bin/zlint",
             "cwd": "${workspaceRoot}",
-            // "arguments": "--print-ast",
-            // "valuesFormatting": "parseText",
             "preLaunchTask": "build"
         }
     ]
