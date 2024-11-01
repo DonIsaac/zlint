@@ -9,3 +9,8 @@ zig-out
 *.swp
 *.swo
 .idea
+
+# temp files
+tmp/
+temp/
+*.tmp

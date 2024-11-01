@@ -39,13 +39,21 @@ pub fn pProp(self: *Printer, key: []const u8, comptime fmt: []const u8, value: a
     self.pComma();
 }
 
-pub inline fn pPropStr(self: *Printer, key: []const u8, value: []const u8) !void {
-    if (value.len >= 2 and value[0] == '"' and value[value.len - 1] == '"') {
-        return self.pProp(key, "{s}", value);
+pub inline fn pPropStr(self: *Printer, key: []const u8, value: anytype) !void {
+    const T = @TypeOf(value);
+
+    if (T == []const u8) {
+        if (value.len >= 2 and value[0] == '"' and value[value.len - 1] == '"') {
+            return self.pProp(key, "{s}", value);
+        }
+        return self.pProp(key, "\"{s}\"", value);
+    } else {
+        return self.pProp(key, "\"{any}\"", value);
     }
-    return self.pProp(key, "\"{s}\"", value);
 }
 
+/// Print a `"key": value` pair with a trailing comma. Value is stringified
+/// into JSON before printing.
 pub fn pPropJson(self: *Printer, key: []const u8, value: anytype) !void {
     try self.pPropName(key);
     try stringify(value, .{}, self.writer);
