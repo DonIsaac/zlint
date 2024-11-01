@@ -16,7 +16,7 @@
 pub const Builder = struct {
     _gpa: Allocator,
     _arena: ArenaAllocator,
-    _curr_scope_id: Semantic.Scope.Id = 0,
+    _curr_scope_id: Semantic.Scope.Id = ROOT_SCOPE,
     _curr_symbol_id: ?Semantic.Symbol.Id = null,
     _scope_stack: std.ArrayListUnmanaged(Semantic.Scope.Id),
     /// When entering an initialization container for a symbol, that symbol's ID
@@ -29,6 +29,26 @@ pub const Builder = struct {
     /// Errors in this list are allocated using this list's allocator.
     _errors: std.ArrayListUnmanaged(Error),
 
+    /// The root node always has an index of 0. Since it is never referenced by other nodes,
+    /// the Zig team uses it to represent `null` without wasting extra memory.
+    const NULL_NODE: NodeIndex = 0;
+    const ROOT_SCOPE: Semantic.Scope.Id = 0;
+
+    /// Parse and analyze a Zig source file.
+    ///
+    /// Analysis consists of:
+    /// - Binding symbols to a symbol table
+    /// - Scope analysis
+    ///
+    /// Parse and analysis errors are collected in the returned `Result`. An
+    /// error union variant is only ever returned for fatal errors, such as (but not limited to):
+    /// - Allocation failures (e.g. out of memory)
+    /// - Unexpected nulls
+    /// - Out-of-bounds access
+    ///
+    /// In some  cases, SemanticBuilder may choose to panic instead of
+    /// returning an error union. These assertions produce better release
+    /// binaries and catch bugs earlier.
     pub fn build(gpa: Allocator, source: stringSlice) !Result {
         var builder = try Builder.init(gpa);
         defer builder.deinit();
@@ -74,6 +94,8 @@ pub const Builder = struct {
         return Builder{ ._gpa = gpa, ._arena = ArenaAllocator.init(gpa), ._scope_stack = scope_stack, ._symbol_stack = symbol_stack, ._errors = .{} };
     }
 
+    /// Deinitialize build-specific resources. Errors and the constructed
+    /// `Semantic` instance are left untouched.
     pub fn deinit(self: *Builder) void {
         self._scope_stack.deinit(self._gpa);
         self._symbol_stack.deinit(self._gpa);
@@ -98,8 +120,6 @@ pub const Builder = struct {
     // =========================================================================
     // ================================= VISIT =================================
     // =========================================================================
-
-    const NULL_NODE: NodeIndex = 0;
 
     fn visitNode(self: *Builder, node_id: NodeIndex) anyerror!void {
         // when lhs/rhs are 0 (root node), it means `null`
@@ -134,8 +154,14 @@ pub const Builder = struct {
                 const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
                 return self.visitVarDecl(node_id, decl);
             },
+
+            // TODO: include .block_two and .block_two_semicolon?
+            .block, .block_semicolon => {
+                try self.enterScope(.{ .s_block = true });
+                defer self.exitScope();
+                return self.visitRecursive(self.getNode(node_id));
+            },
             // .@"usingnamespace" => self.visitUsingNamespace(node),
-            // else => std.debug.panic("unimplemented node tag: {any}", .{tag}),
             else => return self.visitRecursive(self.getNode(node_id)),
         }
     }
@@ -221,8 +247,8 @@ pub const Builder = struct {
     // ======================== SCOPE/SYMBOL MANAGEMENT ========================
     // =========================================================================
 
-    // NOTE: root scope is entered differently to avoid unnecessary parent-null
-    // checks. Parent is only ever null for root scopes.
+    // NOTE: root scope is entered differently to avoid unnecessary null checks
+    // when getting parent scopes. Parent is only ever null for the root scope.
 
     inline fn enterRootScope(self: *Builder) !void {
         assert(self._scope_stack.items.len == 0);
@@ -250,25 +276,33 @@ pub const Builder = struct {
         return self._scope_stack.getLast();
     }
 
-    fn assertRootScope(self: *const Builder) void {
+    /// Panic if we're not currently within the root scope.
+    inline fn assertRootScope(self: *const Builder) void {
         assert(self._scope_stack.items.len == 1);
         assert(self._scope_stack.items[0] == 0);
     }
 
-    fn enterContainerSymbol(self: *Builder, symbol_id: Symbol.Id) !void {
+    inline fn enterContainerSymbol(self: *Builder, symbol_id: Symbol.Id) !void {
         try self._symbol_stack.append(self._gpa, symbol_id);
     }
 
-    fn exitContainerSymbol(self: *Builder) void {
+    /// Pop the most recent container symbol from the stack. Panics if the symbol stack is empty.
+    inline fn exitContainerSymbol(self: *Builder) void {
         // NOTE: asserts stack is not empty
         _ = self._symbol_stack.pop();
     }
 
-    fn currentContainerSymbol(self: *const Builder) ?Symbol.Id {
+    /// Get the most recent container symbol, returning `null` if the stack is empty.
+    ///
+    /// `null` returns happen, for example, in the root scope. or within root
+    /// functions.
+    inline fn currentContainerSymbol(self: *const Builder) ?Symbol.Id {
         return self._symbol_stack.getLastOrNull();
     }
 
-    fn currentContainerSymbolUnwrap(self: *const Builder) Symbol.Id {
+    /// Unconditionally get the most recent container symbol. Panics if no
+    /// symbol has been entered.
+    inline fn currentContainerSymbolUnwrap(self: *const Builder) Symbol.Id {
         return self._symbol_stack.getLast();
     }
 
@@ -292,8 +326,20 @@ pub const Builder = struct {
     // ============================ RANDOM GETTERS =============================
     // =========================================================================
 
+    /// Shorthand for getting the AST. Must be caps to avoid shadowing local
+    /// `ast` declarations.
     inline fn AST(self: *const Builder) *const Ast {
         return &self._semantic.ast;
+    }
+
+    /// Shorthand for getting the symbol table.
+    inline fn symbolTable(self: *Builder) *Semantic.SymbolTable {
+        return &self._semantic.symbols;
+    }
+
+    /// Shorthand for getting the scope tree.
+    inline fn scopeTree(self: *Builder) *Semantic.ScopeTree {
+        return &self._semantic.scopes;
     }
 
     /// Get a node by its ID.
@@ -385,35 +431,14 @@ pub const Builder = struct {
         try self._errors.append(self._gpa, err);
     }
 
-    // pub const Result = struct {
-    //     semantic: Semantic,
-    //     errors: std.ArrayList(Error),
-
-    //     pub fn deinit(self: *Result) void {
-    //         self.semantic.deinit();
-    //         self.deinitErrors();
-    //     }
-
-    //     pub fn hasErrors(self: *Result) bool {
-    //         return self.errors.items.len != 0;
-    //     }
-
-    //     /// Free the error list, leaving `semantic` untouched.
-    //     pub fn deinitErrors(self: *Result) void {
-    //         const err_alloc = self.errors.allocator;
-    //         var i: usize = 0;
-    //         const len = self.errors.items.len;
-    //         while (i < len) {
-    //             self.errors.items[i].deinit(err_alloc);
-    //             i += 1;
-    //         }
-    //         self.errors.deinit();
-    //     }
-    // };
     pub const Result = Error.Result(Semantic);
 };
 
 const IS_DEBUG = builtin.mode == .Debug;
+
+pub const Semantic = @import("./semantic/Semantic.zig");
+const Scope = Semantic.Scope;
+const Symbol = Semantic.Symbol;
 
 const std = @import("std");
 const builtin = @import("builtin");
@@ -424,14 +449,10 @@ const Type = std.builtin.Type;
 const assert = std.debug.assert;
 const print = std.debug.print;
 
-pub const Semantic = @import("./semantic/Semantic.zig");
-const Scope = Semantic.Scope;
-const Symbol = Semantic.Symbol;
-
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const NodeIndex = Ast.Node.Index;
-// Struct used in AST tokens SOA is not pub so we hack it in here.
+/// The struct used in AST tokens SOA is not pub so we hack it in here.
 const RawToken = struct {
     tag: std.zig.Token.Tag,
     start: u32,
