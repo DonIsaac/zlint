@@ -78,10 +78,6 @@ pub const ScopeTree = struct {
     pub fn deinit(self: *ScopeTree, alloc: Allocator) void {
         self.scopes.deinit(alloc);
 
-        // for (self.children.items) |children| {
-        //     children.deinit(alloc);
-        // }
-        // self.children.deinit(alloc);
         {
             var i: usize = 0;
             const len = self.children.items.len;

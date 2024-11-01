@@ -28,7 +28,7 @@ pub const Builder = struct {
 
     pub fn build(gpa: Allocator, source: stringSlice) !Result {
         var builder = try Builder.init(gpa);
-        errdefer builder.deinit();
+        defer builder.deinit();
         // NOTE: ast is moved
         const ast = try builder.parse(source);
         builder._semantic = Semantic{

@@ -95,6 +95,7 @@ pub const Linter = struct {
     pub fn runOnSource(self: *Linter, source: *Source) !ErrorList {
         // const ast = try source.parse();
         var semantic_result = try SemanticBuilder.build(self.gpa, source.contents);
+        defer semantic_result.deinit();
         // TODO
         if (semantic_result.hasErrors()) {
             @panic("semantic analysis failed");
@@ -103,7 +104,7 @@ pub const Linter = struct {
         for (semantic_result.value.symbols.symbols.items) |symbol| {
             print("\t{s}\t{any}\n", .{ symbol.name, symbol });
         }
-        semantic_result.deinitErrors();
+        // semantic_result.deinitErrors();
         const semantic = semantic_result.value;
         var ctx = Context.init(self.gpa, &semantic, source);
         print("running linter on source with {d} rules\n", .{self.rules.items.len});
