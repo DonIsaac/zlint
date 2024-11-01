@@ -134,7 +134,7 @@ pub const Builder = struct {
         // - bind function declarations
         // - record symbol types and signatures
         // - record symbol references
-        // - Scope flags for unions, structs, and enums. Blocks are currently handled (TOOD: that needs testing).
+        // - Scope flags for unions, structs, and enums. Blocks are currently handled (TODO: that needs testing).
         // - Test the shit out of it
         const tag: Ast.Node.Tag = self._semantic.ast.nodes.items(.tag)[node_id];
         switch (tag) {
