@@ -7,6 +7,7 @@ on:
     types: [opened, synchronize]
     paths-ignore:
       - "*.md"
+      - ".vscode/*"
       - Justfile
       - zls.json
   push:
@@ -14,6 +15,7 @@ on:
       - main
     paths-ignore:
       - "*.md"
+      - ".vscode/*"
       - Justfile
       - zls.json
 
