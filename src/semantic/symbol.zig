@@ -53,6 +53,16 @@ pub const Symbol = struct {
         /// Not `true` for inferred comptime parameters. That is, this is only
         /// `true` when the `comptime` modifier is present.
         s_comptime: bool = false,
+        /// TODO: not recorded yet
+        s_const: bool = false,
+        /// Indicates a container field.
+        ///
+        /// ```zig
+        /// const Foo = struct {
+        ///   bar: u32, // <- this is a container field
+        /// }
+        /// ```
+        s_member: bool = false,
     };
 };
 
@@ -95,6 +105,9 @@ pub const SymbolTable = struct {
 
     const SymbolIdList = std.ArrayListUnmanaged(Symbol.Id);
 
+    pub inline fn get(self: *SymbolTable, id: Symbol.Id) *const Symbol {
+        return &self.symbols.items[id];
+    }
     pub fn addSymbol(self: *SymbolTable, alloc: Allocator, declaration_node: Ast.Node.Index, name: string, scope_id: Scope.Id, visibility: Symbol.Visibility, flags: Symbol.Flags) !*Symbol {
         assert(self.symbols.items.len < Symbol.MAX_ID);
 
@@ -119,6 +132,16 @@ pub const SymbolTable = struct {
         assert(self.symbols.items.len == self.exports.items.len);
 
         return symbol;
+    }
+
+    pub fn addMember(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) !void {
+        var members = self.members.items[container];
+        try members.append(alloc, member);
+    }
+
+    pub fn addExport(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) !void {
+        var exports = self.exports.items[container];
+        try exports.append(alloc, member);
     }
 
     pub fn deinit(self: *SymbolTable, alloc: Allocator) void {
