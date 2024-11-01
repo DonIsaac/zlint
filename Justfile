@@ -31,7 +31,7 @@ check:
 
 # Run a command in watch mode. Re-runs whenever a source file changes
 watch cmd="check":
-    git ls-files | entr -rc zig build {{cmd}}
+    git ls-files | entr -rc just clear-run {{cmd}}
 
 # Run all tests
 test:
@@ -49,3 +49,14 @@ lint:
 # Remove build artifacts
 clean:
     rm -rf zig-out .zig-cache
+
+# Clear the screen, then run `zig build {{cmd}}`. Used by `just watch`.
+clear-run cmd:
+    @clear
+    @zig build {{cmd}}
+
+
+# temporary scripts for testing. Will be removed later
+print-ast:
+    @mkdir -p tmp
+    zig build run -- --print-ast | prettier --stdin-filepath ast.json > tmp/ast.json

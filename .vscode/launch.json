@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "zlint",
+            "type": "lldb-mi",
+            "request": "launch",
+            "target": "./zig-out/bin/zlint",
+            "cwd": "${workspaceRoot}",
+            "valuesFormatting": "parseText"
+        },
+
+        {
+            "name": "zlint --print-ast",
+            "type": "lldb",
+            "request": "launch",
+            "args": ["--print-ast"],
+            "program": "${workspaceRoot}/zig-out/bin/zlint",
+            // "target": "./zig-out/bin/zlint",
+            "cwd": "${workspaceRoot}",
+            // "arguments": "--print-ast",
+            // "valuesFormatting": "parseText",
+            "preLaunchTask": "build"
+        }
+    ]
+}

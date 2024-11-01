@@ -310,6 +310,11 @@ pub const Builder = struct {
         semantic: Semantic,
         errors: std.ArrayList(Error),
 
+        pub fn deinit(self: *Result) void {
+            self.semantic.deinit();
+            self.deinitErrors();
+        }
+
         pub fn hasErrors(self: *Result) bool {
             return self.errors.items.len != 0;
         }
