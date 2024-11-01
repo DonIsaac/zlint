@@ -113,10 +113,10 @@ pub const Builder = struct {
         const tag: Ast.Node.Tag = self._semantic.ast.nodes.items(.tag)[node_id];
         switch (tag) {
             .root => unreachable, // root node is never referenced.
-            .global_var_decl => {
-                const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
-                self.visitGlobalVarDecl(node_id, decl);
-            },
+            // ```zig
+            // const Foo = struct { // <-- visits struct/enum/union containers
+            // };
+            // ```
             .container_decl, .container_decl_trailing, .container_decl_two, .container_decl_two_trailing => {
                 var buf: [2]u32 = undefined;
                 const container = self.AST().fullContainerDecl(&buf, node_id) orelse unreachable;
@@ -125,6 +125,10 @@ pub const Builder = struct {
             .container_field, .container_field_align, .container_field_init => {
                 const field = self.AST().fullContainerField(node_id) orelse unreachable;
                 return self.visitContainerField(node_id, field);
+            },
+            .global_var_decl => {
+                const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
+                self.visitGlobalVarDecl(node_id, decl);
             },
             .local_var_decl, .simple_var_decl, .aligned_var_decl => {
                 const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
@@ -151,6 +155,26 @@ pub const Builder = struct {
                 continue;
             }
             try self.visitNode(member);
+        }
+    }
+
+    /// Visit a container field (e.g. a struct property, enum variant, etc).
+    ///
+    /// ```zig
+    /// const Foo = { // <-- Declared within this container's scope.
+    ///   bar: u32    // <-- This is a container field. It is always Symbol.Visibility.public.
+    /// };            //     It is added to Foo's member table.
+    /// ```
+    fn visitContainerField(self: *Builder, node_id: NodeIndex, field: Ast.full.ContainerField) !void {
+        const main_token = self.AST().nodes.items(.main_token)[node_id];
+        // main_token points to the field name
+        const identifier = self.getIdentifier(main_token);
+        const flags = Symbol.Flags{ .s_comptime = field.comptime_token != null, .s_member = true };
+        // NOTE: container fields are always public
+        // TODO: record type annotations
+        _ = try self.declareMemberSymbol(node_id, identifier, .public, flags);
+        if (field.ast.value_expr != NULL_NODE) {
+            try self.visitNode(field.ast.value_expr);
         }
     }
 
@@ -191,19 +215,6 @@ pub const Builder = struct {
         }
 
         // return self.visitRecursive(node);
-    }
-
-    fn visitContainerField(self: *Builder, node_id: NodeIndex, field: Ast.full.ContainerField) !void {
-        const main_token = self.AST().nodes.items(.main_token)[node_id];
-        // main_token points to the field name
-        const identifier = self.getIdentifier(main_token);
-        const flags = Symbol.Flags{ .s_comptime = field.comptime_token != null, .s_member = true };
-        // NOTE: container fields are always public
-        // TODO: record type annotations
-        _ = try self.declareMemberSymbol(node_id, identifier, .public, flags);
-        if (field.ast.value_expr != NULL_NODE) {
-            try self.visitNode(field.ast.value_expr);
-        }
     }
 
     // =========================================================================
@@ -261,12 +272,6 @@ pub const Builder = struct {
         return self._symbol_stack.getLast();
     }
 
-    /// Declare a symbol in the current scope.
-    fn declareSymbol(self: *Builder, declaration_node: Ast.Node.Index, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
-        const symbol = try self._semantic.symbols.addSymbol(self._gpa, declaration_node, name, self.currentScope(), visibility, flags);
-        return symbol.id;
-    }
-
     /// Declare a new symbol in the current scope and record it as a member to
     /// the most recent container symbol. Returns the new member symbol's ID.
     fn declareMemberSymbol(self: *Builder, declaration_node: Ast.Node.Index, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
@@ -275,6 +280,12 @@ pub const Builder = struct {
         assert(!self._semantic.symbols.get(container_symbol_id).flags.s_member);
         try self._semantic.symbols.addMember(self._gpa, member_symbol_id, container_symbol_id);
         return member_symbol_id;
+    }
+
+    /// Declare a symbol in the current scope.
+    inline fn declareSymbol(self: *Builder, declaration_node: Ast.Node.Index, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
+        const symbol = try self._semantic.symbols.addSymbol(self._gpa, declaration_node, name, self.currentScope(), visibility, flags);
+        return symbol.id;
     }
 
     // =========================================================================
