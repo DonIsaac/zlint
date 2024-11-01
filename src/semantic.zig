@@ -19,6 +19,9 @@ pub const Builder = struct {
     _curr_scope_id: Semantic.Scope.Id = 0,
     _curr_symbol_id: ?Semantic.Symbol.Id = null,
     _scope_stack: std.ArrayListUnmanaged(Semantic.Scope.Id),
+    /// When entering an initialization container for a symbol, that symbol's ID
+    /// is pushed here. This lets us record members and exports.
+    _symbol_stack: std.ArrayListUnmanaged(Semantic.Symbol.Id),
     /// SAFETY: initialized after parsing. Same safety rationale as _root_scope.
     _semantic: Semantic = undefined,
     /// Errors encountered during parsing and analysis.
@@ -65,12 +68,15 @@ pub const Builder = struct {
     fn init(gpa: Allocator) !Builder {
         var scope_stack: std.ArrayListUnmanaged(Semantic.Scope.Id) = .{};
         try scope_stack.ensureUnusedCapacity(gpa, 8);
+        var symbol_stack: std.ArrayListUnmanaged(Semantic.Symbol.Id) = .{};
+        try symbol_stack.ensureUnusedCapacity(gpa, 8);
 
-        return Builder{ ._gpa = gpa, ._arena = ArenaAllocator.init(gpa), ._scope_stack = scope_stack, ._errors = .{} };
+        return Builder{ ._gpa = gpa, ._arena = ArenaAllocator.init(gpa), ._scope_stack = scope_stack, ._symbol_stack = symbol_stack, ._errors = .{} };
     }
 
     pub fn deinit(self: *Builder) void {
         self._scope_stack.deinit(self._gpa);
+        self._symbol_stack.deinit(self._gpa);
     }
 
     fn parse(self: *Builder, source: stringSlice) !Ast {
@@ -96,18 +102,33 @@ pub const Builder = struct {
     const NULL_NODE: NodeIndex = 0;
 
     fn visitNode(self: *Builder, node_id: NodeIndex) anyerror!void {
-        if (node_id == NULL_NODE) return; // when lhs/rhs are 0 (root node), it means `null`
+        // when lhs/rhs are 0 (root node), it means `null`
+        if (node_id == NULL_NODE) return;
+        // Seeing this happen a log, needs debugging.
+        if (IS_DEBUG and node_id >= self.AST().nodes.len) {
+            print("ERROR: node ID out of bounds ({d})\n", .{node_id});
+            return;
+        }
+
         const tag: Ast.Node.Tag = self._semantic.ast.nodes.items(.tag)[node_id];
         switch (tag) {
             .root => unreachable, // root node is never referenced.
+            // ```zig
+            // const Foo = struct { // <-- visits struct/enum/union containers
+            // };
+            // ```
+            .container_decl, .container_decl_trailing, .container_decl_two, .container_decl_two_trailing => {
+                var buf: [2]u32 = undefined;
+                const container = self.AST().fullContainerDecl(&buf, node_id) orelse unreachable;
+                return self.visitContainer(node_id, container);
+            },
+            .container_field, .container_field_align, .container_field_init => {
+                const field = self.AST().fullContainerField(node_id) orelse unreachable;
+                return self.visitContainerField(node_id, field);
+            },
             .global_var_decl => {
                 const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
                 self.visitGlobalVarDecl(node_id, decl);
-            },
-            .container_decl, .container_decl_trailing, .container_decl_two, .container_decl_two_trailing => {
-                try self.enterScope(.{ .s_block = true });
-                defer self.exitScope();
-                return self.visitRecursive(self.getNode(node_id));
             },
             .local_var_decl, .simple_var_decl, .aligned_var_decl => {
                 const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
@@ -123,6 +144,38 @@ pub const Builder = struct {
     inline fn visitRecursive(self: *Builder, node: Node) !void {
         try self.visitNode(node.data.lhs);
         try self.visitNode(node.data.rhs);
+    }
+
+    fn visitContainer(self: *Builder, _: NodeIndex, container: Ast.full.ContainerDecl) !void {
+        try self.enterScope(.{ .s_block = true, .s_enum = container.ast.enum_token != null });
+        defer self.exitScope();
+        for (container.ast.members) |member| {
+            if (member > self.AST().nodes.len) {
+                print("ERROR: member node ID out of bounds ({d})\n", .{member});
+                continue;
+            }
+            try self.visitNode(member);
+        }
+    }
+
+    /// Visit a container field (e.g. a struct property, enum variant, etc).
+    ///
+    /// ```zig
+    /// const Foo = { // <-- Declared within this container's scope.
+    ///   bar: u32    // <-- This is a container field. It is always Symbol.Visibility.public.
+    /// };            //     It is added to Foo's member table.
+    /// ```
+    fn visitContainerField(self: *Builder, node_id: NodeIndex, field: Ast.full.ContainerField) !void {
+        const main_token = self.AST().nodes.items(.main_token)[node_id];
+        // main_token points to the field name
+        const identifier = self.getIdentifier(main_token);
+        const flags = Symbol.Flags{ .s_comptime = field.comptime_token != null, .s_member = true };
+        // NOTE: container fields are always public
+        // TODO: record type annotations
+        _ = try self.declareMemberSymbol(node_id, identifier, .public, flags);
+        if (field.ast.value_expr != NULL_NODE) {
+            try self.visitNode(field.ast.value_expr);
+        }
     }
 
     fn visitGlobalVarDecl(self: *Builder, node_id: NodeIndex, var_decl: Ast.full.VarDecl) void {
@@ -141,7 +194,9 @@ pub const Builder = struct {
         const identifier: string = self.getIdentifier(node.main_token + 1);
         const flags = Symbol.Flags{ .s_comptime = var_decl.comptime_token != null };
         const visibility = if (var_decl.visib_token == null) Symbol.Visibility.private else Symbol.Visibility.public;
-        _ = try self.declareSymbol(node_id, identifier, visibility, flags);
+        const symbol_id = try self.declareSymbol(node_id, identifier, visibility, flags);
+        try self.enterContainerSymbol(symbol_id);
+        defer self.exitContainerSymbol();
 
         if (builtin.mode == .Debug) {
             const main = self.getToken(node.main_token);
@@ -154,8 +209,12 @@ pub const Builder = struct {
             std.debug.print("rhs: {any}\n", .{rhs});
             std.debug.print("{any}\n\n", .{var_decl});
         }
+        if (var_decl.ast.init_node != NULL_NODE) {
+            assert(var_decl.ast.init_node < self.AST().nodes.len);
+            try self.visitNode(var_decl.ast.init_node);
+        }
 
-        return self.visitRecursive(node);
+        // return self.visitRecursive(node);
     }
 
     // =========================================================================
@@ -173,7 +232,7 @@ pub const Builder = struct {
         self._scope_stack.appendAssumeCapacity(root_scope.id);
     }
 
-    fn enterScope(self: *Builder, flags: Semantic.Scope.Flags) !void {
+    fn enterScope(self: *Builder, flags: Scope.Flags) !void {
         print("entering scope\n", .{});
         const parent_id = self._scope_stack.getLast(); // panics if stack is empty
         const scope = try self._semantic.scopes.addScope(self._gpa, parent_id, flags);
@@ -186,7 +245,7 @@ pub const Builder = struct {
         _ = self._scope_stack.pop();
     }
 
-    inline fn currentScope(self: *const Builder) Semantic.Scope.Id {
+    inline fn currentScope(self: *const Builder) Scope.Id {
         assert(self._scope_stack.items.len != 0);
         return self._scope_stack.getLast();
     }
@@ -196,8 +255,35 @@ pub const Builder = struct {
         assert(self._scope_stack.items[0] == 0);
     }
 
+    fn enterContainerSymbol(self: *Builder, symbol_id: Symbol.Id) !void {
+        try self._symbol_stack.append(self._gpa, symbol_id);
+    }
+
+    fn exitContainerSymbol(self: *Builder) void {
+        // NOTE: asserts stack is not empty
+        _ = self._symbol_stack.pop();
+    }
+
+    fn currentContainerSymbol(self: *const Builder) ?Symbol.Id {
+        return self._symbol_stack.getLastOrNull();
+    }
+
+    fn currentContainerSymbolUnwrap(self: *const Builder) Symbol.Id {
+        return self._symbol_stack.getLast();
+    }
+
+    /// Declare a new symbol in the current scope and record it as a member to
+    /// the most recent container symbol. Returns the new member symbol's ID.
+    fn declareMemberSymbol(self: *Builder, declaration_node: Ast.Node.Index, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
+        const member_symbol_id = try self.declareSymbol(declaration_node, name, visibility, flags);
+        const container_symbol_id = self.currentContainerSymbolUnwrap();
+        assert(!self._semantic.symbols.get(container_symbol_id).flags.s_member);
+        try self._semantic.symbols.addMember(self._gpa, member_symbol_id, container_symbol_id);
+        return member_symbol_id;
+    }
+
     /// Declare a symbol in the current scope.
-    fn declareSymbol(self: *Builder, declaration_node: Ast.Node.Index, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
+    inline fn declareSymbol(self: *Builder, declaration_node: Ast.Node.Index, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
         const symbol = try self._semantic.symbols.addSymbol(self._gpa, declaration_node, name, self.currentScope(), visibility, flags);
         return symbol.id;
     }
@@ -327,11 +413,14 @@ pub const Builder = struct {
     pub const Result = Error.Result(Semantic);
 };
 
+const IS_DEBUG = builtin.mode == .Debug;
+
 const std = @import("std");
 const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Type = std.builtin.Type;
+
 const assert = std.debug.assert;
 const print = std.debug.print;
 
