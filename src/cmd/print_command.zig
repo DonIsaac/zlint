@@ -24,7 +24,7 @@ pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source) !void {
         }
         return;
     }
-    const ast = sema_result.semantic.ast;
+    const ast = sema_result.value.ast;
     const writer = std.io.getStdOut().writer();
     var ast_printer = AstPrinter.init(alloc, opts, writer, source, &ast);
     defer ast_printer.deinit();

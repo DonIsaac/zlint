@@ -24,7 +24,7 @@ pub const Builder = struct {
     /// Errors encountered during parsing and analysis.
     ///
     /// Errors in this list are allocated using this list's allocator.
-    _errors: std.ArrayList(Error),
+    _errors: std.ArrayListUnmanaged(Error),
 
     pub fn build(gpa: Allocator, source: stringSlice) !Result {
         var builder = try Builder.init(gpa);
@@ -59,19 +59,14 @@ pub const Builder = struct {
             builder.assertRootScope();
         }
 
-        return .{ .semantic = builder._semantic, .errors = builder._errors };
+        return Result.new(builder._gpa, builder._semantic, builder._errors);
     }
 
     fn init(gpa: Allocator) !Builder {
         var scope_stack: std.ArrayListUnmanaged(Semantic.Scope.Id) = .{};
         try scope_stack.ensureUnusedCapacity(gpa, 8);
 
-        return Builder{
-            ._gpa = gpa,
-            ._arena = ArenaAllocator.init(gpa),
-            ._scope_stack = scope_stack,
-            ._errors = std.ArrayList(Error).init(gpa),
-        };
+        return Builder{ ._gpa = gpa, ._arena = ArenaAllocator.init(gpa), ._scope_stack = scope_stack, ._errors = .{} };
     }
 
     pub fn deinit(self: *Builder) void {
@@ -83,7 +78,7 @@ pub const Builder = struct {
 
         // Record parse errors
         if (ast.errors.len != 0) {
-            try self._errors.ensureUnusedCapacity(ast.errors.len);
+            try self._errors.ensureUnusedCapacity(self._gpa, ast.errors.len);
             for (ast.errors) |ast_err| {
                 // Not an error. TODO: verify this assumption
                 if (ast_err.is_note) continue;
@@ -269,10 +264,9 @@ pub const Builder = struct {
     // =========================================================================
 
     fn addAstError(self: *Builder, ast: *const Ast, ast_err: Ast.Error) !void {
-        const alloc = self._errors.allocator;
         var msg: std.ArrayListUnmanaged(u8) = .{};
-        defer msg.deinit(alloc);
-        try ast.renderError(ast_err, msg.writer(alloc));
+        defer msg.deinit(self._gpa);
+        try ast.renderError(ast_err, msg.writer(self._gpa));
 
         // TODO: render `ast_err.extra.expected_tag`
         const byte_offset: Ast.ByteOffset = ast.tokens.items(.start)[ast_err.token];
@@ -280,7 +274,7 @@ pub const Builder = struct {
         const labels = .{Span{ .start = @intCast(loc.line_start), .end = @intCast(loc.line_end) }};
         _ = labels;
 
-        return self.addErrorOwnedMessage(try msg.toOwnedSlice(alloc), null);
+        return self.addErrorOwnedMessage(try msg.toOwnedSlice(self._gpa), null);
     }
 
     /// Record an error encountered during parsing or analysis.
@@ -298,39 +292,39 @@ pub const Builder = struct {
     /// Create and record an error. `message` is an owned slice moved into the new Error.
     // fn addErrorOwnedMessage(self: *Builder, message: string, labels: []Span, help: ?string) !void {
     fn addErrorOwnedMessage(self: *Builder, message: string, help: ?string) !void {
-        const alloc = self._errors.allocator;
         // const heap_labels = try alloc.dupe(labels);
-        const heap_help: ?string = if (help == null) null else try alloc.dupeZ(u8, help.?);
+        const heap_help: ?string = if (help == null) null else try self._gpa.dupeZ(u8, help.?);
         const err = Error{ .message = message, .help = heap_help };
         // const err = try Error{ .message = message, .labels = heap_labels, .help = heap_help };
-        try self._errors.append(err);
+        try self._errors.append(self._gpa, err);
     }
 
-    pub const Result = struct {
-        semantic: Semantic,
-        errors: std.ArrayList(Error),
+    // pub const Result = struct {
+    //     semantic: Semantic,
+    //     errors: std.ArrayList(Error),
 
-        pub fn deinit(self: *Result) void {
-            self.semantic.deinit();
-            self.deinitErrors();
-        }
+    //     pub fn deinit(self: *Result) void {
+    //         self.semantic.deinit();
+    //         self.deinitErrors();
+    //     }
 
-        pub fn hasErrors(self: *Result) bool {
-            return self.errors.items.len != 0;
-        }
+    //     pub fn hasErrors(self: *Result) bool {
+    //         return self.errors.items.len != 0;
+    //     }
 
-        /// Free the error list, leaving `semantic` untouched.
-        pub fn deinitErrors(self: *Result) void {
-            const err_alloc = self.errors.allocator;
-            var i: usize = 0;
-            const len = self.errors.items.len;
-            while (i < len) {
-                self.errors.items[i].deinit(err_alloc);
-                i += 1;
-            }
-            self.errors.deinit();
-        }
-    };
+    //     /// Free the error list, leaving `semantic` untouched.
+    //     pub fn deinitErrors(self: *Result) void {
+    //         const err_alloc = self.errors.allocator;
+    //         var i: usize = 0;
+    //         const len = self.errors.items.len;
+    //         while (i < len) {
+    //             self.errors.items[i].deinit(err_alloc);
+    //             i += 1;
+    //         }
+    //         self.errors.deinit();
+    //     }
+    // };
+    pub const Result = Error.Result(Semantic);
 };
 
 const std = @import("std");
