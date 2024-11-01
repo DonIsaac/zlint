@@ -130,6 +130,12 @@ pub const Builder = struct {
             return;
         }
 
+        // TODO:
+        // - bind function declarations
+        // - record symbol types and signatures
+        // - record symbol references
+        // - Scope flags for unions, structs, and enums. Blocks are currently handled (TODO: that needs testing).
+        // - Test the shit out of it
         const tag: Ast.Node.Tag = self._semantic.ast.nodes.items(.tag)[node_id];
         switch (tag) {
             .root => unreachable, // root node is never referenced.
@@ -239,8 +245,6 @@ pub const Builder = struct {
             assert(var_decl.ast.init_node < self.AST().nodes.len);
             try self.visitNode(var_decl.ast.init_node);
         }
-
-        // return self.visitRecursive(node);
     }
 
     // =========================================================================
@@ -258,6 +262,7 @@ pub const Builder = struct {
         self._scope_stack.appendAssumeCapacity(root_scope.id);
     }
 
+    /// Enter a new scope, pushing it onto the stack.
     fn enterScope(self: *Builder, flags: Scope.Flags) !void {
         print("entering scope\n", .{});
         const parent_id = self._scope_stack.getLast(); // panics if stack is empty
@@ -265,12 +270,16 @@ pub const Builder = struct {
         try self._scope_stack.append(self._gpa, scope.id);
     }
 
+    /// Exit the current scope. It is a bug to pop the root scope.
     inline fn exitScope(self: *Builder) void {
         print("exiting scope\n", .{});
         assert(self._scope_stack.items.len > 1); // cannot pop root scope
         _ = self._scope_stack.pop();
     }
 
+    /// Get the current scope.
+    ///
+    /// This should never panic because the root scope is never exited.
     inline fn currentScope(self: *const Builder) Scope.Id {
         assert(self._scope_stack.items.len != 0);
         return self._scope_stack.getLast();

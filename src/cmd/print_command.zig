@@ -1,3 +1,12 @@
+//! Hacky AST printer for debugging purposes.
+//!
+//! Resolves AST nodes and prints them as JSON. This can be safely piped into a file, since `std.debug.print` writes to stderr.
+//!
+//! ## Usage
+//! ```sh
+//! # note: right now, no target file can be specified. Run
+//! zig build run -- --print-ast | prettier --stdin-filepath foo.ast.json > tmp/foo.ast.json
+//! ```
 const std = @import("std");
 const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
@@ -8,7 +17,8 @@ const NodeId = Ast.Node.Index;
 const Options = @import("../cli/Options.zig");
 const Source = @import("../source.zig").Source;
 const semantic = @import("../semantic.zig");
-const Printer = @import("./Printer.zig");
+const Printer = @import("../printer/Printer.zig");
+const SemanticPrinter = @import("../printer/SemanticPrinter.zig");
 
 const assert = std.debug.assert;
 const IS_DEBUG = builtin.mode == .Debug;
@@ -26,25 +36,29 @@ pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source) !void {
     }
     const ast = sema_result.value.ast;
     const writer = std.io.getStdOut().writer();
-    var ast_printer = AstPrinter.init(alloc, opts, writer, source, &ast);
-    defer ast_printer.deinit();
+    var printer = Printer.init(alloc, writer);
+    defer printer.deinit();
+    var ast_printer = AstPrinter.new(&printer, opts, source, &ast);
+    var semantic_printer = SemanticPrinter.new(&printer);
+
+    try printer.pushObject();
+    defer printer.pop();
+    try printer.pPropName("ast");
     try ast_printer.printAst();
+    try printer.pPropName("symbols");
+    try semantic_printer.printSymbolTable(&sema_result.value.symbols);
 }
 
+/// TODO: move to src/printer/AstPrinter.zig?
 const AstPrinter = struct {
     opts: Options,
     source: Source,
     ast: *const Ast,
-    printer: Printer,
+    printer: *Printer,
     max_node_id: NodeId,
 
-    fn init(alloc: Allocator, opts: Options, writer: Printer.Writer, source: Source, ast: *const Ast) AstPrinter {
-        const printer = Printer.init(alloc, writer);
+    fn new(printer: *Printer, opts: Options, source: Source, ast: *const Ast) AstPrinter {
         return .{ .opts = opts, .source = source, .ast = ast, .printer = printer, .max_node_id = @intCast(ast.nodes.len - 1) };
-    }
-
-    fn deinit(self: *AstPrinter) void {
-        self.printer.deinit();
     }
 
     fn printAst(self: *AstPrinter) !void {
