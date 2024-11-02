@@ -475,28 +475,32 @@ const str = @import("str.zig");
 const string = str.string;
 const stringSlice = str.stringSlice;
 
-test "Struct fields are bound bound to the struct's member table" {
-    const program = "const Foo = struct { bar: u32 };";
+test "Struct fields are bound bound to the struct/enums's member table" {
     const alloc = std.testing.allocator;
+    const programs = [_][:0]const u8{
+        "const Foo = struct { bar: u32 };",
+        "const Foo = enum { bar };",
+    };
+    for (programs) |program| {
+        var result = try Builder.build(alloc, program);
+        defer result.deinit();
+        try std.testing.expect(!result.hasErrors());
+        var semantic = result.value;
 
-    var result = try Builder.build(alloc, program);
-    defer result.deinit();
-    try std.testing.expect(!result.hasErrors());
-    var semantic = result.value;
-
-    var foo: ?Semantic.Symbol = null;
-    var bar: ?Semantic.Symbol = null;
-    for (semantic.symbols.symbols.items) |symbol| {
-        if (std.mem.eql(u8, symbol.name, "bar")) {
-            bar = symbol;
-        } else if (std.mem.eql(u8, symbol.name, "Foo")) {
-            foo = symbol;
+        var foo: ?Semantic.Symbol = null;
+        var bar: ?Semantic.Symbol = null;
+        for (semantic.symbols.symbols.items) |symbol| {
+            if (std.mem.eql(u8, symbol.name, "bar")) {
+                bar = symbol;
+            } else if (std.mem.eql(u8, symbol.name, "Foo")) {
+                foo = symbol;
+            }
         }
-    }
 
-    try std.testing.expect(bar != null);
-    try std.testing.expect(foo != null);
-    try std.testing.expect(bar.?.scope != Semantic.ROOT_SCOPE_ID);
-    try std.testing.expectEqual(1, semantic.symbols.getMembers(foo.?.id).items.len);
-    try std.testing.expectEqual(bar.?.id, semantic.symbols.getMembers(foo.?.id).items[0]);
+        try std.testing.expect(bar != null);
+        try std.testing.expect(foo != null);
+        try std.testing.expect(bar.?.scope != Semantic.ROOT_SCOPE_ID);
+        try std.testing.expectEqual(1, semantic.symbols.getMembers(foo.?.id).items.len);
+        try std.testing.expectEqual(bar.?.id, semantic.symbols.getMembers(foo.?.id).items[0]);
+    }
 }
