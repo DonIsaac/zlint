@@ -135,13 +135,21 @@ pub const SymbolTable = struct {
     }
 
     pub fn addMember(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) !void {
-        var members = self.members.items[container];
+        var members = &self.members.items[container];
         try members.append(alloc, member);
     }
 
+    pub inline fn getMembers(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
+        return &self.members.items[container];
+    }
+
     pub fn addExport(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) !void {
-        var exports = self.exports.items[container];
+        var exports = &self.exports.items[container];
         try exports.append(alloc, member);
+    }
+
+    pub inline fn getExports(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
+        return &self.exports.items[container];
     }
 
     pub fn deinit(self: *SymbolTable, alloc: Allocator) void {

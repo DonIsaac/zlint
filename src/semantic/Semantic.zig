@@ -20,6 +20,8 @@ _gpa: Allocator,
 /// Used to allocate AST nodes
 _arena: ArenaAllocator,
 
+pub const ROOT_SCOPE_ID: Scope.Id = 0;
+
 pub fn deinit(self: *Semantic) void {
     // NOTE: ast is arena allocated, so no need to deinit it. freeing the arena
     // is sufficient.
