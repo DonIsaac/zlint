@@ -11,11 +11,11 @@ pub fn printSymbolTable(self: *SemanticPrinter, symbols: *const Semantic.SymbolT
     defer self.printer.pop();
 
     for (symbols.symbols.items) |symbol| {
-        try self.printSymbol(&symbol);
+        try self.printSymbol(&symbol, symbols);
     }
 }
 
-fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol) !void {
+fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: *const Semantic.SymbolTable) !void {
     try self.printer.pushObject();
     defer self.printer.pop();
 
@@ -25,6 +25,8 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol) !void {
     // try self.printer.pPropStr("type", symbol.type);
     try self.printer.pProp("scope", "{d}", symbol.scope);
     try self.printer.pPropJson("flags", symbol.flags);
+    try self.printer.pPropJson("members", symbols.getMembers(symbol.id).items);
+    try self.printer.pPropJson("exports", symbols.getExports(symbol.id).items);
     // try self.printer.pPropStr("location", symbol.location);
 }
 
