@@ -65,7 +65,7 @@ pub const ScopeTree = struct {
         // Add it to its parent's list of child scopes
         if (parent != null) {
             assert(parent.? < self.children.items.len);
-            var parentChildren: ScopeIdList = self.children.items[parent.?];
+            var parentChildren: *ScopeIdList = &self.children.items[parent.?];
             try parentChildren.append(alloc, id);
         }
 
@@ -90,3 +90,28 @@ pub const ScopeTree = struct {
         }
     }
 };
+
+test "ScopeTree.addScope" {
+    const alloc = std.testing.allocator;
+    const expectEqual = std.testing.expectEqual;
+
+    var tree = ScopeTree{};
+    defer tree.deinit(alloc);
+
+    const root = try tree.addScope(alloc, null, .{ .s_top = true });
+    try expectEqual(1, tree.scopes.items.len);
+    try expectEqual(0, root.id);
+    try expectEqual(Scope.Flags{ .s_top = true }, root.flags);
+    try expectEqual(root, &tree.scopes.items[0]);
+
+    const child = try tree.addScope(alloc, root.id, .{});
+    try expectEqual(1, child.id);
+    try expectEqual(Scope.Flags{}, child.flags);
+    try expectEqual(root.id, child.parent);
+    try expectEqual(child, &tree.scopes.items[1]);
+
+    try expectEqual(2, tree.scopes.items.len);
+    try expectEqual(2, tree.children.items.len);
+    try expectEqual(1, tree.children.items[0].items.len);
+    try expectEqual(1, tree.children.items[0].items[0]);
+}
