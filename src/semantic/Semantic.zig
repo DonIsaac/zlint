@@ -42,11 +42,10 @@ const Type = std.builtin.Type;
 const assert = std.debug.assert;
 
 const scope = @import("./scope.zig");
-const symbol = @import("./symbol.zig");
+pub const Symbol = @import("./Symbol.zig");
+pub const SymbolTable = Symbol.SymbolTable;
 pub const Scope = scope.Scope;
-pub const Symbol = symbol.Symbol;
 pub const ScopeTree = scope.ScopeTree;
-pub const SymbolTable = symbol.SymbolTable;
 
 const str = @import("../str.zig");
 const string = str.string;

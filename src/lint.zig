@@ -101,8 +101,13 @@ pub const Linter = struct {
             @panic("semantic analysis failed");
         }
         print("Symbols:\n", .{});
-        for (semantic_result.value.symbols.symbols.items) |symbol| {
-            print("\t{s}\t{any}\n", .{ symbol.name, symbol });
+        {
+            var i: Semantic.Symbol.Id = 0;
+            while (i < semantic_result.value.symbols.symbols.len) {
+                const symbol = semantic_result.value.symbols.get(i);
+                print("\t{s}\t{any}\n", .{ symbol.name, symbol });
+                i += 1;
+            }
         }
         // semantic_result.deinitErrors();
         const semantic = semantic_result.value;

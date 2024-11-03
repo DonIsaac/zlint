@@ -10,8 +10,11 @@ pub fn printSymbolTable(self: *SemanticPrinter, symbols: *const Semantic.SymbolT
     try self.printer.pushArray();
     defer self.printer.pop();
 
-    for (symbols.symbols.items) |symbol| {
-        try self.printSymbol(&symbol, symbols);
+    var i: Semantic.Symbol.Id = 0;
+    while (i < symbols.symbols.len) {
+        const symbol = symbols.get(i);
+        try self.printSymbol(symbol, symbols);
+        i += 1;
     }
 }
 

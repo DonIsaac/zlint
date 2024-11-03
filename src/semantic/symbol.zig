@@ -1,69 +1,69 @@
-const std = @import("std");
+//! A declared variable/function/whatever.
+//!
+//! Type: `pub struct Symbol<'a>`
 
-const Allocator = std.mem.Allocator;
-const Ast = std.zig.Ast;
-const Scope = @import("scope.zig").Scope;
-const Type = std.builtin.Type;
-
-const assert = std.debug.assert;
-const string = @import("../str.zig").string;
-
-/// A declared variable/function/whatever.
+/// Identifier name.
 ///
-/// Type: `pub struct Symbol<'a>`
-pub const Symbol = struct {
-    /// Identifier name.
-    ///
-    /// Symbols only borrow their names. These string slices reference data in
-    /// source text, which owns the allocation.
-    ///
-    /// `&'a str`
-    name: string,
-    /// This symbol's type. Only present if statically determinable, since
-    /// analysis doesn't currently do type checking.
-    // ty: ?Type,
-    /// Unique identifier for this symbol.
-    id: Id,
-    /// Scope this symbol is declared in.
-    scope: Scope.Id,
-    /// Index of the AST node declaring this symbol.
-    ///
-    /// Usually a `var`/`const` declaration, function statement, etc.
-    decl: Ast.Node.Index,
-    visibility: Visibility,
-    flags: Flags,
+/// Symbols only borrow their names. These string slices reference data in
+/// source text, which owns the allocation.
+///
+/// `&'a str`
+name: string,
+/// This symbol's type. Only present if statically determinable, since
+/// analysis doesn't currently do type checking.
+// ty: ?Type,
+/// Unique identifier for this symbol.
+id: Id,
+/// Scope this symbol is declared in.
+scope: Scope.Id,
+/// Index of the AST node declaring this symbol.
+///
+/// Usually a `var`/`const` declaration, function statement, etc.
+decl: Ast.Node.Index,
+visibility: Visibility,
+flags: Flags,
 
-    /// Uniquely identifies a symbol across a source file.
-    pub const Id = u32;
-    pub const MAX_ID = std.math.maxInt(Id);
+/// Symbols on "instance objects" (e.g. field properties and instance
+/// methods).
+///
+/// Do not write to this list directly.
+members: SymbolIdList = .{},
+/// Symbols directly accessible on the symbol itself (e.g. static methods,
+/// constants, enum members).
+///
+/// Do not write to this list directly.
+exports: SymbolIdList = .{},
 
-    /// Visibility to external code.
+/// Uniquely identifies a symbol across a source file.
+pub const Id = u32;
+pub const MAX_ID = std.math.maxInt(Id);
+
+/// Visibility to external code.
+///
+/// Does not encode convention-based visibility. This reflects the `pub` Zig
+/// keyword.
+///
+/// TODO: handle exports?
+pub const Visibility = enum {
+    public,
+    private,
+};
+pub const Flags = packed struct {
+    /// Comptime symbol.
     ///
-    /// Does not encode convention-based visibility. This reflects the `pub` Zig
-    /// keyword.
+    /// Not `true` for inferred comptime parameters. That is, this is only
+    /// `true` when the `comptime` modifier is present.
+    s_comptime: bool = false,
+    /// TODO: not recorded yet
+    s_const: bool = false,
+    /// Indicates a container field.
     ///
-    /// TODO: handle exports?
-    pub const Visibility = enum {
-        public,
-        private,
-    };
-    pub const Flags = packed struct {
-        /// Comptime symbol.
-        ///
-        /// Not `true` for inferred comptime parameters. That is, this is only
-        /// `true` when the `comptime` modifier is present.
-        s_comptime: bool = false,
-        /// TODO: not recorded yet
-        s_const: bool = false,
-        /// Indicates a container field.
-        ///
-        /// ```zig
-        /// const Foo = struct {
-        ///   bar: u32, // <- this is a container field
-        /// }
-        /// ```
-        s_member: bool = false,
-    };
+    /// ```zig
+    /// const Foo = struct {
+    ///   bar: u32, // <- this is a container field
+    /// }
+    /// ```
+    s_member: bool = false,
 };
 
 /// Stores symbols created and referenced within a Zig program.
@@ -91,30 +91,27 @@ pub const SymbolTable = struct {
     /// Indexed by symbol id.
     ///
     /// Do not write to this list directly.
-    symbols: std.ArrayListUnmanaged(Symbol) = .{},
-    /// Symbols on "instance objects" (e.g. field properties and instance
-    /// methods).
-    ///
-    /// Do not write to this list directly.
-    members: std.ArrayListUnmanaged(SymbolIdList) = .{},
-    /// Symbols directly accessible on the symbol itself (e.g. static methods,
-    /// constants, enum members).
-    ///
-    /// Do not write to this list directly.
-    exports: std.ArrayListUnmanaged(SymbolIdList) = .{},
+    symbols: std.MultiArrayList(Symbol) = .{},
 
-    const SymbolIdList = std.ArrayListUnmanaged(Symbol.Id);
-
-    pub inline fn get(self: *SymbolTable, id: Symbol.Id) *const Symbol {
-        return &self.symbols.items[id];
+    pub inline fn get(self: *const SymbolTable, id: Symbol.Id) *const Symbol {
+        return &self.symbols.get(id);
     }
-    pub fn addSymbol(self: *SymbolTable, alloc: Allocator, declaration_node: Ast.Node.Index, name: string, scope_id: Scope.Id, visibility: Symbol.Visibility, flags: Symbol.Flags) !*Symbol {
-        assert(self.symbols.items.len < Symbol.MAX_ID);
 
-        const id: Symbol.Id = @intCast(self.symbols.items.len);
-        const symbol: *Symbol = try self.symbols.addOne(alloc);
-        symbol.* = Symbol{
-            // line break
+    // zig fmt: off
+    pub fn addSymbol(
+        self: *SymbolTable,
+        alloc: Allocator,
+        declaration_node: Ast.Node.Index,
+        name: string,
+        scope_id: Scope.Id,
+        visibility: Symbol.Visibility,
+        flags: Symbol.Flags,
+    ) !Symbol.Id {
+
+        assert(self.symbols.len < Symbol.MAX_ID);
+
+        const id: Symbol.Id = @intCast(self.symbols.len);
+        const symbol =  Symbol{
             .name = name,
             // .ty = ty,
             .id = id,
@@ -124,57 +121,60 @@ pub const SymbolTable = struct {
             .decl = declaration_node,
         };
 
-        try self.members.append(alloc, .{});
-        try self.exports.append(alloc, .{});
+        try self.symbols.append(alloc, symbol);
 
-        // sanity check
-        assert(self.symbols.items.len == self.members.items.len);
-        assert(self.symbols.items.len == self.exports.items.len);
+        return id;
+    }
+    // zig fmt: on
 
-        return symbol;
+    pub inline fn getMembers(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
+        return &self.symbols.items(.members)[container];
+    }
+
+    pub inline fn getMembersMut(self: *SymbolTable, container: Symbol.Id) *SymbolIdList {
+        return &self.symbols.items(.members)[container];
     }
 
     pub fn addMember(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) !void {
-        var members = &self.members.items[container];
-        try members.append(alloc, member);
-    }
-
-    pub inline fn getMembers(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
-        return &self.members.items[container];
-    }
-
-    pub fn addExport(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) !void {
-        var exports = &self.exports.items[container];
-        try exports.append(alloc, member);
+        try self.getMembersMut(container).append(alloc, member);
     }
 
     pub inline fn getExports(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
-        return &self.exports.items[container];
+        return &self.symbols.items(.exports)[container];
+    }
+
+    pub inline fn getExportsMut(self: *SymbolTable, container: Symbol.Id) *SymbolIdList {
+        return &self.symbols.items(.exports)[container];
+    }
+
+    pub inline fn addExport(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) !void {
+        try self.getExportsMut(container).append(alloc, member);
     }
 
     pub fn deinit(self: *SymbolTable, alloc: Allocator) void {
+        {
+            var i: Id = 0;
+            const len: Id = @intCast(self.symbols.len);
+            while (i < len) {
+                self.getMembersMut(i).deinit(alloc);
+                self.getExportsMut(i).deinit(alloc);
+                i += 1;
+            }
+        }
         self.symbols.deinit(alloc);
-
-        {
-            var i: usize = 0;
-            const len = self.members.items.len;
-            while (i < len) {
-                var members = self.members.items[i];
-                members.deinit(alloc);
-                i += 1;
-            }
-            self.members.deinit(alloc);
-        }
-
-        {
-            var i: usize = 0;
-            const len = self.exports.items.len;
-            while (i < len) {
-                var exports = self.exports.items[i];
-                exports.deinit(alloc);
-                i += 1;
-            }
-            self.exports.deinit(alloc);
-        }
     }
 };
+
+const Symbol = @This();
+
+const std = @import("std");
+
+const Allocator = std.mem.Allocator;
+const Ast = std.zig.Ast;
+const Scope = @import("scope.zig").Scope;
+const Type = std.builtin.Type;
+
+const assert = std.debug.assert;
+const string = @import("../str.zig").string;
+
+const SymbolIdList = std.ArrayListUnmanaged(Symbol.Id);
