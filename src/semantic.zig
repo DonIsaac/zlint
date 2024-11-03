@@ -491,16 +491,15 @@ test "Struct/enum fields are bound bound to the struct/enums's member table" {
         var foo: ?*const Semantic.Symbol = null;
         var bar: ?*const Semantic.Symbol = null;
         {
-            var i: Semantic.Symbol.Id = 0;
+            var iter = semantic.symbols.iter();
             const names = semantic.symbols.symbols.items(.name);
-            while (i < semantic.symbols.symbols.len) {
-                const name = names[i];
+            while (iter.next()) |id| {
+                const name = names[id];
                 if (std.mem.eql(u8, name, "bar")) {
-                    bar = semantic.symbols.get(i);
+                    bar = semantic.symbols.get(id);
                 } else if (std.mem.eql(u8, name, "Foo")) {
-                    foo = semantic.symbols.get(i);
+                    foo = semantic.symbols.get(id);
                 }
-                i += 1;
             }
         }
 

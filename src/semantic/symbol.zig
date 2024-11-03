@@ -151,6 +151,10 @@ pub const SymbolTable = struct {
         try self.getExportsMut(container).append(alloc, member);
     }
 
+    pub inline fn iter(self: *const SymbolTable) Iterator {
+        return Iterator{ .table = self };
+    }
+
     pub fn deinit(self: *SymbolTable, alloc: Allocator) void {
         {
             var i: Id = 0;
@@ -162,6 +166,20 @@ pub const SymbolTable = struct {
             }
         }
         self.symbols.deinit(alloc);
+    }
+};
+
+pub const Iterator = struct {
+    curr: Symbol.Id = 0,
+    table: *const SymbolTable,
+
+    pub fn next(self: *Iterator) ?Symbol.Id {
+        if (self.curr >= self.table.symbols.len) {
+            return null;
+        }
+        const id = self.curr;
+        self.curr += 1;
+        return id;
     }
 };
 

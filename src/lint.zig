@@ -102,11 +102,10 @@ pub const Linter = struct {
         }
         print("Symbols:\n", .{});
         {
-            var i: Semantic.Symbol.Id = 0;
-            while (i < semantic_result.value.symbols.symbols.len) {
-                const symbol = semantic_result.value.symbols.get(i);
+            var iter = semantic_result.value.symbols.iter();
+            while (iter.next()) |id| {
+                const symbol = semantic_result.value.symbols.get(id);
                 print("\t{s}\t{any}\n", .{ symbol.name, symbol });
-                i += 1;
             }
         }
         // semantic_result.deinitErrors();
