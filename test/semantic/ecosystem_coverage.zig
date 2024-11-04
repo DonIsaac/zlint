@@ -1,4 +1,4 @@
-const test_runner = @import("../TestRunner.zig");
+const test_runner = @import("../harness.zig");
 
 const std = @import("std");
 const fs = std.fs;
@@ -10,7 +10,6 @@ const print = std.debug.print;
 const zlint = @import("zlint");
 const Source = zlint.Source;
 
-const TestSuite = @import("../TestSuite.zig");
 const utils = @import("../utils.zig");
 const string = utils.string;
 const Repo = utils.Repo;
@@ -35,7 +34,7 @@ pub fn run(alloc: Allocator) !void {
     defer repos.deinit();
     for (repos.value) |repo| {
         const repo_dir = try utils.TestFolders.openRepo(alloc, repo.name);
-        var suite = try TestSuite.init(alloc, repo_dir, "semantic-coverage", repo.name, &testSemantic);
+        var suite = try test_runner.TestSuite.init(alloc, repo_dir, "semantic-coverage", repo.name, &testSemantic);
         defer suite.deinit();
 
         try suite.run();

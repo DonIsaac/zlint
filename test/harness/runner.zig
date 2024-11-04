@@ -1,3 +1,11 @@
+const std = @import("std");
+const utils = @import("../utils.zig");
+
+const Allocator = std.mem.Allocator;
+const assert = std.debug.assert;
+const panic = std.debug.panic;
+const print = std.debug.print;
+
 const TestAllocator = std.heap.GeneralPurposeAllocator(.{
     .never_unmap = true,
     .retain_metadata = true,
@@ -80,10 +88,3 @@ pub const TestFile = struct {
     pub const RunFn = fn (alloc: Allocator) anyerror!void;
 };
 
-const std = @import("std");
-const utils = @import("utils.zig");
-
-const Allocator = std.mem.Allocator;
-const assert = std.debug.assert;
-const panic = std.debug.panic;
-const print = std.debug.print;

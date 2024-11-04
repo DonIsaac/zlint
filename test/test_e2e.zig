@@ -4,7 +4,7 @@ const utils = @import("utils.zig");
 const print = std.debug.print;
 const panic = std.debug.panic;
 
-const test_runner = @import("TestRunner.zig");
+const test_runner = @import("harness/runner.zig");
 const TestRunner = test_runner.TestRunner;
 
 // test suites

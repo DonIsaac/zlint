@@ -141,7 +141,7 @@ const Allocator = std.mem.Allocator;
 const ThreadPool = std.Thread.Pool;
 const panic = std.debug.panic;
 
-const utils = @import("utils.zig");
+const utils = @import("../utils.zig");
 const string = utils.string;
 const Source = zlint.Source;
 
