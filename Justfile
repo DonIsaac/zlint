@@ -35,7 +35,7 @@ watch cmd="check":
 
 # Run all tests
 test:
-    zig build test
+    zig build test --summary all
 
 e2e:
     zig build test-e2e
