@@ -21,24 +21,55 @@ pub const TestFolders = struct {
     /// Parent folder where snapshots are stored. Use `openSnapshotFile` in
     /// tests to create a snapshot.
     pub const SNAPSHOTS_DIR = "test/snapshots";
+    pub const FIXTURES_DIR = "test/fixtures";
+    const SNAP_EXT = ".snap";
 
     pub fn globalInit() !void {
         try fs.cwd().makePath(SNAPSHOTS_DIR);
     }
 
+    pub fn openFixtureDir(alloc: Allocator, path_segs: []const string) !fs.Dir {
+        const fixture_dir = try path.join(alloc, &[_]string{ FIXTURES_DIR, path_segs });
+        defer alloc.free(fixture_dir);
+        return fs.cwd().openDir(fixture_dir, .{});
+    }
+
     pub fn openSnapshotFile(alloc: Allocator, subpath: string, name: string) !fs.File {
-        assert(std.mem.endsWith(u8, name, ".snap"));
+        var snapshot_filename: string = "";
+        var filename_needs_dealloc = false;
+
+        if(!std.mem.endsWith(u8, name, SNAP_EXT)) {
+            const with_ext = try std.mem.concat(alloc, u8, &[_]string {name, SNAP_EXT});
+            filename_needs_dealloc = true;
+            snapshot_filename = with_ext;
+        } else {
+            snapshot_filename = name;
+        }
+
 
         // create suite subfolder if it doesn't exist yet
         const cwd = fs.cwd();
         {
             const snapshot_dir = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, subpath });
+            defer alloc.free(snapshot_dir);
             try cwd.makePath(snapshot_dir);
         }
 
-        const relative_path = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, subpath, name });
+        const relative_path = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, subpath, snapshot_filename });
         defer alloc.free(relative_path);
+        if (filename_needs_dealloc) {
+            alloc.free(snapshot_filename);
+        }
+
         return cwd.createFile(relative_path, .{});
+    }
+
+    pub fn openSnapshotDir(alloc: Allocator, path_segs: []const string) !fs.Dir {
+        const snapshot_dir = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, path_segs });
+        defer alloc.free(snapshot_dir);
+        const cwd = fs.cwd();
+        try cwd.makeDir(snapshot_dir, .{});
+        return cwd.openDir(snapshot_dir, .{});
     }
 
     /// Opens a repository directory for iteration. Caller takes ownership of
@@ -106,3 +137,14 @@ pub const CmdRunner = struct {
         _ = try child.wait();
     }
 };
+
+/// ThreadPool seems to be adding a null byte at the end of ent.path in some
+/// cases, which breaks openFile. TODO: open a bug report in Zig.
+pub fn cleanStrSlice(slice: string) string {
+    const sentinel = std.mem.indexOfScalar(u8, slice, 0);
+    if (sentinel) |s|{
+        return slice[0..s];
+    } else {
+        return slice;
+    }
+}

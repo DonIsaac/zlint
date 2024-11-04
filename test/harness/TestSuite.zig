@@ -1,5 +1,7 @@
 /// Root directory containing zig files being tested
 test_fn: *const TestFn,
+setup_fn: ?*const fn (suite: *TestSuite) anyerror!void,
+teardown_fn: ?*const fn (suite: *TestSuite) anyerror!void,
 dir: fs.Dir,
 walker: fs.Dir.Walker,
 snapshot: fs.File,
@@ -9,6 +11,13 @@ errors_mutex: std.Thread.Mutex = .{},
 stats: Stats = .{},
 
 const TestFn = fn (alloc: Allocator, source: *const Source) anyerror!void;
+const SetupFn = fn (suite: *TestSuite) anyerror!void;
+
+pub const TestSuiteFns = struct {
+    test_fn: *const TestFn,
+    setup_fn: ?*const fn (suite: *TestSuite) anyerror!void = null,
+    teardown_fn: ?*const fn (suite: *TestSuite) anyerror!void = null,
+};
 
 /// Takes ownership of `dir`. Do not close it directly after passing.
 pub fn init(
@@ -16,7 +25,9 @@ pub fn init(
     dir: fs.Dir,
     group_name: string,
     suite_name: string,
-    test_fn: *const TestFn,
+    fns: TestSuiteFns,
+    // test_fn: *const TestFn,
+    // setup_fn: ?*const fn (suite: *TestSuite) anyerror!void,
 ) !TestSuite {
     const SNAP_EXT = ".snap";
     // +1 for sentinel (TODO: check if needed)
@@ -29,7 +40,16 @@ pub fn init(
     const snapshot = try utils.TestFolders.openSnapshotFile(alloc, group_name, snapshot_name);
     const walker = try dir.walk(alloc);
 
-    return TestSuite{ .test_fn = test_fn, .dir = dir, .walker = walker, .snapshot = snapshot, .alloc = alloc };
+    return TestSuite{
+        // line bream
+        .test_fn = fns.test_fn,
+        .setup_fn = fns.setup_fn,
+        .teardown_fn = fns.teardown_fn,
+        .dir = dir,
+        .walker = walker,
+        .snapshot = snapshot,
+        .alloc = alloc,
+    };
 }
 
 pub fn deinit(self: *TestSuite) void {
@@ -48,6 +68,9 @@ pub fn deinit(self: *TestSuite) void {
 }
 
 pub fn run(self: *TestSuite) !void {
+    if (self.setup_fn) |setup| {
+        try setup(self);
+    }
     var pool: ThreadPool = undefined;
     try pool.init(.{ .allocator = self.alloc });
     defer pool.deinit();
@@ -58,7 +81,13 @@ pub fn run(self: *TestSuite) !void {
             std.debug.print("bad path: {s}\n", .{ent.path});
             @panic("fuck");
         }
-        pool.spawn(runInThread, .{ self, ent }) catch |e| {
+        // Walker.Entry is not thread-safe. walk() uses a non-sync stack, and
+        // Entries store pointers to data in that stack. Subsequent calls to
+        // walker.next() will clobber data addressed by these pointers, so we
+        // must make our own copy.
+        const entry_path = try self.alloc.dupe(u8, ent.path);
+        pool.spawn(runInThread, .{ self, entry_path }) catch |e| {
+
             const msg = try std.fmt.allocPrint(self.alloc, "Failed to spawn task for test {s}", .{ent.path});
             defer self.alloc.free(msg);
             self.pushErr(msg, e);
@@ -66,28 +95,31 @@ pub fn run(self: *TestSuite) !void {
     }
 }
 
-fn runInThread(self: *TestSuite, ent: fs.Dir.Walker.Entry) void {
+fn runInThread(self: *TestSuite, path: []const u8) void {
+    defer self.alloc.free(path);
     // ThreadPool seems to be adding a null byte at the end of ent.path in some
     // cases, which breaks openFile. TODO: open a bug report in Zig.
-    const sentinel = std.mem.indexOfScalar(u8, ent.path, 0);
+    const sentinel = std.mem.indexOfScalar(u8, path, 0);
     const filename = if (sentinel) |s|
-        ent.path[0..s]
+        path[0..s]
     else
-        ent.path;
+        path;
     const file = self.dir.openFile(filename, .{}) catch |e| {
         self.stats.incFail();
-        self.pushErr(ent.path, e);
+        self.pushErr(path, e);
         return;
     };
-    var source = Source.init(self.alloc, file) catch |e| {
+    // TODO: use some kind of Cow wrapper to avoid duplication here
+    const filename_owned = self.alloc.dupe(u8, filename) catch @panic("OOM");
+    var source = Source.init(self.alloc, file, filename_owned) catch |e| {
         self.stats.incFail();
-        self.pushErr(ent.path, e);
+        self.pushErr(path, e);
         return;
     };
     defer source.deinit();
     @call(.never_inline, self.test_fn, .{ self.alloc, &source }) catch |e| {
         self.stats.incFail();
-        self.pushErr(ent.path, e);
+        self.pushErr(path, e);
         return;
     };
     self.stats.incPass();

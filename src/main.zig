@@ -33,7 +33,7 @@ pub fn main() !void {
     // I'll add file walking later.
     print("opening foo.zig\n", .{});
     const file = try fs.cwd().openFile("fixtures/foo.zig", .{});
-    var source = try Source.init(alloc, file);
+    var source = try Source.init(alloc, file, "fixtures/foo.zig");
     defer source.deinit();
 
     if (opts.print_ast) {
