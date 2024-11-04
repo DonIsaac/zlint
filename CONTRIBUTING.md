@@ -1,5 +1,8 @@
 # Contributing
 
+Thanks for your interest in contributing to ZLint! This document outlines how to
+set up your development environment and contribution guidelines.
+
 ## Setup
 
 You'll obviously need to have [Zig](https://ziglang.org/) installed. Right now
@@ -44,6 +47,7 @@ brew install entr
 ```
 
 ## Building, Testing, etc.
+
 Run `just` (with no arguments) to see a full list of available tasks.
 
 ## Conventions
