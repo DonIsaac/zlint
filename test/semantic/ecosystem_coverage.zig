@@ -1,3 +1,5 @@
+const test_runner = @import("../TestRunner.zig");
+
 const std = @import("std");
 const fs = std.fs;
 const path = fs.path;
@@ -48,4 +50,10 @@ fn testSemantic(alloc: Allocator, source: *const Source) !void {
 
 const SemanticError = error{
     analysis_failed,
+};
+
+pub const SUITE = test_runner.TestFile{
+    .name = "semantic_coverage",
+    .globalSetup = globalSetup,
+    .run = run,
 };
