@@ -151,7 +151,6 @@ pub fn pIndent(self: *Printer) !void {
     try self.writer.writeByteNTimes(self.indent, self.shiftwidth * self.container_stack.items.len);
 }
 
-
 const Printer = @This();
 
 const Options = @import("../cli/Options.zig");
