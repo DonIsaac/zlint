@@ -53,3 +53,18 @@ jobs:
           version: ${{ env.ZIG_VERSION }}
       # Run tests
       - run: just test
+
+  e2e:
+    name: Test E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Install tooling
+      - uses: extractions/setup-just@v2
+      - uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - run: just submodules
+      - run: just e2e
+      - name: Check for changes
+        run: git diff --exit-code
