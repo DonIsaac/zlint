@@ -34,7 +34,7 @@ pub fn run(alloc: Allocator) !void {
     defer repos.deinit();
     for (repos.value) |repo| {
         const repo_dir = try utils.TestFolders.openRepo(alloc, repo.name);
-        var suite = try test_runner.TestSuite.init(alloc, repo_dir, "semantic-coverage", repo.name, &testSemantic);
+        var suite = try test_runner.TestSuite.init(alloc, repo_dir, "semantic-coverage", repo.name, &testSemantic, null);
         defer suite.deinit();
 
         try suite.run();

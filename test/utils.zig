@@ -21,9 +21,16 @@ pub const TestFolders = struct {
     /// Parent folder where snapshots are stored. Use `openSnapshotFile` in
     /// tests to create a snapshot.
     pub const SNAPSHOTS_DIR = "test/snapshots";
+    pub const FIXTURES_DIR = "test/fixtures";
 
     pub fn globalInit() !void {
         try fs.cwd().makePath(SNAPSHOTS_DIR);
+    }
+
+    pub fn openFixtureDir(alloc: Allocator, path_segs: []const string) !fs.Dir {
+        const fixture_dir = try path.join(alloc, &[_]string{ FIXTURES_DIR, path_segs });
+        defer alloc.free(fixture_dir);
+        return fs.cwd().openDir(fixture_dir, .{});
     }
 
     pub fn openSnapshotFile(alloc: Allocator, subpath: string, name: string) !fs.File {
@@ -39,6 +46,14 @@ pub const TestFolders = struct {
         const relative_path = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, subpath, name });
         defer alloc.free(relative_path);
         return cwd.createFile(relative_path, .{});
+    }
+
+    pub fn openSnapshotDir(alloc: Allocator, path_segs: []const string) !fs.Dir {
+        const snapshot_dir = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, path_segs });
+        defer alloc.free(snapshot_dir);
+        const cwd = fs.cwd();
+        try cwd.makeDir(snapshot_dir, .{});
+        return cwd.openDir(snapshot_dir, .{});
     }
 
     /// Opens a repository directory for iteration. Caller takes ownership of

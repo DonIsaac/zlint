@@ -1,5 +1,6 @@
 const std = @import("std");
 const utils = @import("../utils.zig");
+const TestSuite = @import("TestSuite.zig");
 
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
@@ -55,6 +56,12 @@ pub const TestRunner = struct {
         return self;
     }
 
+    // pub inline fn addSuite(self: *TestRunner, test_suite: TestSuite) *TestRunner {
+    //     const test_file = TestFile {
+    //         const 
+    //     }
+    // }
+
     pub inline fn runAll(self: *TestRunner) !void {
         try utils.TestFolders.globalInit();
 
@@ -86,5 +93,21 @@ pub const TestFile = struct {
     pub const GlobalSetupFn = fn (alloc: Allocator) anyerror!void;
     pub const GlobalTeardownFn = fn (alloc: Allocator) void;
     pub const RunFn = fn (alloc: Allocator) anyerror!void;
+
+    fn fromSuite(suite: TestSuite) TestFile {
+        const gen = struct {
+            fn deinit(_: Allocator) void {
+                suite.deinit();
+            }
+            fn run(_: Allocator) anyerror!void {
+                suite.run();
+            }
+        };
+        return TestFile{
+            .name = suite.name,
+            .run = &gen.run,
+            .deinit = &gen.deinit,
+        };
+    }
 };
 

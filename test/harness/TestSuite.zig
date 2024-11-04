@@ -1,5 +1,6 @@
 /// Root directory containing zig files being tested
 test_fn: *const TestFn,
+setup_fn: ?*const SetupFn,
 dir: fs.Dir,
 walker: fs.Dir.Walker,
 snapshot: fs.File,
@@ -9,6 +10,7 @@ errors_mutex: std.Thread.Mutex = .{},
 stats: Stats = .{},
 
 const TestFn = fn (alloc: Allocator, source: *const Source) anyerror!void;
+const SetupFn = fn (suite: *TestSuite) anyerror!void;
 
 /// Takes ownership of `dir`. Do not close it directly after passing.
 pub fn init(
@@ -17,6 +19,7 @@ pub fn init(
     group_name: string,
     suite_name: string,
     test_fn: *const TestFn,
+    setup_fn: ?*const SetupFn,
 ) !TestSuite {
     const SNAP_EXT = ".snap";
     // +1 for sentinel (TODO: check if needed)
@@ -29,7 +32,7 @@ pub fn init(
     const snapshot = try utils.TestFolders.openSnapshotFile(alloc, group_name, snapshot_name);
     const walker = try dir.walk(alloc);
 
-    return TestSuite{ .test_fn = test_fn, .dir = dir, .walker = walker, .snapshot = snapshot, .alloc = alloc };
+    return TestSuite{ .test_fn = test_fn, .setup_fn = setup_fn, .dir = dir, .walker = walker, .snapshot = snapshot, .alloc = alloc };
 }
 
 pub fn deinit(self: *TestSuite) void {
@@ -48,6 +51,9 @@ pub fn deinit(self: *TestSuite) void {
 }
 
 pub fn run(self: *TestSuite) !void {
+    if (self.setup_fn) |setup| {
+        try setup(self);
+    }
     var pool: ThreadPool = undefined;
     try pool.init(.{ .allocator = self.alloc });
     defer pool.deinit();
