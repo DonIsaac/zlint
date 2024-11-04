@@ -10,10 +10,14 @@ container_stack: ContainerStack,
 alloc: Allocator,
 /// Where JSON data is written to.
 writer: Writer,
+shiftwidth: usize = 2,
+indent: u8 = ' ',
+_newline: string = "\n",
 
 pub const Writer = std.fs.File.Writer;
 const ContainerKind = enum { object, array };
 const ContainerStack = std.ArrayList(ContainerKind);
+const NEWLINE = if (builtin.target.os.tag == .windows) "\r\n" else "\n";
 
 pub fn init(alloc: Allocator, writer: Writer) Printer {
     const stack = ContainerStack.initCapacity(alloc, 16) catch @panic("failed to allocate memory for printer's container stack");
@@ -23,6 +27,11 @@ pub fn init(alloc: Allocator, writer: Writer) Printer {
         .writer = writer,
     };
 }
+
+pub inline fn usePlatformNewline(self: *Printer) void {
+    self._newline = NEWLINE;
+}
+
 pub fn deinit(self: *Printer) void {
     self.container_stack.deinit();
 }
@@ -37,6 +46,7 @@ pub fn pProp(self: *Printer, key: []const u8, comptime fmt: []const u8, value: a
     try self.pPropName(key);
     try self.writer.print(fmt, .{value});
     self.pComma();
+    try self.pIndent();
 }
 
 pub inline fn pPropStr(self: *Printer, key: []const u8, value: anytype) !void {
@@ -56,8 +66,10 @@ pub inline fn pPropStr(self: *Printer, key: []const u8, value: anytype) !void {
 /// into JSON before printing.
 pub fn pPropJson(self: *Printer, key: []const u8, value: anytype) !void {
     try self.pPropName(key);
-    try stringify(value, .{}, self.writer);
+    const options: std.json.StringifyOptions = .{};
+    try stringify(value, options, self.writer);
     self.pComma();
+    try self.pIndent();
 }
 
 /// Print an object property key with a trailing `:`, without printing a value.
@@ -108,6 +120,7 @@ pub inline fn pComma(self: *Printer) void {
 pub fn pushObject(self: *Printer) !void {
     try self.container_stack.append(ContainerKind.object);
     _ = try self.writer.write("{");
+    try self.pIndent();
 }
 
 /// Enter into an array container. When exited (i.e. `pop()`), a closing square bracket will
@@ -115,6 +128,7 @@ pub fn pushObject(self: *Printer) !void {
 pub fn pushArray(self: *Printer) !void {
     try self.container_stack.append(ContainerKind.array);
     _ = try self.writer.write("[");
+    try self.pIndent();
 }
 
 /// Exit out of an object or array container, printing the correspodning
@@ -129,12 +143,21 @@ pub fn pop(self: *Printer) void {
         self.pComma();
     }
     _ = res catch @panic("failed to write container end");
+    self.pIndent() catch @panic("failed to write indent after container end");
 }
+
+pub fn pIndent(self: *Printer) !void {
+    try self.writer.writeAll(self._newline);
+    try self.writer.writeByteNTimes(self.indent, self.shiftwidth * self.container_stack.items.len);
+}
+
 
 const Printer = @This();
 
+const Options = @import("../cli/Options.zig");
+
 const std = @import("std");
+const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 const stringify = std.json.stringify;
-
-const Options = @import("../cli/Options.zig");
+const string = @import("../str.zig").string;

@@ -137,3 +137,14 @@ pub const CmdRunner = struct {
         _ = try child.wait();
     }
 };
+
+/// ThreadPool seems to be adding a null byte at the end of ent.path in some
+/// cases, which breaks openFile. TODO: open a bug report in Zig.
+pub fn cleanStrSlice(slice: string) string {
+    const sentinel = std.mem.indexOfScalar(u8, slice, 0);
+    if (sentinel) |s|{
+        return slice[0..s];
+    } else {
+        return slice;
+    }
+}

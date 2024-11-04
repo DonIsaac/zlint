@@ -23,7 +23,7 @@ const Error = error {
 fn run(alloc: Allocator) !void {
     var pass_fixtures = try std.fs.cwd().openDir("test/fixtures/simple/pass", .{ .iterate = true });
     defer pass_fixtures.close();
-    var suite = try test_runner.TestSuite.init(alloc, pass_fixtures, "snapshot-coverage/simple", "pass", &runPass, null);
+    var suite = try test_runner.TestSuite.init(alloc, pass_fixtures, "snapshot-coverage/simple", "pass", .{ .test_fn = &runPass});
     return suite.run();
 }
 
@@ -43,7 +43,7 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     const source_name = try alloc.allocSentinel(u8, source.pathname.?.len, 0);
     defer alloc.free(source_name);
     _ = std.mem.replace(u8, source.pathname.?, std.fs.path.sep_str, "-", source_name);
-    const snapshot = try TestFolders.openSnapshotFile(alloc, "snapshot-coverage/simple/pass", source_name);
+    const snapshot = try TestFolders.openSnapshotFile(alloc, "snapshot-coverage/simple/pass", utils.cleanStrSlice(source_name));
     defer snapshot.close();
 
     var printer = zlint.printer.Printer.init(alloc, snapshot.writer());
