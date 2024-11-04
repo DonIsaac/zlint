@@ -66,16 +66,16 @@ pub const Builder = struct {
         builder.assertRootScope(); // sanity check
 
         // Zig guarantees that the root node ID is 0. We should be careful- they may decide to change this contract.
-        if (builtin.mode == .Debug) {
-            print("number of nodes: {d}\n", .{builder._semantic.ast.nodes.len});
-            var i: usize = 0;
-            while (i < builder._semantic.ast.tokens.len) {
-                const tok = builder._semantic.ast.tokens.get(i);
-                print("token ({d}): {any}\n", .{ i, tok });
-                i += 1;
-            }
-            print("\n", .{});
-        }
+        // if (builtin.mode == .Debug) {
+        //     print("number of nodes: {d}\n", .{builder._semantic.ast.nodes.len});
+        //     var i: usize = 0;
+        //     while (i < builder._semantic.ast.tokens.len) {
+        //         const tok = builder._semantic.ast.tokens.get(i);
+        //         print("token ({d}): {any}\n", .{ i, tok });
+        //         i += 1;
+        //     }
+        //     print("\n", .{});
+        // }
 
         for (builder._semantic.ast.rootDecls()) |node| {
             builder.visitNode(node) catch |e| return e;
@@ -230,17 +230,17 @@ pub const Builder = struct {
         try self.enterContainerSymbol(symbol_id);
         defer self.exitContainerSymbol();
 
-        if (builtin.mode == .Debug) {
-            const main = self.getToken(node.main_token);
-            const lhs = self.maybeGetNode(node.data.lhs);
-            const rhs = self.maybeGetNode(node.data.rhs);
+        // if (builtin.mode == .Debug) {
+        //     const main = self.getToken(node.main_token);
+        //     const lhs = self.maybeGetNode(node.data.lhs);
+        //     const rhs = self.maybeGetNode(node.data.rhs);
 
-            std.debug.print("node ({d}): {any}\n", .{ node_id, node });
-            std.debug.print("main: {any}\n", .{main});
-            std.debug.print("lhs: {any}\n", .{lhs});
-            std.debug.print("rhs: {any}\n", .{rhs});
-            std.debug.print("{any}\n\n", .{var_decl});
-        }
+        //     std.debug.print("node ({d}): {any}\n", .{ node_id, node });
+        //     std.debug.print("main: {any}\n", .{main});
+        //     std.debug.print("lhs: {any}\n", .{lhs});
+        //     std.debug.print("rhs: {any}\n", .{rhs});
+        //     std.debug.print("{any}\n\n", .{var_decl});
+        // }
         if (var_decl.ast.init_node != NULL_NODE) {
             assert(var_decl.ast.init_node < self.AST().nodes.len);
             try self.visitNode(var_decl.ast.init_node);
@@ -264,7 +264,7 @@ pub const Builder = struct {
 
     /// Enter a new scope, pushing it onto the stack.
     fn enterScope(self: *Builder, flags: Scope.Flags) !void {
-        print("entering scope\n", .{});
+        // print("entering scope\n", .{});
         const parent_id = self._scope_stack.getLast(); // panics if stack is empty
         const scope = try self._semantic.scopes.addScope(self._gpa, parent_id, flags);
         try self._scope_stack.append(self._gpa, scope.id);
@@ -272,7 +272,7 @@ pub const Builder = struct {
 
     /// Exit the current scope. It is a bug to pop the root scope.
     inline fn exitScope(self: *Builder) void {
-        print("exiting scope\n", .{});
+        // print("exiting scope\n", .{});
         assert(self._scope_stack.items.len > 1); // cannot pop root scope
         _ = self._scope_stack.pop();
     }

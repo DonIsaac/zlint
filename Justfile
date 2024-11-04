@@ -37,6 +37,9 @@ watch cmd="check":
 test:
     zig build test
 
+e2e:
+    zig build test-e2e
+
 # Format the codebase, writing changes to disk
 fmt:
     zig fmt src/**/*.zig
@@ -62,3 +65,12 @@ print-ast filename="ast.json":
     rm -f ./tmp/{{filename}}
     zig build run -- --print-ast > ./tmp/{{filename}}
     prettier --write ./tmp/{{filename}}
+
+# Clone or update submodules
+submodules:
+    ./tasks/submodules.sh
+
+clone-submodule dir url sha:
+  cd {{dir}} || git init {{dir}}
+  cd {{dir}} && git remote add origin {{url}} || true
+  cd {{dir}} && git fetch --depth=1 origin {{sha}} && git reset --hard {{sha}}
