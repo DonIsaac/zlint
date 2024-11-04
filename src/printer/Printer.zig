@@ -135,6 +135,7 @@ pub fn pushArray(self: *Printer) !void {
 /// closing token.
 pub fn pop(self: *Printer) void {
     const kind = self.container_stack.pop();
+    self.pIndent() catch @panic("failed to write indent after container end");
     const res = switch (kind) {
         ContainerKind.object => self.writer.write("}"),
         ContainerKind.array => self.writer.write("]"),
@@ -143,7 +144,6 @@ pub fn pop(self: *Printer) void {
         self.pComma();
     }
     _ = res catch @panic("failed to write container end");
-    self.pIndent() catch @panic("failed to write indent after container end");
 }
 
 pub fn pIndent(self: *Printer) !void {

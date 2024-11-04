@@ -7,46 +7,63 @@
       "flags": {"s_comptime":false,"s_const":true,"s_member":false}, 
       "members": [], 
       "exports": [], 
-      }, 
-    {
+      
+    }, {
       "name": "Foo", 
       "declNode": 1, 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
       "members": [2,3,4], 
       "exports": [], 
-      }, 
-    {
+      
+    }, {
       "name": "a", 
       "declNode": 3, 
       "scope": 1, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":true}, 
       "members": [], 
       "exports": [], 
-      }, 
-    {
+      
+    }, {
       "name": "b", 
       "declNode": 5, 
       "scope": 1, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":true}, 
       "members": [], 
       "exports": [], 
-      }, 
-    {
+      
+    }, {
       "name": "c", 
       "declNode": 7, 
       "scope": 1, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":true}, 
       "members": [], 
       "exports": [], 
-      }, 
-    {
+      
+    }, {
       "name": "Bar", 
       "declNode": 9, 
       "scope": 1, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
       "members": [], 
       "exports": [], 
+      
+    }, 
+  ], 
+  "scopes": {
+    "id": 0, 
+    "flags": [
+      "top", 
+      
+    ], "children": [
+      {
+        "id": 1, 
+        "flags": [
+          "block", 
+          
+        ], "children": [], 
+        
       }, 
     ], 
-  }
+  }, 
+}
