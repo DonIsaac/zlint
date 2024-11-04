@@ -11,19 +11,16 @@ const Printer = zlint.printer.Printer;
 const AstPrinter = zlint.printer.AstPrinter;
 const SemanticPrinter = zlint.printer.SemanticPrinter;
 
-// var pass_fixtures: *std.fs.Dir = undefined;
-
-const Error = error {
-    /// Parsing or semantic analysis failed.
-    analysis_failed,
-    /// The walker produced a source without a filename.
-    source_missing_filename
+const Error = error{
+// lb
+analysis_failed, // Parsing or semantic analysis failed.
+source_missing_filename // The walker produced a source without a filename.
 };
 
 fn run(alloc: Allocator) !void {
     var pass_fixtures = try std.fs.cwd().openDir("test/fixtures/simple/pass", .{ .iterate = true });
     defer pass_fixtures.close();
-    var suite = try test_runner.TestSuite.init(alloc, pass_fixtures, "snapshot-coverage/simple", "pass", .{ .test_fn = &runPass});
+    var suite = try test_runner.TestSuite.init(alloc, pass_fixtures, "snapshot-coverage/simple", "pass", .{ .test_fn = &runPass });
     return suite.run();
 }
 
@@ -53,6 +50,10 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     try printer.pushObject();
     try printer.pPropName("symbols");
     try sem_printer.printSymbolTable(&semantic.symbols);
+    try printer.pIndent();
+
+    try printer.pPropName("scopes");
+    try sem_printer.printScopeTree(&semantic.scopes);
     printer.pop();
 
     return;
