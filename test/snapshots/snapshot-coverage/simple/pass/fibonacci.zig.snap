@@ -1,0 +1,63 @@
+{
+  "symbols": [
+    {
+      "name": "@This()", 
+      "declNode": 0, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false}, 
+      "members": [1,2], 
+      "exports": [], 
+      
+    }, {
+      "name": "std", 
+      "declNode": 1, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "Managed", 
+      "declNode": 4, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "members": [3,4], 
+      "exports": [], 
+      
+    }, {
+      "name": "allocator", 
+      "declNode": 15, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "a", 
+      "declNode": 19, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "scopes": {
+    "id": 0, 
+    "flags": [
+      "top", 
+      
+    ], 
+    "children": [
+      {
+        "id": 1, 
+        "flags": [
+          "block", 
+          
+        ], 
+        "children": [], 
+        
+      }, 
+    ], 
+  }, 
+}
