@@ -126,7 +126,7 @@ pub const Builder = struct {
         if (node_id == NULL_NODE) return;
         // Seeing this happen a log, needs debugging.
         if (IS_DEBUG and node_id >= self.AST().nodes.len) {
-            print("ERROR: node ID out of bounds ({d})\n", .{node_id});
+            // print("ERROR: node ID out of bounds ({d})\n", .{node_id});
             return;
         }
 
@@ -265,7 +265,7 @@ pub const Builder = struct {
     /// Enter a new scope, pushing it onto the stack.
     fn enterScope(self: *Builder, flags: Scope.Flags) !void {
         // print("entering scope\n", .{});
-        const parent_id = self._scope_stack.getLast(); // panics if stack is empty
+        const parent_id = self._scope_stack.getLastOrNull();
         const scope = try self._semantic.scopes.addScope(self._gpa, parent_id, flags);
         try self._scope_stack.append(self._gpa, scope.id);
     }

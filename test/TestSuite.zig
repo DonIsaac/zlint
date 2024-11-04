@@ -18,10 +18,6 @@ pub fn init(
     suite_name: string,
     test_fn: *const TestFn,
 ) !TestSuite {
-    if (builtin.single_threaded) {
-        @compileError("TestSuite cannot be used in a single-threaded environment.");
-    }
-
     const SNAP_EXT = ".snap";
     // +1 for sentinel (TODO: check if needed)
     var stack_alloc = std.heap.stackFallback(256 + SNAP_EXT.len + 1, alloc);
@@ -58,6 +54,10 @@ pub fn run(self: *TestSuite) !void {
     while (try self.walker.next()) |ent| {
         if (ent.kind != .file) continue;
         if (!std.mem.endsWith(u8, ent.path, ".zig")) continue;
+        if (std.mem.indexOfScalar(u8, ent.path, 0) != null) {
+            std.debug.print("bad path: {s}\n", .{ent.path});
+            @panic("fuck");
+        }
         pool.spawn(runInThread, .{ self, ent }) catch |e| {
             const msg = try std.fmt.allocPrint(self.alloc, "Failed to spawn task for test {s}", .{ent.path});
             defer self.alloc.free(msg);
@@ -67,7 +67,14 @@ pub fn run(self: *TestSuite) !void {
 }
 
 fn runInThread(self: *TestSuite, ent: fs.Dir.Walker.Entry) void {
-    const file = self.dir.openFile(ent.path, .{}) catch |e| {
+    // ThreadPool seems to be adding a null byte at the end of ent.path in some
+    // cases, which breaks openFile. TODO: open a bug report in Zig.
+    const sentinel = std.mem.indexOfScalar(u8, ent.path, 0);
+    const filename = if (sentinel) |s|
+        ent.path[0..s]
+    else
+        ent.path;
+    const file = self.dir.openFile(filename, .{}) catch |e| {
         self.stats.incFail();
         self.pushErr(ent.path, e);
         return;
