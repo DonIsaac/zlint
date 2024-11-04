@@ -64,6 +64,8 @@ pub const Builder = struct {
         // initialize root scope
         try builder.enterRootScope();
         builder.assertRootScope(); // sanity check
+        const root_symbol_id = try builder.declareSymbol(Semantic.ROOT_NODE_ID, "@This()", .public, .{ .s_const = true });
+        try builder.enterContainerSymbol(root_symbol_id);
 
         // Zig guarantees that the root node ID is 0. We should be careful- they may decide to change this contract.
         // if (builtin.mode == .Debug) {
@@ -312,6 +314,9 @@ pub const Builder = struct {
     /// Unconditionally get the most recent container symbol. Panics if no
     /// symbol has been entered.
     inline fn currentContainerSymbolUnwrap(self: *const Builder) Symbol.Id {
+        if (IS_DEBUG and self._symbol_stack.items.len == 0) {
+            std.debug.panic("Cannot get current container symbol: symbol stack is empty", .{});
+        }
         return self._symbol_stack.getLast();
     }
 

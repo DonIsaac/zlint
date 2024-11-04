@@ -6,13 +6,11 @@
     "configurations": [
         {
             "name": "zlint",
-            "type": "lldb-mi",
+            "type": "lldb",
             "request": "launch",
-            "target": "./zig-out/bin/zlint",
+            "program": "./zig-out/bin/zlint",
             "cwd": "${workspaceRoot}",
-            "valuesFormatting": "parseText"
         },
-
         {
             "name": "zlint --print-ast",
             "type": "lldb",
@@ -21,6 +19,13 @@
             "program": "${workspaceRoot}/zig-out/bin/zlint",
             "cwd": "${workspaceRoot}",
             "preLaunchTask": "build"
-        }
+        },
+        {
+            "name": "test-e2e",
+            "type": "lldb",
+            "request": "launch",
+            "program": "./zig-out/bin/test-e2e",
+            "cwd": "${workspaceRoot}",
+        },
     ]
 }
