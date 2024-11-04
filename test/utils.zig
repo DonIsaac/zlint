@@ -22,6 +22,7 @@ pub const TestFolders = struct {
     /// tests to create a snapshot.
     pub const SNAPSHOTS_DIR = "test/snapshots";
     pub const FIXTURES_DIR = "test/fixtures";
+    const SNAP_EXT = ".snap";
 
     pub fn globalInit() !void {
         try fs.cwd().makePath(SNAPSHOTS_DIR);
@@ -34,17 +35,32 @@ pub const TestFolders = struct {
     }
 
     pub fn openSnapshotFile(alloc: Allocator, subpath: string, name: string) !fs.File {
-        assert(std.mem.endsWith(u8, name, ".snap"));
+        var snapshot_filename: string = "";
+        var filename_needs_dealloc = false;
+
+        if(!std.mem.endsWith(u8, name, SNAP_EXT)) {
+            const with_ext = try std.mem.concat(alloc, u8, &[_]string {name, SNAP_EXT});
+            filename_needs_dealloc = true;
+            snapshot_filename = with_ext;
+        } else {
+            snapshot_filename = name;
+        }
+
 
         // create suite subfolder if it doesn't exist yet
         const cwd = fs.cwd();
         {
             const snapshot_dir = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, subpath });
+            defer alloc.free(snapshot_dir);
             try cwd.makePath(snapshot_dir);
         }
 
-        const relative_path = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, subpath, name });
+        const relative_path = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, subpath, snapshot_filename });
         defer alloc.free(relative_path);
+        if (filename_needs_dealloc) {
+            alloc.free(snapshot_filename);
+        }
+
         return cwd.createFile(relative_path, .{});
     }
 

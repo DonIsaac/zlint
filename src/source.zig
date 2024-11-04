@@ -10,15 +10,19 @@ const string = str.string;
 pub const Source = struct {
     contents: [:0]u8,
     file: fs.File,
+    pathname: ?string = null,
     ast: ?Ast = null,
     gpa: Allocator,
 
-    pub fn init(gpa: Allocator, file: fs.File) !Source {
+    /// Create a source from an opened file. This file must be opened with at least read permissions.
+    ///
+    /// Both `file` and `pathname` are moved into the source.
+    pub fn init(gpa: Allocator, file: fs.File, pathname: ?string) !Source {
         const meta = try file.metadata();
         const contents = try gpa.allocSentinel(u8, meta.size(), 0);
         const bytes_read = try file.readAll(contents);
         assert(bytes_read == meta.size());
-        return Source{ .contents = contents, .file = file, .gpa = gpa };
+        return Source{ .contents = contents, .file = file, .pathname = pathname, .gpa = gpa };
     }
 
     pub fn deinit(self: *Source) void {
@@ -26,6 +30,9 @@ pub const Source = struct {
         self.gpa.free(self.contents);
         if (self.ast != null) {
             self.ast.?.deinit(self.gpa);
+        }
+        if (self.pathname != null) {
+            self.gpa.free(self.pathname.?);
         }
         self.* = undefined;
     }

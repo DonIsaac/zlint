@@ -47,7 +47,7 @@ fn testSemantic(alloc: Allocator, source: *const Source) !void {
     if (res.hasErrors()) return SemanticError.analysis_failed;
 }
 
-const SemanticError = error{
+pub const SemanticError = error{
     analysis_failed,
 };
 

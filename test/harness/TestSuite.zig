@@ -1,6 +1,6 @@
 /// Root directory containing zig files being tested
 test_fn: *const TestFn,
-setup_fn: ?*const SetupFn,
+setup_fn: ?*const fn (suite: *TestSuite) anyerror!void,
 dir: fs.Dir,
 walker: fs.Dir.Walker,
 snapshot: fs.File,
@@ -19,7 +19,7 @@ pub fn init(
     group_name: string,
     suite_name: string,
     test_fn: *const TestFn,
-    setup_fn: ?*const SetupFn,
+    setup_fn: ?*const fn (suite: *TestSuite) anyerror!void,
 ) !TestSuite {
     const SNAP_EXT = ".snap";
     // +1 for sentinel (TODO: check if needed)
@@ -85,7 +85,9 @@ fn runInThread(self: *TestSuite, ent: fs.Dir.Walker.Entry) void {
         self.pushErr(ent.path, e);
         return;
     };
-    var source = Source.init(self.alloc, file) catch |e| {
+    // TODO: use some kind of Cow wrapper to avoid duplication here
+    const filename_owned = self.alloc.dupe(u8, filename) catch @panic("OOM");
+    var source = Source.init(self.alloc, file, filename_owned) catch |e| {
         self.stats.incFail();
         self.pushErr(ent.path, e);
         return;
