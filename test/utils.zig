@@ -31,9 +31,12 @@ pub const TestFolders = struct {
 
         // create suite subfolder if it doesn't exist yet
         const cwd = fs.cwd();
-        try cwd.makePath(subpath);
+        {
+            const snapshot_dir = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, subpath });
+            try cwd.makePath(snapshot_dir);
+        }
 
-        const relative_path = try path.join(alloc, &[_]string{ subpath, name });
+        const relative_path = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, subpath, name });
         defer alloc.free(relative_path);
         return cwd.createFile(relative_path, .{});
     }
