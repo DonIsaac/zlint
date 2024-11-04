@@ -31,8 +31,8 @@ pub const Builder = struct {
 
     /// The root node always has an index of 0. Since it is never referenced by other nodes,
     /// the Zig team uses it to represent `null` without wasting extra memory.
-    const NULL_NODE: NodeIndex = 0;
-    const ROOT_SCOPE: Semantic.Scope.Id = 0;
+    const NULL_NODE: NodeIndex = Semantic.NULL_NODE;
+    const ROOT_SCOPE: Semantic.Scope.Id = Semantic.ROOT_SCOPE_ID;
 
     /// Parse and analyze a Zig source file.
     ///
@@ -64,20 +64,9 @@ pub const Builder = struct {
         // initialize root scope
         try builder.enterRootScope();
         builder.assertRootScope(); // sanity check
+        // TODO: distinguish between bound name and escaped name.
         const root_symbol_id = try builder.declareSymbol(Semantic.ROOT_NODE_ID, "@This()", .public, .{ .s_const = true });
         try builder.enterContainerSymbol(root_symbol_id);
-
-        // Zig guarantees that the root node ID is 0. We should be careful- they may decide to change this contract.
-        // if (builtin.mode == .Debug) {
-        //     print("number of nodes: {d}\n", .{builder._semantic.ast.nodes.len});
-        //     var i: usize = 0;
-        //     while (i < builder._semantic.ast.tokens.len) {
-        //         const tok = builder._semantic.ast.tokens.get(i);
-        //         print("token ({d}): {any}\n", .{ i, tok });
-        //         i += 1;
-        //     }
-        //     print("\n", .{});
-        // }
 
         for (builder._semantic.ast.rootDecls()) |node| {
             builder.visitNode(node) catch |e| return e;
@@ -88,10 +77,12 @@ pub const Builder = struct {
     }
 
     fn init(gpa: Allocator) !Builder {
+        const INITIAL_STACK_CAPACITY = 8;
+
         var scope_stack: std.ArrayListUnmanaged(Semantic.Scope.Id) = .{};
-        try scope_stack.ensureUnusedCapacity(gpa, 8);
+        try scope_stack.ensureUnusedCapacity(gpa, INITIAL_STACK_CAPACITY);
         var symbol_stack: std.ArrayListUnmanaged(Semantic.Symbol.Id) = .{};
-        try symbol_stack.ensureUnusedCapacity(gpa, 8);
+        try symbol_stack.ensureUnusedCapacity(gpa, INITIAL_STACK_CAPACITY);
 
         return Builder{ ._gpa = gpa, ._arena = ArenaAllocator.init(gpa), ._scope_stack = scope_stack, ._symbol_stack = symbol_stack, ._errors = .{} };
     }
@@ -140,7 +131,7 @@ pub const Builder = struct {
         // - Test the shit out of it
         const tag: Ast.Node.Tag = self._semantic.ast.nodes.items(.tag)[node_id];
         switch (tag) {
-            .root => unreachable, // root node is never referenced.
+            .root => unreachable, // root node is never referenced b/c of NULL_NODE check at function start
             // ```zig
             // const Foo = struct { // <-- visits struct/enum/union containers
             // };
@@ -203,7 +194,9 @@ pub const Builder = struct {
         const main_token = self.AST().nodes.items(.main_token)[node_id];
         // main_token points to the field name
         const identifier = self.getIdentifier(main_token);
-        const flags = Symbol.Flags{ .s_comptime = field.comptime_token != null, .s_member = true };
+        const flags = Symbol.Flags{
+            .s_comptime = field.comptime_token != null,
+        };
         // NOTE: container fields are always public
         // TODO: record type annotations
         _ = try self.declareMemberSymbol(node_id, identifier, .public, flags);
@@ -232,17 +225,6 @@ pub const Builder = struct {
         try self.enterContainerSymbol(symbol_id);
         defer self.exitContainerSymbol();
 
-        // if (builtin.mode == .Debug) {
-        //     const main = self.getToken(node.main_token);
-        //     const lhs = self.maybeGetNode(node.data.lhs);
-        //     const rhs = self.maybeGetNode(node.data.rhs);
-
-        //     std.debug.print("node ({d}): {any}\n", .{ node_id, node });
-        //     std.debug.print("main: {any}\n", .{main});
-        //     std.debug.print("lhs: {any}\n", .{lhs});
-        //     std.debug.print("rhs: {any}\n", .{rhs});
-        //     std.debug.print("{any}\n\n", .{var_decl});
-        // }
         if (var_decl.ast.init_node != NULL_NODE) {
             assert(var_decl.ast.init_node < self.AST().nodes.len);
             try self.visitNode(var_decl.ast.init_node);
@@ -320,7 +302,6 @@ pub const Builder = struct {
         return self._symbol_stack.getLast();
     }
 
-
     fn declareSymbolOnContainer(self: *Builder, declaration_node: Ast.Node.Index, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
         const symbol_id = try self.declareSymbol(declaration_node, name, visibility, flags);
         if (self.currentContainerSymbol()) |container_id| {
@@ -334,10 +315,14 @@ pub const Builder = struct {
     /// Declare a new symbol in the current scope and record it as a member to
     /// the most recent container symbol. Returns the new member symbol's ID.
     fn declareMemberSymbol(self: *Builder, declaration_node: Ast.Node.Index, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
-        const member_symbol_id = try self.declareSymbol(declaration_node, name, visibility, flags);
+        var member_flags = flags;
+        member_flags.s_member = true;
+        const member_symbol_id = try self.declareSymbol(declaration_node, name, visibility, member_flags);
+
         const container_symbol_id = self.currentContainerSymbolUnwrap();
         assert(!self._semantic.symbols.get(container_symbol_id).flags.s_member);
         try self._semantic.symbols.addMember(self._gpa, member_symbol_id, container_symbol_id);
+
         return member_symbol_id;
     }
 

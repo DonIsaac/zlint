@@ -20,8 +20,16 @@ _gpa: Allocator,
 /// Used to allocate AST nodes
 _arena: ArenaAllocator,
 
+/// The scope created by a program/compilation unit.
+///
+/// The root scope is eventually the parent of all other scopes. Its parent is
+/// always `null`.
 pub const ROOT_SCOPE_ID: Scope.Id = 0;
+/// The root node always has an index of 0. Since it is never referenced by other nodes,
+/// the Zig team uses it to represent `null` without wasting extra memory.
 pub const ROOT_NODE_ID: Ast.Node.Index = 0;
+/// Alias for `ROOT_NODE_ID`. Used in null-node check contexts for code clarity.
+pub const NULL_NODE: Ast.Node.Index = ROOT_NODE_ID;
 
 pub fn deinit(self: *Semantic) void {
     // NOTE: ast is arena allocated, so no need to deinit it. freeing the arena
