@@ -228,7 +228,7 @@ pub const Builder = struct {
         const identifier: string = self.getIdentifier(node.main_token + 1);
         const flags = Symbol.Flags{ .s_comptime = var_decl.comptime_token != null };
         const visibility = if (var_decl.visib_token == null) Symbol.Visibility.private else Symbol.Visibility.public;
-        const symbol_id = try self.declareSymbol(node_id, identifier, visibility, flags);
+        const symbol_id = try self.declareSymbolOnContainer(node_id, identifier, visibility, flags);
         try self.enterContainerSymbol(symbol_id);
         defer self.exitContainerSymbol();
 
@@ -318,6 +318,17 @@ pub const Builder = struct {
             std.debug.panic("Cannot get current container symbol: symbol stack is empty", .{});
         }
         return self._symbol_stack.getLast();
+    }
+
+
+    fn declareSymbolOnContainer(self: *Builder, declaration_node: Ast.Node.Index, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
+        const symbol_id = try self.declareSymbol(declaration_node, name, visibility, flags);
+        if (self.currentContainerSymbol()) |container_id| {
+            assert(!self._semantic.symbols.get(container_id).flags.s_member);
+            try self._semantic.symbols.addMember(self._gpa, symbol_id, container_id);
+        }
+
+        return symbol_id;
     }
 
     /// Declare a new symbol in the current scope and record it as a member to
