@@ -1,0 +1,62 @@
+{
+  "symbols": [
+    {
+      "name": "@This()", 
+      "declNode": 0, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false}, 
+      "members": [1,2,3,4,5], 
+      "exports": [], 
+      
+    }, {
+      "name": "a", 
+      "declNode": 2, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "b", 
+      "declNode": 6, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "Foo", 
+      "declNode": 7, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "a", 
+      "declNode": 2, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "a", 
+      "declNode": 2, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "scopes": {
+    "id": 0, 
+    "flags": [
+      "top", 
+      
+    ], 
+    "children": [], 
+    
+  }, 
+}
