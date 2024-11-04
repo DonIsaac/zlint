@@ -5,7 +5,7 @@
       "declNode": 0, 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":true,"s_member":false}, 
-      "members": [], 
+      "members": [1], 
       "exports": [], 
       
     }, {
@@ -13,7 +13,7 @@
       "declNode": 1, 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
-      "members": [2], 
+      "members": [2,3,4], 
       "exports": [], 
       
     }, {
