@@ -128,15 +128,18 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         });
         e2e_tests.root_module.addImport("zlint", zlint);
+        b.installArtifact(e2e_tests);
 
         // e2e_tests.linkLibrary(lib);
         // e2e_tests.
 
         const run_e2e_tests = b.addRunArtifact(e2e_tests);
+        run_e2e_tests.step.dependOn((b.getInstallStep()));
         if (b.args) |args| {
             run_e2e_tests.addArgs(args);
         }
         const e2e_step = b.step("test-e2e", "Run end-to-end tests");
+
         e2e_step.dependOn(&lib.step);
         e2e_step.dependOn(&run_e2e_tests.step);
     }

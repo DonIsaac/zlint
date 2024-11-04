@@ -21,6 +21,7 @@ _gpa: Allocator,
 _arena: ArenaAllocator,
 
 pub const ROOT_SCOPE_ID: Scope.Id = 0;
+pub const ROOT_NODE_ID: Ast.Node.Index = 0;
 
 pub fn deinit(self: *Semantic) void {
     // NOTE: ast is arena allocated, so no need to deinit it. freeing the arena
