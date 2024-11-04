@@ -106,8 +106,38 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
         });
+        const e2e_check = b.addTest(.{
+            .root_source_file = b.path("test/test_e2e.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
         const check = b.step("check", "Check for semantic issues");
         check.dependOn(&lib_check.step);
         check.dependOn(&exe_check.step);
+        check.dependOn(&e2e_check.step);
+    }
+
+    // test-e2e
+    {
+        const zlint = b.addModule("zlint", std.Build.Module.CreateOptions{ .root_source_file = b.path("src/root.zig"), .target = target, .optimize = optimize });
+
+        const e2e_tests = b.addExecutable(.{
+            .name = "test-e2e",
+            .root_source_file = b.path("test/test_e2e.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+        e2e_tests.root_module.addImport("zlint", zlint);
+
+        // e2e_tests.linkLibrary(lib);
+        // e2e_tests.
+
+        const run_e2e_tests = b.addRunArtifact(e2e_tests);
+        if (b.args) |args| {
+            run_e2e_tests.addArgs(args);
+        }
+        const e2e_step = b.step("test-e2e", "Run end-to-end tests");
+        e2e_step.dependOn(&lib.step);
+        e2e_step.dependOn(&run_e2e_tests.step);
     }
 }
