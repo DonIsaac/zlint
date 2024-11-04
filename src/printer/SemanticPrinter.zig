@@ -56,6 +56,7 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope, scopes: *con
         try printStrIf(p, "union", f.s_union);
         try printStrIf(p, "block", f.s_block);
     }
+    try p.pIndent();
 
     const children = &scopes.children.items[scope.id];
     if (children.items.len == 0) {

@@ -47,13 +47,15 @@
     "flags": [
       "top", 
       
-    ], "children": [
+    ], 
+    "children": [
       {
         "id": 1, 
         "flags": [
           "block", 
           
-        ], "children": [], 
+        ], 
+        "children": [], 
         
       }, 
     ], 
