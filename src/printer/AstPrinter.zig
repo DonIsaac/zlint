@@ -3,6 +3,7 @@ source: Source,
 ast: *const Ast,
 printer: *Printer,
 max_node_id: NodeId,
+ast_meta: ?*const AstMeta = null,
 
 pub const Options = struct {
     verbose: bool = false,
@@ -10,6 +11,13 @@ pub const Options = struct {
 
 pub fn new(printer: *Printer, opts: Options, source: Source, ast: *const Ast) AstPrinter {
     return .{ .opts = opts, .source = source, .ast = ast, .printer = printer, .max_node_id = @intCast(ast.nodes.len - 1) };
+}
+
+pub fn withAstMeta(self: *AstPrinter, ast_meta: *const AstMeta) *AstPrinter {
+    assert(self.ast_meta == null);
+    assert(ast_meta._parents.items.len == self.ast.nodes.len);
+    self.ast_meta = ast_meta;
+    return self;
 }
 
 pub fn printAst(self: *AstPrinter) !void {
@@ -41,6 +49,10 @@ fn printAstNode(self: *AstPrinter, node_id: NodeId) anyerror!void {
         // NOTE: node.tag has something like `Ast.Node.Tag` as its prefix
         try self.printer.pPropWithNamespacedValue("tag", node.tag);
         try self.printer.pProp("id", "{d}", node_id);
+        if (self.ast_meta) |ast_meta| {
+            const parent = ast_meta._parents.items[node_id];
+            try self.printer.pProp("parent", "{d}", parent);
+        }
     }
 
     // Print main token information. In verbose mode, we print all available
@@ -153,8 +165,9 @@ const AstPrinter = @This();
 const std = @import("std");
 const builtin = @import("builtin");
 const Ast = std.zig.Ast;
+const AstMeta = @import("../semantic/AstMeta.zig");
 const Node = Ast.Node;
 const NodeId = Ast.Node.Index;
 const Printer = @import("Printer.zig");
-const Source = @import("../source.zig").Source;
 const Semantic = @import("../semantic.zig").Semantic;
+const Source = @import("../source.zig").Source;

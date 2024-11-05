@@ -18,16 +18,21 @@ pub const Builder = struct {
     _arena: ArenaAllocator,
     _curr_scope_id: Semantic.Scope.Id = ROOT_SCOPE,
     _curr_symbol_id: ?Semantic.Symbol.Id = null,
-    _scope_stack: std.ArrayListUnmanaged(Semantic.Scope.Id),
+
+    // stacks
+
+    _scope_stack: std.ArrayListUnmanaged(Semantic.Scope.Id) = .{},
     /// When entering an initialization container for a symbol, that symbol's ID
     /// is pushed here. This lets us record members and exports.
-    _symbol_stack: std.ArrayListUnmanaged(Semantic.Symbol.Id),
+    _symbol_stack: std.ArrayListUnmanaged(Semantic.Symbol.Id) = .{},
+    _node_stack: std.ArrayListUnmanaged(NodeIndex) = .{},
+
     /// SAFETY: initialized after parsing. Same safety rationale as _root_scope.
     _semantic: Semantic = undefined,
     /// Errors encountered during parsing and analysis.
     ///
     /// Errors in this list are allocated using this list's allocator.
-    _errors: std.ArrayListUnmanaged(Error),
+    _errors: std.ArrayListUnmanaged(Error) = .{},
 
     /// The root node always has an index of 0. Since it is never referenced by other nodes,
     /// the Zig team uses it to represent `null` without wasting extra memory.
@@ -50,43 +55,41 @@ pub const Builder = struct {
     /// returning an error union. These assertions produce better release
     /// binaries and catch bugs earlier.
     pub fn build(gpa: Allocator, source: stringSlice) !Result {
-        var builder = try Builder.init(gpa);
+        var builder = Builder{ ._gpa = gpa, ._arena = ArenaAllocator.init(gpa) };
         defer builder.deinit();
         // NOTE: ast is moved
         const ast = try builder.parse(source);
+        const meta = try AstMeta.init(gpa, &ast);
+        assert(ast.nodes.len == meta._parents.items.len);
+
+        // reserve capacity for stacks
+        try builder._scope_stack.ensureTotalCapacity(gpa, 8); // TODO: use stack fallback allocator?
+        try builder._symbol_stack.ensureTotalCapacity(gpa, 8);
+        // TODO: verify this hypothesis. What is the max node stack len while
+        // building? (avg over a representative sample of real Zig files.)
+        try builder._node_stack.ensureTotalCapacity(gpa, @max(ast.nodes.len >> 2, 8));
+
         builder._semantic = Semantic{
             .ast = ast,
+            .ast_meta = meta,
             ._arena = builder._arena,
             ._gpa = gpa,
         };
         errdefer builder._semantic.deinit();
 
-        // initialize root scope
-        try builder.enterRootScope();
-        builder.assertRootScope(); // sanity check
-        // TODO: distinguish between bound name and escaped name.
-        const root_symbol_id = try builder.declareSymbol(Semantic.ROOT_NODE_ID, "@This()", .public, .{ .s_const = true });
-        try builder.enterContainerSymbol(root_symbol_id);
+        // Create root scope & symbol and push them onto their stacks. Also
+        // pushes the root node. None of these are ever popped.
+        try builder.enterRoot();
+        builder.assertRoot(); // sanity check
 
         for (builder._semantic.ast.rootDecls()) |node| {
             const tag = builder._semantic.ast.nodes.items(.tag)[node];
             print("entering root decl {any}\n", .{tag});
             builder.visitNode(node) catch |e| return e;
-            builder.assertRootScope();
+            builder.assertRoot();
         }
 
         return Result.new(builder._gpa, builder._semantic, builder._errors);
-    }
-
-    fn init(gpa: Allocator) !Builder {
-        const INITIAL_STACK_CAPACITY = 8;
-
-        var scope_stack: std.ArrayListUnmanaged(Semantic.Scope.Id) = .{};
-        try scope_stack.ensureUnusedCapacity(gpa, INITIAL_STACK_CAPACITY);
-        var symbol_stack: std.ArrayListUnmanaged(Semantic.Symbol.Id) = .{};
-        try symbol_stack.ensureUnusedCapacity(gpa, INITIAL_STACK_CAPACITY);
-
-        return Builder{ ._gpa = gpa, ._arena = ArenaAllocator.init(gpa), ._scope_stack = scope_stack, ._symbol_stack = symbol_stack, ._errors = .{} };
     }
 
     /// Deinitialize build-specific resources. Errors and the constructed
@@ -94,13 +97,14 @@ pub const Builder = struct {
     pub fn deinit(self: *Builder) void {
         self._scope_stack.deinit(self._gpa);
         self._symbol_stack.deinit(self._gpa);
+        self._node_stack.deinit(self._gpa);
     }
 
     fn parse(self: *Builder, source: stringSlice) !Ast {
         const ast = try Ast.parse(self._arena.allocator(), source, .zig);
 
         // Record parse errors
-        if (ast.errors.len != 0) {
+        if (ast.errors.len > 0) {
             try self._errors.ensureUnusedCapacity(self._gpa, ast.errors.len);
             for (ast.errors) |ast_err| {
                 // Not an error. TODO: verify this assumption
@@ -141,6 +145,8 @@ pub const Builder = struct {
     /// Visit a node in the AST. Do not call this directly, use `visit` instead.
     fn visitNode(self: *Builder, node_id: NodeIndex) anyerror!void {
         assert(node_id > 0 and node_id < self.AST().nodes.len);
+        try self.enterNode(node_id);
+        defer self.exitNode();
 
         // TODO:
         // - bind function declarations
@@ -255,10 +261,6 @@ pub const Builder = struct {
         try self.enterScope(.{ .s_block = true, .s_enum = container.ast.enum_token != null });
         defer self.exitScope();
         for (container.ast.members) |member| {
-            if (member > self.AST().nodes.len) {
-                print("ERROR: member node ID out of bounds ({d})\n", .{member});
-                continue;
-            }
             try self.visit(member);
         }
     }
@@ -377,15 +379,40 @@ pub const Builder = struct {
     // ======================== SCOPE/SYMBOL MANAGEMENT ========================
     // =========================================================================
 
-    // NOTE: root scope is entered differently to avoid unnecessary null checks
-    // when getting parent scopes. Parent is only ever null for the root scope.
+    fn enterRoot(self: *Builder) !void {
+        @setCold(true);
 
-    inline fn enterRootScope(self: *Builder) !void {
+        // initialize root scope
+        // NOTE: root scope is entered differently to avoid unnecessary null checks
+        // when getting parent scopes. Parent is only ever null for the root scope.
         assert(self._scope_stack.items.len == 0);
         const root_scope = try self._semantic.scopes.addScope(self._gpa, null, .{ .s_top = true });
-        assert(root_scope.id == 0);
+        assert(root_scope.id == Semantic.ROOT_SCOPE_ID);
+
         // Builder.init() allocates enough space for 8 scopes.
         self._scope_stack.appendAssumeCapacity(root_scope.id);
+
+        // push root node onto the stack. It is never popped.
+        // Similar to root scope, the root node is pushed differently than
+        // other nodes because parent->child node linking is skipped.
+        self._node_stack.appendAssumeCapacity(Semantic.ROOT_NODE_ID);
+
+        // Create root symbol and push it onto the stack. It too is never popped.
+        // TODO: distinguish between bound name and escaped name.
+        const root_symbol_id = try self.declareSymbol(Semantic.ROOT_NODE_ID, "@This()", .public, .{ .s_const = true });
+        try self.enterContainerSymbol(root_symbol_id);
+    }
+
+    /// Panic if we're not currently within the root scope and node.
+    inline fn assertRoot(self: *const Builder) void {
+        assert(self._scope_stack.items.len == 1);
+        assert(self._scope_stack.items[0] == Semantic.ROOT_SCOPE_ID);
+
+        assert(self._node_stack.items.len == 1);
+        assert(self._node_stack.items[0] == Semantic.ROOT_NODE_ID);
+
+        assert(self._symbol_stack.items.len == 1);
+        assert(self._symbol_stack.items[0] == 0); // TODO: create root symbol id.
     }
 
     /// Enter a new scope, pushing it onto the stack.
@@ -411,10 +438,20 @@ pub const Builder = struct {
         return self._scope_stack.getLast();
     }
 
-    /// Panic if we're not currently within the root scope.
-    inline fn assertRootScope(self: *const Builder) void {
-        assert(self._scope_stack.items.len == 1);
-        assert(self._scope_stack.items[0] == 0);
+    fn currentNode(self: *const Builder) NodeIndex {
+        util.assert(self._node_stack.items.len > 0, "Invariant violation: root node is missing from the node stack", .{});
+        return self._node_stack.getLast();
+    }
+
+    inline fn enterNode(self: *Builder, node_id: NodeIndex) !void {
+        const curr_node = self.currentNode();
+        self._semantic.ast_meta.setParent(node_id, curr_node);
+        try self._node_stack.append(self._gpa, node_id);
+    }
+
+    inline fn exitNode(self: *Builder) void {
+        util.assert(self._node_stack.items.len > 0, "Invariant violation: Cannot pop the root node", .{});
+        _ = self._node_stack.pop();
     }
 
     inline fn enterContainerSymbol(self: *Builder, symbol_id: Symbol.Id) !void {
@@ -589,6 +626,7 @@ pub const Builder = struct {
 pub const Semantic = @import("./semantic/Semantic.zig");
 const Scope = Semantic.Scope;
 const Symbol = Semantic.Symbol;
+const AstMeta = Semantic.AstMeta;
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
