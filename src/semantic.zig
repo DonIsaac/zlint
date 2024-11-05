@@ -133,7 +133,9 @@ pub const Builder = struct {
         // - Test the shit out of it
         const tag: Ast.Node.Tag = self._semantic.ast.nodes.items(.tag)[node_id];
         switch (tag) {
-            .root => unreachable, // root node is never referenced b/c of NULL_NODE check at function start
+            // root node is never referenced b/c of NULL_NODE check at function start
+            .root => unreachable,
+            // containers and container members
             // ```zig
             // const Foo = struct { // <-- visits struct/enum/union containers
             // };
@@ -147,6 +149,7 @@ pub const Builder = struct {
                 const field = self.AST().fullContainerField(node_id) orelse unreachable;
                 return self.visitContainerField(node_id, field);
             },
+            // variable declarations
             .global_var_decl => {
                 const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
                 self.visitGlobalVarDecl(node_id, decl);
@@ -180,6 +183,28 @@ pub const Builder = struct {
                 return self.visitCall(node_id, call);
             },
 
+            // Here there be statements
+
+            // loops
+            .while_simple, .@"while", .while_cont => {
+                const while_stmt = self.AST().fullWhile(node_id) orelse unreachable;
+                return self.visitWhile(node_id, while_stmt);
+            },
+            .for_simple => {
+                const for_stmt = self.AST().forSimple(node_id);
+                return self.visitFor(node_id, for_stmt);
+            },
+            .@"for" => {
+                const for_stmt = self.AST().forFull(node_id);
+                return self.visitFor(node_id, for_stmt);
+            },
+
+            // conditionals
+            .@"if", .if_simple => {
+                const if_stmt = self.AST().fullIf(node_id) orelse unreachable;
+                return self.visitIf(node_id, if_stmt);
+            },
+
             // TODO: include .block_two and .block_two_semicolon?
             .block, .block_semicolon => {
                 try self.enterScope(.{ .s_block = true });
@@ -197,7 +222,7 @@ pub const Builder = struct {
         try self.visitNode(node.data.rhs);
     }
 
-    fn visitContainer(self: *Builder, _: NodeIndex, container: Ast.full.ContainerDecl) !void {
+    fn visitContainer(self: *Builder, _: NodeIndex, container: full.ContainerDecl) !void {
         try self.enterScope(.{ .s_block = true, .s_enum = container.ast.enum_token != null });
         defer self.exitScope();
         for (container.ast.members) |member| {
@@ -216,7 +241,7 @@ pub const Builder = struct {
     ///   bar: u32    // <-- This is a container field. It is always Symbol.Visibility.public.
     /// };            //     It is added to Foo's member table.
     /// ```
-    fn visitContainerField(self: *Builder, node_id: NodeIndex, field: Ast.full.ContainerField) !void {
+    fn visitContainerField(self: *Builder, node_id: NodeIndex, field: full.ContainerField) !void {
         const main_token = self.AST().nodes.items(.main_token)[node_id];
         // main_token points to the field name
         const identifier = self.getIdentifier(main_token);
@@ -231,7 +256,7 @@ pub const Builder = struct {
         }
     }
 
-    fn visitGlobalVarDecl(self: *Builder, node_id: NodeIndex, var_decl: Ast.full.VarDecl) void {
+    fn visitGlobalVarDecl(self: *Builder, node_id: NodeIndex, var_decl: full.VarDecl) void {
         _ = self;
         _ = node_id;
         _ = var_decl;
@@ -241,7 +266,7 @@ pub const Builder = struct {
     /// Visit a variable declaration. Global declarations are visited
     /// separately, because their lhs/rhs nodes and main token mean different
     /// things.
-    fn visitVarDecl(self: *Builder, node_id: NodeIndex, var_decl: Ast.full.VarDecl) !void {
+    fn visitVarDecl(self: *Builder, node_id: NodeIndex, var_decl: full.VarDecl) !void {
         const node = self.getNode(node_id);
         // main_token points to `var`, `const` keyword. `.identifier` comes immediately afterwards
         const identifier: string = self.getIdentifier(node.main_token + 1);
@@ -257,8 +282,33 @@ pub const Builder = struct {
         }
     }
 
+    // ============================== STATEMENTS ===============================
+
+    inline fn visitWhile(self: *Builder, _: NodeIndex, while_stmt: full.While) !void {
+        try self.visitNode(while_stmt.ast.cond_expr);
+        try self.visitNode(while_stmt.ast.cont_expr); // what is this?
+        try self.visitNode(while_stmt.ast.then_expr);
+        try self.visitNode(while_stmt.ast.else_expr);
+    }
+
+    inline fn visitFor(self: *Builder, _: NodeIndex, for_stmt: full.For) !void {
+        for (for_stmt.ast.inputs) |input| {
+            try self.visitNode(input);
+        }
+        try self.visitNode(for_stmt.ast.then_expr);
+        try self.visitNode(for_stmt.ast.else_expr);
+    }
+
+    inline fn visitIf(self: *Builder, _: NodeIndex, if_stmt: full.If) !void {
+        try self.visitNode(if_stmt.ast.cond_expr);
+        // HYPOTHESIS: these will contain blocks, which enter/exit a scope when
+        // visited. Thus we can/should skip that here.
+        try self.visitNode(if_stmt.ast.then_expr);
+        try self.visitNode(if_stmt.ast.else_expr);
+    }
+
     /// Visit a function call. Does not visit calls to builtins
-    fn visitCall(self: *Builder, _: NodeIndex, call: Ast.full.Call) !void {
+    fn visitCall(self: *Builder, _: NodeIndex, call: full.Call) !void {
         // TODO: record reference
         try self.visitNode(call.ast.fn_expr);
         for (call.ast.params) |arg| {
@@ -492,6 +542,7 @@ const assert = std.debug.assert;
 const print = std.debug.print;
 
 const Ast = std.zig.Ast;
+const full = Ast.full;
 const Node = Ast.Node;
 const NodeIndex = Ast.Node.Index;
 /// The struct used in AST tokens SOA is not pub so we hack it in here.
