@@ -110,6 +110,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
         });
+        lib_check.root_module.addImport("util", util);
 
         const exe_check = b.addExecutable(.{
             .name = "zlint",
@@ -117,11 +118,13 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
         });
+        exe_check.root_module.addImport("util", util);
         const e2e_check = b.addTest(.{
             .root_source_file = b.path("test/test_e2e.zig"),
             .target = target,
             .optimize = optimize,
         });
+        e2e_check.root_module.addImport("util", util);
         const check = b.step("check", "Check for semantic issues");
         check.dependOn(&lib_check.step);
         check.dependOn(&exe_check.step);
