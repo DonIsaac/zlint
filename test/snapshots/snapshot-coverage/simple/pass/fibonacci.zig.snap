@@ -4,15 +4,15 @@
       "name": "@This()", 
       "declNode": 0, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":true,"s_member":false}, 
-      "members": [1,2], 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
+      "members": [1,2,5], 
       "exports": [], 
       
     }, {
       "name": "std", 
       "declNode": 1, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
@@ -20,7 +20,7 @@
       "name": "Managed", 
       "declNode": 4, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [3,4], 
       "exports": [], 
       
@@ -28,7 +28,7 @@
       "name": "allocator", 
       "declNode": 15, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
@@ -36,7 +36,15 @@
       "name": "a", 
       "declNode": 19, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "main", 
+      "declNode": 14, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 
       "exports": [], 
       
@@ -52,11 +60,28 @@
       {
         "id": 1, 
         "flags": [
-          "block", 
           
         ], 
-        "children": [], 
-        
+        "children": [
+          {
+            "id": 2, 
+            "flags": [
+              "function", 
+              
+            ], 
+            "children": [
+              {
+                "id": 3, 
+                "flags": [
+                  "block", 
+                  
+                ], 
+                "children": [], 
+                
+              }, 
+            ], 
+          }, 
+        ], 
       }, 
     ], 
   }, 

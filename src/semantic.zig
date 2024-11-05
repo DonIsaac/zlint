@@ -176,7 +176,18 @@ pub const Builder = struct {
                 return self.visitVarDecl(node_id, decl);
             },
 
-            // calls
+            // function-related nodes
+
+            // function declarations
+            .fn_decl => return self.visitFnDecl(node_id),
+            .fn_proto, .fn_proto_one, .fn_proto_multi => {
+                if (IS_DEBUG) {
+                    std.debug.panic("visitNode should never encounter a function prototype. It should have been handled by visitFnDecl.", .{});
+                }
+                return self.visitRecursive(node_id);
+            },
+
+            // function calls
             .call, .call_comma, .async_call, .async_call_comma => {
                 // fullCall uses callFull under the hood. Skipping the
                 // middleman removes a redundant tag check. This check guards
@@ -200,7 +211,7 @@ pub const Builder = struct {
                 return self.visitCall(node_id, call);
             },
 
-            // Here there be statements
+            // control flow
 
             // loops
             .while_simple, .@"while", .while_cont => {
@@ -226,17 +237,18 @@ pub const Builder = struct {
             .block, .block_semicolon => {
                 try self.enterScope(.{ .s_block = true });
                 defer self.exitScope();
-                return self.visitRecursive(self.getNode(node_id));
+                return self.visitRecursive(node_id);
             },
             // .@"usingnamespace" => self.visitUsingNamespace(node),
-            else => return self.visitRecursive(self.getNode(node_id)),
+            else => return self.visitRecursive(node_id),
         }
     }
 
     /// Basic lhs/rhs traversal. This is just a shorthand.
-    inline fn visitRecursive(self: *Builder, node: Node) !void {
-        try self.visit(node.data.lhs);
-        try self.visit(node.data.rhs);
+    inline fn visitRecursive(self: *Builder, node_id: NodeIndex) !void {
+        const data: Node.Data = self.AST().nodes.items(.data)[node_id];
+        try self.visit(data.lhs);
+        try self.visit(data.rhs);
     }
 
     fn visitContainer(self: *Builder, _: NodeIndex, container: full.ContainerDecl) !void {
@@ -322,6 +334,34 @@ pub const Builder = struct {
         // visited. Thus we can/should skip that here.
         try self.visit(if_stmt.ast.then_expr);
         try self.visit(if_stmt.ast.else_expr);
+    }
+
+    fn visitFnDecl(self: *Builder, node_id: NodeIndex) !void {
+        var buf: [1]u32 = undefined;
+        const ast = self.AST();
+        // lhs is prototype, rhs is body
+        const data: Node.Data = ast.nodes.items(.data)[node_id];
+        const proto = ast.fullFnProto(&buf, data.lhs) orelse unreachable;
+        const visibility = if (proto.visib_token == null) Symbol.Visibility.private else Symbol.Visibility.public;
+        // TODO: bound name vs escaped name
+        const identifier = if (proto.name_token) |tok| self.getIdentifier(tok) else "<anonymous>";
+        // TODO: bind methods as members
+        _ = try self.declareSymbolOnContainer(node_id, identifier, visibility, .{ .s_fn = true });
+
+        // parameters are in a new scope b/c other symbols in the same scope as
+        // the declared fn cannot access them.
+        try self.enterScope(.{});
+        defer self.exitScope();
+        for (proto.ast.params) |param| {
+            try self.visit(param);
+        }
+
+        // Function body is also in a new scope. Declaring a symbol with the
+        // same name as a parameter is an illegal shadow, not a redeclaration
+        // error.
+        try self.enterScope(.{ .s_function = true });
+        defer self.exitScope();
+        try self.visit(data.rhs);
     }
 
     /// Visit a function call. Does not visit calls to builtins
