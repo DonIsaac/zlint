@@ -16,7 +16,7 @@
 symbols: SymbolTable = .{},
 scopes: ScopeTree = .{},
 ast: Ast, // NOTE: allocated in _arena
-ast_meta: AstMeta,
+node_links: NodeLinks,
 _gpa: Allocator,
 /// Used to allocate AST nodes
 _arena: ArenaAllocator,
@@ -36,7 +36,7 @@ pub fn deinit(self: *Semantic) void {
     // NOTE: ast is arena allocated, so no need to deinit it. freeing the arena
     // is sufficient.
     self._arena.deinit();
-    self.ast_meta.deinit(self._gpa);
+    self.node_links.deinit(self._gpa);
     self.symbols.deinit(self._gpa);
     self.scopes.deinit(self._gpa);
     // SAFETY: *self is no longer valid after deinitilization.
@@ -53,7 +53,7 @@ const Type = std.builtin.Type;
 const assert = std.debug.assert;
 
 const scope = @import("./scope.zig");
-pub const AstMeta = @import("AstMeta.zig");
+pub const NodeLinks = @import("NodeLinks.zig");
 pub const Symbol = @import("./Symbol.zig");
 pub const SymbolTable = Symbol.SymbolTable;
 pub const Scope = scope.Scope;

@@ -41,7 +41,7 @@ pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source) !void {
     var printer = Printer.init(alloc, writer);
     defer printer.deinit();
     var ast_printer = AstPrinter.new(&printer, .{ .verbose = opts.verbose }, source, &sema.ast);
-    ast_printer.setAstMeta(&sema.ast_meta);
+    ast_printer.setNodeLinks(&sema.node_links);
     var semantic_printer = SemanticPrinter.new(&printer);
 
     try printer.pushObject();

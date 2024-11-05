@@ -3,7 +3,7 @@ source: Source,
 ast: *const Ast,
 printer: *Printer,
 max_node_id: NodeId,
-ast_meta: ?*const AstMeta = null,
+node_links: ?*const NodeLinks = null,
 
 pub const Options = struct {
     verbose: bool = false,
@@ -13,10 +13,10 @@ pub fn new(printer: *Printer, opts: Options, source: Source, ast: *const Ast) As
     return .{ .opts = opts, .source = source, .ast = ast, .printer = printer, .max_node_id = @intCast(ast.nodes.len - 1) };
 }
 
-pub fn setAstMeta(self: *AstPrinter, ast_meta: *const AstMeta) void {
-    assert(self.ast_meta == null);
-    assert(ast_meta._parents.items.len == self.ast.nodes.len);
-    self.ast_meta = ast_meta;
+pub fn setNodeLinks(self: *AstPrinter, node_links: *const NodeLinks) void {
+    assert(self.node_links == null);
+    assert(node_links._parents.items.len == self.ast.nodes.len);
+    self.node_links = node_links;
 }
 
 pub fn printAst(self: *AstPrinter) !void {
@@ -48,8 +48,8 @@ fn printAstNode(self: *AstPrinter, node_id: NodeId) anyerror!void {
         // NOTE: node.tag has something like `Ast.Node.Tag` as its prefix
         try self.printer.pPropWithNamespacedValue("tag", node.tag);
         try self.printer.pProp("id", "{d}", node_id);
-        if (self.ast_meta) |ast_meta| {
-            const parent = ast_meta._parents.items[node_id];
+        if (self.node_links) |node_links| {
+            const parent = node_links._parents.items[node_id];
             try self.printer.pProp("parent", "{d}", parent);
         }
     }
@@ -164,7 +164,7 @@ const AstPrinter = @This();
 const std = @import("std");
 const builtin = @import("builtin");
 const Ast = std.zig.Ast;
-const AstMeta = @import("../semantic/AstMeta.zig");
+const NodeLinks = @import("../semantic/NodeLinks.zig");
 const Node = Ast.Node;
 const NodeId = Ast.Node.Index;
 const Printer = @import("Printer.zig");

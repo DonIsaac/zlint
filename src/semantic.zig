@@ -59,8 +59,8 @@ pub const Builder = struct {
         defer builder.deinit();
         // NOTE: ast is moved
         const ast = try builder.parse(source);
-        const meta = try AstMeta.init(gpa, &ast);
-        assert(ast.nodes.len == meta._parents.items.len);
+        const node_links = try NodeLinks.init(gpa, &ast);
+        assert(ast.nodes.len == node_links._parents.items.len);
 
         // reserve capacity for stacks
         try builder._scope_stack.ensureTotalCapacity(gpa, 8); // TODO: use stack fallback allocator?
@@ -71,7 +71,7 @@ pub const Builder = struct {
 
         builder._semantic = Semantic{
             .ast = ast,
-            .ast_meta = meta,
+            .node_links = node_links,
             ._arena = builder._arena,
             ._gpa = gpa,
         };
@@ -443,7 +443,7 @@ pub const Builder = struct {
 
     inline fn enterNode(self: *Builder, node_id: NodeIndex) !void {
         const curr_node = self.currentNode();
-        self._semantic.ast_meta.setParent(node_id, curr_node);
+        self._semantic.node_links.setParent(node_id, curr_node);
         try self._node_stack.append(self._gpa, node_id);
     }
 
@@ -624,7 +624,7 @@ pub const Builder = struct {
 pub const Semantic = @import("./semantic/Semantic.zig");
 const Scope = Semantic.Scope;
 const Symbol = Semantic.Symbol;
-const AstMeta = Semantic.AstMeta;
+const NodeLinks = Semantic.NodeLinks;
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
