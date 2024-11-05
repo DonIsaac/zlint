@@ -50,4 +50,4 @@ const Allocator = std.mem.Allocator;
 const Parsed = std.json.Parsed;
 
 const Severity = @import("Error.zig").Severity;
-const string = @import("str.zig").string;
+const string = @import("util").string;

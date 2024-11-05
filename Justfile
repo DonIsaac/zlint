@@ -21,7 +21,7 @@ run:
 
 # Build in debug mode
 build:
-    zig build
+    zig build --summary all
 
 # Check for syntax and semantic errors
 check:

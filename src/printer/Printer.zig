@@ -159,4 +159,4 @@ const std = @import("std");
 const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 const stringify = std.json.stringify;
-const string = @import("../str.zig").string;
+const string = @import("util").string;

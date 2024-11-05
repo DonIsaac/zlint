@@ -15,6 +15,13 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
+    const util = b.addModule("util", std.Build.Module.CreateOptions{
+        // lb
+        .root_source_file = b.path("src/util.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     const lib = b.addStaticLibrary(.{
         .name = "zlint",
         // In this case the main source file is merely a path, however, in more
@@ -23,6 +30,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    lib.root_module.addImport("util", util);
 
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
@@ -35,6 +43,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    exe.root_module.addImport("util", util);
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
@@ -71,6 +80,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    lib_unit_tests.root_module.addImport("util", util);
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
 
@@ -79,6 +89,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    exe_unit_tests.root_module.addImport("util", util);
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 
@@ -120,6 +131,7 @@ pub fn build(b: *std.Build) void {
     // test-e2e
     {
         const zlint = b.addModule("zlint", std.Build.Module.CreateOptions{ .root_source_file = b.path("src/root.zig"), .target = target, .optimize = optimize });
+        zlint.addImport("util", util);
 
         const e2e_tests = b.addExecutable(.{
             .name = "test-e2e",

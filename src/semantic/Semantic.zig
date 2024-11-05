@@ -56,6 +56,6 @@ pub const SymbolTable = Symbol.SymbolTable;
 pub const Scope = scope.Scope;
 pub const ScopeTree = scope.ScopeTree;
 
-const str = @import("../str.zig");
-const string = str.string;
-const stringSlice = str.stringSlice;
+const util = @import("util");
+const string = util.string;
+const stringSlice = util.stringSlice;

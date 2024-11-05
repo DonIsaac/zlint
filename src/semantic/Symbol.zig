@@ -193,6 +193,6 @@ const Scope = @import("scope.zig").Scope;
 const Type = std.builtin.Type;
 
 const assert = std.debug.assert;
-const string = @import("../str.zig").string;
+const string = @import("util").string;
 
 const SymbolIdList = std.ArrayListUnmanaged(Symbol.Id);

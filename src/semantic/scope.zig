@@ -3,7 +3,7 @@ const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const Type = std.builtin.Type;
 
-const string = @import("../str.zig").string;
+const string = @import("util").string;
 const assert = std.debug.assert;
 
 pub const Scope = struct {

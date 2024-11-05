@@ -131,5 +131,5 @@ const Error = @This();
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const string = @import("str.zig").string;
+const string = @import("util").string;
 const Span = @import("source.zig").Span;

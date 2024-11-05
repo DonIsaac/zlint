@@ -16,7 +16,7 @@ const print = std.debug.print;
 
 const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
-const string = @import("str.zig").string;
+const string = @import("util").string;
 
 // rules
 const NoUndefined = @import("rules/no_undefined.zig").NoUndefined;

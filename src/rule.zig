@@ -4,7 +4,7 @@ const linter = @import("lint.zig");
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 
-const string = @import("str.zig").string;
+const string = @import("util").string;
 const LinterContext = linter.Context;
 
 pub const NodeWrapper = struct {

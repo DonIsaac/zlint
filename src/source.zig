@@ -1,11 +1,11 @@
 const std = @import("std");
-const str = @import("str.zig");
+const util = @import("util");
 const fs = std.fs;
 
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const assert = std.debug.assert;
-const string = str.string;
+const string = util.string;
 
 pub const Source = struct {
     contents: [:0]u8,
