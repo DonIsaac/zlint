@@ -4,31 +4,71 @@
       "name": "@This()", 
       "declNode": 0, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":true,"s_member":false}, 
-      "members": [1,2,3], 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
+      "members": [1,2,3,4,5,6,7,8], 
       "exports": [], 
       
     }, {
       "name": "std", 
       "declNode": 1, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "simpleWhile", 
+      "declNode": 6, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 
       "exports": [], 
       
     }, {
       "name": "i", 
       "declNode": 8, 
+      "scope": 2, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "whileWithClosure", 
+      "declNode": 33, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "whileWithExpr", 
+      "declNode": 79, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "whileWithClosure", 
+      "declNode": 33, 
+      "scope": 9, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "rangeHasNumber", 
+      "declNode": 118, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 
       "exports": [], 
       
     }, {
       "name": "i", 
       "declNode": 119, 
-      "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "scope": 14, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
@@ -44,30 +84,114 @@
       {
         "id": 1, 
         "flags": [
-          "block", 
-          
-        ], 
-        "children": [], 
-        
-      }, {
-        "id": 2, 
-        "flags": [
-          "block", 
-          
-        ], 
-        "children": [], 
-        
-      }, {
-        "id": 3, 
-        "flags": [
-          "block", 
           
         ], 
         "children": [
           {
-            "id": 4, 
+            "id": 2, 
             "flags": [
-              "block", 
+              "function", 
+              
+            ], 
+            "children": [
+              {
+                "id": 3, 
+                "flags": [
+                  "block", 
+                  
+                ], 
+                "children": [], 
+                
+              }, 
+            ], 
+          }, 
+        ], 
+      }, {
+        "id": 4, 
+        "flags": [
+          
+        ], 
+        "children": [
+          {
+            "id": 5, 
+            "flags": [
+              "function", 
+              
+            ], 
+            "children": [
+              {
+                "id": 6, 
+                "flags": [
+                  "block", 
+                  
+                ], 
+                "children": [], 
+                
+              }, 
+            ], 
+          }, 
+        ], 
+      }, {
+        "id": 7, 
+        "flags": [
+          
+        ], 
+        "children": [
+          {
+            "id": 8, 
+            "flags": [
+              "function", 
+              
+            ], 
+            "children": [
+              {
+                "id": 9, 
+                "flags": [
+                  "block", 
+                  
+                ], 
+                "children": [
+                  {
+                    "id": 10, 
+                    "flags": [
+                      
+                    ], 
+                    "children": [
+                      {
+                        "id": 11, 
+                        "flags": [
+                          "function", 
+                          
+                        ], 
+                        "children": [
+                          {
+                            "id": 12, 
+                            "flags": [
+                              "block", 
+                              
+                            ], 
+                            "children": [], 
+                            
+                          }, 
+                        ], 
+                      }, 
+                    ], 
+                  }, 
+                ], 
+              }, 
+            ], 
+          }, 
+        ], 
+      }, {
+        "id": 13, 
+        "flags": [
+          
+        ], 
+        "children": [
+          {
+            "id": 14, 
+            "flags": [
+              "function", 
               
             ], 
             "children": [], 

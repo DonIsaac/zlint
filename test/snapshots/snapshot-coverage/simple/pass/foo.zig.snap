@@ -4,7 +4,7 @@
       "name": "@This()", 
       "declNode": 0, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":true,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
       "members": [1,2,3,4], 
       "exports": [], 
       
@@ -12,7 +12,7 @@
       "name": "std", 
       "declNode": 1, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
@@ -20,7 +20,7 @@
       "name": "bad", 
       "declNode": 6, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
@@ -28,7 +28,7 @@
       "name": "good", 
       "declNode": 11, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
@@ -36,15 +36,15 @@
       "name": "Foo", 
       "declNode": 13, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
-      "members": [5,6], 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [5,6,7], 
       "exports": [], 
       
     }, {
       "name": "foo", 
       "declNode": 16, 
       "scope": 1, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":true}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
@@ -52,7 +52,15 @@
       "name": "Bar", 
       "declNode": 18, 
       "scope": 1, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "baz", 
+      "declNode": 24, 
+      "scope": 1, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 
       "exports": [], 
       
@@ -71,8 +79,25 @@
           "block", 
           
         ], 
-        "children": [], 
-        
+        "children": [
+          {
+            "id": 2, 
+            "flags": [
+              
+            ], 
+            "children": [
+              {
+                "id": 3, 
+                "flags": [
+                  "function", 
+                  
+                ], 
+                "children": [], 
+                
+              }, 
+            ], 
+          }, 
+        ], 
       }, 
     ], 
   }, 

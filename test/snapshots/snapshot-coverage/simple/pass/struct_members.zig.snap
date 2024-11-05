@@ -4,7 +4,7 @@
       "name": "@This()", 
       "declNode": 0, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":true,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
       "members": [1], 
       "exports": [], 
       
@@ -12,7 +12,7 @@
       "name": "Foo", 
       "declNode": 1, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [2,3,4], 
       "exports": [], 
       
@@ -20,7 +20,7 @@
       "name": "a", 
       "declNode": 3, 
       "scope": 1, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":true}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
@@ -28,7 +28,7 @@
       "name": "B", 
       "declNode": 5, 
       "scope": 1, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
@@ -36,7 +36,7 @@
       "name": "C", 
       "declNode": 7, 
       "scope": 1, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       

@@ -64,6 +64,9 @@ pub const Flags = packed struct {
     /// }
     /// ```
     s_member: bool = false,
+
+    /// A function declaration. Never a builtin. Could be a method.
+    s_fn: bool = false,
 };
 
 /// Stores symbols created and referenced within a Zig program.

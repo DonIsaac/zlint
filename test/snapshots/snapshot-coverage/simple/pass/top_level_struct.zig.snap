@@ -4,15 +4,15 @@
       "name": "@This()", 
       "declNode": 0, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":true,"s_member":false}, 
-      "members": [1,2,3,4,5], 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
+      "members": [1,2,3,4,5,6], 
       "exports": [], 
       
     }, {
       "name": "a", 
       "declNode": 2, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":true}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
@@ -20,7 +20,7 @@
       "name": "b", 
       "declNode": 6, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":true}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
@@ -28,23 +28,31 @@
       "name": "Foo", 
       "declNode": 7, 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "new", 
+      "declNode": 11, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 
       "exports": [], 
       
     }, {
       "name": "a", 
       "declNode": 2, 
-      "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":true}, 
+      "scope": 2, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
     }, {
       "name": "a", 
       "declNode": 2, 
-      "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":true}, 
+      "scope": 2, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
@@ -56,7 +64,24 @@
       "top", 
       
     ], 
-    "children": [], 
-    
+    "children": [
+      {
+        "id": 1, 
+        "flags": [
+          
+        ], 
+        "children": [
+          {
+            "id": 2, 
+            "flags": [
+              "function", 
+              
+            ], 
+            "children": [], 
+            
+          }, 
+        ], 
+      }, 
+    ], 
   }, 
 }
