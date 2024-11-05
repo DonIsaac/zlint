@@ -31,9 +31,9 @@ pub fn main() !void {
 
     // While under development, I'm unconditionally linting fixtures/foo.zig.
     // I'll add file walking later.
-    print("opening foo.zig\n", .{});
-    const file = try fs.cwd().openFile("fixtures/foo.zig", .{});
-    var source = try Source.init(alloc, file, "fixtures/foo.zig");
+    print("opening top_level_struct.zig\n", .{});
+    const file = try fs.cwd().openFile("test/fixtures/simple/pass/top_level_struct.zig", .{});
+    var source = try Source.init(alloc, file, null);
     defer source.deinit();
 
     if (opts.print_ast) {
