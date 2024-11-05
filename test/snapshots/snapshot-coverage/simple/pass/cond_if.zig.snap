@@ -1,0 +1,55 @@
+{
+  "symbols": [
+    {
+      "name": "@This()", 
+      "declNode": 0, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false}, 
+      "members": [1,2,3], 
+      "exports": [], 
+      
+    }, {
+      "name": "std", 
+      "declNode": 1, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "builtin", 
+      "declNode": 4, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "msg", 
+      "declNode": 7, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "scopes": {
+    "id": 0, 
+    "flags": [
+      "top", 
+      
+    ], 
+    "children": [
+      {
+        "id": 1, 
+        "flags": [
+          "block", 
+          
+        ], 
+        "children": [], 
+        
+      }, 
+    ], 
+  }, 
+}

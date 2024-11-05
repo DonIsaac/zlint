@@ -1,0 +1,54 @@
+{
+  "symbols": [
+    {
+      "name": "@This()", 
+      "declNode": 0, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false}, 
+      "members": [1,2,3,4], 
+      "exports": [], 
+      
+    }, {
+      "name": "std", 
+      "declNode": 1, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "arr", 
+      "declNode": 7, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "power_of_two", 
+      "declNode": 18, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "mat4x4", 
+      "declNode": 36, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "scopes": {
+    "id": 0, 
+    "flags": [
+      "top", 
+      
+    ], 
+    "children": [], 
+    
+  }, 
+}
