@@ -116,14 +116,31 @@ pub const Builder = struct {
     // ================================= VISIT =================================
     // =========================================================================
 
-    fn visitNode(self: *Builder, node_id: NodeIndex) anyerror!void {
+    /// Visit an AST node.
+    ///
+    /// Null and bounds checks are performed here, while actual logic is
+    /// handled by `visitNode`. This lets us inline checks within caller
+    /// functions, reducing unnecessary branching and stack pointer pushes.
+    inline fn visit(self: *Builder, node_id: NodeIndex) anyerror!void {
         // when lhs/rhs are 0 (root node), it means `null`
         if (node_id == NULL_NODE) return;
         // Seeing this happen a log, needs debugging.
-        if (IS_DEBUG and node_id >= self.AST().nodes.len) {
+        if (node_id >= self.AST().nodes.len) {
+            // TODO: hint to compiler that this branch is unlikely. @branchHint
+            // is documented in the Zig language reference, but does not appear available in v0.13.0.
+            // https://ziglang.org/documentation/master/#branchHint
+            // @branchHint(.unlikely);
+            //
             // print("ERROR: node ID out of bounds ({d})\n", .{node_id});
             return;
         }
+
+        return self.visitNode(node_id);
+    }
+
+    /// Visit a node in the AST. Do not call this directly, use `visit` instead.
+    fn visitNode(self: *Builder, node_id: NodeIndex) anyerror!void {
+        assert(node_id > 0 and node_id < self.AST().nodes.len);
 
         // TODO:
         // - bind function declarations
@@ -218,8 +235,8 @@ pub const Builder = struct {
 
     /// Basic lhs/rhs traversal. This is just a shorthand.
     inline fn visitRecursive(self: *Builder, node: Node) !void {
-        try self.visitNode(node.data.lhs);
-        try self.visitNode(node.data.rhs);
+        try self.visit(node.data.lhs);
+        try self.visit(node.data.rhs);
     }
 
     fn visitContainer(self: *Builder, _: NodeIndex, container: full.ContainerDecl) !void {
@@ -230,7 +247,7 @@ pub const Builder = struct {
                 print("ERROR: member node ID out of bounds ({d})\n", .{member});
                 continue;
             }
-            try self.visitNode(member);
+            try self.visit(member);
         }
     }
 
@@ -252,7 +269,7 @@ pub const Builder = struct {
         // TODO: record type annotations
         _ = try self.declareMemberSymbol(node_id, identifier, .public, flags);
         if (field.ast.value_expr != NULL_NODE) {
-            try self.visitNode(field.ast.value_expr);
+            try self.visit(field.ast.value_expr);
         }
     }
 
@@ -278,41 +295,41 @@ pub const Builder = struct {
 
         if (var_decl.ast.init_node != NULL_NODE) {
             assert(var_decl.ast.init_node < self.AST().nodes.len);
-            try self.visitNode(var_decl.ast.init_node);
+            try self.visit(var_decl.ast.init_node);
         }
     }
 
     // ============================== STATEMENTS ===============================
 
     inline fn visitWhile(self: *Builder, _: NodeIndex, while_stmt: full.While) !void {
-        try self.visitNode(while_stmt.ast.cond_expr);
-        try self.visitNode(while_stmt.ast.cont_expr); // what is this?
-        try self.visitNode(while_stmt.ast.then_expr);
-        try self.visitNode(while_stmt.ast.else_expr);
+        try self.visit(while_stmt.ast.cond_expr);
+        try self.visit(while_stmt.ast.cont_expr); // what is this?
+        try self.visit(while_stmt.ast.then_expr);
+        try self.visit(while_stmt.ast.else_expr);
     }
 
     inline fn visitFor(self: *Builder, _: NodeIndex, for_stmt: full.For) !void {
         for (for_stmt.ast.inputs) |input| {
-            try self.visitNode(input);
+            try self.visit(input);
         }
-        try self.visitNode(for_stmt.ast.then_expr);
-        try self.visitNode(for_stmt.ast.else_expr);
+        try self.visit(for_stmt.ast.then_expr);
+        try self.visit(for_stmt.ast.else_expr);
     }
 
     inline fn visitIf(self: *Builder, _: NodeIndex, if_stmt: full.If) !void {
-        try self.visitNode(if_stmt.ast.cond_expr);
+        try self.visit(if_stmt.ast.cond_expr);
         // HYPOTHESIS: these will contain blocks, which enter/exit a scope when
         // visited. Thus we can/should skip that here.
-        try self.visitNode(if_stmt.ast.then_expr);
-        try self.visitNode(if_stmt.ast.else_expr);
+        try self.visit(if_stmt.ast.then_expr);
+        try self.visit(if_stmt.ast.else_expr);
     }
 
     /// Visit a function call. Does not visit calls to builtins
     fn visitCall(self: *Builder, _: NodeIndex, call: full.Call) !void {
         // TODO: record reference
-        try self.visitNode(call.ast.fn_expr);
+        try self.visit(call.ast.fn_expr);
         for (call.ast.params) |arg| {
-            try self.visitNode(arg);
+            try self.visit(arg);
         }
     }
 
