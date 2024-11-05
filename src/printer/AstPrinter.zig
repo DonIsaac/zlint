@@ -13,11 +13,10 @@ pub fn new(printer: *Printer, opts: Options, source: Source, ast: *const Ast) As
     return .{ .opts = opts, .source = source, .ast = ast, .printer = printer, .max_node_id = @intCast(ast.nodes.len - 1) };
 }
 
-pub fn withAstMeta(self: *AstPrinter, ast_meta: *const AstMeta) *AstPrinter {
+pub fn setAstMeta(self: *AstPrinter, ast_meta: *const AstMeta) void {
     assert(self.ast_meta == null);
     assert(ast_meta._parents.items.len == self.ast.nodes.len);
     self.ast_meta = ast_meta;
-    return self;
 }
 
 pub fn printAst(self: *AstPrinter) !void {

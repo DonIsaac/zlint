@@ -3,7 +3,7 @@ _parents: std.ArrayListUnmanaged(NodeIndex) = .{},
 pub fn init(alloc: Allocator, ast: *const Ast) !AstMeta {
     var meta: AstMeta = .{};
     try meta._parents.ensureTotalCapacityPrecise(alloc, ast.nodes.len);
-    meta._parents.appendNTimesAssumeCapacity(@intCast(ast.nodes.len), NULL_NODE);
+    meta._parents.appendNTimesAssumeCapacity(NULL_NODE, @intCast(ast.nodes.len));
 
     return meta;
 }

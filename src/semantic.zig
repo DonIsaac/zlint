@@ -83,8 +83,6 @@ pub const Builder = struct {
         builder.assertRoot(); // sanity check
 
         for (builder._semantic.ast.rootDecls()) |node| {
-            const tag = builder._semantic.ast.nodes.items(.tag)[node];
-            print("entering root decl {any}\n", .{tag});
             builder.visitNode(node) catch |e| return e;
             builder.assertRoot();
         }
