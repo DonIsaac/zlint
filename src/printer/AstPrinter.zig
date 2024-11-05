@@ -15,7 +15,7 @@ pub fn new(printer: *Printer, opts: Options, source: Source, ast: *const Ast) As
 
 pub fn setNodeLinks(self: *AstPrinter, node_links: *const NodeLinks) void {
     assert(self.node_links == null);
-    assert(node_links._parents.items.len == self.ast.nodes.len);
+    assert(node_links.parents.items.len == self.ast.nodes.len);
     self.node_links = node_links;
 }
 
@@ -49,7 +49,7 @@ fn printAstNode(self: *AstPrinter, node_id: NodeId) anyerror!void {
         try self.printer.pPropWithNamespacedValue("tag", node.tag);
         try self.printer.pProp("id", "{d}", node_id);
         if (self.node_links) |node_links| {
-            const parent = node_links._parents.items[node_id];
+            const parent = node_links.parents.items[node_id];
             try self.printer.pProp("parent", "{d}", parent);
         }
     }

@@ -60,7 +60,7 @@ pub const Builder = struct {
         // NOTE: ast is moved
         const ast = try builder.parse(source);
         const node_links = try NodeLinks.init(gpa, &ast);
-        assert(ast.nodes.len == node_links._parents.items.len);
+        assert(ast.nodes.len == node_links.parents.items.len);
 
         // reserve capacity for stacks
         try builder._scope_stack.ensureTotalCapacity(gpa, 8); // TODO: use stack fallback allocator?
@@ -279,7 +279,7 @@ pub const Builder = struct {
         };
         // NOTE: container fields are always public
         // TODO: record type annotations
-        _ = try self.declareMemberSymbol(node_id, identifier, .public, flags);
+        _ = try self.declareMemberSymbol(identifier, .public, flags);
         if (field.ast.value_expr != NULL_NODE) {
             try self.visit(field.ast.value_expr);
         }
@@ -301,7 +301,7 @@ pub const Builder = struct {
         const identifier: string = self.getIdentifier(node.main_token + 1);
         const flags = Symbol.Flags{ .s_comptime = var_decl.comptime_token != null };
         const visibility = if (var_decl.visib_token == null) Symbol.Visibility.private else Symbol.Visibility.public;
-        const symbol_id = try self.declareSymbolOnContainer(node_id, identifier, visibility, flags);
+        const symbol_id = try self.bindSymbol(identifier, visibility, flags);
         try self.enterContainerSymbol(symbol_id);
         defer self.exitContainerSymbol();
 
@@ -346,7 +346,7 @@ pub const Builder = struct {
         // TODO: bound name vs escaped name
         const identifier = if (proto.name_token) |tok| self.getIdentifier(tok) else "<anonymous>";
         // TODO: bind methods as members
-        _ = try self.declareSymbolOnContainer(node_id, identifier, visibility, .{ .s_fn = true });
+        _ = try self.bindSymbol(identifier, visibility, .{ .s_fn = true });
 
         // parameters are in a new scope b/c other symbols in the same scope as
         // the declared fn cannot access them.
@@ -402,6 +402,8 @@ pub const Builder = struct {
     }
 
     /// Panic if we're not currently within the root scope and node.
+    ///
+    /// This function gets erased in ReleaseFast builds.
     inline fn assertRoot(self: *const Builder) void {
         assert(self._scope_stack.items.len == 1);
         assert(self._scope_stack.items[0] == Semantic.ROOT_SCOPE_ID);
@@ -479,7 +481,9 @@ pub const Builder = struct {
         return self._symbol_stack.getLast();
     }
 
-    fn declareSymbolOnContainer(self: *Builder, declaration_node: Ast.Node.Index, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
+    /// Create and bind a symbol to the current scope and container (parent) symbol.
+    fn bindSymbol(self: *Builder, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
+        const declaration_node = self.currentNode();
         const symbol_id = try self.declareSymbol(declaration_node, name, visibility, flags);
         if (self.currentContainerSymbol()) |container_id| {
             assert(!self._semantic.symbols.get(container_id).flags.s_member);
@@ -489,11 +493,12 @@ pub const Builder = struct {
         return symbol_id;
     }
 
-    /// Declare a new symbol in the current scope and record it as a member to
+    /// Declare a new symbol in the current scope/AST node and record it as a member to
     /// the most recent container symbol. Returns the new member symbol's ID.
-    fn declareMemberSymbol(self: *Builder, declaration_node: Ast.Node.Index, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
+    fn declareMemberSymbol(self: *Builder, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
         var member_flags = flags;
         member_flags.s_member = true;
+        const declaration_node = self.currentNode();
         const member_symbol_id = try self.declareSymbol(declaration_node, name, visibility, member_flags);
 
         const container_symbol_id = self.currentContainerSymbolUnwrap();
