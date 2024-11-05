@@ -69,6 +69,8 @@ pub const Builder = struct {
         try builder.enterContainerSymbol(root_symbol_id);
 
         for (builder._semantic.ast.rootDecls()) |node| {
+            const tag = builder._semantic.ast.nodes.items(.tag)[node];
+            print("entering root decl {any}\n", .{tag});
             builder.visitNode(node) catch |e| return e;
             builder.assertRootScope();
         }
@@ -154,6 +156,30 @@ pub const Builder = struct {
                 return self.visitVarDecl(node_id, decl);
             },
 
+            // calls
+            .call, .call_comma, .async_call, .async_call_comma => {
+                // fullCall uses callFull under the hood. Skipping the
+                // middleman removes a redundant tag check. This check guards
+                // against future API changes made by the Zig team.
+                if (IS_DEBUG) {
+                    var buf: [1]u32 = undefined;
+                    assert(self.AST().fullCall(&buf, node_id) != null);
+                }
+                const call = self.AST().callFull(node_id);
+                return self.visitCall(node_id, call);
+            },
+            .call_one, .call_one_comma, .async_call_one, .async_call_one_comma => {
+                var buf: [1]u32 = undefined;
+                // fullCall uses callOne under the hood. Skipping the
+                // middleman removes a redundant tag check. This check guards
+                // against future API changes made by the Zig team.
+                if (IS_DEBUG) {
+                    assert(self.AST().fullCall(&buf, node_id) != null);
+                }
+                const call = self.AST().callOne(&buf, node_id);
+                return self.visitCall(node_id, call);
+            },
+
             // TODO: include .block_two and .block_two_semicolon?
             .block, .block_semicolon => {
                 try self.enterScope(.{ .s_block = true });
@@ -228,6 +254,15 @@ pub const Builder = struct {
         if (var_decl.ast.init_node != NULL_NODE) {
             assert(var_decl.ast.init_node < self.AST().nodes.len);
             try self.visitNode(var_decl.ast.init_node);
+        }
+    }
+
+    /// Visit a function call. Does not visit calls to builtins
+    fn visitCall(self: *Builder, _: NodeIndex, call: Ast.full.Call) !void {
+        // TODO: record reference
+        try self.visitNode(call.ast.fn_expr);
+        for (call.ast.params) |arg| {
+            try self.visitNode(arg);
         }
     }
 
@@ -392,7 +427,7 @@ pub const Builder = struct {
     fn getIdentifier(self: *Builder, token_id: Ast.TokenIndex) string {
         const ast = self.AST();
 
-        if (builtin.mode == .Debug) {
+        if (IS_DEBUG) {
             const tag = ast.tokens.items(.tag)[token_id];
             assert(tag == .identifier);
         }
@@ -444,14 +479,11 @@ pub const Builder = struct {
     pub const Result = Error.Result(Semantic);
 };
 
-const IS_DEBUG = builtin.mode == .Debug;
-
 pub const Semantic = @import("./semantic/Semantic.zig");
 const Scope = Semantic.Scope;
 const Symbol = Semantic.Symbol;
 
 const std = @import("std");
-const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Type = std.builtin.Type;
@@ -472,9 +504,10 @@ const TokenIndex = Ast.TokenIndex;
 const Error = @import("./Error.zig");
 const Span = @import("./source.zig").Span;
 
-const str = @import("str.zig");
-const string = str.string;
-const stringSlice = str.stringSlice;
+const util = @import("util");
+const IS_DEBUG = util.IS_DEBUG;
+const string = util.string;
+const stringSlice = util.stringSlice;
 
 test "Struct/enum fields are bound bound to the struct/enums's member table" {
     const alloc = std.testing.allocator;
