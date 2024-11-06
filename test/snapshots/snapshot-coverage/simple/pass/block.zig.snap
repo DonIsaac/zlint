@@ -1,0 +1,271 @@
+{
+  "symbols": [
+    {
+      "name": "@This()", 
+      "declNode": "root", 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
+      "members": [1,2,3,4,5,6,7,8,9,10,11,12,13,14], 
+      "exports": [], 
+      
+    }, {
+      "name": "empty", 
+      "declNode": "fn_decl", 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "x", 
+      "declNode": "simple_var_decl", 
+      "scope": 3, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "one", 
+      "declNode": "fn_decl", 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "y", 
+      "declNode": "simple_var_decl", 
+      "scope": 7, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "two", 
+      "declNode": "fn_decl", 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "z", 
+      "declNode": "simple_var_decl", 
+      "scope": 11, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "a", 
+      "declNode": "simple_var_decl", 
+      "scope": 12, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "many", 
+      "declNode": "fn_decl", 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "a", 
+      "declNode": "simple_var_decl", 
+      "scope": 15, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "b", 
+      "declNode": "simple_var_decl", 
+      "scope": 16, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "c", 
+      "declNode": "simple_var_decl", 
+      "scope": 16, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "d", 
+      "declNode": "simple_var_decl", 
+      "scope": 16, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "e", 
+      "declNode": "simple_var_decl", 
+      "scope": 16, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "f", 
+      "declNode": "simple_var_decl", 
+      "scope": 16, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "scopes": {
+    "id": 0, 
+    "flags": [
+      "top", 
+      
+    ], 
+    "children": [
+      {
+        "id": 1, 
+        "flags": [
+          
+        ], 
+        "children": [
+          {
+            "id": 2, 
+            "flags": [
+              "function", 
+              
+            ], 
+            "children": [
+              {
+                "id": 3, 
+                "flags": [
+                  "block", 
+                  
+                ], 
+                "children": [
+                  {
+                    "id": 4, 
+                    "flags": [
+                      "block", 
+                      
+                    ], 
+                    "children": [], 
+                    
+                  }, 
+                ], 
+              }, 
+            ], 
+          }, 
+        ], 
+      }, {
+        "id": 5, 
+        "flags": [
+          
+        ], 
+        "children": [
+          {
+            "id": 6, 
+            "flags": [
+              "function", 
+              
+            ], 
+            "children": [
+              {
+                "id": 7, 
+                "flags": [
+                  "block", 
+                  
+                ], 
+                "children": [
+                  {
+                    "id": 8, 
+                    "flags": [
+                      "block", 
+                      
+                    ], 
+                    "children": [], 
+                    
+                  }, 
+                ], 
+              }, 
+            ], 
+          }, 
+        ], 
+      }, {
+        "id": 9, 
+        "flags": [
+          
+        ], 
+        "children": [
+          {
+            "id": 10, 
+            "flags": [
+              "function", 
+              
+            ], 
+            "children": [
+              {
+                "id": 11, 
+                "flags": [
+                  "block", 
+                  
+                ], 
+                "children": [
+                  {
+                    "id": 12, 
+                    "flags": [
+                      "block", 
+                      
+                    ], 
+                    "children": [], 
+                    
+                  }, 
+                ], 
+              }, 
+            ], 
+          }, 
+        ], 
+      }, {
+        "id": 13, 
+        "flags": [
+          
+        ], 
+        "children": [
+          {
+            "id": 14, 
+            "flags": [
+              "function", 
+              
+            ], 
+            "children": [
+              {
+                "id": 15, 
+                "flags": [
+                  "block", 
+                  
+                ], 
+                "children": [
+                  {
+                    "id": 16, 
+                    "flags": [
+                      "block", 
+                      
+                    ], 
+                    "children": [], 
+                    
+                  }, 
+                ], 
+              }, 
+            ], 
+          }, 
+        ], 
+      }, 
+    ], 
+  }, 
+}

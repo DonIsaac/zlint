@@ -182,6 +182,12 @@ pub const Builder = struct {
                 const field = self.AST().fullContainerField(node_id) orelse unreachable;
                 return self.visitContainerField(node_id, field);
             },
+            // .field_access => {
+            //     if (self.getTokenTag(node_id) == .identifier) {
+            //         return;
+            //     }
+            //     return self.visitRecursive(node_id);
+            // },
             // variable declarations
             .global_var_decl => {
                 const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
@@ -253,6 +259,8 @@ pub const Builder = struct {
                 return self.visitRecursive(node_id);
             },
             .block, .block_semicolon => return self.visitBlock(node_id),
+
+            .identifier => return,
 
             else => return self.visitRecursive(node_id),
         }
@@ -603,6 +611,10 @@ pub const Builder = struct {
         return self.AST().nodes.get(node_id);
     }
 
+    inline fn getTokenTag(self: *const Builder, token_id: TokenIndex) Token.Tag {
+        return self._semantic.ast.tokens.items(.tag)[token_id];
+    }
+
     inline fn getToken(self: *const Builder, token_id: TokenIndex) RawToken {
         const len = self.AST().tokens.len;
         util.assert(token_id < len, "Cannot get token: id {d} is out of bounds ({d})", .{ token_id, len });
@@ -753,6 +765,7 @@ const assert = std.debug.assert;
 
 const Ast = std.zig.Ast;
 const full = Ast.full;
+const Token = std.zig.Token;
 const Node = Ast.Node;
 const NodeIndex = Ast.Node.Index;
 /// The struct used in AST tokens SOA is not pub so we hack it in here.
