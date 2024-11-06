@@ -139,7 +139,8 @@ pub const Builder = struct {
             return;
         }
 
-        std.debug.print("visiting node {d}\n", .{node_id});
+        const tag = self.AST().nodes.items(.tag)[node_id];
+        std.debug.print("visiting node {d} ({any})\n", .{ node_id, tag });
         return self.visitNode(node_id);
     }
 
@@ -242,9 +243,7 @@ pub const Builder = struct {
 
             // TODO: include .block_two and .block_two_semicolon?
             .block, .block_semicolon => {
-                try self.enterScope(.{ .s_block = true });
-                defer self.exitScope();
-                return self.visitRecursive(node_id);
+                return self.visitBlock(node_id);
             },
             // .@"usingnamespace" => self.visitUsingNamespace(node),
             else => return self.visitRecursive(node_id),
@@ -256,6 +255,19 @@ pub const Builder = struct {
         const data: Node.Data = self.AST().nodes.items(.data)[node_id];
         try self.visit(data.lhs);
         try self.visit(data.rhs);
+    }
+
+    // TODO: inline after we're done debugging
+    fn visitBlock(self: *Builder, node_id: NodeIndex) !void {
+        @setCold(true);
+        const ast = self.AST();
+        const block_data = ast.nodes.items(.data)[node_id];
+        const left = self.getNode(block_data.lhs);
+        const right = self.getNode(block_data.rhs);
+        print("left: {any}\nright: {any}\n", .{ left, right });
+        try self.enterScope(.{ .s_block = true });
+        defer self.exitScope();
+        return self.visitRecursive(node_id);
     }
 
     fn visitContainer(self: *Builder, _: NodeIndex, container: full.ContainerDecl) !void {
@@ -684,9 +696,12 @@ pub const Builder = struct {
             const tag: Node.Tag = ast.nodes.items(.tag)[id];
             const main_token = ast.nodes.items(.main_token)[id];
             const token_offset = ast.tokens.get(main_token).start;
+
+            const source = if (id == 0) "" else ast.getNodeSource(id);
             const loc = ast.tokenLocation(token_offset, main_token);
-            const slice = ast.tokenSlice(main_token);
-            print("  - [{d}, {d}:{d}] {any} - {s}\n", .{ id, loc.line, loc.column, tag, slice });
+            // const slice = ast.source[first.start..last.start]; // ast.tokenSlice(main_token);
+            // const slice = ast.source[first_loc.line_start..last_loc.line_end];
+            print("  - [{d}, {d}:{d}] {any} - {s}\n", .{ id, loc.line, loc.column, tag, source });
         }
     }
 
