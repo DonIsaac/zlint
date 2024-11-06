@@ -2,7 +2,7 @@
   "symbols": [
     {
       "name": "@This()", 
-      "declNode": 0, 
+      "declNode": "root", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
       "members": [1,2], 
@@ -10,7 +10,7 @@
       
     }, {
       "name": "foo", 
-      "declNode": 4, 
+      "declNode": "fn_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 
@@ -18,7 +18,7 @@
       
     }, {
       "name": "inner", 
-      "declNode": 5, 
+      "declNode": "simple_var_decl", 
       "scope": 2, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [3], 
@@ -26,7 +26,7 @@
       
     }, {
       "name": "bar", 
-      "declNode": 9, 
+      "declNode": "fn_decl", 
       "scope": 3, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 

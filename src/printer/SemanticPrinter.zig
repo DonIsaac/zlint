@@ -1,12 +1,15 @@
 printer: *Printer,
+semantic: *const Semantic,
 
-pub fn new(printer: *Printer) SemanticPrinter {
+pub fn new(printer: *Printer, semantic: *const Semantic) SemanticPrinter {
     return SemanticPrinter{
         .printer = printer,
+        .semantic = semantic,
     };
 }
 
-pub fn printSymbolTable(self: *SemanticPrinter, symbols: *const Semantic.SymbolTable) !void {
+pub fn printSymbolTable(self: *SemanticPrinter) !void {
+    const symbols = &self.semantic.symbols;
     try self.printer.pushArray();
     defer self.printer.pop();
 
@@ -23,7 +26,8 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: 
 
     try self.printer.pPropStr("name", symbol.name);
     // try self.printer.pPropStr("kind", symbol.kind);
-    try self.printer.pProp("declNode", "{d}", symbol.decl);
+    const decl = self.semantic.ast.nodes.items(.tag)[symbol.decl];
+    try self.printer.pPropWithNamespacedValue("declNode", decl);
     // try self.printer.pPropStr("type", symbol.type);
     try self.printer.pProp("scope", "{d}", symbol.scope);
     try self.printer.pPropJson("flags", symbol.flags);
@@ -32,8 +36,8 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: 
     // try self.printer.pPropStr("location", symbol.location);
 }
 
-pub fn printScopeTree(self: *SemanticPrinter, scopes: *const Semantic.ScopeTree) !void {
-    return self.printScope(&scopes.scopes.items[Semantic.ROOT_SCOPE_ID], scopes);
+pub fn printScopeTree(self: *SemanticPrinter) !void {
+    return self.printScope(&self.semantic.scopes.scopes.items[Semantic.ROOT_SCOPE_ID], &self.semantic.scopes);
 }
 
 fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope, scopes: *const Semantic.ScopeTree) !void {
