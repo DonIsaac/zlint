@@ -139,8 +139,6 @@ pub const Builder = struct {
             return;
         }
 
-        const tag = self.AST().nodes.items(.tag)[node_id];
-        std.debug.print("visiting node {d} ({any})\n", .{ node_id, tag });
         return self.visitNode(node_id);
     }
 

@@ -1,29 +1,11 @@
 const VisitFn = fn (entry: Entry) ?WalkState;
 
 pub fn Walker(comptime Visitor: type) type {
-    // const info = @typeInfo(Visitor);
-    // const visit: VisitFn = comptime switch (info) {
-    //     .Fn => Visitor,
-    //     .Struct => {
-    //         if (!@hasDecl(Visitor, "visit")) {
-    //             @compileError("Visitor struct must have a visit method.");
-    //         }
-    //         return @field(Visitor, "visit");
-    //     },
-    //     else => @compileError("Visitor must be a function or a Visitor struct."),
-    // };
     comptime {
         const info = @typeInfo(Visitor);
-        // switch (info) {
-        //     .Type => {},
-        //     else => @compileError("Visitor must be a Visitor struct type."),
-        // }
         if (info != .Struct) {
             @compileError("Visitor must be a Visitor struct type.");
         }
-        // if (!@hasDecl(Visitor, "visit")) {
-        //     @compileError("Visitor struct must have a visit method with signature `(*self: Visitor, ent: Entry) ?WalkState`.");
-        // }
     }
 
     return struct {

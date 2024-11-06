@@ -14,7 +14,6 @@ const print = std.debug.print;
 const Ast = std.zig.Ast;
 const Linter = lint.Linter;
 
-
 const print_cmd = @import("cmd/print_command.zig");
 const lint_cmd = @import("cmd/lint_command.zig");
 
@@ -44,17 +43,6 @@ pub fn main() !void {
     }
 
     try lint_cmd.lint(alloc, opts);
-
-    // var linter = Linter.init(alloc);
-    // defer linter.deinit();
-
-    // // TODO: better error printing. Show line/column numbers, a code snippet,
-    // // and underline relevant sections. Maybe steal from miette's graphical reporter?
-    // var errors = try linter.runOnSource(&source);
-    // for (errors.items) |err| {
-    //     print("{s}\n", .{err.message});
-    // }
-    // errors.deinit();
 }
 
 test {
