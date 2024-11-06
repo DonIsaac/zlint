@@ -92,8 +92,17 @@
                   "function", 
                   
                 ], 
-                "children": [], 
-                
+                "children": [
+                  {
+                    "id": 4, 
+                    "flags": [
+                      "block", 
+                      
+                    ], 
+                    "children": [], 
+                    
+                  }, 
+                ], 
               }, 
             ], 
           }, 

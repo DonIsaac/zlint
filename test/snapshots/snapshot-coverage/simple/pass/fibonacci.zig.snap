@@ -5,7 +5,7 @@
       "declNode": "root", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
-      "members": [1,2,5], 
+      "members": [1,2,5,6,7,8,9,10,11], 
       "exports": [], 
       
     }, {
@@ -48,6 +48,54 @@
       "members": [], 
       "exports": [], 
       
+    }, {
+      "name": "allocator", 
+      "declNode": "simple_var_decl", 
+      "scope": 3, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "a", 
+      "declNode": "simple_var_decl", 
+      "scope": 3, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "b", 
+      "declNode": "simple_var_decl", 
+      "scope": 3, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "i", 
+      "declNode": "simple_var_decl", 
+      "scope": 3, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "c", 
+      "declNode": "simple_var_decl", 
+      "scope": 3, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "as", 
+      "declNode": "simple_var_decl", 
+      "scope": 3, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
     }, 
   ], 
   "scopes": {
@@ -76,8 +124,17 @@
                   "block", 
                   
                 ], 
-                "children": [], 
-                
+                "children": [
+                  {
+                    "id": 4, 
+                    "flags": [
+                      "block", 
+                      
+                    ], 
+                    "children": [], 
+                    
+                  }, 
+                ], 
               }, 
             ], 
           }, 
