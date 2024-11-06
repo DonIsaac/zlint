@@ -1,0 +1,113 @@
+{
+  "symbols": [
+    {
+      "name": "@This()", 
+      "declNode": 0, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
+      "members": [1], 
+      "exports": [], 
+      
+    }, {
+      "name": "Writer", 
+      "declNode": 1, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [2,3,4,5], 
+      "exports": [], 
+      
+    }, {
+      "name": "ptr", 
+      "declNode": 4, 
+      "scope": 1, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "writeAllFn", 
+      "declNode": 14, 
+      "scope": 1, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "init", 
+      "declNode": 17, 
+      "scope": 1, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "writeAll", 
+      "declNode": 60, 
+      "scope": 1, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "scopes": {
+    "id": 0, 
+    "flags": [
+      "top", 
+      
+    ], 
+    "children": [
+      {
+        "id": 1, 
+        "flags": [
+          "block", 
+          
+        ], 
+        "children": [
+          {
+            "id": 2, 
+            "flags": [
+              
+            ], 
+            "children": [
+              {
+                "id": 3, 
+                "flags": [
+                  "function", 
+                  
+                ], 
+                "children": [
+                  {
+                    "id": 4, 
+                    "flags": [
+                      "block", 
+                      
+                    ], 
+                    "children": [], 
+                    
+                  }, 
+                ], 
+              }, 
+            ], 
+          }, {
+            "id": 5, 
+            "flags": [
+              
+            ], 
+            "children": [
+              {
+                "id": 6, 
+                "flags": [
+                  "function", 
+                  
+                ], 
+                "children": [], 
+                
+              }, 
+            ], 
+          }, 
+        ], 
+      }, 
+    ], 
+  }, 
+}
