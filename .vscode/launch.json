@@ -10,6 +10,7 @@
             "request": "launch",
             "program": "./zig-out/bin/zlint",
             "cwd": "${workspaceRoot}",
+            "preLaunchTask": "build -Dsingle-threaded"
         },
         {
             "name": "zlint --print-ast",

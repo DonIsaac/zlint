@@ -16,8 +16,8 @@ _default:
   @just --list -u
 
 # Build and run the linter
-run:
-    zig build run
+run *ARGS:
+    zig build run {{ARGS}}
 
 # Build in debug mode
 build *ARGS:
@@ -63,7 +63,7 @@ clear-run cmd:
 print-ast filename="ast.json":
     @mkdir -p tmp
     rm -f ./tmp/{{filename}}
-    zig build run -- --print-ast > ./tmp/{{filename}}
+    zig build run -Dsingle-threaded -- --print-ast > ./tmp/{{filename}}
     prettier --write ./tmp/{{filename}}
 
 # Clone or update submodules

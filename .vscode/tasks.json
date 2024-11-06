@@ -17,6 +17,24 @@
                 "showReuseMessage": false,
                 "clear": true
             }
+        },
+
+        {
+            "label": "build -Dsingle-threaded",
+            "command": "zig",
+            "args": ["build", "-Dsingle-threaded"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            }
         }
     ]
 }
