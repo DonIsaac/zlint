@@ -185,9 +185,9 @@ pub const Builder = struct {
             // function declarations
             .fn_decl => return self.visitFnDecl(node_id),
             .fn_proto, .fn_proto_one, .fn_proto_multi => {
-                if (IS_DEBUG) {
-                    std.debug.panic("visitNode should never encounter a function prototype. It should have been handled by visitFnDecl.", .{});
-                }
+                // if (IS_DEBUG) {
+                //     std.debug.panic("visitNode should never encounter a function prototype. It should have been handled by visitFnDecl.", .{});
+                // }
                 return self.visitRecursive(node_id);
             },
 
@@ -637,7 +637,6 @@ const ArenaAllocator = std.heap.ArenaAllocator;
 const Type = std.builtin.Type;
 
 const assert = std.debug.assert;
-const print = std.debug.print;
 
 const Ast = std.zig.Ast;
 const full = Ast.full;
