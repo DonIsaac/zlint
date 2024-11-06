@@ -73,7 +73,6 @@ pub fn run(self: *TestSuite) !void {
     }
     var pool: ThreadPool = undefined;
     try pool.init(.{ .allocator = self.alloc });
-    defer pool.deinit();
     while (try self.walker.next()) |ent| {
         if (ent.kind != .file) continue;
         if (!std.mem.endsWith(u8, ent.path, ".zig")) continue;
@@ -87,12 +86,13 @@ pub fn run(self: *TestSuite) !void {
         // must make our own copy.
         const entry_path = try self.alloc.dupe(u8, ent.path);
         pool.spawn(runInThread, .{ self, entry_path }) catch |e| {
-
             const msg = try std.fmt.allocPrint(self.alloc, "Failed to spawn task for test {s}", .{ent.path});
             defer self.alloc.free(msg);
             self.pushErr(msg, e);
         };
     }
+    pool.deinit();
+    try self.writeSnapshot();
 }
 
 fn runInThread(self: *TestSuite, path: []const u8) void {
@@ -105,20 +105,17 @@ fn runInThread(self: *TestSuite, path: []const u8) void {
     else
         path;
     const file = self.dir.openFile(filename, .{}) catch |e| {
-        self.stats.incFail();
         self.pushErr(path, e);
         return;
     };
     // TODO: use some kind of Cow wrapper to avoid duplication here
     const filename_owned = self.alloc.dupe(u8, filename) catch @panic("OOM");
     var source = Source.init(self.alloc, file, filename_owned) catch |e| {
-        self.stats.incFail();
         self.pushErr(path, e);
         return;
     };
     defer source.deinit();
     @call(.never_inline, self.test_fn, .{ self.alloc, &source }) catch |e| {
-        self.stats.incFail();
         self.pushErr(path, e);
         return;
     };
@@ -127,16 +124,23 @@ fn runInThread(self: *TestSuite, path: []const u8) void {
 
 fn pushErr(self: *TestSuite, msg: string, err: anytype) void {
     const err_msg = std.fmt.allocPrint(self.alloc, "{s}: {any}\n", .{ msg, err }) catch @panic("Failed to allocate error message: OOM");
+    self.stats.incFail();
     self.errors_mutex.lock();
     defer self.errors_mutex.unlock();
     self.errors.append(self.alloc, err_msg) catch @panic("Failed to push error into error list.");
 }
 
 fn writeSnapshot(self: *TestSuite) !void {
+    const pass = self.stats.pass.load(.monotonic);
     const total = self.stats.total();
     const pct = self.stats.passPct();
 
-    try self.snapshot.writer().print("Passed: {d}% ({d}/{d})\n", .{ pct, self.stats.pass, total });
+    try self.snapshot.writer().print("Passed: {d}% ({d}/{d})\n\n", .{ pct, pass, total });
+    self.errors_mutex.lock();
+    defer self.errors_mutex.unlock();
+    for (self.errors.items) |err| {
+        try self.snapshot.writer().print("{s}\n", .{err});
+    }
 }
 
 const Stats = struct {
@@ -146,20 +150,20 @@ const Stats = struct {
     const AtomicUsize = std.atomic.Value(usize);
 
     inline fn incPass(self: *Stats) void {
-        _ = self.pass.fetchAdd(1, .acq_rel);
+        _ = self.pass.fetchAdd(1, .monotonic);
     }
 
     inline fn incFail(self: *Stats) void {
-        _ = self.fail.fetchAdd(1, .acq_rel);
+        _ = self.fail.fetchAdd(1, .monotonic);
     }
 
     inline fn total(self: *const Stats) usize {
-        return self.pass.load(.acq_rel) + self.fail.load(.acq_rel);
+        return self.pass.load(.monotonic) + self.fail.load(.monotonic);
     }
 
     inline fn passPct(self: *const Stats) f32 {
-        const pass: f32 = @floatFromInt(self.pass.load(.acq_rel));
-        const fail: f32 = @floatFromInt(self.fail.load(.acq_rel));
+        const pass: f32 = @floatFromInt(self.pass.load(.monotonic));
+        const fail: f32 = @floatFromInt(self.fail.load(.monotonic));
         return 100.0 * (pass / (pass + fail));
     }
 };
