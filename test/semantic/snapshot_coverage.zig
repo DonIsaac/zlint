@@ -44,16 +44,16 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     defer snapshot.close();
 
     var printer = zlint.printer.Printer.init(alloc, snapshot.writer());
-    var sem_printer = SemanticPrinter.new(&printer);
+    var sem_printer = SemanticPrinter.new(&printer, &semantic);
     defer printer.deinit();
 
     try printer.pushObject();
     try printer.pPropName("symbols");
-    try sem_printer.printSymbolTable(&semantic.symbols);
+    try sem_printer.printSymbolTable();
     try printer.pIndent();
 
     try printer.pPropName("scopes");
-    try sem_printer.printScopeTree(&semantic.scopes);
+    try sem_printer.printScopeTree();
     printer.pop();
 
     return;

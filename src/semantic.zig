@@ -189,9 +189,6 @@ pub const Builder = struct {
             // function declarations
             .fn_decl => return self.visitFnDecl(node_id),
             .fn_proto, .fn_proto_one, .fn_proto_multi => {
-                // if (IS_DEBUG) {
-                //     std.debug.panic("visitNode should never encounter a function prototype. It should have been handled by visitFnDecl.", .{});
-                // }
                 return self.visitRecursive(node_id);
             },
 
@@ -433,7 +430,6 @@ pub const Builder = struct {
 
     /// Enter a new scope, pushing it onto the stack.
     fn enterScope(self: *Builder, flags: Scope.Flags) !void {
-        // print("entering scope\n", .{});
         const parent_id = self._scope_stack.getLastOrNull();
         const scope = try self._semantic.scopes.addScope(self._gpa, parent_id, flags);
         try self._scope_stack.append(self._gpa, scope.id);
@@ -459,7 +455,6 @@ pub const Builder = struct {
     }
 
     inline fn enterNode(self: *Builder, node_id: NodeIndex) !void {
-        // std.debug.print("entering node {d}\n", .{node_id});
         if (IS_DEBUG) {
             self._checkForNodeLoop(node_id);
         }
@@ -469,7 +464,6 @@ pub const Builder = struct {
     }
 
     inline fn exitNode(self: *Builder) void {
-        // std.debug.print("exiting node {d}\n", .{self.currentNode()});
         self.assertCtx(self._node_stack.items.len > 0, "Invariant violation: Cannot pop the root node", .{});
         _ = self._node_stack.pop();
     }
@@ -699,9 +693,12 @@ pub const Builder = struct {
 
             const source = if (id == 0) "" else ast.getNodeSource(id);
             const loc = ast.tokenLocation(token_offset, main_token);
-            // const slice = ast.source[first.start..last.start]; // ast.tokenSlice(main_token);
-            // const slice = ast.source[first_loc.line_start..last_loc.line_end];
-            print("  - [{d}, {d}:{d}] {any} - {s}\n", .{ id, loc.line, loc.column, tag, source });
+            const snippet =
+                if (source.len > 48) std.mem.concat(self._gpa, u8, &[_]string{ source[0..32], " ... ", source[(source.len - 16)..source.len] }) catch @panic("Out of memory") else source;
+            print("  - [{d}, {d}:{d}] {any} - {s}\n", .{ id, loc.line, loc.column, tag, snippet });
+            if (!std.mem.eql(u8, source, snippet)) {
+                self._gpa.free(snippet);
+            }
         }
     }
 

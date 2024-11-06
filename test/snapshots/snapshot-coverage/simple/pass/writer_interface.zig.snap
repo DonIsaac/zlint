@@ -5,45 +5,45 @@
       "declNode": "root", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
-      "members": [1,2,3,4,5], 
+      "members": [1], 
       "exports": [], 
       
     }, {
-      "name": "std", 
+      "name": "Writer", 
       "declNode": "simple_var_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [2,3,4,5], 
+      "exports": [], 
+      
+    }, {
+      "name": "ptr", 
+      "declNode": "container_field_init", 
+      "scope": 1, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
     }, {
-      "name": "builtin", 
-      "declNode": "simple_var_decl", 
-      "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "name": "writeAllFn", 
+      "declNode": "container_field_init", 
+      "scope": 1, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       
     }, {
-      "name": "msg", 
-      "declNode": "simple_var_decl", 
-      "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
-      "members": [], 
-      "exports": [], 
-      
-    }, {
-      "name": "simpleIf", 
+      "name": "init", 
       "declNode": "fn_decl", 
-      "scope": 0, 
+      "scope": 1, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 
       "exports": [], 
       
     }, {
-      "name": "comptimeIf", 
+      "name": "writeAll", 
       "declNode": "fn_decl", 
-      "scope": 0, 
+      "scope": 1, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 
       "exports": [], 
@@ -60,42 +60,51 @@
       {
         "id": 1, 
         "flags": [
+          "block", 
           
         ], 
         "children": [
           {
             "id": 2, 
             "flags": [
-              "function", 
               
             ], 
             "children": [
               {
                 "id": 3, 
                 "flags": [
-                  "block", 
+                  "function", 
+                  
+                ], 
+                "children": [
+                  {
+                    "id": 4, 
+                    "flags": [
+                      "block", 
+                      
+                    ], 
+                    "children": [], 
+                    
+                  }, 
+                ], 
+              }, 
+            ], 
+          }, {
+            "id": 5, 
+            "flags": [
+              
+            ], 
+            "children": [
+              {
+                "id": 6, 
+                "flags": [
+                  "function", 
                   
                 ], 
                 "children": [], 
                 
               }, 
             ], 
-          }, 
-        ], 
-      }, {
-        "id": 4, 
-        "flags": [
-          
-        ], 
-        "children": [
-          {
-            "id": 5, 
-            "flags": [
-              "function", 
-              
-            ], 
-            "children": [], 
-            
           }, 
         ], 
       }, 

@@ -2,7 +2,7 @@
   "symbols": [
     {
       "name": "@This()", 
-      "declNode": 0, 
+      "declNode": "root", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
       "members": [1,2,3,4], 
@@ -10,7 +10,7 @@
       
     }, {
       "name": "std", 
-      "declNode": 1, 
+      "declNode": "simple_var_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
@@ -18,7 +18,7 @@
       
     }, {
       "name": "bad", 
-      "declNode": 6, 
+      "declNode": "simple_var_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
@@ -26,7 +26,7 @@
       
     }, {
       "name": "good", 
-      "declNode": 11, 
+      "declNode": "simple_var_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
@@ -34,7 +34,7 @@
       
     }, {
       "name": "Foo", 
-      "declNode": 13, 
+      "declNode": "simple_var_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [5,6,7], 
@@ -42,7 +42,7 @@
       
     }, {
       "name": "foo", 
-      "declNode": 16, 
+      "declNode": "container_field_init", 
       "scope": 1, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
       "members": [], 
@@ -50,7 +50,7 @@
       
     }, {
       "name": "Bar", 
-      "declNode": 18, 
+      "declNode": "simple_var_decl", 
       "scope": 1, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
@@ -58,7 +58,7 @@
       
     }, {
       "name": "baz", 
-      "declNode": 24, 
+      "declNode": "fn_decl", 
       "scope": 1, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 

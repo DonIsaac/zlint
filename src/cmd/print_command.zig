@@ -42,14 +42,14 @@ pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source) !void {
     defer printer.deinit();
     var ast_printer = AstPrinter.new(&printer, .{ .verbose = opts.verbose }, source, &sema.ast);
     ast_printer.setNodeLinks(&sema.node_links);
-    var semantic_printer = SemanticPrinter.new(&printer);
+    var semantic_printer = SemanticPrinter.new(&printer, &sema_result.value);
 
     try printer.pushObject();
     defer printer.pop();
     try printer.pPropName("ast");
     try ast_printer.printAst();
     try printer.pPropName("symbols");
-    try semantic_printer.printSymbolTable(&sema_result.value.symbols);
+    try semantic_printer.printSymbolTable();
     try printer.pPropName("scopes");
-    try semantic_printer.printScopeTree(&sema_result.value.scopes);
+    try semantic_printer.printScopeTree();
 }

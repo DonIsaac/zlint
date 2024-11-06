@@ -5,35 +5,11 @@
       "declNode": "root", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
-      "members": [1,2,3,4,5], 
+      "members": [1,2], 
       "exports": [], 
       
     }, {
-      "name": "std", 
-      "declNode": "simple_var_decl", 
-      "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
-      "members": [], 
-      "exports": [], 
-      
-    }, {
-      "name": "builtin", 
-      "declNode": "simple_var_decl", 
-      "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
-      "members": [], 
-      "exports": [], 
-      
-    }, {
-      "name": "msg", 
-      "declNode": "simple_var_decl", 
-      "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
-      "members": [], 
-      "exports": [], 
-      
-    }, {
-      "name": "simpleIf", 
+      "name": "foo", 
       "declNode": "fn_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
@@ -41,9 +17,17 @@
       "exports": [], 
       
     }, {
-      "name": "comptimeIf", 
+      "name": "inner", 
+      "declNode": "simple_var_decl", 
+      "scope": 2, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [3], 
+      "exports": [], 
+      
+    }, {
+      "name": "bar", 
       "declNode": "fn_decl", 
-      "scope": 0, 
+      "scope": 3, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 
       "exports": [], 
@@ -76,26 +60,27 @@
                   "block", 
                   
                 ], 
-                "children": [], 
-                
+                "children": [
+                  {
+                    "id": 4, 
+                    "flags": [
+                      
+                    ], 
+                    "children": [
+                      {
+                        "id": 5, 
+                        "flags": [
+                          "function", 
+                          
+                        ], 
+                        "children": [], 
+                        
+                      }, 
+                    ], 
+                  }, 
+                ], 
               }, 
             ], 
-          }, 
-        ], 
-      }, {
-        "id": 4, 
-        "flags": [
-          
-        ], 
-        "children": [
-          {
-            "id": 5, 
-            "flags": [
-              "function", 
-              
-            ], 
-            "children": [], 
-            
           }, 
         ], 
       }, 
