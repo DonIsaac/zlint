@@ -182,12 +182,13 @@ pub const Builder = struct {
                 const field = self.AST().fullContainerField(node_id) orelse unreachable;
                 return self.visitContainerField(node_id, field);
             },
-            // .field_access => {
-            //     if (self.getTokenTag(node_id) == .identifier) {
-            //         return;
-            //     }
-            //     return self.visitRecursive(node_id);
-            // },
+            .field_access => {
+                return self.visit(self.getNodeData(node_id).lhs);
+                //     if (self.getTokenTag(node_id) == .identifier) {
+                //         return;
+                //     }
+                //     return self.visitRecursive(node_id);
+            },
             // variable declarations
             .global_var_decl => {
                 const decl = self.AST().fullVarDecl(node_id) orelse unreachable;

@@ -103,7 +103,8 @@ const LintVisitor = struct {
     }
 
     fn deinit(self: *LintVisitor) void {
-        self.pool.deinit();
         self.linter.deinit();
+        self.pool.deinit();
+        self.allocator.destroy(self.pool);
     }
 };

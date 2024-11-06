@@ -5,7 +5,7 @@
       "declNode": "root", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
-      "members": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19], 
+      "members": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], 
       "exports": [], 
       
     }, {
@@ -51,39 +51,7 @@
     }, {
       "name": "map", 
       "declNode": "simple_var_decl", 
-      "scope": 11, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
-      "members": [], 
-      "exports": [], 
-      
-    }, {
-      "name": "whileWithExpr", 
-      "declNode": "fn_decl", 
-      "scope": 11, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
-      "members": [], 
-      "exports": [], 
-      
-    }, {
-      "name": "x", 
-      "declNode": "simple_var_decl", 
-      "scope": 18, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
-      "members": [], 
-      "exports": [], 
-      
-    }, {
-      "name": "y", 
-      "declNode": "simple_var_decl", 
-      "scope": 18, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
-      "members": [], 
-      "exports": [], 
-      
-    }, {
-      "name": "my_xy", 
-      "declNode": "simple_var_decl", 
-      "scope": 20, 
+      "scope": 7, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -91,7 +59,7 @@
     }, {
       "name": "iter", 
       "declNode": "simple_var_decl", 
-      "scope": 11, 
+      "scope": 7, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -99,7 +67,7 @@
     }, {
       "name": "k", 
       "declNode": "simple_var_decl", 
-      "scope": 21, 
+      "scope": 8, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -107,7 +75,7 @@
     }, {
       "name": "v", 
       "declNode": "simple_var_decl", 
-      "scope": 21, 
+      "scope": 8, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -123,7 +91,7 @@
     }, {
       "name": "x", 
       "declNode": "simple_var_decl", 
-      "scope": 28, 
+      "scope": 11, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -131,7 +99,7 @@
     }, {
       "name": "y", 
       "declNode": "simple_var_decl", 
-      "scope": 28, 
+      "scope": 11, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -139,7 +107,7 @@
     }, {
       "name": "my_xy", 
       "declNode": "simple_var_decl", 
-      "scope": 30, 
+      "scope": 13, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -155,7 +123,7 @@
     }, {
       "name": "i", 
       "declNode": "simple_var_decl", 
-      "scope": 33, 
+      "scope": 16, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -195,43 +163,42 @@
                       "block", 
                       
                     ], 
-                    "children": [
-                      {
-                        "id": 5, 
-                        "flags": [
-                          "block", 
-                          
-                        ], 
-                        "children": [
-                          {
-                            "id": 6, 
-                            "flags": [
-                              "block", 
-                              
-                            ], 
-                            "children": [], 
-                            
-                          }, 
-                        ], 
-                      }, {
-                        "id": 7, 
-                        "flags": [
-                          "block", 
-                          
-                        ], 
-                        "children": [
-                          {
-                            "id": 8, 
-                            "flags": [
-                              "block", 
-                              
-                            ], 
-                            "children": [], 
-                            
-                          }, 
-                        ], 
-                      }, 
+                    "children": [], 
+                    
+                  }, 
+                ], 
+              }, 
+            ], 
+          }, 
+        ], 
+      }, {
+        "id": 5, 
+        "flags": [
+          
+        ], 
+        "children": [
+          {
+            "id": 6, 
+            "flags": [
+              "function", 
+              
+            ], 
+            "children": [
+              {
+                "id": 7, 
+                "flags": [
+                  "block", 
+                  
+                ], 
+                "children": [
+                  {
+                    "id": 8, 
+                    "flags": [
+                      "block", 
+                      
                     ], 
+                    "children": [], 
+                    
                   }, 
                 ], 
               }, 
@@ -264,155 +231,10 @@
                       "block", 
                       
                     ], 
-                    "children": [
-                      {
-                        "id": 13, 
-                        "flags": [
-                          "block", 
-                          
-                        ], 
-                        "children": [], 
-                        
-                      }, 
-                    ], 
-                  }, {
-                    "id": 14, 
-                    "flags": [
-                      "block", 
-                      
-                    ], 
-                    "children": [
-                      {
-                        "id": 15, 
-                        "flags": [
-                          "block", 
-                          
-                        ], 
-                        "children": [], 
-                        
-                      }, 
-                    ], 
-                  }, {
-                    "id": 16, 
-                    "flags": [
-                      
-                    ], 
-                    "children": [
-                      {
-                        "id": 17, 
-                        "flags": [
-                          "function", 
-                          
-                        ], 
-                        "children": [
-                          {
-                            "id": 18, 
-                            "flags": [
-                              "block", 
-                              
-                            ], 
-                            "children": [
-                              {
-                                "id": 19, 
-                                "flags": [
-                                  "block", 
-                                  
-                                ], 
-                                "children": [], 
-                                
-                              }, {
-                                "id": 20, 
-                                "flags": [
-                                  "block", 
-                                  
-                                ], 
-                                "children": [], 
-                                
-                              }, 
-                            ], 
-                          }, 
-                        ], 
-                      }, 
-                    ], 
-                  }, {
-                    "id": 21, 
-                    "flags": [
-                      "block", 
-                      
-                    ], 
-                    "children": [
-                      {
-                        "id": 22, 
-                        "flags": [
-                          "block", 
-                          
-                        ], 
-                        "children": [
-                          {
-                            "id": 23, 
-                            "flags": [
-                              "block", 
-                              
-                            ], 
-                            "children": [], 
-                            
-                          }, 
-                        ], 
-                      }, {
-                        "id": 24, 
-                        "flags": [
-                          "block", 
-                          
-                        ], 
-                        "children": [
-                          {
-                            "id": 25, 
-                            "flags": [
-                              "block", 
-                              
-                            ], 
-                            "children": [], 
-                            
-                          }, 
-                        ], 
-                      }, 
-                    ], 
-                  }, 
-                ], 
-              }, 
-            ], 
-          }, 
-        ], 
-      }, {
-        "id": 26, 
-        "flags": [
-          
-        ], 
-        "children": [
-          {
-            "id": 27, 
-            "flags": [
-              "function", 
-              
-            ], 
-            "children": [
-              {
-                "id": 28, 
-                "flags": [
-                  "block", 
-                  
-                ], 
-                "children": [
-                  {
-                    "id": 29, 
-                    "flags": [
-                      "block", 
-                      
-                    ], 
                     "children": [], 
                     
                   }, {
-                    "id": 30, 
+                    "id": 13, 
                     "flags": [
                       "block", 
                       
@@ -426,34 +248,34 @@
           }, 
         ], 
       }, {
-        "id": 31, 
+        "id": 14, 
         "flags": [
           
         ], 
         "children": [
           {
-            "id": 32, 
+            "id": 15, 
             "flags": [
               "function", 
               
             ], 
             "children": [
               {
-                "id": 33, 
+                "id": 16, 
                 "flags": [
                   "block", 
                   
                 ], 
                 "children": [
                   {
-                    "id": 34, 
+                    "id": 17, 
                     "flags": [
                       "block", 
                       
                     ], 
                     "children": [
                       {
-                        "id": 35, 
+                        "id": 18, 
                         "flags": [
                           "block", 
                           
@@ -463,14 +285,14 @@
                       }, 
                     ], 
                   }, {
-                    "id": 36, 
+                    "id": 19, 
                     "flags": [
                       "block", 
                       
                     ], 
                     "children": [
                       {
-                        "id": 37, 
+                        "id": 20, 
                         "flags": [
                           "block", 
                           
