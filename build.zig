@@ -15,6 +15,8 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
+    const single_threaded = b.option(bool, "single-threaded", "Build a single-threaded executable");
+
     const util = b.addModule("util", std.Build.Module.CreateOptions{
         // lb
         .root_source_file = b.path("src/util.zig"),
@@ -42,6 +44,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
+        .single_threaded = single_threaded,
     });
     exe.root_module.addImport("util", util);
 
@@ -79,6 +82,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
+        .single_threaded = single_threaded,
     });
     lib_unit_tests.root_module.addImport("util", util);
 
@@ -88,6 +92,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
+        .single_threaded = single_threaded,
     });
     exe_unit_tests.root_module.addImport("util", util);
 
@@ -141,6 +146,7 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("test/test_e2e.zig"),
             .target = target,
             .optimize = optimize,
+            .single_threaded = single_threaded,
         });
         e2e_tests.root_module.addImport("zlint", zlint);
         b.installArtifact(e2e_tests);
