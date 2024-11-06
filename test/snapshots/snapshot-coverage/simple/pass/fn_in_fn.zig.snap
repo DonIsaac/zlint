@@ -1,0 +1,89 @@
+{
+  "symbols": [
+    {
+      "name": "@This()", 
+      "declNode": 0, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
+      "members": [1,2], 
+      "exports": [], 
+      
+    }, {
+      "name": "foo", 
+      "declNode": 4, 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
+      "name": "inner", 
+      "declNode": 5, 
+      "scope": 2, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [3], 
+      "exports": [], 
+      
+    }, {
+      "name": "bar", 
+      "declNode": 9, 
+      "scope": 3, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "scopes": {
+    "id": 0, 
+    "flags": [
+      "top", 
+      
+    ], 
+    "children": [
+      {
+        "id": 1, 
+        "flags": [
+          
+        ], 
+        "children": [
+          {
+            "id": 2, 
+            "flags": [
+              "function", 
+              
+            ], 
+            "children": [
+              {
+                "id": 3, 
+                "flags": [
+                  "block", 
+                  
+                ], 
+                "children": [
+                  {
+                    "id": 4, 
+                    "flags": [
+                      
+                    ], 
+                    "children": [
+                      {
+                        "id": 5, 
+                        "flags": [
+                          "function", 
+                          
+                        ], 
+                        "children": [], 
+                        
+                      }, 
+                    ], 
+                  }, 
+                ], 
+              }, 
+            ], 
+          }, 
+        ], 
+      }, 
+    ], 
+  }, 
+}
