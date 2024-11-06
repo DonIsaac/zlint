@@ -103,8 +103,9 @@ const LintVisitor = struct {
     }
 
     fn deinit(self: *LintVisitor) void {
-        self.linter.deinit();
         self.pool.deinit();
         self.allocator.destroy(self.pool);
+        // NOTE: threads must be joined before deinit-ing linter
+        self.linter.deinit();
     }
 };
