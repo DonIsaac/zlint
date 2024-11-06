@@ -39,6 +39,8 @@ pub const Builder = struct {
     const NULL_NODE: NodeIndex = Semantic.NULL_NODE;
     const ROOT_SCOPE: Semantic.Scope.Id = Semantic.ROOT_SCOPE_ID;
 
+    pub const Result = Error.Result(Semantic);
+
     /// Parse and analyze a Zig source file.
     ///
     /// Analysis consists of:
@@ -188,7 +190,8 @@ pub const Builder = struct {
                 if (IS_DEBUG) {
                     std.debug.panic("visitNode should never encounter a function prototype. It should have been handled by visitFnDecl.", .{});
                 }
-                return self.visitRecursive(node_id);
+                // return self.visitRecursive(node_id);
+                return;
             },
 
             // function calls
@@ -198,7 +201,7 @@ pub const Builder = struct {
                 // against future API changes made by the Zig team.
                 if (IS_DEBUG) {
                     var buf: [1]u32 = undefined;
-                    assert(self.AST().fullCall(&buf, node_id) != null);
+                    util.assert(self.AST().fullCall(&buf, node_id) != null, "fullCall returned null for tag {any}", .{tag});
                 }
                 const call = self.AST().callFull(node_id);
                 return self.visitCall(node_id, call);
@@ -209,7 +212,7 @@ pub const Builder = struct {
                 // middleman removes a redundant tag check. This check guards
                 // against future API changes made by the Zig team.
                 if (IS_DEBUG) {
-                    assert(self.AST().fullCall(&buf, node_id) != null);
+                    util.assert(self.AST().fullCall(&buf, node_id) != null, "fullCall returned null for tag {any}", .{tag});
                 }
                 const call = self.AST().callOne(&buf, node_id);
                 return self.visitCall(node_id, call);
@@ -239,9 +242,7 @@ pub const Builder = struct {
 
             // TODO: include .block_two and .block_two_semicolon?
             .block, .block_semicolon => {
-                try self.enterScope(.{ .s_block = true });
-                defer self.exitScope();
-                return self.visitRecursive(node_id);
+                return self.visitBlock(node_id);
             },
             // .@"usingnamespace" => self.visitUsingNamespace(node),
             else => return self.visitRecursive(node_id),
@@ -253,6 +254,19 @@ pub const Builder = struct {
         const data: Node.Data = self.AST().nodes.items(.data)[node_id];
         try self.visit(data.lhs);
         try self.visit(data.rhs);
+    }
+
+    // TODO: inline after we're done debugging
+    fn visitBlock(self: *Builder, node_id: NodeIndex) !void {
+        @setCold(true);
+        const ast = self.AST();
+        const block_data = ast.nodes.items(.data)[node_id];
+        const left = self.getNode(block_data.lhs);
+        const right = self.getNode(block_data.rhs);
+        print("left: {any}\nright: {any}\n", .{ left, right });
+        try self.enterScope(.{ .s_block = true });
+        defer self.exitScope();
+        return self.visitRecursive(node_id);
     }
 
     fn visitContainer(self: *Builder, _: NodeIndex, container: full.ContainerDecl) !void {
@@ -336,7 +350,7 @@ pub const Builder = struct {
         try self.visit(if_stmt.ast.else_expr);
     }
 
-    fn visitFnDecl(self: *Builder, node_id: NodeIndex) !void {
+    inline fn visitFnDecl(self: *Builder, node_id: NodeIndex) !void {
         var buf: [1]u32 = undefined;
         const ast = self.AST();
         // lhs is prototype, rhs is body
@@ -365,7 +379,7 @@ pub const Builder = struct {
     }
 
     /// Visit a function call. Does not visit calls to builtins
-    fn visitCall(self: *Builder, _: NodeIndex, call: full.Call) !void {
+    inline fn visitCall(self: *Builder, _: NodeIndex, call: full.Call) !void {
         // TODO: record reference
         try self.visit(call.ast.fn_expr);
         for (call.ast.params) |arg| {
@@ -383,9 +397,9 @@ pub const Builder = struct {
         // initialize root scope
         // NOTE: root scope is entered differently to avoid unnecessary null checks
         // when getting parent scopes. Parent is only ever null for the root scope.
-        assert(self._scope_stack.items.len == 0);
+        util.assert(self._scope_stack.items.len == 0, "enterRoot called with non-empty scope stack", .{});
         const root_scope = try self._semantic.scopes.addScope(self._gpa, null, .{ .s_top = true });
-        assert(root_scope.id == Semantic.ROOT_SCOPE_ID);
+        util.assert(root_scope.id == Semantic.ROOT_SCOPE_ID, "Creating root scope returned id {d} which is not the expected root id ({d})", .{ root_scope.id, Semantic.ROOT_SCOPE_ID });
 
         // Builder.init() allocates enough space for 8 scopes.
         self._scope_stack.appendAssumeCapacity(root_scope.id);
@@ -398,6 +412,7 @@ pub const Builder = struct {
         // Create root symbol and push it onto the stack. It too is never popped.
         // TODO: distinguish between bound name and escaped name.
         const root_symbol_id = try self.declareSymbol(Semantic.ROOT_NODE_ID, "@This()", .public, .{ .s_const = true });
+        util.assert(root_symbol_id == 0, "Creating root symbol returned id {d} which is not the expected root id (0)", .{root_symbol_id});
         try self.enterContainerSymbol(root_symbol_id);
     }
 
@@ -405,19 +420,18 @@ pub const Builder = struct {
     ///
     /// This function gets erased in ReleaseFast builds.
     inline fn assertRoot(self: *const Builder) void {
-        assert(self._scope_stack.items.len == 1);
-        assert(self._scope_stack.items[0] == Semantic.ROOT_SCOPE_ID);
+        self.assertCtx(self._scope_stack.items.len == 1, "assertRoot: scope stack is not at root", .{});
+        self.assertCtx(self._scope_stack.items[0] == Semantic.ROOT_SCOPE_ID, "assertRoot: scope stack is not at root", .{});
 
-        assert(self._node_stack.items.len == 1);
-        assert(self._node_stack.items[0] == Semantic.ROOT_NODE_ID);
+        self.assertCtx(self._node_stack.items.len == 1, "assertRoot: node stack is not at root", .{});
+        self.assertCtx(self._node_stack.items[0] == Semantic.ROOT_NODE_ID, "assertRoot: node stack is not at root", .{});
 
-        assert(self._symbol_stack.items.len == 1);
-        assert(self._symbol_stack.items[0] == 0); // TODO: create root symbol id.
+        self.assertCtx(self._symbol_stack.items.len == 1, "assertRoot: symbol stack is not at root", .{});
+        self.assertCtx(self._symbol_stack.items[0] == 0, "assertRoot: symbol stack is not at root", .{}); // TODO: create root symbol id.
     }
 
     /// Enter a new scope, pushing it onto the stack.
     fn enterScope(self: *Builder, flags: Scope.Flags) !void {
-        // print("entering scope\n", .{});
         const parent_id = self._scope_stack.getLastOrNull();
         const scope = try self._semantic.scopes.addScope(self._gpa, parent_id, flags);
         try self._scope_stack.append(self._gpa, scope.id);
@@ -425,8 +439,7 @@ pub const Builder = struct {
 
     /// Exit the current scope. It is a bug to pop the root scope.
     inline fn exitScope(self: *Builder) void {
-        // print("exiting scope\n", .{});
-        assert(self._scope_stack.items.len > 1); // cannot pop root scope
+        self.assertCtx(self._scope_stack.items.len > 1, "Invariant violation: cannot pop the root scope", .{});
         _ = self._scope_stack.pop();
     }
 
@@ -438,20 +451,38 @@ pub const Builder = struct {
         return self._scope_stack.getLast();
     }
 
-    fn currentNode(self: *const Builder) NodeIndex {
-        util.assert(self._node_stack.items.len > 0, "Invariant violation: root node is missing from the node stack", .{});
+    inline fn currentNode(self: *const Builder) NodeIndex {
+        self.assertCtx(self._node_stack.items.len > 0, "Invariant violation: root node is missing from the node stack", .{});
         return self._node_stack.getLast();
     }
 
     inline fn enterNode(self: *Builder, node_id: NodeIndex) !void {
+        if (IS_DEBUG) {
+            self._checkForNodeLoop(node_id);
+        }
         const curr_node = self.currentNode();
         self._semantic.node_links.setParent(node_id, curr_node);
         try self._node_stack.append(self._gpa, node_id);
     }
 
     inline fn exitNode(self: *Builder) void {
-        util.assert(self._node_stack.items.len > 0, "Invariant violation: Cannot pop the root node", .{});
+        self.assertCtx(self._node_stack.items.len > 0, "Invariant violation: Cannot pop the root node", .{});
         _ = self._node_stack.pop();
+    }
+
+    /// Check for a visit loop when pushing `node_id` onto the node stack.
+    /// Panics if it finds one.
+    ///
+    /// Should only be run in debug builds.
+    fn _checkForNodeLoop(self: *Builder, node_id: NodeIndex) void {
+        var is_loop = false;
+        for (self._node_stack.items) |id| {
+            if (node_id == id) {
+                is_loop = true;
+                break;
+            }
+        }
+        self.assertCtx(!is_loop, "Invariant violation: Node {d} is already on the stack", .{node_id});
     }
 
     inline fn enterContainerSymbol(self: *Builder, symbol_id: Symbol.Id) !void {
@@ -475,9 +506,7 @@ pub const Builder = struct {
     /// Unconditionally get the most recent container symbol. Panics if no
     /// symbol has been entered.
     inline fn currentContainerSymbolUnwrap(self: *const Builder) Symbol.Id {
-        if (IS_DEBUG and self._symbol_stack.items.len == 0) {
-            std.debug.panic("Cannot get current container symbol: symbol stack is empty", .{});
-        }
+        self.assertCtx(self._symbol_stack.items.len > 0, "Invariant violation: no container symbol on the stack. Root symbol should always be present.", .{});
         return self._symbol_stack.getLast();
     }
 
@@ -554,14 +583,18 @@ pub const Builder = struct {
     /// ## Panics
     /// - If `node_id` is out of bounds.
     inline fn maybeGetNode(self: *const Builder, node_id: NodeIndex) ?Node {
-        if (node_id == 0) return null;
-        assert(node_id < self.AST().nodes.len);
+        {
+            if (node_id == 0) return null;
+            const len = self.AST().nodes.len;
+            self.assertCtx(node_id < len, "Cannot get node: id {d} is out of bounds ({d})", .{ node_id, len });
+        }
 
         return self.AST().nodes.get(node_id);
     }
 
     inline fn getToken(self: *const Builder, token_id: TokenIndex) RawToken {
-        assert(token_id < self.AST().tokens.len);
+        const len = self.AST().tokens.len;
+        util.assert(token_id < len, "Cannot get token: id {d} is out of bounds ({d})", .{ token_id, len });
 
         const t = self.AST().tokens.get(token_id);
         return .{
@@ -623,7 +656,76 @@ pub const Builder = struct {
         try self._errors.append(self._gpa, err);
     }
 
-    pub const Result = Error.Result(Semantic);
+    // =========================================================================
+    // ====================== PANICS AND DEBUGGING UTILS =======================
+    // =========================================================================
+
+    const print = std.debug.print;
+
+    /// Assert a condition, and print current stack debug info if it fails.
+    inline fn assertCtx(self: *const Builder, condition: bool, comptime fmt: []const u8, args: anytype) void {
+        if (IS_DEBUG) {
+            if (!condition) {
+                print("Assertion failed: ", .{});
+                print(fmt, args);
+                print("\n================================================================================\n", .{});
+                print("\nContext:\n\n", .{});
+                self.debugNodeStack();
+                print("\n", .{});
+                self.printSymbolStack();
+                print("\n", .{});
+                self.printScopeStack();
+                print("\n", .{});
+                std.debug.assert(false);
+            }
+        } else {
+            assert(condition);
+        }
+    }
+
+    fn debugNodeStack(self: *const Builder) void {
+        @setCold(true);
+        const ast = self.AST();
+
+        print("Node stack:\n", .{});
+        for (self._node_stack.items) |id| {
+            const tag: Node.Tag = ast.nodes.items(.tag)[id];
+            const main_token = ast.nodes.items(.main_token)[id];
+            const token_offset = ast.tokens.get(main_token).start;
+
+            const source = if (id == 0) "" else ast.getNodeSource(id);
+            const loc = ast.tokenLocation(token_offset, main_token);
+            const snippet =
+                if (source.len > 48) std.mem.concat(self._gpa, u8, &[_]string{ source[0..32], " ... ", source[(source.len - 16)..source.len] }) catch @panic("Out of memory") else source;
+            print("  - [{d}, {d}:{d}] {any} - {s}\n", .{ id, loc.line, loc.column, tag, snippet });
+            if (!std.mem.eql(u8, source, snippet)) {
+                self._gpa.free(snippet);
+            }
+        }
+    }
+
+    fn printSymbolStack(self: *const Builder) void {
+        @setCold(true);
+        const symbols = &self._semantic.symbols;
+        const names: []string = symbols.symbols.items(.name);
+
+        print("Symbol stack:\n", .{});
+        for (self._symbol_stack.items) |id| {
+            const name = names[id];
+            print("  - {d}: {s}\n", .{ id, name });
+        }
+    }
+
+    fn printScopeStack(self: *const Builder) void {
+        @setCold(true);
+        const scopes = &self._semantic.scopes;
+
+        print("Scope stack:\n", .{});
+        for (self._scope_stack.items) |id| {
+            const flags = scopes.scopes.items[id].flags;
+            print("  - {d}: (flags: {any})\n", .{ id, flags });
+        }
+    }
 };
 
 pub const Semantic = @import("./semantic/Semantic.zig");
@@ -637,7 +739,6 @@ const ArenaAllocator = std.heap.ArenaAllocator;
 const Type = std.builtin.Type;
 
 const assert = std.debug.assert;
-const print = std.debug.print;
 
 const Ast = std.zig.Ast;
 const full = Ast.full;
