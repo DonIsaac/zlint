@@ -187,11 +187,7 @@ pub const Builder = struct {
             // function declarations
             .fn_decl => return self.visitFnDecl(node_id),
             .fn_proto, .fn_proto_one, .fn_proto_multi => {
-                if (IS_DEBUG) {
-                    std.debug.panic("visitNode should never encounter a function prototype. It should have been handled by visitFnDecl.", .{});
-                }
-                // return self.visitRecursive(node_id);
-                return;
+                return self.visitRecursive(node_id);
             },
 
             // function calls
