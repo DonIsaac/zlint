@@ -2,7 +2,7 @@
   "symbols": [
     {
       "name": "@This()", 
-      "declNode": 0, 
+      "declNode": "root", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
       "members": [1,2,5], 
@@ -10,7 +10,7 @@
       
     }, {
       "name": "std", 
-      "declNode": 1, 
+      "declNode": "simple_var_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
@@ -18,7 +18,7 @@
       
     }, {
       "name": "Managed", 
-      "declNode": 4, 
+      "declNode": "simple_var_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [3,4], 
@@ -26,7 +26,7 @@
       
     }, {
       "name": "allocator", 
-      "declNode": 15, 
+      "declNode": "simple_var_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
@@ -34,7 +34,7 @@
       
     }, {
       "name": "a", 
-      "declNode": 19, 
+      "declNode": "simple_var_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
@@ -42,7 +42,7 @@
       
     }, {
       "name": "main", 
-      "declNode": 14, 
+      "declNode": "fn_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 

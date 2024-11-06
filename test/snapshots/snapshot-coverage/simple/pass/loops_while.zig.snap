@@ -2,7 +2,7 @@
   "symbols": [
     {
       "name": "@This()", 
-      "declNode": 0, 
+      "declNode": "root", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
       "members": [1,2,3,4,5,6,7,8], 
@@ -10,7 +10,7 @@
       
     }, {
       "name": "std", 
-      "declNode": 1, 
+      "declNode": "simple_var_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
@@ -18,7 +18,7 @@
       
     }, {
       "name": "simpleWhile", 
-      "declNode": 6, 
+      "declNode": "fn_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 
@@ -26,7 +26,7 @@
       
     }, {
       "name": "i", 
-      "declNode": 8, 
+      "declNode": "simple_var_decl", 
       "scope": 2, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
@@ -34,7 +34,7 @@
       
     }, {
       "name": "whileWithClosure", 
-      "declNode": 33, 
+      "declNode": "fn_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 
@@ -42,7 +42,7 @@
       
     }, {
       "name": "whileWithExpr", 
-      "declNode": 79, 
+      "declNode": "fn_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 
@@ -50,7 +50,7 @@
       
     }, {
       "name": "whileWithClosure", 
-      "declNode": 33, 
+      "declNode": "fn_decl", 
       "scope": 9, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 
@@ -58,7 +58,7 @@
       
     }, {
       "name": "rangeHasNumber", 
-      "declNode": 118, 
+      "declNode": "fn_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
       "members": [], 
@@ -66,7 +66,7 @@
       
     }, {
       "name": "i", 
-      "declNode": 119, 
+      "declNode": "simple_var_decl", 
       "scope": 14, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
