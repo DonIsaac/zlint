@@ -20,8 +20,8 @@ run:
     zig build run
 
 # Build in debug mode
-build:
-    zig build --summary all
+build *ARGS:
+    zig build --summary all {{ARGS}}
 
 # Check for syntax and semantic errors
 check:
