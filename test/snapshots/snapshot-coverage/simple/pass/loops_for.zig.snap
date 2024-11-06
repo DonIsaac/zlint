@@ -27,7 +27,7 @@
     }, {
       "name": "arr", 
       "declNode": "simple_var_decl", 
-      "scope": 2, 
+      "scope": 3, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -35,7 +35,7 @@
     }, {
       "name": "power_of_two", 
       "declNode": "simple_var_decl", 
-      "scope": 2, 
+      "scope": 4, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -51,7 +51,7 @@
     }, {
       "name": "mat4x4", 
       "declNode": "simple_var_decl", 
-      "scope": 4, 
+      "scope": 7, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -77,24 +77,78 @@
               "function", 
               
             ], 
-            "children": [], 
-            
+            "children": [
+              {
+                "id": 3, 
+                "flags": [
+                  "block", 
+                  
+                ], 
+                "children": [
+                  {
+                    "id": 4, 
+                    "flags": [
+                      "block", 
+                      
+                    ], 
+                    "children": [], 
+                    
+                  }, 
+                ], 
+              }, 
+            ], 
           }, 
         ], 
       }, {
-        "id": 3, 
+        "id": 5, 
         "flags": [
           
         ], 
         "children": [
           {
-            "id": 4, 
+            "id": 6, 
             "flags": [
               "function", 
               
             ], 
-            "children": [], 
-            
+            "children": [
+              {
+                "id": 7, 
+                "flags": [
+                  "block", 
+                  
+                ], 
+                "children": [
+                  {
+                    "id": 8, 
+                    "flags": [
+                      "block", 
+                      
+                    ], 
+                    "children": [
+                      {
+                        "id": 9, 
+                        "flags": [
+                          "block", 
+                          
+                        ], 
+                        "children": [
+                          {
+                            "id": 10, 
+                            "flags": [
+                              "block", 
+                              
+                            ], 
+                            "children": [], 
+                            
+                          }, 
+                        ], 
+                      }, 
+                    ], 
+                  }, 
+                ], 
+              }, 
+            ], 
           }, 
         ], 
       }, 

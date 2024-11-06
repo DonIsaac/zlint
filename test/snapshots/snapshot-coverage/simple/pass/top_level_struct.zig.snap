@@ -43,7 +43,7 @@
     }, {
       "name": "a", 
       "declNode": "container_field_init", 
-      "scope": 2, 
+      "scope": 3, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -51,7 +51,7 @@
     }, {
       "name": "a", 
       "declNode": "container_field_init", 
-      "scope": 2, 
+      "scope": 3, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -77,8 +77,17 @@
               "function", 
               
             ], 
-            "children": [], 
-            
+            "children": [
+              {
+                "id": 3, 
+                "flags": [
+                  "block", 
+                  
+                ], 
+                "children": [], 
+                
+              }, 
+            ], 
           }, 
         ], 
       }, 

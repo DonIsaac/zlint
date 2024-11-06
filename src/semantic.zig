@@ -13,6 +13,16 @@
 //! an entire linked binary or library; rather it refers to a single parsed
 //! file.
 
+// Important things I've learned about Zig's AST:
+//
+// For nodes:
+// - tags .foo and .foo_semicolon are the same.
+// - if there's a .foo and .foo_two tag, then
+//   - .foo_two has actual ast nodes in `data.lhs` and `data.rhs`
+//   - .foo's lhs/rhs are actually a span that should be used to range-index
+//     `ast.extra_data`. That gets the variable-len list of child nodes.
+//
+
 pub const Builder = struct {
     _gpa: Allocator,
     _arena: ArenaAllocator,
@@ -236,11 +246,14 @@ pub const Builder = struct {
                 return self.visitIf(node_id, if_stmt);
             },
 
-            // TODO: include .block_two and .block_two_semicolon?
-            .block, .block_semicolon => {
-                return self.visitBlock(node_id);
+            // blocks
+            .block_two, .block_two_semicolon => {
+                try self.enterScope(.{ .s_block = true });
+                defer self.exitScope();
+                return self.visitRecursive(node_id);
             },
-            // .@"usingnamespace" => self.visitUsingNamespace(node),
+            .block, .block_semicolon => return self.visitBlock(node_id),
+
             else => return self.visitRecursive(node_id),
         }
     }
@@ -254,15 +267,13 @@ pub const Builder = struct {
 
     // TODO: inline after we're done debugging
     fn visitBlock(self: *Builder, node_id: NodeIndex) !void {
-        @setCold(true);
-        const ast = self.AST();
-        const block_data = ast.nodes.items(.data)[node_id];
-        const left = self.getNode(block_data.lhs);
-        const right = self.getNode(block_data.rhs);
-        print("left: {any}\nright: {any}\n", .{ left, right });
+        const data = self.getNodeData(node_id);
+        const statements = self.AST().extra_data[data.lhs..data.rhs];
         try self.enterScope(.{ .s_block = true });
         defer self.exitScope();
-        return self.visitRecursive(node_id);
+        for (statements) |stmt| {
+            try self.visit(stmt);
+        }
     }
 
     fn visitContainer(self: *Builder, _: NodeIndex, container: full.ContainerDecl) !void {
@@ -557,6 +568,10 @@ pub const Builder = struct {
     /// Shorthand for getting the scope tree.
     inline fn scopeTree(self: *Builder) *Semantic.ScopeTree {
         return &self._semantic.scopes;
+    }
+
+    inline fn getNodeData(self: *const Builder, node_id: NodeIndex) Node.Data {
+        return self.AST().nodes.items(.data)[node_id];
     }
 
     /// Get a node by its ID.
