@@ -5,7 +5,7 @@
       "declNode": "root", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
-      "members": [1,2,3,4,5,6], 
+      "members": [1,2,3,4,5], 
       "exports": [], 
       
     }, {
@@ -37,14 +37,6 @@
       "declNode": "fn_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
-      "members": [], 
-      "exports": [], 
-      
-    }, {
-      "name": "a", 
-      "declNode": "container_field_init", 
-      "scope": 3, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
       "members": [], 
       "exports": [], 
       

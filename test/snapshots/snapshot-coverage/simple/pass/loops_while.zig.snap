@@ -284,23 +284,6 @@
                         
                       }, 
                     ], 
-                  }, {
-                    "id": 19, 
-                    "flags": [
-                      "block", 
-                      
-                    ], 
-                    "children": [
-                      {
-                        "id": 20, 
-                        "flags": [
-                          "block", 
-                          
-                        ], 
-                        "children": [], 
-                        
-                      }, 
-                    ], 
                   }, 
                 ], 
               }, 
