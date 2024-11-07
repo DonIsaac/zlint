@@ -261,7 +261,11 @@ pub const Builder = struct {
             },
             .block, .block_semicolon => return self.visitBlock(node_id),
 
+            // identifier lhs/rhs is always undefined
             .identifier => return,
+
+            // lhs for these nodes are always `undefined`.
+            .deref, .enum_literal, .@"comptime", .@"usingnamespace", .@"nosuspend", .@"suspend", .@"defer" => return self.visit(self.getNodeData(node_id).rhs),
 
             else => return self.visitRecursive(node_id),
         }
