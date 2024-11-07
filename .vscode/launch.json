@@ -9,6 +9,7 @@
             "type": "lldb",
             "request": "launch",
             "program": "./zig-out/bin/zlint",
+            "args": ["src"],
             "cwd": "${workspaceRoot}",
             "preLaunchTask": "build -Dsingle-threaded"
         },

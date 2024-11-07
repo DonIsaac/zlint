@@ -9,7 +9,10 @@ pub fn Walker(comptime Visitor: type) type {
     }
 
     return struct {
+        /// FS entries to visit
         stack: std.ArrayListUnmanaged(StackItem),
+        /// As directories are entered, they're appended as path segments to
+        /// this buffer.
         name_buffer: std.ArrayListUnmanaged(u8),
         visitor: *Visitor,
         allocator: Allocator,
@@ -34,6 +37,10 @@ pub fn Walker(comptime Visitor: type) type {
                 .visitor = visitor,
                 .allocator = allocator,
             };
+        }
+
+        pub fn addDir(self: *Self, dir: fs.Dir) !void {
+            try self.stack.append(self.allocator, .{ .iter = dir.iterate(), .dirname_len = 0 });
         }
 
         pub fn walk(self: *Self) !void {

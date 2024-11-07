@@ -28,7 +28,8 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const alloc = gpa.allocator();
 
-    const opts = Options.parseArgv();
+    var opts = Options.parseArgv(alloc);
+    defer opts.deinit(alloc);
 
     // While under development, I'm unconditionally linting fixtures/foo.zig.
     // I'll add file walking later.
@@ -42,7 +43,7 @@ pub fn main() !void {
         // return print_cmd.parseAndPrint(alloc, opts, source);
     }
 
-    try lint_cmd.lint(alloc, opts);
+    try lint_cmd.lint(alloc, &opts);
 }
 
 test {

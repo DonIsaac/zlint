@@ -1,5 +1,6 @@
 const std = @import("std");
 const walk = @import("../walk/Walker.zig");
+const multiwalk = @import("../walk/MultiWalker.zig");
 const _lint = @import("../lint.zig");
 const _source = @import("../source.zig");
 
@@ -16,19 +17,46 @@ const Source = _source.Source;
 const Linter = _lint.Linter;
 const Options = @import("../cli/Options.zig");
 
-pub fn lint(alloc: Allocator, _: Options) !void {
+pub fn lint(alloc: Allocator, opts: *const Options) !void {
     // TODO: use options to specify number of threads (if provided)
     var visitor = try LintVisitor.init(alloc, null);
     defer visitor.deinit();
+    const paths = opts.args.items;
+    var walker = switch (paths.len) {
+        0 => try LintWalker.init(alloc, try fs.cwd().openDir(".", .{ .iterate = true }), &visitor),
+        1 => try LintWalker.init(alloc, try fs.cwd().openDir(paths[0], .{ .iterate = true }), &visitor),
+        else => try MultiLintWalker.init(alloc, paths, &visitor),
+    };
+    // var dirs: std.ArrayListUnmanaged(fs.Dir) = .{};
+    // defer {
+    //     for (0..dirs.items.len) |i| {
+    //         dirs.items[i].close();
+    //     }
+    //     dirs.deinit(alloc);
+    // }
 
-    var src = try fs.cwd().openDir(".", .{ .iterate = true });
-    defer src.close();
-    var walker = try LintWalker.init(alloc, src, &visitor);
+    // if (opts.args.items.len == 0) {
+    //     const cwd = try fs.cwd().openDir(".", .{ .iterate = true });
+    //     try dirs.append(alloc, cwd);
+    // } else {
+    //     for (opts.args.items) |dir_to_lint| {
+    //         const dir = try fs.cwd().openDir(dir_to_lint, .{ .iterate = true });
+    //         try dirs.append(alloc, dir);
+    //     }
+    // }
+    // std.debug.assert(dirs.items.len > 0);
+
+    // var walker = try LintWalker.init(alloc, dirs.items[0], &visitor);
+    // const rest = dirs.items[1..dirs.items.len];
+    // for (rest) |dir| {
+    //     try walker.addDir(dir);
+    // }
     defer walker.deinit();
     try walker.walk();
 }
 
 const LintWalker = walk.Walker(LintVisitor);
+const MultiLintWalker = multiwalk.MultiWalker(LintVisitor);
 
 const LintVisitor = struct {
     linter: Linter,
