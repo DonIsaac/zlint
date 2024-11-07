@@ -26,7 +26,7 @@ fn run(alloc: Allocator) !void {
 
 fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     // run analysis
-    var semantic_result = try zlint.semantic.Builder.build(alloc, source.contents);
+    var semantic_result = try zlint.semantic.SemanticBuilder.build(alloc, source.contents);
     defer semantic_result.deinit();
     if (semantic_result.hasErrors()) {
         return Error.analysis_failed;

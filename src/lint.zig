@@ -6,7 +6,7 @@ const _semantic = @import("semantic.zig");
 const Source = _source.Source;
 const Span = _source.Span;
 const Semantic = _semantic.Semantic;
-const SemanticBuilder = _semantic.Builder;
+const SemanticBuilder = _semantic.SemanticBuilder;
 
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
