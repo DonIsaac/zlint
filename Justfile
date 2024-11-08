@@ -55,8 +55,8 @@ watch cmd="check":
 test:
     zig build test --summary all
 # Run end-to-end tests
-e2e:
-    zig build test-e2e
+e2e *ARGS:
+    zig build test-e2e {{ARGS}}
 
 # Run and collect coverage for all tests
 coverage:

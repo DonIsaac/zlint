@@ -2,13 +2,20 @@
 //!
 //! Type: `pub struct Symbol<'a>`
 
-/// Identifier name.
+/// Identifier bound to this symbol.
+///
+///
+/// Not all symbols have a bound name. In this case, `name` is an empty string, since
+/// no valid bound identifier can ever be that value.
 ///
 /// Symbols only borrow their names. These string slices reference data in
 /// source text, which owns the allocation.
 ///
 /// `&'a str`
 name: string,
+/// Only populated for symbols not bound to an identifier. Otherwise, this is an
+/// empty string.
+debug_name: string,
 /// This symbol's type. Only present if statically determinable, since
 /// analysis doesn't currently do type checking.
 // ty: ?Type,
@@ -105,7 +112,8 @@ pub const SymbolTable = struct {
         self: *SymbolTable,
         alloc: Allocator,
         declaration_node: Ast.Node.Index,
-        name: string,
+        name: ?string,
+        debug_name: ?string,
         scope_id: Scope.Id,
         visibility: Symbol.Visibility,
         flags: Symbol.Flags,
@@ -115,7 +123,8 @@ pub const SymbolTable = struct {
 
         const id: Symbol.Id = @intCast(self.symbols.len);
         const symbol =  Symbol{
-            .name = name,
+            .name = name orelse "",
+            .debug_name = debug_name orelse "",
             // .ty = ty,
             .id = id,
             .scope = scope_id,
@@ -207,8 +216,8 @@ test "SymbolTable.iter()" {
     var table = SymbolTable{};
     defer table.deinit(a);
 
-    _ = try table.addSymbol(a, 1, "a", 0, .public, .{});
-    _ = try table.addSymbol(a, 1, "b", 1, .public, .{});
+    _ = try table.addSymbol(a, 1, "a", null, 0, .public, .{});
+    _ = try table.addSymbol(a, 1, "b", null, 1, .public, .{});
     try expectEqual(2, table.symbols.len);
 
     var iter = table.iter();

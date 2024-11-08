@@ -346,10 +346,11 @@ fn visitGlobalVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full
 fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDecl) !void {
     const node = self.getNode(node_id);
     // main_token points to `var`, `const` keyword. `.identifier` comes immediately afterwards
-    const identifier: string = self.getIdentifier(node.main_token + 1);
+    const identifier: ?string = self.getIdentifier(node.main_token + 1);
+    const debug_name: ?string = if (identifier == null) "<anonymous var decl>" else null;
     const flags = Symbol.Flags{ .s_comptime = var_decl.comptime_token != null };
     const visibility = if (var_decl.visib_token == null) Symbol.Visibility.private else Symbol.Visibility.public;
-    const symbol_id = try self.bindSymbol(identifier, visibility, flags);
+    const symbol_id = try self.bindSymbol(identifier, debug_name, visibility, flags);
     try self.enterContainerSymbol(symbol_id);
     defer self.exitContainerSymbol();
 
@@ -393,9 +394,10 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     const proto = ast.fullFnProto(&buf, data.lhs) orelse unreachable;
     const visibility = if (proto.visib_token == null) Symbol.Visibility.private else Symbol.Visibility.public;
     // TODO: bound name vs escaped name
-    const identifier = if (proto.name_token) |tok| self.getIdentifier(tok) else "<anonymous>";
+    const identifier: ?string = if (proto.name_token) |tok| self.getIdentifier(tok) else null;
+    const debug_name: ?string = if (identifier == null) "<anonymous fn>" else null;
     // TODO: bind methods as members
-    _ = try self.bindSymbol(identifier, visibility, .{ .s_fn = true });
+    _ = try self.bindSymbol(identifier, debug_name, visibility, .{ .s_fn = true });
 
     var fn_signature_implies_comptime = false;
     const tags: []Node.Tag = ast.nodes.items(.tag);
@@ -457,7 +459,7 @@ fn enterRoot(self: *SemanticBuilder) !void {
 
     // Create root symbol and push it onto the stack. It too is never popped.
     // TODO: distinguish between bound name and escaped name.
-    const root_symbol_id = try self.declareSymbol(Semantic.ROOT_NODE_ID, "@This()", .public, .{ .s_const = true });
+    const root_symbol_id = try self.declareSymbol(Semantic.ROOT_NODE_ID, null, "@This()", .public, .{ .s_const = true });
     util.assert(root_symbol_id == 0, "Creating root symbol returned id {d} which is not the expected root id (0)", .{root_symbol_id});
     try self.enterContainerSymbol(root_symbol_id);
 }
@@ -586,9 +588,9 @@ inline fn currentContainerSymbolUnwrap(self: *const SemanticBuilder) Symbol.Id {
 }
 
 /// Create and bind a symbol to the current scope and container (parent) symbol.
-fn bindSymbol(self: *SemanticBuilder, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
+fn bindSymbol(self: *SemanticBuilder, name: ?string, debug_name: ?string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
     const declaration_node = self.currentNode();
-    const symbol_id = try self.declareSymbol(declaration_node, name, visibility, flags);
+    const symbol_id = try self.declareSymbol(declaration_node, name, debug_name, visibility, flags);
     if (self.currentContainerSymbol()) |container_id| {
         assert(!self._semantic.symbols.get(container_id).flags.s_member);
         try self._semantic.symbols.addMember(self._gpa, symbol_id, container_id);
@@ -599,11 +601,11 @@ fn bindSymbol(self: *SemanticBuilder, name: string, visibility: Symbol.Visibilit
 
 /// Declare a new symbol in the current scope/AST node and record it as a member to
 /// the most recent container symbol. Returns the new member symbol's ID.
-fn declareMemberSymbol(self: *SemanticBuilder, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
+fn declareMemberSymbol(self: *SemanticBuilder, name: ?string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
     var member_flags = flags;
     member_flags.s_member = true;
     const declaration_node = self.currentNode();
-    const member_symbol_id = try self.declareSymbol(declaration_node, name, visibility, member_flags);
+    const member_symbol_id = try self.declareSymbol(declaration_node, name, null, visibility, member_flags);
 
     const container_symbol_id = self.currentContainerSymbolUnwrap();
     assert(!self._semantic.symbols.get(container_symbol_id).flags.s_member);
@@ -613,8 +615,8 @@ fn declareMemberSymbol(self: *SemanticBuilder, name: string, visibility: Symbol.
 }
 
 /// Declare a symbol in the current scope.
-inline fn declareSymbol(self: *SemanticBuilder, declaration_node: Ast.Node.Index, name: string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
-    const symbol_id = try self._semantic.symbols.addSymbol(self._gpa, declaration_node, name, self.currentScope(), visibility, flags);
+inline fn declareSymbol(self: *SemanticBuilder, declaration_node: Ast.Node.Index, name: ?string, debug_name: ?string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
+    const symbol_id = try self._semantic.symbols.addSymbol(self._gpa, declaration_node, name, debug_name, self.currentScope(), visibility, flags);
     return symbol_id;
 }
 
@@ -687,16 +689,11 @@ inline fn getToken(self: *const SemanticBuilder, token_id: TokenIndex) RawToken 
 }
 
 /// Get an identifier name from an `.identifier` token.
-fn getIdentifier(self: *SemanticBuilder, token_id: Ast.TokenIndex) string {
+fn getIdentifier(self: *SemanticBuilder, token_id: Ast.TokenIndex) ?string {
     const ast = self.AST();
 
-    if (IS_DEBUG) {
-        const tag = ast.tokens.items(.tag)[token_id];
-        assert(tag == .identifier);
-    }
-
-    const slice = ast.tokenSlice(token_id);
-    return slice;
+    const tag = ast.tokens.items(.tag)[token_id];
+    return if (tag == .identifier) ast.tokenSlice(token_id) else null;
 }
 
 // =========================================================================
