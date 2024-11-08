@@ -270,8 +270,8 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
         },
         .block, .block_semicolon => return self.visitBlock(ast.extra_data[data[node_id].lhs..data[node_id].rhs]),
 
-        // identifier lhs/rhs is always undefined
-        .identifier => return,
+        // lhs/rhs for these nodes are always undefined
+        .identifier, .char_literal, .number_literal, .unreachable_literal, .string_literal => return,
 
         .@"comptime" => {
             const prev_comptime = self.setScopeFlag("s_comptime", true);
@@ -280,19 +280,28 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
             return self.visit(data[node_id].lhs);
         },
 
+        // lhs is undefined, rhs is a token index
+        // see: Parse.zig, line 2934
+        // TODO: visit block
+        .error_set_decl => return,
+
         // rhs for these nodes are always `undefined`.
-        .deref,
-        .enum_literal,
-        .optional_type,
-        .@"usingnamespace",
+        .@"await",
+        .@"continue",
         .@"nosuspend",
-        .@"suspend",
         .@"return",
+        .@"suspend",
         .@"try",
+        .@"usingnamespace",
+        .@"resume",
         .address_of,
-        .negation_wrap,
         .bit_not,
         .bool_not,
+        .deref,
+        .enum_literal,
+        .negation_wrap,
+        .negation,
+        .optional_type,
         => return self.visit(data[node_id].lhs),
         // lhs for these nodes is always `undefined`.
         .@"defer" => return self.visit(self.getNodeData(node_id).rhs),
