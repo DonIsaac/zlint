@@ -27,6 +27,7 @@
             "request": "launch",
             "program": "./zig-out/bin/test-e2e",
             "cwd": "${workspaceRoot}",
+            "preLaunchTask": "build -Dsingle-threaded"
         },
     ]
 }
