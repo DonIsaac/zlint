@@ -138,6 +138,7 @@ fn writeSnapshot(self: *TestSuite) !void {
     try self.snapshot.writer().print("Passed: {d}% ({d}/{d})\n\n", .{ pct, pass, total });
     self.errors_mutex.lock();
     defer self.errors_mutex.unlock();
+    // errors must be sorted for stable `git diff` output
     std.mem.sort(string, self.errors.items, {}, stringsLessThan);
     for (self.errors.items) |err| {
         try self.snapshot.writer().print("{s}\n", .{err});

@@ -23,6 +23,7 @@ jobs:
       - name: Install kcov
         run: sudo apt-get install kcov
 
+      - run: just submodules
       - run: zig build
       - run: just coverage
       - uses: codecov/codecov-action@v4
