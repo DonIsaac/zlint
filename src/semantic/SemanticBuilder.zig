@@ -287,6 +287,10 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
             const cases = ast.extra_data[extra.start..extra.end];
             return self.visitSwitch(node_id, condition, cases);
         },
+        .switch_case, .switch_case_inline, .switch_case_one, .switch_case_inline_one => {
+            const case = ast.fullSwitchCase(node_id) orelse unreachable; 
+            return self.visitSwitchCase(node_id, case);
+        },
 
         // blocks
         .block_two, .block_two_semicolon => {
@@ -503,12 +507,23 @@ inline fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) !void 
 }
 
 fn visitSwitch(self: *SemanticBuilder, condition: NodeIndex, _: NodeIndex, cases: []NodeIndex) !void {
+    const ast = self.AST();
+
     try self.visitNode(condition);
     try self.enterScope(.{});
     defer self.exitScope();
-    for (cases) |case| {
-        try self.visit(case);
+
+    for (cases) |case_id| {
+        const case = ast.fullSwitchCase(case_id) orelse unreachable;
+        try self.visitSwitchCase(case_id, case);
     }
+}
+
+fn visitSwitchCase(self: *SemanticBuilder, _: NodeIndex, case: full.SwitchCase) !void {
+    for (case.ast.values) |value| {
+        try self.visit(value);
+    }
+    try self.visit(case.ast.target_expr);
 }
 
 inline fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnProto) !void {
