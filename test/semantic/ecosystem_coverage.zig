@@ -58,7 +58,6 @@ pub fn run(alloc: Allocator) !void {
     }
 }
 
-
 pub const SemanticError = error{
     analysis_failed,
 };
