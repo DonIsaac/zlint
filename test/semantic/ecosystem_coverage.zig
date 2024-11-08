@@ -18,7 +18,7 @@ const REPOS_DIR = "zig-out/repos";
 
 var repos: std.json.Parsed([]Repo) = undefined;
 
-pub fn globalSetup(_: Allocator) !void {
+pub fn globalSetup(alloc: Allocator) !void {
     var repos_dir_fd = fs.cwd().openDir(REPOS_DIR, .{}) catch |e| {
         switch (e) {
             error.FileNotFound => {
@@ -29,7 +29,7 @@ pub fn globalSetup(_: Allocator) !void {
         }
     };
     repos_dir_fd.close();
-    repos = try Repo.load(Allocator.heap());
+    repos = try Repo.load(alloc);
 }
 
 pub fn globalTeardown(_: Allocator) void {
@@ -37,7 +37,7 @@ pub fn globalTeardown(_: Allocator) void {
 }
 
 fn testSemantic(alloc: Allocator, source: *const Source) !void {
-    var res = try zlint.semantic.Builder.build(alloc, source.contents);
+    var res = try zlint.semantic.SemanticBuilder.build(alloc, source.contents);
     defer res.deinit();
     if (res.hasErrors()) return SemanticError.analysis_failed;
 }

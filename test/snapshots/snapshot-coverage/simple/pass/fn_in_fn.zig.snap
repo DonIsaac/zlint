@@ -1,7 +1,8 @@
 {
   "symbols": [
     {
-      "name": "@This()", 
+      "name": "", 
+      "debugName": "@This()", 
       "declNode": "root", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
@@ -10,6 +11,7 @@
       
     }, {
       "name": "foo", 
+      "debugName": "", 
       "declNode": "fn_decl", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
@@ -18,6 +20,7 @@
       
     }, {
       "name": "inner", 
+      "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": 3, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
@@ -26,6 +29,7 @@
       
     }, {
       "name": "bar", 
+      "debugName": "", 
       "declNode": "fn_decl", 
       "scope": 4, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
