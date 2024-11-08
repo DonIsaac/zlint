@@ -417,11 +417,11 @@ fn enterRoot(self: *SemanticBuilder) !void {
     // NOTE: root scope is entered differently to avoid unnecessary null checks
     // when getting parent scopes. Parent is only ever null for the root scope.
     util.assert(self._scope_stack.items.len == 0, "enterRoot called with non-empty scope stack", .{});
-    const root_scope = try self._semantic.scopes.addScope(self._gpa, null, .{ .s_top = true });
-    util.assert(root_scope.id == Semantic.ROOT_SCOPE_ID, "Creating root scope returned id {d} which is not the expected root id ({d})", .{ root_scope.id, Semantic.ROOT_SCOPE_ID });
+    const root_scope_id = try self._semantic.scopes.addScope(self._gpa, null, .{ .s_top = true });
+    util.assert(root_scope_id == Semantic.ROOT_SCOPE_ID, "Creating root scope returned id {d} which is not the expected root id ({d})", .{ root_scope_id, Semantic.ROOT_SCOPE_ID });
 
     // SemanticBuilder.init() allocates enough space for 8 scopes.
-    self._scope_stack.appendAssumeCapacity(root_scope.id);
+    self._scope_stack.appendAssumeCapacity(root_scope_id);
 
     // push root node onto the stack. It is never popped.
     // Similar to root scope, the root node is pushed differently than
@@ -453,7 +453,7 @@ inline fn assertRoot(self: *const SemanticBuilder) void {
 fn enterScope(self: *SemanticBuilder, flags: Scope.Flags) !void {
     const parent_id = self._scope_stack.getLastOrNull();
     const scope = try self._semantic.scopes.addScope(self._gpa, parent_id, flags);
-    try self._scope_stack.append(self._gpa, scope.id);
+    try self._scope_stack.append(self._gpa, scope);
 }
 
 /// Exit the current scope. It is a bug to pop the root scope.
@@ -748,9 +748,10 @@ fn printScopeStack(self: *const SemanticBuilder) void {
     const scopes = &self._semantic.scopes;
 
     print("Scope stack:\n", .{});
+    const scope_flags = scopes.scopes.items(.flags);
     for (self._scope_stack.items) |id| {
-        const flags = scopes.scopes.items[id].flags;
-        print("  - {d}: (flags: {any})\n", .{ id, flags });
+        // const flags = scopes.scopes.items[id].flags;
+        print("  - {d}: (flags: {any})\n", .{ id, scope_flags[id] });
     }
 }
 
