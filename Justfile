@@ -64,7 +64,8 @@ coverage:
     mkdir -p ./.coverage
     kcov --include-path=src,test ./.coverage/test zig-out/bin/test
     kcov --include-path=src,test ./.coverage/test-e2e zig-out/bin/test-e2e
-    kcov --merge ./.coverage/all ./.coverage/test ./.coverage/test-e2e
+    kcov --include-path=src,test ./.coverage/test-zlint zig-out/bin/zlint
+    kcov --merge ./.coverage/all ./.coverage/test ./.coverage/test-e2e ./.coverage/test-zlint
 
 # Format the codebase, writing changes to disk
 fmt:
