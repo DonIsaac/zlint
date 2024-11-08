@@ -27,8 +27,9 @@ pub const Flags = packed struct(FLAGS_REPR) {
     /// Created by a block statement, loop, if statement, etc.
     s_block: bool = false,
     s_comptime: bool = false,
+    s_catch: bool = false,
     // Padding
-    _: u9 = 0,
+    _: u8 = 0,
 
     /// Merge all `true`-valued flags in `self` and `other`. Neither argument is
     /// mutated.
