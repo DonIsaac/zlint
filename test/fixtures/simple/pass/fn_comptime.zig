@@ -10,7 +10,16 @@ fn Box(T: type) type {
 }
 
 fn FixedIntArray(comptime size: usize) type {
-    return struct { inner: [size]u32 };
+    // since this function has comptime arguments, this scope is comptime, so
+    // variables can be typed to comptime_int
+    var l = 0;
+    l += 1;
+    if (l > 5) {
+        @compileError("bad l");
+    }
+    return struct {
+        inner: [size]u32,
+    };
 }
 
 fn add(comptime a: isize, b: usize) usize {

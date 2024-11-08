@@ -5,7 +5,7 @@
       "declNode": "root", 
       "scope": 0, 
       "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
-      "members": [1,2,3,4,5,6,7,8,9], 
+      "members": [1,2,3,4,5,6,7,8,9,10], 
       "exports": [], 
       
     }, {
@@ -49,9 +49,17 @@
       "exports": [], 
       
     }, {
+      "name": "l", 
+      "declNode": "simple_var_decl", 
+      "scope": 10, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, {
       "name": "inner", 
       "declNode": "container_field_init", 
-      "scope": 11, 
+      "scope": 12, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -67,7 +75,7 @@
     }, {
       "name": "c", 
       "declNode": "simple_var_decl", 
-      "scope": 15, 
+      "scope": 16, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -75,7 +83,7 @@
     }, {
       "name": "a2", 
       "declNode": "simple_var_decl", 
-      "scope": 14, 
+      "scope": 15, 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
       "members": [], 
       "exports": [], 
@@ -92,6 +100,7 @@
       {
         "id": 1, 
         "flags": [
+          "comptime", 
           
         ], 
         "children": [
@@ -99,6 +108,7 @@
             "id": 2, 
             "flags": [
               "function", 
+              "comptime", 
               
             ], 
             "children": [
@@ -106,6 +116,7 @@
                 "id": 3, 
                 "flags": [
                   "block", 
+                  "comptime", 
                   
                 ], 
                 "children": [
@@ -113,6 +124,7 @@
                     "id": 4, 
                     "flags": [
                       "block", 
+                      "comptime", 
                       
                     ], 
                     "children": [
@@ -152,6 +164,7 @@
       }, {
         "id": 8, 
         "flags": [
+          "comptime", 
           
         ], 
         "children": [
@@ -159,6 +172,7 @@
             "id": 9, 
             "flags": [
               "function", 
+              "comptime", 
               
             ], 
             "children": [
@@ -166,6 +180,7 @@
                 "id": 10, 
                 "flags": [
                   "block", 
+                  "comptime", 
                   
                 ], 
                 "children": [
@@ -173,6 +188,16 @@
                     "id": 11, 
                     "flags": [
                       "block", 
+                      "comptime", 
+                      
+                    ], 
+                    "children": [], 
+                    
+                  }, {
+                    "id": 12, 
+                    "flags": [
+                      "block", 
+                      "comptime", 
                       
                     ], 
                     "children": [], 
@@ -184,27 +209,27 @@
           }, 
         ], 
       }, {
-        "id": 12, 
+        "id": 13, 
         "flags": [
           
         ], 
         "children": [
           {
-            "id": 13, 
+            "id": 14, 
             "flags": [
               "function", 
               
             ], 
             "children": [
               {
-                "id": 14, 
+                "id": 15, 
                 "flags": [
                   "block", 
                   
                 ], 
                 "children": [
                   {
-                    "id": 15, 
+                    "id": 16, 
                     "flags": [
                       "block", 
                       "comptime", 
@@ -212,7 +237,7 @@
                     ], 
                     "children": [
                       {
-                        "id": 16, 
+                        "id": 17, 
                         "flags": [
                           "block", 
                           "comptime", 

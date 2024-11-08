@@ -75,9 +75,11 @@ lint:
     zig fmt --check src/**/*.zig test/**/*.zig build.zig build.zig.zon
     typos
 
-# Remove build artifacts
+# Remove build and test artifacts
 clean:
-    rm -rf zig-out .zig-cache
+    rm -rf .zig-cache \
+        zig-out/bin zig-out/lib \
+        .coverage
 
 # Clear the screen, then run `zig build {{cmd}}`. Used by `just watch`.
 clear-run cmd:

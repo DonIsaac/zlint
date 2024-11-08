@@ -250,9 +250,8 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
         .identifier => return,
 
         .@"comptime" => {
-            const prev_comptime = self._curr_scope_flags.s_comptime;
-            self._curr_scope_flags.s_comptime = true;
-            defer self._curr_scope_flags.s_comptime = prev_comptime;
+            const prev_comptime = self.setScopeFlag("s_comptime", true);
+            defer self.restoreScopeFlag("s_comptime", prev_comptime);
 
             return self.visit(data[node_id].lhs);
         },
@@ -292,11 +291,12 @@ fn visitBlock(self: *SemanticBuilder, statements: []const NodeIndex) !void {
     if (is_root) {
         self._curr_scope_flags.s_comptime = true;
     }
-    try self.enterScope(.{ .s_block = true });
-    defer self.exitScope();
     defer if (is_root) {
         self._curr_scope_flags.s_comptime = was_comptime;
     };
+
+    try self.enterScope(.{ .s_block = true });
+    defer self.exitScope();
 
     for (statements) |stmt| {
         try self.visit(stmt);
@@ -397,8 +397,20 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     // TODO: bind methods as members
     _ = try self.bindSymbol(identifier, visibility, .{ .s_fn = true });
 
+    var fn_signature_implies_comptime = false;
+    const tags: []Node.Tag = ast.nodes.items(.tag);
+    for (proto.ast.params) |param_id| {
+        if (tags[param_id] == .@"comptime") {
+            fn_signature_implies_comptime = true;
+            break;
+        }
+    }
+    fn_signature_implies_comptime = fn_signature_implies_comptime or std.mem.eql(u8, ast.getNodeSource(proto.ast.return_type), "type");
+
     // parameters are in a new scope b/c other symbols in the same scope as
     // the declared fn cannot access them.
+    const was_comptime = self.setScopeFlag("s_comptime", fn_signature_implies_comptime);
+    defer self.restoreScopeFlag("s_comptime", was_comptime);
     try self.enterScope(.{});
     defer self.exitScope();
     for (proto.ast.params) |param| {
@@ -464,31 +476,32 @@ inline fn assertRoot(self: *const SemanticBuilder) void {
     self.assertCtx(self._symbol_stack.items[0] == 0, "assertRoot: symbol stack is not at root", .{}); // TODO: create root symbol id.
 }
 
-/// Reset current scope flags to the empty set, returning the previous flags.
+/// Update a single flag on the set of current scope flags, returning its
+/// previous value.
 ///
 /// ## Example
 /// ```zig
 /// fn visitSomeNode(self: *SemanticBuilder, node_id: NodeIndex) !void {
 ///    const children = self.getNodeData(node_id);
 ///
-///    const flags = self.resetScopeFlags(); // current flags are now the empty set
-///    defer self.restoreScopeFlags(flags);  // reset after we leave the new scope
+///    const was_comptime = self.setScopeFlag("s_comptime", true);
+///    defer self.restoreScopeFlag("s_comptime", was_comptime);  // reset after we leave the new scope
 ///    try self.enterScope(.{ .s_block = true });
 ///    defer self.exitScope();
 ///
 ///    try self.visit(children.lhs);
 /// }
 /// ```
-inline fn resetScopeFlags(self: *SemanticBuilder) Scope.Flags {
-    const old_flags = self._curr_scope_flags;
-    self._curr_scope_flags = .{};
-    return old_flags;
+inline fn setScopeFlag(self: *SemanticBuilder, comptime flag_name: string, value: bool) bool {
+    const old_flag: bool = @field(self._curr_scope_flags, flag_name);
+    @field(self._curr_scope_flags, flag_name) = value;
+    return old_flag;
 }
 
 /// Restore the builder's current scope flags to a checkpoint. Used in tandem
 /// with `resetScopeFlags`.
-inline fn restoreScopeFlags(self: *SemanticBuilder, flags: Scope.Flags) void {
-    self._curr_scope_flags = flags;
+inline fn restoreScopeFlag(self: *SemanticBuilder, comptime flag_name: string, prev_value: bool) void {
+    @field(self._curr_scope_flags, flag_name) = prev_value;
 }
 
 /// Enter a new scope, pushing it onto the stack.
