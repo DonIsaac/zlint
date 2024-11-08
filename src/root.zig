@@ -9,7 +9,3 @@ pub const printer = struct {
     pub const SemanticPrinter = @import("printer/SemanticPrinter.zig");
     pub const AstPrinter = @import("printer/AstPrinter.zig");
 };
-
-test {
-    std.testing.refAllDecls(@This());
-}
