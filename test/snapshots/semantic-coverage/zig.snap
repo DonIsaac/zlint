@@ -1,4 +1,4 @@
-Passed: 90.21922% (2675/2965)
+Passed: 90.1855% (2674/2965)
 
 build.zig: error.missing_identifier
 doc/langref/catch_err_return.zig: error.missing_identifier
@@ -104,6 +104,7 @@ lib/std/fs/test.zig: error.missing_identifier
 lib/std/hash/auto_hash.zig: error.missing_identifier
 lib/std/hash_map.zig: error.missing_identifier
 lib/std/http/Client.zig: error.missing_identifier
+lib/std/http/protocol.zig: error.missing_identifier
 lib/std/http/test.zig: error.missing_identifier
 lib/std/io.zig: error.missing_identifier
 lib/std/io/Reader.zig: error.missing_identifier
