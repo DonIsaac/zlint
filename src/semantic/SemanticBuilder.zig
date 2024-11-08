@@ -35,6 +35,10 @@ const NULL_NODE: NodeIndex = Semantic.NULL_NODE;
 const ROOT_SCOPE: Semantic.Scope.Id = Semantic.ROOT_SCOPE_ID;
 
 pub const Result = Error.Result(Semantic);
+const SemanticError = error{
+    /// Expected `ast.fullFoo` to return `Some(foo)` but it returned `None`,
+    full_mismatch,
+};
 
 /// Parse and analyze a Zig source file.
 ///
@@ -140,6 +144,11 @@ inline fn visit(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
 /// Visit a node in the AST. Do not call this directly, use `visit` instead.
 fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
     assert(node_id > 0 and node_id < self.AST().nodes.len);
+
+    const ast = self.AST();
+    const tag: Ast.Node.Tag = ast.nodes.items(.tag)[node_id];
+    const data: []Node.Data = ast.nodes.items(.data);
+
     try self.enterNode(node_id);
     defer self.exitNode();
 
@@ -149,9 +158,6 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
     // - record symbol references
     // - Scope flags for unions, structs, and enums. Blocks are currently handled (TODO: that needs testing).
     // - Test the shit out of it
-    const ast = self.AST();
-    const tag: Ast.Node.Tag = ast.nodes.items(.tag)[node_id];
-    const data: []Node.Data = ast.nodes.items(.data);
     switch (tag) {
         // root node is never referenced b/c of NULL_NODE check at function start
         .root => unreachable,
@@ -160,7 +166,20 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
         // const Foo = struct { // <-- visits struct/enum/union containers
         // };
         // ```
-        .container_decl, .container_decl_trailing, .container_decl_two, .container_decl_two_trailing => {
+        .container_decl,
+        .container_decl_arg,
+        .container_decl_trailing,
+        .container_decl_arg_trailing,
+        .container_decl_two,
+        .container_decl_two_trailing,
+        // tagged union
+        .tagged_union,
+        .tagged_union_trailing,
+        .tagged_union_enum_tag,
+        .tagged_union_enum_tag_trailing,
+        .tagged_union_two,
+        .tagged_union_two_trailing,
+        => {
             var buf: [2]u32 = undefined;
             const container = ast.fullContainerDecl(&buf, node_id) orelse unreachable;
             return self.visitContainer(node_id, container);
@@ -169,19 +188,20 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
             const field = ast.fullContainerField(node_id) orelse unreachable;
             return self.visitContainerField(node_id, field);
         },
-        .field_access => return self.visit(data[node_id].lhs),
+        .field_access, .unwrap_optional => return self.visit(data[node_id].lhs),
         // variable declarations
-        .global_var_decl => {
-            const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
-            self.visitGlobalVarDecl(node_id, decl);
-        },
-        .local_var_decl, .simple_var_decl, .aligned_var_decl => {
+        .global_var_decl, .local_var_decl, .simple_var_decl, .aligned_var_decl => {
             const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
             return self.visitVarDecl(node_id, decl);
+        },
+        .assign_destructure => {
+            const destructure = ast.assignDestructure(node_id);
+            return self.visitAssignDestructure(node_id, destructure);
         },
         .array_init,
         .array_init_comma,
         .array_init_dot,
+        .array_init_dot_comma,
         .array_init_one,
         .array_init_one_comma,
         .array_init_dot_two,
@@ -194,6 +214,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
         .struct_init,
         .struct_init_comma,
         .struct_init_dot,
+        .struct_init_dot_comma,
         .struct_init_one,
         .struct_init_one_comma,
         .struct_init_dot_two,
@@ -209,7 +230,9 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
         .fn_decl,
         => return self.visitFnDecl(node_id),
         .fn_proto, .fn_proto_one, .fn_proto_multi => {
-            return self.visitRecursive(node_id);
+            var buf: [1]NodeIndex = undefined;
+            const fn_proto = ast.fullFnProto(&buf, node_id) orelse unreachable;
+            return self.visitFnProto(node_id, fn_proto);
         },
 
         // function calls
@@ -235,6 +258,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
             const call = ast.callOne(&buf, node_id);
             return self.visitCall(node_id, call);
         },
+        .builtin_call, .builtin_call_comma => return self.visitRecursiveSlice(node_id),
 
         // control flow
 
@@ -257,6 +281,12 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
             const if_stmt = ast.fullIf(node_id) orelse unreachable;
             return self.visitIf(node_id, if_stmt);
         },
+        .@"switch", .switch_comma => {
+            const condition = data[node_id].lhs;
+            const extra = ast.extraData(data[node_id].rhs, Ast.Node.SubRange);
+            const cases = ast.extra_data[extra.start..extra.end];
+            return self.visitSwitch(node_id, condition, cases);
+        },
 
         // blocks
         .block_two, .block_two_semicolon => {
@@ -270,8 +300,19 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
         },
         .block, .block_semicolon => return self.visitBlock(ast.extra_data[data[node_id].lhs..data[node_id].rhs]),
 
+        .test_decl => return self.visit(data[node_id].rhs),
+
         // lhs/rhs for these nodes are always undefined
         .identifier, .char_literal, .number_literal, .unreachable_literal, .string_literal => return,
+
+        // TODO: record reference for rhs (.identifier)?
+        // lhs is `.` token, rhs is `.identifier` token
+        .error_value,
+        // lhs is `.` token, main token is `.identifier`, rhs unused
+        .enum_literal,
+        => return,
+
+        .@"asm", .asm_simple, .asm_output, .asm_input => return,
 
         .@"comptime" => {
             const prev_comptime = self.setScopeFlag("s_comptime", true);
@@ -298,7 +339,6 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
         .bit_not,
         .bool_not,
         .deref,
-        .enum_literal,
         .negation_wrap,
         .negation,
         .optional_type,
@@ -377,13 +417,6 @@ fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.C
     }
 }
 
-fn visitGlobalVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDecl) void {
-    _ = self;
-    _ = node_id;
-    _ = var_decl;
-    @panic("todo: visitGlobalVarDecl");
-}
-
 /// Visit a variable declaration. Global declarations are visited
 /// separately, because their lhs/rhs nodes and main token mean different
 /// things.
@@ -402,6 +435,35 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
         assert(var_decl.ast.init_node < self.AST().nodes.len);
         try self.visit(var_decl.ast.init_node);
     }
+}
+fn visitAssignDestructure(self: *SemanticBuilder, _: NodeIndex, destructure: full.AssignDestructure) !void {
+    self.assertCtx(destructure.ast.variables.len > 0, "Invalid destructuring assignment: no variables are being declared.", .{});
+    const ast = self.AST();
+    const main_tokens: []TokenIndex = ast.nodes.items(.main_token);
+    const token_tags: []Token.Tag = ast.tokens.items(.tag);
+    const is_comptime = destructure.comptime_token != null;
+
+    for (destructure.ast.variables) |var_id| {
+        const main_token: TokenIndex = main_tokens[var_id];
+        const decl: full.VarDecl = ast.fullVarDecl(var_id) orelse {
+            return SemanticError.full_mismatch;
+        };
+        const identifier: ?string = self.getIdentifier(main_token + 1);
+        util.assert(identifier != null, "assignment declarations are not valid when an identifier name is missing.", .{});
+        const flags = Symbol.Flags{
+            .s_comptime = is_comptime,
+            .s_const = token_tags[main_token] == .keyword_const,
+        };
+        // note: intentionally not using bindSymbol (for now, at least)
+        _ = try self.declareSymbol(
+            var_id,
+            identifier,
+            null,
+            if (decl.visib_token != null) .public else .private,
+            flags,
+        );
+    }
+    try self.visit(destructure.ast.value_expr);
 }
 
 fn visitArrayInit(self: *SemanticBuilder, _: NodeIndex, arr: full.ArrayInit) !void {
@@ -438,6 +500,23 @@ inline fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) !void 
     // visited. Thus we can/should skip that here.
     try self.visit(if_stmt.ast.then_expr);
     try self.visit(if_stmt.ast.else_expr);
+}
+
+fn visitSwitch(self: *SemanticBuilder, condition: NodeIndex, _: NodeIndex, cases: []NodeIndex) !void {
+    try self.visitNode(condition);
+    try self.enterScope(.{});
+    defer self.exitScope();
+    for (cases) |case| {
+        try self.visit(case);
+    }
+}
+
+inline fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnProto) !void {
+    try self.enterScope(.{});
+    defer self.exitScope();
+    for (fn_proto.ast.params) |param| {
+        try self.visit(param);
+    }
 }
 
 inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
