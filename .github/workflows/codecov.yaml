@@ -20,6 +20,8 @@ jobs:
       - uses: goto-bus-stop/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
+      - name: Install kcov
+        run: sudo apt-get install kcov
 
       - run: zig build
       - run: just coverage
