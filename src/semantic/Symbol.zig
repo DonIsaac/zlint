@@ -192,10 +192,30 @@ const std = @import("std");
 
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
-const Scope = @import("scope.zig").Scope;
+const Scope = @import("Scope.zig");
 const Type = std.builtin.Type;
 
 const assert = std.debug.assert;
 const string = @import("util").string;
 
 const SymbolIdList = std.ArrayListUnmanaged(Symbol.Id);
+
+test "SymbolTable.iter()" {
+    const a = std.testing.allocator;
+    const expectEqual = std.testing.expectEqual;
+
+    var table = SymbolTable{};
+    defer table.deinit(a);
+
+    _ = try table.addSymbol(a, 1, "a", 0, .public, .{});
+    _ = try table.addSymbol(a, 1, "b", 1, .public, .{});
+    try expectEqual(2, table.symbols.len);
+
+    var iter = table.iter();
+    var i: usize = 0;
+    while (iter.next()) |symbol| {
+        _ = symbol;
+        i += 1;
+    }
+    try expectEqual(2, i);
+}

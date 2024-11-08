@@ -52,12 +52,11 @@ const Ast = std.zig.Ast;
 const Type = std.builtin.Type;
 const assert = std.debug.assert;
 
-const scope = @import("./scope.zig");
 pub const NodeLinks = @import("NodeLinks.zig");
+pub const Scope = @import("./Scope.zig");
+pub const ScopeTree = Scope.ScopeTree;
 pub const Symbol = @import("./Symbol.zig");
 pub const SymbolTable = Symbol.SymbolTable;
-pub const Scope = scope.Scope;
-pub const ScopeTree = scope.ScopeTree;
 
 const util = @import("util");
 const string = util.string;

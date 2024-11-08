@@ -37,7 +37,7 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: 
 }
 
 pub fn printScopeTree(self: *SemanticPrinter) !void {
-    return self.printScope(&self.semantic.scopes.scopes.items[Semantic.ROOT_SCOPE_ID], &self.semantic.scopes);
+    return self.printScope(&self.semantic.scopes.scopes.get(Semantic.ROOT_SCOPE_ID), &self.semantic.scopes);
 }
 
 fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope, scopes: *const Semantic.ScopeTree) !void {
@@ -74,7 +74,7 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope, scopes: *con
     try p.pushArray();
     defer p.pop();
     for (children.items) |child_id| {
-        const child = &scopes.scopes.items[child_id];
+        const child = &scopes.scopes.get(child_id);
         try self.printScope(child, scopes);
     }
 }

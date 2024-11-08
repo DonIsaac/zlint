@@ -36,15 +36,6 @@ pub const Source = struct {
         }
         self.* = undefined;
     }
-
-    /// @deprecated
-    pub fn parse(self: *Source) !Ast {
-        if (self.ast) |ast| {
-            return ast;
-        }
-        self.ast = try Ast.parse(self.gpa, self.contents, .zig);
-        return self.ast orelse unreachable;
-    }
 };
 
 pub const LocationSpan = struct {
