@@ -1,582 +1,292 @@
 Passed: 90.21922% (2675/2965)
 
-lib/docs/wasm/main.zig: error.missing_identifier
-
-lib/compiler/resinator/windows1252.zig: error.missing_identifier
-
-lib/compiler/libc.zig: error.missing_identifier
-
-lib/compiler/reduce.zig: error.missing_identifier
-
-lib/compiler/std-docs.zig: error.missing_identifier
-
-lib/std/compress/zstandard.zig: error.missing_identifier
-
-lib/std/compress/xz/test.zig: error.missing_identifier
-
-lib/std/time.zig: error.missing_identifier
-
-lib/std/tar/writer.zig: error.missing_identifier
-
-lib/std/process.zig: error.missing_identifier
-
-lib/std/fmt.zig: error.missing_identifier
-
-lib/compiler/resinator/parse.zig: error.missing_identifier
-
-lib/std/process/Child.zig: error.missing_identifier
-
-lib/std/zig/AstRlAnnotate.zig: error.missing_identifier
-
-lib/std/bit_set.zig: error.missing_identifier
-
-lib/std/net/test.zig: error.missing_identifier
-
-lib/std/priority_dequeue.zig: error.missing_identifier
-
-lib/std/crypto/25519/ed25519.zig: error.missing_identifier
-
-src/link/LdScript.zig: error.missing_identifier
-
-lib/std/testing.zig: error.missing_identifier
-
-src/Zcu/PerThread.zig: error.missing_identifier
-
-doc/langref/test_switch_continue.zig: error.analysis_failed
-
-tools/gen_spirv_spec.zig: error.missing_identifier
-
-test/cases/compile_errors/implicit_semicolon-if-else_statement.zig: error.analysis_failed
-
-test/cases/compile_errors/extra_comma_in_destructure.zig: error.analysis_failed
-
-test/cases/compile_errors/implicit_semicolon-for_statement.zig: error.analysis_failed
-
-src/codegen/llvm.zig: error.missing_identifier
-
-test/cases/compile_errors/non-extern_function_with_var_args.zig: error.analysis_failed
-
-test/cases/compile_errors/switch_expression-unreachable_else_prong_error.zig: error.missing_identifier
-
-test/cases/compile_errors/const_is_a_statement_not_an_expression.zig: error.analysis_failed
-
-test/cases/compile_errors/switch_expression-missing_error_prong.zig: error.missing_identifier
-
-test/cases/compile_errors/switch_on_error_with_1_field_with_no_prongs.zig: error.missing_identifier
-
-test/cases/compile_errors/chained_comparison_operators.zig: error.analysis_failed
-
-test/cases/compile_errors/invalid_float_literal.zig: error.analysis_failed
-
-test/cases/compile_errors/invalid_destructure_sema.zig: error.full_mismatch
-
-test/cases/compile_errors/implicit_semicolon-test_expression.zig: error.analysis_failed
-
-test/cases/compile_errors/empty_for_loop_body.zig: error.analysis_failed
-
-test/cases/compile_errors/empty_if_body.zig: error.analysis_failed
-
-test/cases/compile_errors/switch_on_non_err_union.zig: error.missing_identifier
-
-test/cases/compile_errors/implicit_semicolon-defer.zig: error.analysis_failed
-
-test/cases/compile_errors/invalid_destructure_astgen.zig: error.full_mismatch
-
-test/cases/compile_errors/implicit_semicolon-while_expression.zig: error.analysis_failed
-
-test/cases/compile_errors/Issue_6823_dont_allow_._to_be_followed_by_.zig: error.analysis_failed
-
-test/cases/compile_errors/switch_expression-multiple_else_prongs.zig: error.missing_identifier
-
-test/cases/compile_errors/attempted_double_ampersand.zig: error.analysis_failed
-
-test/cases/compile_errors/duplicate-unused_labels.zig: error.analysis_failed
-
-test/cases/compile_errors/invalid_pointer_syntax.zig: error.analysis_failed
-
-test/cases/compile_errors/for_empty.zig: error.analysis_failed
-
-test/cases/compile_errors/invalid_legacy_unicode_escape.zig: error.analysis_failed
-
-test/cases/compile_errors/invalid_unicode_escape.zig: error.analysis_failed
-
-test/cases/compile_errors/implicit_semicolon-test_statement.zig: error.analysis_failed
-
-test/cases/compile_errors/error_not_handled_in_switch.zig: error.missing_identifier
-
-test/cases/compile_errors/empty_char_lit.zig: error.analysis_failed
-
-test/cases/compile_errors/duplicate_error_in_switch.zig: error.missing_identifier
-
-test/cases/compile_errors/implicit_semicolon-if-else-if-else_statement.zig: error.analysis_failed
-
-test/cases/compile_errors/for_extra_capture.zig: error.analysis_failed
-
-test/cases/compile_errors/switch_expression-duplicate_error_prong.zig: error.missing_identifier
-
-test/cases/compile_errors/implicit_semicolon-while_statement.zig: error.analysis_failed
-
-test/cases/compile_errors/implicit_semicolon-if-else-if_expression.zig: error.analysis_failed
-
-test/cases/double_ampersand.0.zig: error.analysis_failed
-
-test/cases/variable_shadowing.10.zig: error.missing_identifier
-
-test/cases/catch_at_comptime.4.zig: error.missing_identifier
-
-test/cases/compile_errors/runtime_condition_comptime_type_in_destructure.zig: error.full_mismatch
-
-test/cases/compile_errors/switch_on_error_with_non_trivial_switch_operand.zig: error.missing_identifier
-
-test/cases/compile_errors/assign_to_constant_destructure.zig: error.full_mismatch
-
-test/cases/compile_errors/implicit_semicolon-if-else-if-else_expression.zig: error.analysis_failed
-
-test/cases/compile_errors/switch_on_error_with_capture_by_reference.zig: error.missing_identifier
-
-test/cases/compile_errors/implicit_semicolon-if_expression.zig: error.analysis_failed
-
-test/cases/compile_errors/implicit_semicolon-for_expression.zig: error.analysis_failed
-
-test/cases/compile_errors/for_extra_condition.zig: error.analysis_failed
-
-test/cases/compile_errors/implicit_semicolon-comptime_statement.zig: error.analysis_failed
-
-test/cases/compile_errors/implicit_semicolon-block_statement.zig: error.analysis_failed
-
-test/cases/compile_errors/implicit_semicolon-if-else_expression.zig: error.analysis_failed
-
-test/cases/compile_errors/implicit_semicolon-comptime_expression.zig: error.analysis_failed
-
-test/cases/compile_errors/implicit_semicolon-while-continue_statement.zig: error.analysis_failed
-
-test/cases/compile_errors/implicit_semicolon-if_statement.zig: error.analysis_failed
-
-test/cases/compile_errors/range_operator_in_switch_used_on_error_set.zig: error.missing_identifier
-
-test/cases/compile_errors/switch_expression-duplicate_error_prong_when_else_present.zig: error.missing_identifier
-
-test/cases/compile_errors/implicit_semicolon-block_expr.zig: error.analysis_failed
-
-test/cases/compile_errors/implicit_semicolon-while-continue_expression.zig: error.analysis_failed
-
-test/cases/compile_errors/empty_while_loop_body.zig: error.analysis_failed
-
-test/cases/compile_errors/normal_string_with_newline.zig: error.analysis_failed
-
-test/cases/errors.2.zig: error.missing_identifier
-
-test/standalone/sigpipe/breakpipe.zig: error.missing_identifier
-
-test/cases/catch_at_comptime.3.zig: error.missing_identifier
-
-test/src/Cases.zig: error.missing_identifier
-
-test/standalone/windows_argv/build.zig: error.missing_identifier
-
-test/standalone/windows_argv/lib.zig: error.missing_identifier
-
-test/cases/safety/unwrap error switch.zig: error.missing_identifier
-
-test/cases/compile_errors/implicit_semicolon-if-else-if_statement.zig: error.analysis_failed
-
-test/cases/compile_errors/declaration_between_fields.zig: error.analysis_failed
-
-test/cases/compile_errors/reject_extern_function_definitions_with_body.zig: error.analysis_failed
-
-tools/update_glibc.zig: error.missing_identifier
-
-tools/dump-cov.zig: error.missing_identifier
-
-tools/doctest.zig: error.missing_identifier
-
-tools/incr-check.zig: error.missing_identifier
-
-tools/process_headers.zig: error.missing_identifier
-
-tools/update_spirv_features.zig: error.missing_identifier
-
-tools/update-linux-headers.zig: error.missing_identifier
-
-tools/gen_stubs.zig: error.missing_identifier
-
-tools/migrate_langref.zig: error.missing_identifier
-
-test/standalone/simple/cat/main.zig: error.missing_identifier
-
-tools/docgen.zig: error.missing_identifier
-
-doc/langref/unattached_doc-comment.zig: error.analysis_failed
-
-tools/update_mingw.zig: error.missing_identifier
-
 build.zig: error.missing_identifier
-
-doc/langref/invalid_doc-comment.zig: error.analysis_failed
-
-doc/langref/var_must_be_initialized.zig: error.analysis_failed
-
-test/behavior/defer.zig: error.missing_identifier
-
-doc/langref/test_switch_dispatch_loop.zig: error.analysis_failed
-
-test/behavior/async_fn.zig: error.missing_identifier
-
-test/behavior/switch_loop.zig: error.analysis_failed
-
-test/behavior/switch_on_captured_error.zig: error.missing_identifier
-
-test/behavior/destructure.zig: error.full_mismatch
-
-test/behavior/switch.zig: error.missing_identifier
-
 doc/langref/catch_err_return.zig: error.missing_identifier
-
-test/behavior/error.zig: error.missing_identifier
-
-test/behavior/basic.zig: error.missing_identifier
-
+doc/langref/invalid_doc-comment.zig: error.analysis_failed
 doc/langref/test_peer_type_resolution.zig: error.missing_identifier
-
-src/libcxx.zig: error.missing_identifier
-
-src/link/MachO/relocatable.zig: error.missing_identifier
-
-src/Air/types_resolved.zig: error.missing_identifier
-
-src/link/MachO/Dylib.zig: error.missing_identifier
-
-src/link/MachO/ZigObject.zig: error.missing_identifier
-
-src/link/MachO/Atom.zig: error.missing_identifier
-
-src/link/C.zig: error.missing_identifier
-
-src/link/Elf/ZigObject.zig: error.missing_identifier
-
-src/link/MachO.zig: error.missing_identifier
-
-src/link/Elf/eh_frame.zig: error.missing_identifier
-
-src/link/Elf/Atom.zig: error.missing_identifier
-
-src/link/SpirV.zig: error.missing_identifier
-
-src/link/Elf.zig: error.missing_identifier
-
-src/libunwind.zig: error.missing_identifier
-
-src/Builtin.zig: error.missing_identifier
-
-src/link/Coff.zig: error.missing_identifier
-
-src/crash_report.zig: error.missing_identifier
-
-src/link/Plan9.zig: error.missing_identifier
-
-src/Package/Fetch/git.zig: error.missing_identifier
-
-src/Package/Manifest.zig: error.missing_identifier
-
-src/print_targets.zig: error.missing_identifier
-
-src/print_env.zig: error.missing_identifier
-
-src/link/MachO/Object.zig: error.missing_identifier
-
-src/link/Wasm.zig: error.missing_identifier
-
-src/Package/Fetch.zig: error.missing_identifier
-
-src/mingw.zig: error.missing_identifier
-
-src/libtsan.zig: error.missing_identifier
-
-src/print_value.zig: error.missing_identifier
-
-src/Value.zig: error.missing_identifier
-
-src/translate_c.zig: error.missing_identifier
-
-src/arch/aarch64/CodeGen.zig: error.missing_identifier
-
-src/arch/arm/CodeGen.zig: error.missing_identifier
-
-src/arch/sparc64/CodeGen.zig: error.missing_identifier
-
-src/Compilation.zig: error.missing_identifier
-
-src/link/Dwarf.zig: error.full_mismatch
-
-src/arch/x86_64/Disassembler.zig: error.missing_identifier
-
-src/arch/wasm/CodeGen.zig: error.missing_identifier
-
-src/arch/x86_64/CodeGen.zig: error.missing_identifier
-
-src/arch/sparc64/bits.zig: error.missing_identifier
-
-src/arch/riscv64/CodeGen.zig: error.missing_identifier
-
-src/Type.zig: error.missing_identifier
-
-src/codegen/llvm/BitcodeReader.zig: error.missing_identifier
-
-src/Sema/bitcast.zig: error.missing_identifier
-
-src/arch/x86_64/encoder.zig: error.missing_identifier
-
-src/glibc.zig: error.missing_identifier
-
-src/codegen/spirv.zig: error.missing_identifier
-
-src/link.zig: error.missing_identifier
-
-src/main.zig: error.missing_identifier
-
-src/Zcu.zig: error.full_mismatch
-
-lib/std/hash/auto_hash.zig: error.missing_identifier
-
-lib/std/os.zig: error.missing_identifier
-
-lib/std/Build/Fuzz.zig: error.missing_identifier
-
-lib/std/Build/Cache.zig: error.missing_identifier
-
-lib/std/Build/Step/UpdateSourceFiles.zig: error.missing_identifier
-
-lib/std/Build/Watch.zig: error.missing_identifier
-
-lib/std/debug.zig: error.missing_identifier
-
-lib/std/Build/Step/InstallFile.zig: error.missing_identifier
-
-lib/std/Build/Step/RemoveDir.zig: error.missing_identifier
-
-lib/std/Build/Step/CheckFile.zig: error.missing_identifier
-
-lib/std/Build/Step/InstallArtifact.zig: error.missing_identifier
-
-lib/std/Build/Step/Options.zig: error.missing_identifier
-
-lib/std/Build/Step/InstallDir.zig: error.missing_identifier
-
-lib/std/Build/Step/WriteFile.zig: error.missing_identifier
-
-lib/std/Build/Step/ConfigHeader.zig: error.missing_identifier
-
-lib/std/Build/Step/ObjCopy.zig: error.missing_identifier
-
-lib/std/Build/Fuzz/WebServer.zig: error.missing_identifier
-
-lib/std/Build/Step/Run.zig: error.missing_identifier
-
-lib/std/Build/Step.zig: error.missing_identifier
-
-lib/std/fs/get_app_data_dir.zig: error.missing_identifier
-
-lib/std/fs/AtomicFile.zig: error.missing_identifier
-
-src/Sema.zig: error.missing_identifier
-
-lib/std/Build/Step/CheckObject.zig: error.missing_identifier
-
-lib/std/fs/Dir.zig: error.missing_identifier
-
-lib/std/Progress.zig: error.missing_identifier
-
-lib/std/fs/test.zig: error.missing_identifier
-
-lib/std/tar.zig: error.missing_identifier
-
-lib/std/Build/Step/Compile.zig: error.missing_identifier
-
-lib/std/start.zig: error.missing_identifier
-
-lib/std/fs/File.zig: error.missing_identifier
-
-lib/std/array_list.zig: error.missing_identifier
-
-lib/std/crypto/tls/Client.zig: error.missing_identifier
-
-lib/std/fs.zig: error.missing_identifier
-
-lib/std/crypto/Certificate/Bundle.zig: error.missing_identifier
-
-lib/std/hash_map.zig: error.missing_identifier
-
-lib/std/crypto/Certificate.zig: error.missing_identifier
-
-lib/std/Thread/Futex.zig: error.missing_identifier
-
-lib/std/Thread/ResetEvent.zig: error.missing_identifier
-
-lib/std/Thread/Condition.zig: error.missing_identifier
-
-lib/std/json/scanner.zig: error.missing_identifier
-
-lib/std/json/scanner_test.zig: error.missing_identifier
-
-lib/std/json/static_test.zig: error.missing_identifier
-
-lib/std/http/test.zig: error.missing_identifier
-
-lib/std/unicode.zig: error.missing_identifier
-
-lib/std/http/Client.zig: error.missing_identifier
-
-src/codegen/llvm/Builder.zig: error.missing_identifier
-
-lib/std/array_hash_map.zig: error.missing_identifier
-
-lib/std/posix/test.zig: error.missing_identifier
-
-lib/std/zig.zig: error.missing_identifier
-
-lib/std/os/windows.zig: error.missing_identifier
-
-lib/std/os/windows/nls.zig: error.missing_identifier
-
-lib/std/os/windows/test.zig: error.missing_identifier
-
-lib/std/debug/Pdb.zig: error.missing_identifier
-
-lib/std/mem.zig: error.missing_identifier
-
-lib/std/debug/Coverage.zig: error.missing_identifier
-
-lib/std/debug/MemoryAccessor.zig: error.missing_identifier
-
-lib/std/debug/SelfInfo.zig: error.missing_identifier
-
-lib/std/tar/test.zig: error.missing_identifier
-
-lib/std/io/bit_reader.zig: error.missing_identifier
-
-lib/std/io/Reader.zig: error.missing_identifier
-
-lib/std/builtin.zig: error.missing_identifier
-
-lib/std/buf_set.zig: error.missing_identifier
-
-lib/std/os/linux/IoUring.zig: error.missing_identifier
-
-lib/std/SemanticVersion.zig: error.missing_identifier
-
-lib/std/tz.zig: error.missing_identifier
-
-lib/std/fifo.zig: error.missing_identifier
-
-lib/std/debug/Dwarf.zig: error.missing_identifier
-
-lib/std/Uri.zig: error.missing_identifier
-
-lib/std/zig/LibCDirs.zig: error.missing_identifier
-
-lib/std/zig/LibCInstallation.zig: error.missing_identifier
-
-lib/std/zig/Parse.zig: error.missing_identifier
-
-lib/std/zig/WindowsSdk.zig: error.missing_identifier
-
-lib/std/zig/system/linux.zig: error.missing_identifier
-
-lib/std/coff.zig: error.missing_identifier
-
-lib/std/Build.zig: error.missing_identifier
-
-lib/std/zig/system/darwin/macos.zig: error.missing_identifier
-
-lib/std/zig/system.zig: error.missing_identifier
-
-lib/std/zig/render.zig: error.missing_identifier
-
-lib/std/zig/tokenizer.zig: error.analysis_failed
-
-lib/std/zig/parser_test.zig: error.missing_identifier
-
-lib/std/priority_queue.zig: error.missing_identifier
-
-lib/std/compress/xz/block.zig: error.missing_identifier
-
-lib/std/compress/zstandard/decode/huffman.zig: error.missing_identifier
-
-lib/std/compress/zstandard/decompress.zig: error.missing_identifier
-
-lib/std/buf_map.zig: error.missing_identifier
-
-lib/std/Thread.zig: error.missing_identifier
-
-lib/std/compress/zstandard/decode/block.zig: error.missing_identifier
-
-lib/std/posix.zig: error.missing_identifier
-
-lib/std/Target/Query.zig: error.full_mismatch
-
-lib/std/io.zig: error.missing_identifier
-
-lib/std/net.zig: error.missing_identifier
-
+doc/langref/test_switch_continue.zig: error.analysis_failed
+doc/langref/test_switch_dispatch_loop.zig: error.analysis_failed
+doc/langref/unattached_doc-comment.zig: error.analysis_failed
+doc/langref/var_must_be_initialized.zig: error.analysis_failed
 lib/compiler/aro/aro/CodeGen.zig: error.missing_identifier
-
-lib/fuzzer.zig: error.missing_identifier
-
-lib/compiler/aro/aro/Value.zig: error.missing_identifier
-
 lib/compiler/aro/aro/Compilation.zig: error.missing_identifier
-
-lib/std/zig/AstGen.zig: error.missing_identifier
-
-lib/compiler/aro/aro/pragmas/gcc.zig: error.missing_identifier
-
-lib/compiler/aro/aro/pragmas/message.zig: error.missing_identifier
-
-lib/compiler/aro/aro/pragmas/pack.zig: error.missing_identifier
-
 lib/compiler/aro/aro/Driver.zig: error.missing_identifier
-
-lib/compiler/aro/aro/text_literal.zig: error.full_mismatch
-
-lib/compiler/aro/aro/Preprocessor.zig: error.missing_identifier
-
-lib/std/math/big/int.zig: error.missing_identifier
-
-lib/compiler/aro/backend/Ir/x86/Renderer.zig: error.missing_identifier
-
-lib/compiler/test_runner.zig: error.missing_identifier
-
 lib/compiler/aro/aro/Parser.zig: error.missing_identifier
-
+lib/compiler/aro/aro/Preprocessor.zig: error.missing_identifier
 lib/compiler/aro/aro/Tree.zig: error.full_mismatch
-
-lib/compiler/build_runner.zig: error.missing_identifier
-
-lib/compiler/objcopy.zig: error.missing_identifier
-
-lib/compiler/fmt.zig: error.missing_identifier
-
-lib/compiler/resinator/preprocess.zig: error.missing_identifier
-
-lib/compiler/resinator/ico.zig: error.missing_identifier
-
-lib/compiler/aro_translate_c.zig: error.missing_identifier
-
-lib/compiler/resinator/source_mapping.zig: error.missing_identifier
-
-lib/compiler/resinator/compile.zig: error.missing_identifier
-
-lib/compiler/resinator/cli.zig: error.missing_identifier
-
-lib/compiler/resinator/main.zig: error.missing_identifier
-
-lib/compiler/resinator/lang.zig: error.missing_identifier
-
-lib/fuzzer/web/main.zig: error.missing_identifier
-
-lib/compiler/resinator/errors.zig: error.missing_identifier
-
-lib/compiler/resinator/lex.zig: error.missing_identifier
-
 lib/compiler/aro/aro/Type.zig: error.missing_identifier
-
+lib/compiler/aro/aro/Value.zig: error.missing_identifier
+lib/compiler/aro/aro/pragmas/gcc.zig: error.missing_identifier
+lib/compiler/aro/aro/pragmas/message.zig: error.missing_identifier
+lib/compiler/aro/aro/pragmas/pack.zig: error.missing_identifier
+lib/compiler/aro/aro/text_literal.zig: error.full_mismatch
+lib/compiler/aro/backend/Ir/x86/Renderer.zig: error.missing_identifier
+lib/compiler/aro_translate_c.zig: error.missing_identifier
+lib/compiler/build_runner.zig: error.missing_identifier
+lib/compiler/fmt.zig: error.missing_identifier
+lib/compiler/libc.zig: error.missing_identifier
+lib/compiler/objcopy.zig: error.missing_identifier
+lib/compiler/reduce.zig: error.missing_identifier
+lib/compiler/resinator/cli.zig: error.missing_identifier
+lib/compiler/resinator/compile.zig: error.missing_identifier
+lib/compiler/resinator/errors.zig: error.missing_identifier
+lib/compiler/resinator/ico.zig: error.missing_identifier
+lib/compiler/resinator/lang.zig: error.missing_identifier
+lib/compiler/resinator/lex.zig: error.missing_identifier
+lib/compiler/resinator/main.zig: error.missing_identifier
+lib/compiler/resinator/parse.zig: error.missing_identifier
+lib/compiler/resinator/preprocess.zig: error.missing_identifier
+lib/compiler/resinator/source_mapping.zig: error.missing_identifier
+lib/compiler/resinator/windows1252.zig: error.missing_identifier
+lib/compiler/std-docs.zig: error.missing_identifier
+lib/compiler/test_runner.zig: error.missing_identifier
+lib/docs/wasm/main.zig: error.missing_identifier
+lib/fuzzer.zig: error.missing_identifier
+lib/fuzzer/web/main.zig: error.missing_identifier
+lib/std/Build.zig: error.missing_identifier
+lib/std/Build/Cache.zig: error.missing_identifier
+lib/std/Build/Fuzz.zig: error.missing_identifier
+lib/std/Build/Fuzz/WebServer.zig: error.missing_identifier
+lib/std/Build/Step.zig: error.missing_identifier
+lib/std/Build/Step/CheckFile.zig: error.missing_identifier
+lib/std/Build/Step/CheckObject.zig: error.missing_identifier
+lib/std/Build/Step/Compile.zig: error.missing_identifier
+lib/std/Build/Step/ConfigHeader.zig: error.missing_identifier
+lib/std/Build/Step/InstallArtifact.zig: error.missing_identifier
+lib/std/Build/Step/InstallDir.zig: error.missing_identifier
+lib/std/Build/Step/InstallFile.zig: error.missing_identifier
+lib/std/Build/Step/ObjCopy.zig: error.missing_identifier
+lib/std/Build/Step/Options.zig: error.missing_identifier
+lib/std/Build/Step/RemoveDir.zig: error.missing_identifier
+lib/std/Build/Step/Run.zig: error.missing_identifier
+lib/std/Build/Step/UpdateSourceFiles.zig: error.missing_identifier
+lib/std/Build/Step/WriteFile.zig: error.missing_identifier
+lib/std/Build/Watch.zig: error.missing_identifier
+lib/std/Progress.zig: error.missing_identifier
+lib/std/SemanticVersion.zig: error.missing_identifier
+lib/std/Target/Query.zig: error.full_mismatch
+lib/std/Thread.zig: error.missing_identifier
+lib/std/Thread/Condition.zig: error.missing_identifier
+lib/std/Thread/Futex.zig: error.missing_identifier
+lib/std/Thread/ResetEvent.zig: error.missing_identifier
+lib/std/Uri.zig: error.missing_identifier
+lib/std/array_hash_map.zig: error.missing_identifier
+lib/std/array_list.zig: error.missing_identifier
+lib/std/bit_set.zig: error.missing_identifier
+lib/std/buf_map.zig: error.missing_identifier
+lib/std/buf_set.zig: error.missing_identifier
+lib/std/builtin.zig: error.missing_identifier
+lib/std/coff.zig: error.missing_identifier
+lib/std/compress/xz/block.zig: error.missing_identifier
+lib/std/compress/xz/test.zig: error.missing_identifier
+lib/std/compress/zstandard.zig: error.missing_identifier
+lib/std/compress/zstandard/decode/block.zig: error.missing_identifier
+lib/std/compress/zstandard/decode/huffman.zig: error.missing_identifier
+lib/std/compress/zstandard/decompress.zig: error.missing_identifier
+lib/std/crypto/25519/ed25519.zig: error.missing_identifier
+lib/std/crypto/Certificate.zig: error.missing_identifier
+lib/std/crypto/Certificate/Bundle.zig: error.missing_identifier
+lib/std/crypto/tls/Client.zig: error.missing_identifier
+lib/std/debug.zig: error.missing_identifier
+lib/std/debug/Coverage.zig: error.missing_identifier
+lib/std/debug/Dwarf.zig: error.missing_identifier
+lib/std/debug/MemoryAccessor.zig: error.missing_identifier
+lib/std/debug/Pdb.zig: error.missing_identifier
+lib/std/debug/SelfInfo.zig: error.missing_identifier
+lib/std/fifo.zig: error.missing_identifier
+lib/std/fmt.zig: error.missing_identifier
+lib/std/fs.zig: error.missing_identifier
+lib/std/fs/AtomicFile.zig: error.missing_identifier
+lib/std/fs/Dir.zig: error.missing_identifier
+lib/std/fs/File.zig: error.missing_identifier
+lib/std/fs/get_app_data_dir.zig: error.missing_identifier
+lib/std/fs/test.zig: error.missing_identifier
+lib/std/hash/auto_hash.zig: error.missing_identifier
+lib/std/hash_map.zig: error.missing_identifier
+lib/std/http/Client.zig: error.missing_identifier
+lib/std/http/test.zig: error.missing_identifier
+lib/std/io.zig: error.missing_identifier
+lib/std/io/Reader.zig: error.missing_identifier
+lib/std/io/bit_reader.zig: error.missing_identifier
+lib/std/json/scanner.zig: error.missing_identifier
+lib/std/json/scanner_test.zig: error.missing_identifier
+lib/std/json/static_test.zig: error.missing_identifier
+lib/std/math/big/int.zig: error.missing_identifier
+lib/std/mem.zig: error.missing_identifier
+lib/std/net.zig: error.missing_identifier
+lib/std/net/test.zig: error.missing_identifier
+lib/std/os.zig: error.missing_identifier
+lib/std/os/linux/IoUring.zig: error.missing_identifier
+lib/std/os/windows.zig: error.missing_identifier
+lib/std/os/windows/nls.zig: error.missing_identifier
+lib/std/os/windows/test.zig: error.missing_identifier
+lib/std/posix.zig: error.missing_identifier
+lib/std/posix/test.zig: error.missing_identifier
+lib/std/priority_dequeue.zig: error.missing_identifier
+lib/std/priority_queue.zig: error.missing_identifier
+lib/std/process.zig: error.missing_identifier
+lib/std/process/Child.zig: error.missing_identifier
+lib/std/start.zig: error.missing_identifier
+lib/std/tar.zig: error.missing_identifier
+lib/std/tar/test.zig: error.missing_identifier
+lib/std/tar/writer.zig: error.missing_identifier
+lib/std/testing.zig: error.missing_identifier
+lib/std/time.zig: error.missing_identifier
+lib/std/tz.zig: error.missing_identifier
+lib/std/unicode.zig: error.missing_identifier
+lib/std/zig.zig: error.missing_identifier
+lib/std/zig/AstGen.zig: error.missing_identifier
+lib/std/zig/AstRlAnnotate.zig: error.missing_identifier
+lib/std/zig/LibCDirs.zig: error.missing_identifier
+lib/std/zig/LibCInstallation.zig: error.missing_identifier
+lib/std/zig/Parse.zig: error.missing_identifier
+lib/std/zig/WindowsSdk.zig: error.missing_identifier
+lib/std/zig/parser_test.zig: error.missing_identifier
+lib/std/zig/render.zig: error.missing_identifier
+lib/std/zig/system.zig: error.missing_identifier
+lib/std/zig/system/darwin/macos.zig: error.missing_identifier
+lib/std/zig/system/linux.zig: error.missing_identifier
+lib/std/zig/tokenizer.zig: error.analysis_failed
+src/Air/types_resolved.zig: error.missing_identifier
+src/Builtin.zig: error.missing_identifier
+src/Compilation.zig: error.missing_identifier
+src/Package/Fetch.zig: error.missing_identifier
+src/Package/Fetch/git.zig: error.missing_identifier
+src/Package/Manifest.zig: error.missing_identifier
+src/Sema.zig: error.missing_identifier
+src/Sema/bitcast.zig: error.missing_identifier
+src/Type.zig: error.missing_identifier
+src/Value.zig: error.missing_identifier
+src/Zcu.zig: error.full_mismatch
+src/Zcu/PerThread.zig: error.missing_identifier
+src/arch/aarch64/CodeGen.zig: error.missing_identifier
+src/arch/arm/CodeGen.zig: error.missing_identifier
+src/arch/riscv64/CodeGen.zig: error.missing_identifier
+src/arch/sparc64/CodeGen.zig: error.missing_identifier
+src/arch/sparc64/bits.zig: error.missing_identifier
+src/arch/wasm/CodeGen.zig: error.missing_identifier
+src/arch/x86_64/CodeGen.zig: error.missing_identifier
+src/arch/x86_64/Disassembler.zig: error.missing_identifier
+src/arch/x86_64/encoder.zig: error.missing_identifier
+src/codegen/llvm.zig: error.missing_identifier
+src/codegen/llvm/BitcodeReader.zig: error.missing_identifier
+src/codegen/llvm/Builder.zig: error.missing_identifier
+src/codegen/spirv.zig: error.missing_identifier
+src/crash_report.zig: error.missing_identifier
+src/glibc.zig: error.missing_identifier
+src/libcxx.zig: error.missing_identifier
+src/libtsan.zig: error.missing_identifier
+src/libunwind.zig: error.missing_identifier
+src/link.zig: error.missing_identifier
+src/link/C.zig: error.missing_identifier
+src/link/Coff.zig: error.missing_identifier
+src/link/Dwarf.zig: error.full_mismatch
+src/link/Elf.zig: error.missing_identifier
+src/link/Elf/Atom.zig: error.missing_identifier
+src/link/Elf/ZigObject.zig: error.missing_identifier
+src/link/Elf/eh_frame.zig: error.missing_identifier
+src/link/LdScript.zig: error.missing_identifier
+src/link/MachO.zig: error.missing_identifier
+src/link/MachO/Atom.zig: error.missing_identifier
+src/link/MachO/Dylib.zig: error.missing_identifier
+src/link/MachO/Object.zig: error.missing_identifier
+src/link/MachO/ZigObject.zig: error.missing_identifier
+src/link/MachO/relocatable.zig: error.missing_identifier
+src/link/Plan9.zig: error.missing_identifier
+src/link/SpirV.zig: error.missing_identifier
+src/link/Wasm.zig: error.missing_identifier
+src/main.zig: error.missing_identifier
+src/mingw.zig: error.missing_identifier
+src/print_env.zig: error.missing_identifier
+src/print_targets.zig: error.missing_identifier
+src/print_value.zig: error.missing_identifier
+src/translate_c.zig: error.missing_identifier
+test/behavior/async_fn.zig: error.missing_identifier
+test/behavior/basic.zig: error.missing_identifier
+test/behavior/defer.zig: error.missing_identifier
+test/behavior/destructure.zig: error.full_mismatch
+test/behavior/error.zig: error.missing_identifier
+test/behavior/switch.zig: error.missing_identifier
+test/behavior/switch_loop.zig: error.analysis_failed
+test/behavior/switch_on_captured_error.zig: error.missing_identifier
+test/cases/catch_at_comptime.3.zig: error.missing_identifier
+test/cases/catch_at_comptime.4.zig: error.missing_identifier
+test/cases/compile_errors/Issue_6823_dont_allow_._to_be_followed_by_.zig: error.analysis_failed
+test/cases/compile_errors/assign_to_constant_destructure.zig: error.full_mismatch
+test/cases/compile_errors/attempted_double_ampersand.zig: error.analysis_failed
+test/cases/compile_errors/chained_comparison_operators.zig: error.analysis_failed
+test/cases/compile_errors/const_is_a_statement_not_an_expression.zig: error.analysis_failed
+test/cases/compile_errors/declaration_between_fields.zig: error.analysis_failed
+test/cases/compile_errors/duplicate-unused_labels.zig: error.analysis_failed
+test/cases/compile_errors/duplicate_error_in_switch.zig: error.missing_identifier
+test/cases/compile_errors/empty_char_lit.zig: error.analysis_failed
+test/cases/compile_errors/empty_for_loop_body.zig: error.analysis_failed
+test/cases/compile_errors/empty_if_body.zig: error.analysis_failed
+test/cases/compile_errors/empty_while_loop_body.zig: error.analysis_failed
+test/cases/compile_errors/error_not_handled_in_switch.zig: error.missing_identifier
+test/cases/compile_errors/extra_comma_in_destructure.zig: error.analysis_failed
+test/cases/compile_errors/for_empty.zig: error.analysis_failed
+test/cases/compile_errors/for_extra_capture.zig: error.analysis_failed
+test/cases/compile_errors/for_extra_condition.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-block_expr.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-block_statement.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-comptime_expression.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-comptime_statement.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-defer.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-for_expression.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-for_statement.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-if-else-if-else_expression.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-if-else-if-else_statement.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-if-else-if_expression.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-if-else-if_statement.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-if-else_expression.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-if-else_statement.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-if_expression.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-if_statement.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-test_expression.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-test_statement.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-while-continue_expression.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-while-continue_statement.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-while_expression.zig: error.analysis_failed
+test/cases/compile_errors/implicit_semicolon-while_statement.zig: error.analysis_failed
+test/cases/compile_errors/invalid_destructure_astgen.zig: error.full_mismatch
+test/cases/compile_errors/invalid_destructure_sema.zig: error.full_mismatch
+test/cases/compile_errors/invalid_float_literal.zig: error.analysis_failed
+test/cases/compile_errors/invalid_legacy_unicode_escape.zig: error.analysis_failed
+test/cases/compile_errors/invalid_pointer_syntax.zig: error.analysis_failed
+test/cases/compile_errors/invalid_unicode_escape.zig: error.analysis_failed
+test/cases/compile_errors/non-extern_function_with_var_args.zig: error.analysis_failed
+test/cases/compile_errors/normal_string_with_newline.zig: error.analysis_failed
+test/cases/compile_errors/range_operator_in_switch_used_on_error_set.zig: error.missing_identifier
+test/cases/compile_errors/reject_extern_function_definitions_with_body.zig: error.analysis_failed
+test/cases/compile_errors/runtime_condition_comptime_type_in_destructure.zig: error.full_mismatch
+test/cases/compile_errors/switch_expression-duplicate_error_prong.zig: error.missing_identifier
+test/cases/compile_errors/switch_expression-duplicate_error_prong_when_else_present.zig: error.missing_identifier
+test/cases/compile_errors/switch_expression-missing_error_prong.zig: error.missing_identifier
+test/cases/compile_errors/switch_expression-multiple_else_prongs.zig: error.missing_identifier
+test/cases/compile_errors/switch_expression-unreachable_else_prong_error.zig: error.missing_identifier
+test/cases/compile_errors/switch_on_error_with_1_field_with_no_prongs.zig: error.missing_identifier
+test/cases/compile_errors/switch_on_error_with_capture_by_reference.zig: error.missing_identifier
+test/cases/compile_errors/switch_on_error_with_non_trivial_switch_operand.zig: error.missing_identifier
+test/cases/compile_errors/switch_on_non_err_union.zig: error.missing_identifier
+test/cases/double_ampersand.0.zig: error.analysis_failed
+test/cases/errors.2.zig: error.missing_identifier
+test/cases/safety/unwrap error switch.zig: error.missing_identifier
+test/cases/variable_shadowing.10.zig: error.missing_identifier
+test/src/Cases.zig: error.missing_identifier
+test/standalone/sigpipe/breakpipe.zig: error.missing_identifier
+test/standalone/simple/cat/main.zig: error.missing_identifier
+test/standalone/windows_argv/build.zig: error.missing_identifier
+test/standalone/windows_argv/lib.zig: error.missing_identifier
+tools/docgen.zig: error.missing_identifier
+tools/doctest.zig: error.missing_identifier
+tools/dump-cov.zig: error.missing_identifier
+tools/gen_spirv_spec.zig: error.missing_identifier
+tools/gen_stubs.zig: error.missing_identifier
+tools/incr-check.zig: error.missing_identifier
+tools/migrate_langref.zig: error.missing_identifier
+tools/process_headers.zig: error.missing_identifier
+tools/update-linux-headers.zig: error.missing_identifier
+tools/update_glibc.zig: error.missing_identifier
+tools/update_mingw.zig: error.missing_identifier
+tools/update_spirv_features.zig: error.missing_identifier

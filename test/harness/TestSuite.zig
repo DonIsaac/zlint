@@ -123,7 +123,7 @@ fn runInThread(self: *TestSuite, path: []const u8) void {
 }
 
 fn pushErr(self: *TestSuite, msg: string, err: anytype) void {
-    const err_msg = std.fmt.allocPrint(self.alloc, "{s}: {any}\n", .{ msg, err }) catch @panic("Failed to allocate error message: OOM");
+    const err_msg = std.fmt.allocPrint(self.alloc, "{s}: {any}", .{ msg, err }) catch @panic("Failed to allocate error message: OOM");
     self.stats.incFail();
     self.errors_mutex.lock();
     defer self.errors_mutex.unlock();
@@ -138,9 +138,14 @@ fn writeSnapshot(self: *TestSuite) !void {
     try self.snapshot.writer().print("Passed: {d}% ({d}/{d})\n\n", .{ pct, pass, total });
     self.errors_mutex.lock();
     defer self.errors_mutex.unlock();
+    std.mem.sort(string, self.errors.items, {}, stringsLessThan);
     for (self.errors.items) |err| {
         try self.snapshot.writer().print("{s}\n", .{err});
     }
+}
+
+fn stringsLessThan(_: void, a: []const u8, b: []const u8) bool {
+    return std.mem.order(u8, a, b).compare(.lt);
 }
 
 const Stats = struct {
