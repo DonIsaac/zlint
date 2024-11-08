@@ -58,7 +58,7 @@ pub const TestRunner = struct {
 
     // pub inline fn addSuite(self: *TestRunner, test_suite: TestSuite) *TestRunner {
     //     const test_file = TestFile {
-    //         const 
+    //         const
     //     }
     // }
 
@@ -110,4 +110,3 @@ pub const TestFile = struct {
         };
     }
 };
-

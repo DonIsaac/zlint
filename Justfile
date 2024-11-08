@@ -15,6 +15,16 @@ alias w  := watch
 _default:
   @just --list -u
 
+# Run CI checks locally. Run this before making a PR.
+ready:
+    git diff --name-only --exit-code
+    just fmt
+    zig build check
+    zig build
+    zig build test
+    zig build test-e2e
+    git status
+
 # Build and run the linter
 run *ARGS:
     zig build run {{ARGS}}
@@ -42,11 +52,11 @@ e2e:
 
 # Format the codebase, writing changes to disk
 fmt:
-    zig fmt src/**/*.zig
+    zig fmt src/**/*.zig test/**/*.zig build.zig
     typos -w
 # Like `fmt`, but exits when problems are found without modifying files
 lint:
-    zig fmt --check src/**/*.zig
+    zig fmt --check src/**/*.zig test/**/*.zig build.zig
     typos
 
 # Remove build artifacts
