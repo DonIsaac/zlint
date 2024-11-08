@@ -1,0 +1,48 @@
+{
+  "symbols": [
+    {
+      "name": "@This()", 
+      "declNode": "root", 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
+      "members": [1], 
+      "exports": [], 
+      
+    }, {
+      "name": "x", 
+      "declNode": "simple_var_decl", 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [2], 
+      "exports": [], 
+      
+    }, {
+      "name": "y", 
+      "declNode": "simple_var_decl", 
+      "scope": 1, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "scopes": {
+    "id": 0, 
+    "flags": [
+      "top", 
+      
+    ], 
+    "children": [
+      {
+        "id": 1, 
+        "flags": [
+          "block", 
+          "comptime", 
+          
+        ], 
+        "children": [], 
+        
+      }, 
+    ], 
+  }, 
+}

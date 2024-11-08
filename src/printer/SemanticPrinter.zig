@@ -59,6 +59,7 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope, scopes: *con
         try printStrIf(p, "enum", f.s_enum);
         try printStrIf(p, "union", f.s_union);
         try printStrIf(p, "block", f.s_block);
+        try printStrIf(p, "comptime", f.s_comptime);
     }
     try p.pIndent();
 
