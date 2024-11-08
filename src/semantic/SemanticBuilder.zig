@@ -405,14 +405,12 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
 }
 
 fn visitArrayInit(self: *SemanticBuilder, _: NodeIndex, arr: full.ArrayInit) !void {
-    @setCold(true);
     for (arr.ast.elements) |el| {
         try self.visit(el);
     }
 }
 
 fn visitStructInit(self: *SemanticBuilder, _: NodeIndex, @"struct": full.StructInit) !void {
-    @setCold(true);
     for (@"struct".ast.fields) |field| {
         try self.visit(field);
     }
