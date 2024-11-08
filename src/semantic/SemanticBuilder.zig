@@ -12,6 +12,7 @@ _gpa: Allocator,
 _arena: ArenaAllocator,
 _curr_scope_id: Semantic.Scope.Id = ROOT_SCOPE,
 _curr_symbol_id: ?Semantic.Symbol.Id = null,
+_curr_scope_flags: Scope.Flags = .{},
 
 // stacks
 
@@ -148,7 +149,9 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
     // - record symbol references
     // - Scope flags for unions, structs, and enums. Blocks are currently handled (TODO: that needs testing).
     // - Test the shit out of it
-    const tag: Ast.Node.Tag = self._semantic.ast.nodes.items(.tag)[node_id];
+    const ast = self.AST();
+    const tag: Ast.Node.Tag = ast.nodes.items(.tag)[node_id];
+    const data: []Node.Data = ast.nodes.items(.data);
     switch (tag) {
         // root node is never referenced b/c of NULL_NODE check at function start
         .root => unreachable,
@@ -159,20 +162,14 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
         // ```
         .container_decl, .container_decl_trailing, .container_decl_two, .container_decl_two_trailing => {
             var buf: [2]u32 = undefined;
-            const container = self.AST().fullContainerDecl(&buf, node_id) orelse unreachable;
+            const container = ast.fullContainerDecl(&buf, node_id) orelse unreachable;
             return self.visitContainer(node_id, container);
         },
         .container_field, .container_field_align, .container_field_init => {
-            const field = self.AST().fullContainerField(node_id) orelse unreachable;
+            const field = ast.fullContainerField(node_id) orelse unreachable;
             return self.visitContainerField(node_id, field);
         },
-        .field_access => {
-            return self.visit(self.getNodeData(node_id).lhs);
-            //     if (self.getTokenTag(node_id) == .identifier) {
-            //         return;
-            //     }
-            //     return self.visitRecursive(node_id);
-        },
+        .field_access => return self.visit(data[node_id].lhs),
         // variable declarations
         .global_var_decl => {
             const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
@@ -198,9 +195,9 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
             // against future API changes made by the Zig team.
             if (IS_DEBUG) {
                 var buf: [1]u32 = undefined;
-                util.assert(self.AST().fullCall(&buf, node_id) != null, "fullCall returned null for tag {any}", .{tag});
+                util.assert(ast.fullCall(&buf, node_id) != null, "fullCall returned null for tag {any}", .{tag});
             }
-            const call = self.AST().callFull(node_id);
+            const call = ast.callFull(node_id);
             return self.visitCall(node_id, call);
         },
         .call_one, .call_one_comma, .async_call_one, .async_call_one_comma => {
@@ -209,9 +206,9 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
             // middleman removes a redundant tag check. This check guards
             // against future API changes made by the Zig team.
             if (IS_DEBUG) {
-                util.assert(self.AST().fullCall(&buf, node_id) != null, "fullCall returned null for tag {any}", .{tag});
+                util.assert(ast.fullCall(&buf, node_id) != null, "fullCall returned null for tag {any}", .{tag});
             }
-            const call = self.AST().callOne(&buf, node_id);
+            const call = ast.callOne(&buf, node_id);
             return self.visitCall(node_id, call);
         },
 
@@ -219,39 +216,49 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
 
         // loops
         .while_simple, .@"while", .while_cont => {
-            const while_stmt = self.AST().fullWhile(node_id) orelse unreachable;
+            const while_stmt = ast.fullWhile(node_id) orelse unreachable;
             return self.visitWhile(node_id, while_stmt);
         },
         .for_simple => {
-            const for_stmt = self.AST().forSimple(node_id);
+            const for_stmt = ast.forSimple(node_id);
             return self.visitFor(node_id, for_stmt);
         },
         .@"for" => {
-            const for_stmt = self.AST().forFull(node_id);
+            const for_stmt = ast.forFull(node_id);
             return self.visitFor(node_id, for_stmt);
         },
 
         // conditionals
         .@"if", .if_simple => {
-            const if_stmt = self.AST().fullIf(node_id) orelse unreachable;
+            const if_stmt = ast.fullIf(node_id) orelse unreachable;
             return self.visitIf(node_id, if_stmt);
         },
 
         // blocks
         .block_two, .block_two_semicolon => {
-            try self.enterScope(.{ .s_block = true });
-            defer self.exitScope();
-            return self.visitRecursive(node_id);
+            const statements = [2]NodeIndex{ data[node_id].lhs, data[node_id].rhs };
+            return if (statements[0] == NULL_NODE)
+                self.visitBlock(statements[0..0])
+            else if (statements[1] == NULL_NODE)
+                self.visitBlock(statements[0..1])
+            else
+                self.visitBlock(statements[0..2]);
         },
-        .block, .block_semicolon => return self.visitBlock(node_id),
+        .block, .block_semicolon => return self.visitBlock(ast.extra_data[data[node_id].lhs..data[node_id].rhs]),
 
         // identifier lhs/rhs is always undefined
         .identifier => return,
 
+        .@"comptime" => {
+            const prev_comptime = self.setScopeFlag("s_comptime", true);
+            defer self.restoreScopeFlag("s_comptime", prev_comptime);
+
+            return self.visit(data[node_id].lhs);
+        },
+
         // rhs for these nodes are always `undefined`.
         .deref,
         .enum_literal,
-        .@"comptime",
         .optional_type,
         .@"usingnamespace",
         .@"nosuspend",
@@ -262,7 +269,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
         .negation_wrap,
         .bit_not,
         .bool_not,
-        => return self.visit(self.getNodeData(node_id).lhs),
+        => return self.visit(data[node_id].lhs),
         // lhs for these nodes is always `undefined`.
         .@"defer" => return self.visit(self.getNodeData(node_id).rhs),
 
@@ -272,17 +279,25 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
 
 /// Basic lhs/rhs traversal. This is just a shorthand.
 inline fn visitRecursive(self: *SemanticBuilder, node_id: NodeIndex) !void {
-    const data: Node.Data = self.AST().nodes.items(.data)[node_id];
+    const data: Node.Data = self.getNodeData(node_id);
     try self.visit(data.lhs);
     try self.visit(data.rhs);
 }
 
 // TODO: inline after we're done debugging
-fn visitBlock(self: *SemanticBuilder, node_id: NodeIndex) !void {
-    const data = self.getNodeData(node_id);
-    const statements = self.AST().extra_data[data.lhs..data.rhs];
+fn visitBlock(self: *SemanticBuilder, statements: []const NodeIndex) !void {
+    const is_root = self.currentScope() == ROOT_SCOPE;
+    const was_comptime = self._curr_scope_flags.s_comptime;
+    if (is_root) {
+        self._curr_scope_flags.s_comptime = true;
+    }
+    defer if (is_root) {
+        self._curr_scope_flags.s_comptime = was_comptime;
+    };
+
     try self.enterScope(.{ .s_block = true });
     defer self.exitScope();
+
     for (statements) |stmt| {
         try self.visit(stmt);
     }
@@ -373,7 +388,8 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     var buf: [1]u32 = undefined;
     const ast = self.AST();
     // lhs is prototype, rhs is body
-    const data: Node.Data = ast.nodes.items(.data)[node_id];
+    // const data: Node.Data = ast.nodes.items(.data)[node_id];
+    const data = self.getNodeData(node_id);
     const proto = ast.fullFnProto(&buf, data.lhs) orelse unreachable;
     const visibility = if (proto.visib_token == null) Symbol.Visibility.private else Symbol.Visibility.public;
     // TODO: bound name vs escaped name
@@ -381,8 +397,20 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     // TODO: bind methods as members
     _ = try self.bindSymbol(identifier, visibility, .{ .s_fn = true });
 
+    var fn_signature_implies_comptime = false;
+    const tags: []Node.Tag = ast.nodes.items(.tag);
+    for (proto.ast.params) |param_id| {
+        if (tags[param_id] == .@"comptime") {
+            fn_signature_implies_comptime = true;
+            break;
+        }
+    }
+    fn_signature_implies_comptime = fn_signature_implies_comptime or std.mem.eql(u8, ast.getNodeSource(proto.ast.return_type), "type");
+
     // parameters are in a new scope b/c other symbols in the same scope as
     // the declared fn cannot access them.
+    const was_comptime = self.setScopeFlag("s_comptime", fn_signature_implies_comptime);
+    defer self.restoreScopeFlag("s_comptime", was_comptime);
     try self.enterScope(.{});
     defer self.exitScope();
     for (proto.ast.params) |param| {
@@ -405,7 +433,6 @@ inline fn visitCall(self: *SemanticBuilder, _: NodeIndex, call: full.Call) !void
         try self.visit(arg);
     }
 }
-
 // =========================================================================
 // ======================== SCOPE/SYMBOL MANAGEMENT ========================
 // =========================================================================
@@ -449,10 +476,39 @@ inline fn assertRoot(self: *const SemanticBuilder) void {
     self.assertCtx(self._symbol_stack.items[0] == 0, "assertRoot: symbol stack is not at root", .{}); // TODO: create root symbol id.
 }
 
+/// Update a single flag on the set of current scope flags, returning its
+/// previous value.
+///
+/// ## Example
+/// ```zig
+/// fn visitSomeNode(self: *SemanticBuilder, node_id: NodeIndex) !void {
+///    const children = self.getNodeData(node_id);
+///
+///    const was_comptime = self.setScopeFlag("s_comptime", true);
+///    defer self.restoreScopeFlag("s_comptime", was_comptime);  // reset after we leave the new scope
+///    try self.enterScope(.{ .s_block = true });
+///    defer self.exitScope();
+///
+///    try self.visit(children.lhs);
+/// }
+/// ```
+inline fn setScopeFlag(self: *SemanticBuilder, comptime flag_name: string, value: bool) bool {
+    const old_flag: bool = @field(self._curr_scope_flags, flag_name);
+    @field(self._curr_scope_flags, flag_name) = value;
+    return old_flag;
+}
+
+/// Restore the builder's current scope flags to a checkpoint. Used in tandem
+/// with `resetScopeFlags`.
+inline fn restoreScopeFlag(self: *SemanticBuilder, comptime flag_name: string, prev_value: bool) void {
+    @field(self._curr_scope_flags, flag_name) = prev_value;
+}
+
 /// Enter a new scope, pushing it onto the stack.
 fn enterScope(self: *SemanticBuilder, flags: Scope.Flags) !void {
     const parent_id = self._scope_stack.getLastOrNull();
-    const scope = try self._semantic.scopes.addScope(self._gpa, parent_id, flags);
+    const merged_flags = flags.merge(self._curr_scope_flags);
+    const scope = try self._semantic.scopes.addScope(self._gpa, parent_id, merged_flags);
     try self._scope_stack.append(self._gpa, scope);
 }
 
@@ -826,4 +882,25 @@ test "Struct/enum fields are bound bound to the struct/enums's member table" {
         try std.testing.expectEqual(1, foo_members.items.len);
         try std.testing.expectEqual(bar.?.id, foo_members.items[0]);
     }
+}
+
+test "comptime blocks" {
+    const alloc = std.testing.allocator;
+    const src =
+        \\const x = blk: {
+        \\  const y = 1;
+        \\  break :blk y + 1;
+        \\};
+    ;
+    var result = try SemanticBuilder.build(alloc, src);
+    defer result.deinit();
+    try std.testing.expect(!result.hasErrors());
+    var semantic = result.value;
+
+    const scopes = &semantic.scopes.scopes;
+    try std.testing.expectEqual(2, scopes.len);
+
+    const block_scope = scopes.get(1);
+    try std.testing.expect(block_scope.flags.s_block);
+    try std.testing.expect(block_scope.flags.s_comptime);
 }

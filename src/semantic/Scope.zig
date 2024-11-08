@@ -8,11 +8,12 @@ parent: ?Id,
 pub const Id = u32;
 pub const MAX_ID = std.math.maxInt(Id);
 
+const FLAGS_REPR = u16;
 /// Scope flags provide hints about what kind of node is creating the
 /// scope.
 ///
 /// TODO: Should this be an enum?
-pub const Flags = packed struct {
+pub const Flags = packed struct(FLAGS_REPR) {
     /// Top-level "module" scope
     s_top: bool = false,
     /// Created by a function declaration.
@@ -25,6 +26,28 @@ pub const Flags = packed struct {
     s_union: bool = false,
     /// Created by a block statement, loop, if statement, etc.
     s_block: bool = false,
+    s_comptime: bool = false,
+    // Padding
+    _: u9 = 0,
+
+    /// Merge all `true`-valued flags in `self` and `other`. Neither argument is
+    /// mutated.
+    ///
+    /// ## Example
+    /// ```zig
+    /// const Scope = @import("zlint").semantic.Scope;
+    /// const block = Scope.Flags{ .s_block = true };
+    /// const top = Scope.Flags { .s_top = true };
+    /// const empty = Scope.Flags{};
+    /// try std.testing.expectEqual(ScopeFlags{ .s_top = true, .s_block = true }, block.merge(top));
+    /// try std.testing.expectEqual(block, block.merge(empty));
+    /// try std.testing.expectEqual(block, block.merge(block));
+    /// ```
+    pub inline fn merge(self: Flags, other: Flags) Flags {
+        const a: FLAGS_REPR = @bitCast(self);
+        const b: FLAGS_REPR = @bitCast(other);
+        return @bitCast(a | b);
+    }
 };
 
 /// Stores variable scopes created by a zig program.
@@ -88,6 +111,18 @@ const Type = std.builtin.Type;
 
 const string = @import("util").string;
 const assert = std.debug.assert;
+
+test Flags {
+    const block = Flags{ .s_block = true };
+    const top = Flags{ .s_top = true };
+    const empty = Flags{};
+    try std.testing.expectEqual(Flags{ .s_block = true, .s_top = true }, block.merge(top));
+
+    try std.testing.expectEqual(block, block.merge(empty));
+    try std.testing.expectEqual(block, block.merge(block));
+    try std.testing.expectEqual(block, block.merge(.{ .s_block = false }));
+}
+
 test "ScopeTree.addScope" {
     const alloc = std.testing.allocator;
     const expectEqual = std.testing.expectEqual;
