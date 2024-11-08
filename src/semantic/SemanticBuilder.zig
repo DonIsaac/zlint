@@ -35,6 +35,10 @@ const NULL_NODE: NodeIndex = Semantic.NULL_NODE;
 const ROOT_SCOPE: Semantic.Scope.Id = Semantic.ROOT_SCOPE_ID;
 
 pub const Result = Error.Result(Semantic);
+const SemanticError = error{
+    /// Expected `ast.fullFoo` to return `Some(foo)` but it returned `None`,
+    full_mismatch,
+};
 
 /// Parse and analyze a Zig source file.
 ///
@@ -190,6 +194,10 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
             const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
             return self.visitVarDecl(node_id, decl);
         },
+        .assign_destructure => {
+            const destructure = ast.assignDestructure(node_id);
+            return self.visitAssignDestructure(node_id, destructure);
+        },
         .array_init,
         .array_init_comma,
         .array_init_dot,
@@ -272,6 +280,12 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
         .@"if", .if_simple => {
             const if_stmt = ast.fullIf(node_id) orelse unreachable;
             return self.visitIf(node_id, if_stmt);
+        },
+        .@"switch", .switch_comma => {
+            const condition = data[node_id].lhs;
+            const extra = ast.extraData(data[node_id].rhs, Ast.Node.SubRange);
+            const cases = ast.extra_data[extra.start..extra.end];
+            return self.visitSwitch(node_id, condition, cases);
         },
 
         // blocks
@@ -422,6 +436,35 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
         try self.visit(var_decl.ast.init_node);
     }
 }
+fn visitAssignDestructure(self: *SemanticBuilder, _: NodeIndex, destructure: full.AssignDestructure) !void {
+    self.assertCtx(destructure.ast.variables.len > 0, "Invalid destructuring assignment: no variables are being declared.", .{});
+    const ast = self.AST();
+    const main_tokens: []TokenIndex = ast.nodes.items(.main_token);
+    const token_tags: []Token.Tag = ast.tokens.items(.tag);
+    const is_comptime = destructure.comptime_token != null;
+
+    for (destructure.ast.variables) |var_id| {
+        const main_token: TokenIndex = main_tokens[var_id];
+        const decl: full.VarDecl = ast.fullVarDecl(var_id) orelse {
+            return SemanticError.full_mismatch;
+        };
+        const identifier: ?string = self.getIdentifier(main_token + 1);
+        util.assert(identifier != null, "assignment declarations are not valid when an identifier name is missing.", .{});
+        const flags = Symbol.Flags{
+            .s_comptime = is_comptime,
+            .s_const = token_tags[main_token] == .keyword_const,
+        };
+        // note: intentionally not using bindSymbol (for now, at least)
+        _ = try self.declareSymbol(
+            var_id,
+            identifier,
+            null,
+            if (decl.visib_token != null) .public else .private,
+            flags,
+        );
+    }
+    try self.visit(destructure.ast.value_expr);
+}
 
 fn visitArrayInit(self: *SemanticBuilder, _: NodeIndex, arr: full.ArrayInit) !void {
     for (arr.ast.elements) |el| {
@@ -457,6 +500,15 @@ inline fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) !void 
     // visited. Thus we can/should skip that here.
     try self.visit(if_stmt.ast.then_expr);
     try self.visit(if_stmt.ast.else_expr);
+}
+
+fn visitSwitch(self: *SemanticBuilder, condition: NodeIndex, _: NodeIndex, cases: []NodeIndex) !void {
+    try self.visitNode(condition);
+    try self.enterScope(.{});
+    defer self.exitScope();
+    for (cases) |case| {
+        try self.visit(case);
+    }
 }
 
 inline fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnProto) !void {
