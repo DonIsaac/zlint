@@ -61,6 +61,7 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope, scopes: *con
         try printStrIf(p, "union", f.s_union);
         try printStrIf(p, "block", f.s_block);
         try printStrIf(p, "comptime", f.s_comptime);
+        try printStrIf(p, "catch", f.s_catch);
     }
     try p.pIndent();
 

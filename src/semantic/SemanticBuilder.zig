@@ -38,6 +38,8 @@ pub const Result = Error.Result(Semantic);
 const SemanticError = error{
     /// Expected `ast.fullFoo` to return `Some(foo)` but it returned `None`,
     full_mismatch,
+    /// Expected an identifier name, but none was found.
+    missing_identifier,
 };
 
 /// Parse and analyze a Zig source file.
@@ -287,6 +289,12 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
             const cases = ast.extra_data[extra.start..extra.end];
             return self.visitSwitch(node_id, condition, cases);
         },
+        .switch_case, .switch_case_inline, .switch_case_one, .switch_case_inline_one => {
+            const case = ast.fullSwitchCase(node_id) orelse unreachable;
+            return self.visitSwitchCase(node_id, case);
+        },
+
+        .@"catch" => return self.visitCatch(node_id),
 
         // blocks
         .block_two, .block_two_semicolon => {
@@ -303,7 +311,14 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
         .test_decl => return self.visit(data[node_id].rhs),
 
         // lhs/rhs for these nodes are always undefined
-        .identifier, .char_literal, .number_literal, .unreachable_literal, .string_literal => return,
+        .identifier,
+        .char_literal,
+        .number_literal,
+        .unreachable_literal,
+        .string_literal,
+        // for these, it's always a token index
+        .multiline_string_literal,
+        => return,
 
         // TODO: record reference for rhs (.identifier)?
         // lhs is `.` token, rhs is `.identifier` token
@@ -326,6 +341,14 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
         // TODO: visit block
         .error_set_decl => return,
 
+        // lhs is a node, rhs is a token
+        .grouped_expression,
+        // lhs is a node, rhs is an index into Slice
+        .slice,
+        .slice_sentinel,
+        => return self.visit(data[node_id].lhs),
+        // lhs is a token, rhs is a node
+        .@"break" => return self.visit(data[node_id].rhs),
         // rhs for these nodes are always `undefined`.
         .@"await",
         .@"continue",
@@ -502,13 +525,47 @@ inline fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) !void 
     try self.visit(if_stmt.ast.else_expr);
 }
 
-fn visitSwitch(self: *SemanticBuilder, condition: NodeIndex, _: NodeIndex, cases: []NodeIndex) !void {
+fn visitSwitch(self: *SemanticBuilder, _: NodeIndex, condition: NodeIndex, cases: []NodeIndex) !void {
+    const ast = self.AST();
+
     try self.visitNode(condition);
     try self.enterScope(.{});
     defer self.exitScope();
-    for (cases) |case| {
-        try self.visit(case);
+
+    for (cases) |case_id| {
+        const case = ast.fullSwitchCase(case_id) orelse unreachable;
+        try self.enterNode(case_id);
+        defer self.exitNode();
+        try self.visitSwitchCase(case_id, case);
     }
+}
+
+fn visitSwitchCase(self: *SemanticBuilder, _: NodeIndex, case: full.SwitchCase) !void {
+    for (case.ast.values) |value| {
+        try self.visit(value);
+    }
+    try self.visit(case.ast.target_expr);
+}
+
+fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
+    const ast = self.AST();
+    const token_tags: []Token.Tag = ast.tokens.items(.tag);
+    const data = self.getNodeData(node_id);
+
+    const fallback_first = ast.firstToken(data.rhs);
+    const main_token = ast.nodes.items(.main_token)[node_id];
+
+    try self.enterScope(.{ .s_catch = true });
+    defer self.exitScope();
+
+    if (token_tags[fallback_first - 1] == .pipe) {
+        const identifier = self.getIdentifier(main_token) orelse return SemanticError.missing_identifier;
+        _ = try self.declareSymbol(node_id, identifier, null, .private, .{ .s_catch_param = true });
+    } else {
+        assert(token_tags[fallback_first - 1] == .keyword_catch);
+    }
+
+    return self.visit(data.rhs);
 }
 
 inline fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnProto) !void {

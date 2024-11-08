@@ -5,7 +5,7 @@
       "debugName": "@This()", 
       "declNode": "root", 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false}, 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [1,2,3,4,5,6,7], 
       "exports": [], 
       
@@ -14,7 +14,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
       
@@ -23,7 +23,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
       
@@ -32,7 +32,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
       
@@ -41,7 +41,7 @@
       "debugName": "", 
       "declNode": "fn_decl", 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
       
@@ -50,7 +50,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": 3, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
       
@@ -59,7 +59,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": 5, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
       
@@ -68,7 +68,7 @@
       "debugName": "", 
       "declNode": "fn_decl", 
       "scope": 0, 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true}, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
       
