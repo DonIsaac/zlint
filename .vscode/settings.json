@@ -2,7 +2,7 @@
     "zig.zls.enableBuildOnSave": true,
     "zig.zls.buildOnSaveStep": "check",
     "files.exclude": {
-        // ".coverage": true,
+        ".coverage": true,
         ".zig-cache": true,
         "zig-out": true,
     }
