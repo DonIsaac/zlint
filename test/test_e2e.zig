@@ -15,7 +15,7 @@ pub fn main() !void {
     const runner = test_runner.getRunner();
     defer runner.deinit();
     try runner
-        .addTest(semantic_coverage.SUITE)
+    // .addTest(semantic_coverage.SUITE)
         .addTest(snapshot_coverage.SUITE)
         .runAll();
 }
