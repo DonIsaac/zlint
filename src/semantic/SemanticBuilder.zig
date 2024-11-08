@@ -179,11 +179,35 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
             const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
             return self.visitVarDecl(node_id, decl);
         },
-
+        .array_init,
+        .array_init_comma,
+        .array_init_dot,
+        .array_init_one,
+        .array_init_one_comma,
+        .array_init_dot_two,
+        .array_init_dot_two_comma,
+        => {
+            var buf: [2]NodeIndex = undefined;
+            const arr = ast.fullArrayInit(&buf, node_id) orelse unreachable;
+            return self.visitArrayInit(node_id, arr);
+        },
+        .struct_init,
+        .struct_init_comma,
+        .struct_init_dot,
+        .struct_init_one,
+        .struct_init_one_comma,
+        .struct_init_dot_two,
+        .struct_init_dot_two_comma,
+        => {
+            var buf: [2]NodeIndex = undefined;
+            const struct_init = ast.fullStructInit(&buf, node_id) orelse unreachable;
+            return self.visitStructInit(node_id, struct_init);
+        },
         // function-related nodes
 
         // function declarations
-        .fn_decl => return self.visitFnDecl(node_id),
+        .fn_decl,
+        => return self.visitFnDecl(node_id),
         .fn_proto, .fn_proto_one, .fn_proto_multi => {
             return self.visitRecursive(node_id);
         },
@@ -284,6 +308,17 @@ inline fn visitRecursive(self: *SemanticBuilder, node_id: NodeIndex) !void {
     try self.visit(data.rhs);
 }
 
+inline fn visitRecursiveSlice(self: *SemanticBuilder, node_id: NodeIndex) !void {
+    const data = self.getNodeData(node_id);
+    const ast = self.AST();
+    self.assertCtx(data.lhs < ast.extra_data.len, "slice start exceeds extra_data bounds", .{});
+    self.assertCtx(data.rhs < ast.extra_data.len, "slice end exceeds extra_data bounds", .{});
+    const children = ast.extra_data[data.lhs..data.rhs];
+    for (children) |child| {
+        try self.visit(child);
+    }
+}
+
 // TODO: inline after we're done debugging
 fn visitBlock(self: *SemanticBuilder, statements: []const NodeIndex) !void {
     const is_root = self.currentScope() == ROOT_SCOPE;
@@ -360,6 +395,17 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
     }
 }
 
+fn visitArrayInit(self: *SemanticBuilder, _: NodeIndex, arr: full.ArrayInit) !void {
+    for (arr.ast.elements) |el| {
+        try self.visit(el);
+    }
+}
+
+fn visitStructInit(self: *SemanticBuilder, _: NodeIndex, @"struct": full.StructInit) !void {
+    for (@"struct".ast.fields) |field| {
+        try self.visit(field);
+    }
+}
 // ============================== STATEMENTS ===============================
 
 inline fn visitWhile(self: *SemanticBuilder, _: NodeIndex, while_stmt: full.While) !void {
