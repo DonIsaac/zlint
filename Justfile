@@ -1,19 +1,27 @@
 #!/usr/bin/env -S just --justfile
 
+# Useful resources:
+# - Justfile syntax cheatsheet: https://cheatography.com/linux-china/cheat-sheets/justfile/
+
 set windows-shell := ["powershell"]
 set shell := ["bash", "-cu"]
 
-alias b  := build
-alias c  := check
-alias ck := check
-alias f  := fmt
-alias l  := lint
-alias r  := run
-alias t  := test
-alias w  := watch
+alias b   := build
+alias c   := check
+alias ck  := check
+alias f   := fmt
+alias l   := lint
+alias r   := run
+alias t   := test
+alias w   := watch
+alias cov := coverage
 
 _default:
   @just --list -u
+
+# Install necessary dev tools
+init:
+    ./tasks/init.sh
 
 # Run CI checks locally. Run this before making a PR.
 ready:
@@ -43,20 +51,28 @@ check:
 watch cmd="check":
     git ls-files | entr -rc just clear-run {{cmd}}
 
-# Run all tests
+# Run unit tests
 test:
     zig build test --summary all
-
+# Run end-to-end tests
 e2e:
     zig build test-e2e
 
+# Run and collect coverage for all tests
+coverage:
+    zig build
+    mkdir -p ./.coverage
+    kcov --include-path=src,test ./.coverage/test zig-out/bin/test
+    kcov --include-path=src,test ./.coverage/test-e2e zig-out/bin/test-e2e
+    kcov --merge ./.coverage/all ./.coverage/test ./.coverage/test-e2e
+
 # Format the codebase, writing changes to disk
 fmt:
-    zig fmt src/**/*.zig test/**/*.zig build.zig
+    zig fmt src/**/*.zig test/**/*.zig build.zig build.zig.zon
     typos -w
 # Like `fmt`, but exits when problems are found without modifying files
 lint:
-    zig fmt --check src/**/*.zig test/**/*.zig build.zig
+    zig fmt --check src/**/*.zig test/**/*.zig build.zig build.zig.zon
     typos
 
 # Remove build artifacts

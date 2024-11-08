@@ -2,6 +2,9 @@
 zig-out
 .zig-cache
 
+# test artifacts
+.coverage
+
 # os
 .DS_Store
 
@@ -12,5 +15,6 @@ zig-out
 
 # temp files
 tmp/
+.tmp/
 temp/
 *.tmp
