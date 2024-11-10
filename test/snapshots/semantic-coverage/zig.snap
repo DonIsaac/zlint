@@ -1,4 +1,4 @@
-Passed: 90.188805% (2675/2966)
+Passed: 90.1855% (2674/2965)
 
 build.zig: error.missing_identifier
 doc/langref/catch_err_return.zig: error.missing_identifier
