@@ -14,15 +14,9 @@ pub fn build(b: *std.Build) void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
+    var links = Links.init(b, optimize, target);
 
     const single_threaded = b.option(bool, "single-threaded", "Build a single-threaded executable");
-
-    const util = b.addModule("util", std.Build.Module.CreateOptions{
-        // lb
-        .root_source_file = b.path("src/util.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
 
     const lib = b.addStaticLibrary(.{
         .name = "zlint",
@@ -32,7 +26,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    lib.root_module.addImport("util", util);
+    links.link(lib);
 
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
@@ -46,7 +40,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .single_threaded = single_threaded,
     });
-    exe.root_module.addImport("util", util);
+    links.link(exe);
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
@@ -85,7 +79,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .single_threaded = single_threaded,
     });
-    exe_unit_tests.root_module.addImport("util", util);
+    links.link(exe_unit_tests);
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 
@@ -107,7 +101,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
         });
-        lib_check.root_module.addImport("util", util);
+        links.link(lib_check);
 
         const exe_check = b.addExecutable(.{
             .name = "zlint",
@@ -115,13 +109,15 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
         });
-        exe_check.root_module.addImport("util", util);
+        links.link(exe_check);
+
         const e2e_check = b.addTest(.{
             .root_source_file = b.path("test/test_e2e.zig"),
             .target = target,
             .optimize = optimize,
         });
-        e2e_check.root_module.addImport("util", util);
+        links.link(e2e_check);
+
         const check = b.step("check", "Check for semantic issues");
         check.dependOn(&lib_check.step);
         check.dependOn(&exe_check.step);
@@ -131,7 +127,7 @@ pub fn build(b: *std.Build) void {
     // test-e2e
     {
         const zlint = b.addModule("zlint", std.Build.Module.CreateOptions{ .root_source_file = b.path("src/root.zig"), .target = target, .optimize = optimize });
-        zlint.addImport("util", util);
+        links.linkModule(zlint);
 
         const e2e_tests = b.addExecutable(.{
             .name = "test-e2e",
@@ -157,3 +153,43 @@ pub fn build(b: *std.Build) void {
         e2e_step.dependOn(&run_e2e_tests.step);
     }
 }
+
+const Build = std.Build;
+const Module = std.Build.Module;
+const Compile = std.Build.Step.Compile;
+const OptimizeMode = std.builtin.OptimizeMode;
+const ResolvedTarget = Build.ResolvedTarget;
+
+const Links = struct {
+    util: *Module,
+    sp: *Build.Dependency,
+
+    fn init(b: *std.Build, optimize: OptimizeMode, target: ResolvedTarget) Links {
+        const sp = b.dependency("smart-pointers", .{
+            .target = target,
+            .optimize = optimize,
+        });
+        // b.modules.put(b.dupe("smart-pointers"), sp.m) catch @panic("failed to put smart-pointers");
+        const self = Links{
+            .util = b.addModule("util", .{
+                .root_source_file = b.path("src/util.zig"),
+                .target = target,
+                .optimize = optimize,
+            }),
+            .sp = sp,
+        };
+        return self;
+    }
+
+    fn link(self: *Links, c: *Compile) void {
+        c.root_module.addImport("util", self.util);
+        c.root_module.addImport("smart-pointers", self.sp.module("smart-pointers"));
+        const sp = self.sp.artifact("smart-pointers");
+        c.linkLibrary(sp);
+        c.installLibraryHeaders(sp);
+    }
+    fn linkModule(self: *Links, m: *Module) void {
+        m.addImport("util", self.util);
+        m.linkLibrary(self.sp.artifact("smart-pointers"));
+    }
+};

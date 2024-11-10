@@ -1,13 +1,16 @@
 const std = @import("std");
 const util = @import("util");
+const ptrs = @import("smart-pointers");
 const fs = std.fs;
 
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
+const Arc = ptrs.Arc;
 const assert = std.debug.assert;
 const string = util.string;
 
 pub const Source = struct {
+    // contents: Arc([]const u8),
     contents: [:0]u8,
     file: fs.File,
     pathname: ?string = null,
