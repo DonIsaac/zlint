@@ -6,33 +6,52 @@
 //! Errors are most commonly managed by a `Result`. In this form, the `Result`
 //! holds ownership over allocations.
 
-message: string,
+message: PossiblyStaticStr,
 severity: Severity = .err,
 /// Text ranges over problematic parts of the source code.
 labels: []Span = undefined,
 /// Name of the file being linted.
 source_name: ?string = null,
+source: ?ArcStr = null,
 /// Optional help text. This will go under the code snippet.
 help: ?string = null,
 
+// Althought this is not [:0]const u8, it should not be mutated. Needs to be mut
+// for Arc dealloc reasons.
+const ArcStr = Arc([:0]u8);
+pub const PossiblyStaticStr = struct {
+    static: bool = true,
+    str: string,
+};
+
 pub fn new(message: string) Error {
-    return Error{
-        .message = message,
-    };
+    return Error{ .message = .{ .str = message, .static = false } };
 }
 
-pub fn newAtLocation(message: string, span: Span, source_name: string) Error {
+pub fn newStatic(message: string) Error {
+    return Error{ .message = .{ .str = message, .static = true } };
+}
+
+pub fn fmt(alloc: Allocator, comptime format: string, args: anytype) Allocator.Error!Error {
+    return Error{ .message = .{
+        .str = try std.fmt.allocPrint(alloc, format, args),
+        .static = false,
+    } };
+}
+
+pub fn newAtLocation(message: string, span: Span) Error {
     return Error{
         .message = message,
-        .source_name = source_name,
         .labels = [_]Span{span},
     };
 }
 
 pub fn deinit(self: *Error, alloc: std.mem.Allocator) void {
-    alloc.free(self.message);
+    if (!self.message.static) alloc.free(self.message.str);
+
     if (self.help != null) alloc.free(self.help.?);
     if (self.source_name != null) alloc.free(self.source_name.?);
+    if (self.source != null) self.source.?.deinit();
     // if (self.labels != null) alloc.free(self.labels);
 }
 
@@ -48,7 +67,6 @@ const Severity = enum {
     off,
 };
 
-pub const ErrorList = std.ArrayListUnmanaged(Error);
 /// Results hold a value and a list of errors. Useful for error-recoverable
 /// situations, where a value may still be produced even if errors are
 /// encountered.
@@ -56,6 +74,7 @@ pub const ErrorList = std.ArrayListUnmanaged(Error);
 /// All errors in a `Result` must be allocated with the same allocator, which
 /// must be `Result.alloc`.
 pub fn Result(comptime T: type) type {
+    const ErrorList = std.ArrayListUnmanaged(Error);
     return struct {
         value: T,
         ///
@@ -130,6 +149,10 @@ pub fn Result(comptime T: type) type {
 const Error = @This();
 
 const std = @import("std");
+const ptrs = @import("smart-pointers");
+
 const Allocator = std.mem.Allocator;
-const string = @import("util").string;
+const Arc = ptrs.Arc;
 const Span = @import("source.zig").Span;
+const string = @import("util").string;
+const Source = @import("source.zig").Source;

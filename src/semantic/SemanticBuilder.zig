@@ -40,7 +40,7 @@ const SemanticError = error{
     full_mismatch,
     /// Expected an identifier name, but none was found.
     missing_identifier,
-};
+} || Allocator.Error;
 
 /// Parse and analyze a Zig source file.
 ///
@@ -57,7 +57,7 @@ const SemanticError = error{
 /// In some  cases, SemanticBuilder may choose to panic instead of
 /// returning an error union. These assertions produce better release
 /// binaries and catch bugs earlier.
-pub fn build(gpa: Allocator, source: stringSlice) !Result {
+pub fn build(gpa: Allocator, source: stringSlice) SemanticError!Result {
     var builder = SemanticBuilder{ ._gpa = gpa, ._arena = ArenaAllocator.init(gpa) };
     defer builder.deinit();
     // NOTE: ast is moved
@@ -126,7 +126,7 @@ fn parse(self: *SemanticBuilder, source: stringSlice) !Ast {
 /// Null and bounds checks are performed here, while actual logic is
 /// handled by `visitNode`. This lets us inline checks within caller
 /// functions, reducing unnecessary branching and stack pointer pushes.
-inline fn visit(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
+inline fn visit(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
     // when lhs/rhs are 0 (root node), it means `null`
     if (node_id == NULL_NODE) return;
     // Seeing this happen a log, needs debugging.
@@ -144,7 +144,7 @@ inline fn visit(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
 }
 
 /// Visit a node in the AST. Do not call this directly, use `visit` instead.
-fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) anyerror!void {
+fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
     assert(node_id > 0 and node_id < self.AST().nodes.len);
 
     const ast = self.AST();
@@ -459,7 +459,7 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
         try self.visit(var_decl.ast.init_node);
     }
 }
-fn visitAssignDestructure(self: *SemanticBuilder, _: NodeIndex, destructure: full.AssignDestructure) !void {
+fn visitAssignDestructure(self: *SemanticBuilder, _: NodeIndex, destructure: full.AssignDestructure) SemanticError!void {
     self.assertCtx(destructure.ast.variables.len > 0, "Invalid destructuring assignment: no variables are being declared.", .{});
     const ast = self.AST();
     const main_tokens: []TokenIndex = ast.nodes.items(.main_token);
@@ -753,7 +753,7 @@ fn _checkForNodeLoop(self: *SemanticBuilder, node_id: NodeIndex) void {
     self.assertCtx(!is_loop, "Invariant violation: Node {d} is already on the stack", .{node_id});
 }
 
-inline fn enterContainerSymbol(self: *SemanticBuilder, symbol_id: Symbol.Id) !void {
+inline fn enterContainerSymbol(self: *SemanticBuilder, symbol_id: Symbol.Id) Allocator.Error!void {
     try self._symbol_stack.append(self._gpa, symbol_id);
 }
 
@@ -774,12 +774,22 @@ inline fn currentContainerSymbol(self: *const SemanticBuilder) ?Symbol.Id {
 /// Unconditionally get the most recent container symbol. Panics if no
 /// symbol has been entered.
 inline fn currentContainerSymbolUnwrap(self: *const SemanticBuilder) Symbol.Id {
-    self.assertCtx(self._symbol_stack.items.len > 0, "Invariant violation: no container symbol on the stack. Root symbol should always be present.", .{});
+    self.assertCtx(
+        self._symbol_stack.items.len > 0,
+        "Invariant violation: no container symbol on the stack. Root symbol should always be present.",
+        .{},
+    );
     return self._symbol_stack.getLast();
 }
 
 /// Create and bind a symbol to the current scope and container (parent) symbol.
-fn bindSymbol(self: *SemanticBuilder, name: ?string, debug_name: ?string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
+fn bindSymbol(
+    self: *SemanticBuilder,
+    name: ?string,
+    debug_name: ?string,
+    visibility: Symbol.Visibility,
+    flags: Symbol.Flags,
+) !Symbol.Id {
     const declaration_node = self.currentNode();
     const symbol_id = try self.declareSymbol(declaration_node, name, debug_name, visibility, flags);
     if (self.currentContainerSymbol()) |container_id| {
@@ -792,7 +802,12 @@ fn bindSymbol(self: *SemanticBuilder, name: ?string, debug_name: ?string, visibi
 
 /// Declare a new symbol in the current scope/AST node and record it as a member to
 /// the most recent container symbol. Returns the new member symbol's ID.
-fn declareMemberSymbol(self: *SemanticBuilder, name: ?string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
+fn declareMemberSymbol(
+    self: *SemanticBuilder,
+    name: ?string,
+    visibility: Symbol.Visibility,
+    flags: Symbol.Flags,
+) !Symbol.Id {
     var member_flags = flags;
     member_flags.s_member = true;
     const declaration_node = self.currentNode();
@@ -806,8 +821,23 @@ fn declareMemberSymbol(self: *SemanticBuilder, name: ?string, visibility: Symbol
 }
 
 /// Declare a symbol in the current scope.
-inline fn declareSymbol(self: *SemanticBuilder, declaration_node: Ast.Node.Index, name: ?string, debug_name: ?string, visibility: Symbol.Visibility, flags: Symbol.Flags) !Symbol.Id {
-    const symbol_id = try self._semantic.symbols.addSymbol(self._gpa, declaration_node, name, debug_name, self.currentScope(), visibility, flags);
+inline fn declareSymbol(
+    self: *SemanticBuilder,
+    declaration_node: Ast.Node.Index,
+    name: ?string,
+    debug_name: ?string,
+    visibility: Symbol.Visibility,
+    flags: Symbol.Flags,
+) !Symbol.Id {
+    const symbol_id = try self._semantic.symbols.addSymbol(
+        self._gpa,
+        declaration_node,
+        name,
+        debug_name,
+        self.currentScope(),
+        visibility,
+        flags,
+    );
     return symbol_id;
 }
 
@@ -858,7 +888,11 @@ inline fn maybeGetNode(self: *const SemanticBuilder, node_id: NodeIndex) ?Node {
     {
         if (node_id == 0) return null;
         const len = self.AST().nodes.len;
-        self.assertCtx(node_id < len, "Cannot get node: id {d} is out of bounds ({d})", .{ node_id, len });
+        self.assertCtx(
+            node_id < len,
+            "Cannot get node: id {d} is out of bounds ({d})",
+            .{ node_id, len },
+        );
     }
 
     return self.AST().nodes.get(node_id);
@@ -870,7 +904,11 @@ inline fn getTokenTag(self: *const SemanticBuilder, token_id: TokenIndex) Token.
 
 inline fn getToken(self: *const SemanticBuilder, token_id: TokenIndex) RawToken {
     const len = self.AST().tokens.len;
-    util.assert(token_id < len, "Cannot get token: id {d} is out of bounds ({d})", .{ token_id, len });
+    util.assert(
+        token_id < len,
+        "Cannot get token: id {d} is out of bounds ({d})",
+        .{ token_id, len },
+    );
 
     const t = self.AST().tokens.get(token_id);
     return .{
@@ -899,7 +937,9 @@ fn addAstError(self: *SemanticBuilder, ast: *const Ast, ast_err: Ast.Error) !voi
     // TODO: render `ast_err.extra.expected_tag`
     const byte_offset: Ast.ByteOffset = ast.tokens.items(.start)[ast_err.token];
     const loc = ast.tokenLocation(byte_offset, ast_err.token);
-    const labels = .{Span{ .start = @intCast(loc.line_start), .end = @intCast(loc.line_end) }};
+    const labels = .{
+        Span{ .start = @intCast(loc.line_start), .end = @intCast(loc.line_end) },
+    };
     _ = labels;
 
     return self.addErrorOwnedMessage(try msg.toOwnedSlice(self._gpa), null);
@@ -913,7 +953,11 @@ fn addError(self: *SemanticBuilder, message: string, labels: []Span, help: ?stri
     const heap_message = try alloc.dupeZ(u8, message);
     const heap_labels = try alloc.dupe(Span, labels);
     const heap_help: ?string = if (help == null) null else try alloc.dupeZ(help.?);
-    const err = try Error{ .message = heap_message, .labels = heap_labels, .help = heap_help };
+    const err = try Error{
+        .message = .{ .str = heap_message, .static = false },
+        .labels = heap_labels,
+        .help = heap_help,
+    };
     try self._errors.append(err);
 }
 
@@ -922,7 +966,10 @@ fn addError(self: *SemanticBuilder, message: string, labels: []Span, help: ?stri
 fn addErrorOwnedMessage(self: *SemanticBuilder, message: string, help: ?string) !void {
     // const heap_labels = try alloc.dupe(labels);
     const heap_help: ?string = if (help == null) null else try self._gpa.dupeZ(u8, help.?);
-    const err = Error{ .message = message, .help = heap_help };
+    const err = Error{
+        .message = .{ .str = message, .static = false },
+        .help = heap_help,
+    };
     // const err = try Error{ .message = message, .labels = heap_labels, .help = heap_help };
     try self._errors.append(self._gpa, err);
 }
@@ -967,7 +1014,11 @@ fn debugNodeStack(self: *const SemanticBuilder) void {
         const source = if (id == 0) "" else ast.getNodeSource(id);
         const loc = ast.tokenLocation(token_offset, main_token);
         const snippet =
-            if (source.len > 48) std.mem.concat(self._gpa, u8, &[_]string{ source[0..32], " ... ", source[(source.len - 16)..source.len] }) catch @panic("Out of memory") else source;
+            if (source.len > 48) std.mem.concat(
+            self._gpa,
+            u8,
+            &[_]string{ source[0..32], " ... ", source[(source.len - 16)..source.len] },
+        ) catch @panic("Out of memory") else source;
         print("  - [{d}, {d}:{d}] {any} - {s}\n", .{ id, loc.line, loc.column, tag, snippet });
         if (!std.mem.eql(u8, source, snippet)) {
             self._gpa.free(snippet);

@@ -15,7 +15,7 @@
 /// - No node is the parent of the root node (0 in this case means `null`).
 parents: std.ArrayListUnmanaged(NodeIndex) = .{},
 
-pub fn init(alloc: Allocator, ast: *const Ast) !NodeLinks {
+pub fn init(alloc: Allocator, ast: *const Ast) Allocator.Error!NodeLinks {
     var links: NodeLinks = .{};
     try links.parents.ensureTotalCapacityPrecise(alloc, ast.nodes.len);
     links.parents.appendNTimesAssumeCapacity(NULL_NODE, @intCast(ast.nodes.len));

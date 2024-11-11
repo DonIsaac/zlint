@@ -118,7 +118,7 @@ pub const SymbolTable = struct {
         scope_id: Scope.Id,
         visibility: Symbol.Visibility,
         flags: Symbol.Flags,
-    ) !Symbol.Id {
+    ) Allocator.Error!Symbol.Id {
 
         assert(self.symbols.len < Symbol.MAX_ID);
 
@@ -148,7 +148,7 @@ pub const SymbolTable = struct {
         return &self.symbols.items(.members)[container];
     }
 
-    pub fn addMember(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) !void {
+    pub fn addMember(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) Allocator.Error!void {
         try self.getMembersMut(container).append(alloc, member);
     }
 
@@ -160,7 +160,7 @@ pub const SymbolTable = struct {
         return &self.symbols.items(.exports)[container];
     }
 
-    pub inline fn addExport(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) !void {
+    pub inline fn addExport(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) Allocator.Error!void {
         try self.getExportsMut(container).append(alloc, member);
     }
 

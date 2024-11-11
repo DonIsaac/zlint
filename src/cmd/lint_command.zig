@@ -2,23 +2,27 @@ const std = @import("std");
 const walk = @import("../walk/Walker.zig");
 const _lint = @import("../lint.zig");
 const _source = @import("../source.zig");
+const _report = @import("../reporter.zig");
 
-const mem = std.mem;
 const fs = std.fs;
-const path = std.fs.path;
 const log = std.log;
+const mem = std.mem;
+const path = std.fs.path;
 
 const Allocator = std.mem.Allocator;
+const GraphicalReporter = _report.GraphicalReporter;
+const Source = _source.Source;
 const Thread = std.Thread;
 const WalkState = walk.WalkState;
-const Source = _source.Source;
 
 const Linter = _lint.Linter;
 const Options = @import("../cli/Options.zig");
 
 pub fn lint(alloc: Allocator, _: Options) !void {
+    var reporter = GraphicalReporter.init(std.io.getStdOut().writer(), .{});
+
     // TODO: use options to specify number of threads (if provided)
-    var visitor = try LintVisitor.init(alloc, null);
+    var visitor = try LintVisitor.init(alloc, &reporter, null);
     defer visitor.deinit();
 
     var src = try fs.cwd().openDir(".", .{ .iterate = true });
@@ -32,10 +36,11 @@ const LintWalker = walk.Walker(LintVisitor);
 
 const LintVisitor = struct {
     linter: Linter,
+    reporter: *GraphicalReporter,
     pool: *Thread.Pool,
     allocator: Allocator,
 
-    fn init(allocator: Allocator, n_threads: ?u32) !LintVisitor {
+    fn init(allocator: Allocator, reporter: *GraphicalReporter, n_threads: ?u32) !LintVisitor {
         const linter = Linter.init(allocator);
         const pool = try allocator.create(Thread.Pool);
         errdefer allocator.destroy(pool);
@@ -43,6 +48,7 @@ const LintVisitor = struct {
 
         return .{
             .linter = linter,
+            .reporter = reporter,
             .pool = pool,
             .allocator = allocator,
         };
@@ -95,11 +101,12 @@ const LintVisitor = struct {
         var source = try Source.init(self.allocator, file, filepath);
         defer source.deinit();
 
-        var errors = try self.linter.runOnSource(&source);
-        defer errors.deinit();
-        for (errors.items) |err| {
-            log.err("{s}\n", .{err.message});
-        }
+        const errors = try self.linter.runOnSource(&source);
+        self.reporter.reportErrors(errors);
+        // defer errors.deinit();
+        // for (errors.items) |err| {
+        //     log.err("{s}\n", .{err.message});
+        // }
     }
 
     fn deinit(self: *LintVisitor) void {

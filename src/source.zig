@@ -25,9 +25,15 @@ pub const Source = struct {
     pub fn init(gpa: Allocator, file: fs.File, pathname: ?string) !Source {
         const meta = try file.metadata();
         const contents = try gpa.allocSentinel(u8, meta.size(), 0);
+        errdefer gpa.free(contents);
         const bytes_read = try file.readAll(contents);
         assert(bytes_read == meta.size());
-        return Source{ .contents = try ArcStr.init(gpa, contents), .file = file, .pathname = pathname, .gpa = gpa };
+        return Source{
+            .contents = try ArcStr.init(gpa, contents),
+            .file = file,
+            .pathname = pathname,
+            .gpa = gpa,
+        };
     }
 
     pub inline fn text(self: *const Source) [:0]const u8 {
@@ -36,7 +42,6 @@ pub const Source = struct {
 
     pub fn deinit(self: *Source) void {
         self.file.close();
-        // self.gpa.free(self.contents);
         self.contents.deinit();
         if (self.ast != null) {
             self.ast.?.deinit(self.gpa);

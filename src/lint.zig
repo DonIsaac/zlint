@@ -1,8 +1,11 @@
 const std = @import("std");
+const ptrs = @import("smart-pointers");
 const _rule = @import("rule.zig");
 const _source = @import("source.zig");
 const _semantic = @import("semantic.zig");
 
+const Arc = ptrs.Arc;
+const Error = @import("Error.zig");
 const Source = _source.Source;
 const Span = _source.Span;
 const Semantic = _semantic.Semantic;
@@ -21,13 +24,13 @@ const string = @import("util").string;
 // rules
 const NoUndefined = @import("rules/no_undefined.zig").NoUndefined;
 
-pub const Error = struct {
-    // line break
-    message: []const u8,
-    span: Span,
-    rule_name: []const u8,
-    source: *const Source,
-};
+// pub const Error = struct {
+//     // line break
+//     message: []const u8,
+//     span: Span,
+//     rule_name: []const u8,
+//     source: *const Source,
+// };
 
 const ErrorList = std.ArrayList(Error);
 
@@ -39,9 +42,9 @@ pub const Context = struct {
     errors: ErrorList,
     /// this slice is 'static (in data segment) and should never be free'd
     curr_rule_name: string = "",
-    source: *const Source,
+    source: *Source,
 
-    fn init(gpa: Allocator, semantic: *const Semantic, source: *const Source) Context {
+    fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context {
         return Context{
             .semantic = semantic,
             .gpa = gpa,
@@ -63,14 +66,22 @@ pub const Context = struct {
         self.curr_rule_name = rule.name;
     }
 
-    pub fn diagnostic(self: *Context, message: []const u8, loc: Span) void {
+    pub fn diagnosticAlloc(self: *Context, message: string, span: Span) void {
+        return self._diagnostic(Error.new(message), span);
+    }
+
+    pub fn diagnostic(self: *Context, message: string, span: Span) void {
+        return self._diagnostic(Error.newStatic(message), span);
+    }
+
+    fn _diagnostic(self: *Context, err: Error, _: Span) void {
+        var e = err;
+        const a = self.gpa;
+        // var e = Error.newStatic(message);
+        e.source_name = if (self.source.pathname) |p| a.dupe(u8, p) catch @panic("OOM") else null;
+        e.source = self.source.contents.clone();
         // TODO: handle errors better
-        self.errors.append(Error{
-            .message = message,
-            .span = loc,
-            .rule_name = self.curr_rule_name,
-            .source = self.source,
-        }) catch @panic("Cannot add new error: Out of memory");
+        self.errors.append(e) catch @panic("Cannot add new error: Out of memory");
     }
 };
 
@@ -105,11 +116,15 @@ pub const Linter = struct {
         while (i < ctx.semantic.ast.nodes.len) {
             assert(i < std.math.maxInt(u32));
             const node = ctx.semantic.ast.nodes.get(i);
-            const wrapper: NodeWrapper = .{ .node = &node, .idx = @intCast(i) };
+            const wrapper: NodeWrapper = .{
+                .node = &node,
+                .idx = @intCast(i),
+            };
             for (self.rules.items) |rule| {
                 ctx.updateForRule(&rule);
                 rule.runOnNode(wrapper, &ctx) catch |e| {
-                    return e;
+                    const err = Error.fmt(self.gpa, "Rule '{s}' failed to run: {s}", .{ rule.name, @errorName(e) }) catch @panic("OOM");
+                    ctx.errors.append(err) catch @panic("OOM");
                 };
             }
             i += 1;
