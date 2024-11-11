@@ -1,195 +1,116 @@
 const std = @import("std");
+const Build = std.Build;
+const Module = std.Build.Module;
 
-// Although this function looks imperative, note that its job is to
-// declaratively construct a build graph that will be executed by an external
-// runner.
 pub fn build(b: *std.Build) void {
-    // Standard target options allows the person running `zig build` to choose
-    // what target to build for. Here we do not override the defaults, which
-    // means any target is allowed, and the default is native. Other options
-    // for restricting supported target set are available.
     const target = b.standardTargetOptions(.{});
-
-    // Standard optimization options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
-    // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
-    var links = Links.init(b, optimize, target);
+    // default to -freference-trace, but respect -fnoreference-trace
+    if (b.reference_trace == null) {
+        b.reference_trace = 256;
+    }
 
+    // cli options
     const single_threaded = b.option(bool, "single-threaded", "Build a single-threaded executable");
 
-    const lib = b.addStaticLibrary(.{
-        .name = "zlint",
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
-        .root_source_file = b.path("src/root.zig"),
+    // dependencies
+    const sp = b.dependency("smart-pointers", .{ .target = target, .optimize = optimize });
+    const libsp = sp.artifact("smart-pointers");
+    const modsp = sp.module("smart-pointers");
+
+    // modules
+    const util = b.createModule(.{
+        .root_source_file = b.path("src/util.zig"),
+        .single_threaded = single_threaded,
         .target = target,
         .optimize = optimize,
     });
-    links.link(lib);
+    const zlint = b.addModule("zlint", .{
+        .root_source_file = b.path("src/root.zig"),
+        .single_threaded = single_threaded,
+        .target = target,
+        .optimize = optimize,
+    });
+    zlint.addImport("util", util);
+    zlint.addImport("smart-pointers", modsp);
 
-    // This declares intent for the library to be installed into the standard
-    // location when the user invokes the "install" step (the default step when
-    // running `zig build`).
-    b.installArtifact(lib);
-
+    // artifacts
     const exe = b.addExecutable(.{
         .name = "zlint",
         .root_source_file = b.path("src/main.zig"),
+        .single_threaded = single_threaded,
         .target = target,
         .optimize = optimize,
-        .single_threaded = single_threaded,
     });
-    links.link(exe);
-
-    // This declares intent for the executable to be installed into the
-    // standard location when the user invokes the "install" step (the default
-    // step when running `zig build`).
+    exe.root_module.addImport("util", util);
+    exe.root_module.addImport("smart-pointers", modsp);
+    exe.linkLibrary(libsp);
+    exe.installLibraryHeaders(libsp);
     b.installArtifact(exe);
 
-    // This *creates* a Run step in the build graph, to be executed when another
-    // step is evaluated that depends on it. The next line below will establish
-    // such a dependency.
-    const run_cmd = b.addRunArtifact(exe);
-
-    // By making the run step depend on the install step, it will be run from the
-    // installation directory rather than directly from within the cache directory.
-    // This is not necessary, however, if the application depends on other installed
-    // files, this ensures they will be present and in the expected location.
-    run_cmd.step.dependOn(b.getInstallStep());
-
-    // This allows the user to pass arguments to the application in the build
-    // command itself, like this: `zig build run -- arg1 arg2 etc`
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
-
-    // This creates a build step. It will be visible in the `zig build --help` menu,
-    // and can be selected like this: `zig build run`
-    // This will evaluate the `run` step rather than the default, which is "install".
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
-
-    // Creates a step for unit testing. This only builds the test executable
-    // but does not run it.
-
-    const exe_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/main.zig"),
+    const e2e = b.addExecutable(.{
+        .name = "test-e2e",
+        .root_source_file = b.path("test/test_e2e.zig"),
+        .single_threaded = single_threaded,
         .target = target,
         .optimize = optimize,
-        .single_threaded = single_threaded,
     });
-    links.link(exe_unit_tests);
+    // util omitted
+    e2e.root_module.addImport("zlint", zlint);
+    e2e.root_module.addImport("smart-pointers", modsp);
+    e2e.linkLibrary(libsp);
+    e2e.installLibraryHeaders(libsp);
+    b.installArtifact(e2e);
 
-    const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
+    const unit = b.addTest(.{
+        .root_source_file = b.path("src/main.zig"),
+        .single_threaded = single_threaded,
+        .target = target,
+        .optimize = optimize,
+    });
+    unit.root_module.addImport("util", util);
+    unit.root_module.addImport("zlint", zlint);
+    unit.root_module.addImport("smart-pointers", modsp);
+    unit.linkLibrary(libsp);
+    unit.installLibraryHeaders(libsp);
+    b.installArtifact(unit);
 
-    b.installArtifact(exe_unit_tests);
+    // steps
 
-    // Similar to creating the run step earlier, this exposes a `test` step to
-    // the `zig build --help` menu, providing a way for the user to request
-    // running the unit tests.
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_exe_unit_tests.step);
-
-    // check
-    {
-        const lib_check = b.addStaticLibrary(.{
-            .name = "zlint",
-            // In this case the main source file is merely a path, however, in more
-            // complicated build scripts, this could be a generated file.
-            .root_source_file = b.path("src/root.zig"),
-            .target = target,
-            .optimize = optimize,
-        });
-        links.link(lib_check);
-
-        const exe_check = b.addExecutable(.{
-            .name = "zlint",
-            .root_source_file = b.path("src/main.zig"),
-            .target = target,
-            .optimize = optimize,
-        });
-        links.link(exe_check);
-
-        const e2e_check = b.addTest(.{
-            .root_source_file = b.path("test/test_e2e.zig"),
-            .target = target,
-            .optimize = optimize,
-        });
-        links.link(e2e_check);
-
-        const check = b.step("check", "Check for semantic issues");
-        check.dependOn(&lib_check.step);
-        check.dependOn(&exe_check.step);
-        check.dependOn(&e2e_check.step);
+    const run_exe = b.addRunArtifact(exe);
+    if (b.args) |args| {
+        run_exe.addArgs(args);
     }
+    const run = b.step("run", "Run zlint from the current directory");
+    run.dependOn(&run_exe.step);
 
-    // test-e2e
+    const run_unit = b.addRunArtifact(unit);
+    const unit_step = b.step("test-unit", "Run unit tests");
+    unit_step.dependOn(&run_unit.step);
+
+    const run_e2e = b.addRunArtifact(e2e);
+    const e2e_step = b.step("test-e2e", "Run e2e tests");
+    e2e_step.dependOn(&run_e2e.step);
+
+    const test_step = b.step("test", "Run all tests");
+    test_step.dependOn(&run_unit.step);
+    test_step.dependOn(&run_e2e.step);
+
+    // check is down here because it's weird. We create mocks of each artifacts
+    // that never get installed. This (allegedly) skips llvm emit.
     {
-        const zlint = b.addModule("zlint", std.Build.Module.CreateOptions{ .root_source_file = b.path("src/root.zig"), .target = target, .optimize = optimize });
-        links.linkModule(zlint);
+        const check_exe = b.addExecutable(.{ .name = "zlint", .root_source_file = b.path("src/main.zig"), .target = target });
+        // mock library so zlint module is checked
+        const check_lib = b.addStaticLibrary(.{ .name = "zlint", .root_source_file = b.path("src/root.zig"), .target = target, .optimize = optimize });
+        const check_unit = b.addTest(.{ .root_source_file = b.path("src/root.zig") });
+        const check_e2e = b.addExecutable(.{ .name = "test-e2e", .root_source_file = b.path("test/test_e2e.zig"), .target = target });
+        check_e2e.root_module.addImport("zlint", zlint);
 
-        const e2e_tests = b.addExecutable(.{
-            .name = "test-e2e",
-            .root_source_file = b.path("test/test_e2e.zig"),
-            .target = target,
-            .optimize = optimize,
-            .single_threaded = single_threaded,
-        });
-        e2e_tests.root_module.addImport("zlint", zlint);
-        b.installArtifact(e2e_tests);
-
-        // e2e_tests.linkLibrary(lib);
-        // e2e_tests.
-
-        const run_e2e_tests = b.addRunArtifact(e2e_tests);
-        run_e2e_tests.step.dependOn((b.getInstallStep()));
-        if (b.args) |args| {
-            run_e2e_tests.addArgs(args);
+        const check = b.step("check", "Check for semantic errors");
+        inline for (.{ check_exe, check_lib, check_unit, check_e2e }) |c| {
+            c.root_module.addImport("util", util);
+            c.root_module.addImport("smart-pointers", modsp);
+            check.dependOn(&c.step);
         }
-        const e2e_step = b.step("test-e2e", "Run end-to-end tests");
-
-        e2e_step.dependOn(&lib.step);
-        e2e_step.dependOn(&run_e2e_tests.step);
     }
 }
-
-const Build = std.Build;
-const Module = std.Build.Module;
-const Compile = std.Build.Step.Compile;
-const OptimizeMode = std.builtin.OptimizeMode;
-const ResolvedTarget = Build.ResolvedTarget;
-
-const Links = struct {
-    util: *Module,
-    sp: *Build.Dependency,
-
-    fn init(b: *std.Build, optimize: OptimizeMode, target: ResolvedTarget) Links {
-        const sp = b.dependency("smart-pointers", .{
-            .target = target,
-            .optimize = optimize,
-        });
-        // b.modules.put(b.dupe("smart-pointers"), sp.m) catch @panic("failed to put smart-pointers");
-        const self = Links{
-            .util = b.addModule("util", .{
-                .root_source_file = b.path("src/util.zig"),
-                .target = target,
-                .optimize = optimize,
-            }),
-            .sp = sp,
-        };
-        return self;
-    }
-
-    fn link(self: *Links, c: *Compile) void {
-        c.root_module.addImport("util", self.util);
-        c.root_module.addImport("smart-pointers", self.sp.module("smart-pointers"));
-        const sp = self.sp.artifact("smart-pointers");
-        c.linkLibrary(sp);
-        c.installLibraryHeaders(sp);
-    }
-    fn linkModule(self: *Links, m: *Module) void {
-        m.addImport("util", self.util);
-        m.linkLibrary(self.sp.artifact("smart-pointers"));
-    }
-};

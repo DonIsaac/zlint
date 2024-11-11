@@ -9,9 +9,11 @@ const Arc = ptrs.Arc;
 const assert = std.debug.assert;
 const string = util.string;
 
+const ArcStr = Arc([:0]u8);
+
 pub const Source = struct {
     // contents: Arc([]const u8),
-    contents: [:0]u8,
+    contents: ArcStr,
     file: fs.File,
     pathname: ?string = null,
     ast: ?Ast = null,
@@ -25,12 +27,17 @@ pub const Source = struct {
         const contents = try gpa.allocSentinel(u8, meta.size(), 0);
         const bytes_read = try file.readAll(contents);
         assert(bytes_read == meta.size());
-        return Source{ .contents = contents, .file = file, .pathname = pathname, .gpa = gpa };
+        return Source{ .contents = try ArcStr.init(gpa, contents), .file = file, .pathname = pathname, .gpa = gpa };
+    }
+
+    pub inline fn text(self: *const Source) [:0]const u8 {
+        return self.contents.deref().*;
     }
 
     pub fn deinit(self: *Source) void {
         self.file.close();
-        self.gpa.free(self.contents);
+        // self.gpa.free(self.contents);
+        self.contents.deinit();
         if (self.ast != null) {
             self.ast.?.deinit(self.gpa);
         }

@@ -43,7 +43,6 @@ pub const Context = struct {
 
     fn init(gpa: Allocator, semantic: *const Semantic, source: *const Source) Context {
         return Context{
-            // line break
             .semantic = semantic,
             .gpa = gpa,
             .errors = ErrorList.init(gpa),
@@ -67,7 +66,6 @@ pub const Context = struct {
     pub fn diagnostic(self: *Context, message: []const u8, loc: Span) void {
         // TODO: handle errors better
         self.errors.append(Error{
-            // line break
             .message = message,
             .span = loc,
             .rule_name = self.curr_rule_name,
@@ -93,8 +91,7 @@ pub const Linter = struct {
     }
 
     pub fn runOnSource(self: *Linter, source: *Source) !ErrorList {
-        // const ast = try source.parse();
-        var semantic_result = try SemanticBuilder.build(self.gpa, source.contents);
+        var semantic_result = try SemanticBuilder.build(self.gpa, source.text());
         defer semantic_result.deinit();
         // TODO
         if (semantic_result.hasErrors()) {

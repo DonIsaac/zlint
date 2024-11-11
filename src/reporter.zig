@@ -1,13 +1,18 @@
 pub fn Reporter(
-    FormatterContext: type,
-    Formatter: fn (ctx: *FormatterContext, e: Error) []const u8,
+    Formatter: type,
+    FormatFn: fn (ctx: *Formatter, e: Error) []const u8,
 ) type {
+    comptime {
+        _ = FormatFn;
+    }
+
     return struct {
-        const Self = @This();
         // TODO: use std.io.Writer?
         writer: std.fs.File.Writer,
         writer_lock: std.Thread.Mutex = .{},
         formatter: Formatter,
+
+        const Self = @This();
     };
 }
 
