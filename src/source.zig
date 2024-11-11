@@ -67,7 +67,7 @@ pub const Location = struct {
     column: u32,
 
     pub fn fromSpan(contents: string, span: Span) Location {
-        const l = std.zig.findLineColumn(contents, @intCast(span.start));
+        const l = findLineColumn(contents, @intCast(span.start));
         return Location{
             .line = l.line,
             .column = l.column,
@@ -75,3 +75,40 @@ pub const Location = struct {
     }
     // TODO: toSpan()
 };
+
+/// Copied from std.zig.findLineColumn. Modified to support windows.
+pub fn findLineColumn(source: []const u8, byte_offset: u32) Location {
+    var line: u32 = 0;
+    var column: u32 = 0;
+    var line_start: u32 = 0;
+    var i: u32 = 0;
+    while (i < byte_offset) : (i += 1) {
+        switch (source[i]) {
+            '\n' => {
+                line += 1;
+                column = 0;
+                line_start = i + 1;
+
+                if (util.IS_WINDOWS and i < byte_offset and source[i + 1] == '\r') {
+                    i += 1;
+                }
+            },
+            else => {
+                column += 1;
+            },
+        }
+    }
+
+    while (i < source.len and source[i] != '\n') {
+        i += 1;
+        if (util.IS_WINDOWS and i < source.len - 1 and source[i + 1] == '\r') {
+            i += 1;
+        }
+    }
+
+    return .{
+        .line = line,
+        .column = column,
+        // .source_line = source[line_start..i],
+    };
+}

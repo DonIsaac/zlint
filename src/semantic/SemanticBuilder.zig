@@ -966,11 +966,8 @@ fn addError(self: *SemanticBuilder, message: string, labels: []Span, help: ?stri
 fn addErrorOwnedMessage(self: *SemanticBuilder, message: string, help: ?string) !void {
     // const heap_labels = try alloc.dupe(labels);
     const heap_help: ?string = if (help == null) null else try self._gpa.dupeZ(u8, help.?);
-    const err = Error{
-        .message = .{ .str = message, .static = false },
-        .help = heap_help,
-    };
-    // const err = try Error{ .message = message, .labels = heap_labels, .help = heap_help };
+    var err = Error.new(message);
+    err.help = heap_help;
     try self._errors.append(self._gpa, err);
 }
 

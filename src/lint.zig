@@ -24,17 +24,10 @@ const string = @import("util").string;
 // rules
 const NoUndefined = @import("rules/no_undefined.zig").NoUndefined;
 
-// pub const Error = struct {
-//     // line break
-//     message: []const u8,
-//     span: Span,
-//     rule_name: []const u8,
-//     source: *const Source,
-// };
-
 const ErrorList = std.ArrayList(Error);
 
-/// Context is only valid over the lifetime of a Source and the min lifetime of all rules
+/// Context is only valid over the lifetime of a Source and the min lifetime of
+/// all rules
 pub const Context = struct {
     semantic: *const Semantic,
     gpa: Allocator,
@@ -53,35 +46,67 @@ pub const Context = struct {
         };
     }
 
-    fn deinit(self: *Context) void {
-        self.errors.deinit();
-        self.* = undefined;
+    // ========================= LIFECYCLE MANAGEMENT ==========================
+    // These methods are used by Linter to adjust state between rule
+    // invocations.
+
+    inline fn updateForRule(self: *Context, rule: *const Rule) void {
+        self.curr_rule_name = rule.name;
     }
+
+    // ============================== SHORTHANDS ===============================
+    // Shorthand access to data within the context. Makes writing rules easier.
 
     pub fn ast(self: *const Context) *const Ast {
         return &self.semantic.ast;
     }
 
-    pub inline fn updateForRule(self: *Context, rule: *const Rule) void {
-        self.curr_rule_name = rule.name;
+    // ============================ ERROR REPORTING ============================
+
+    pub fn spanN(self: *const Context, node_id: Ast.Node.Index) Span {
+        const s = self.semantic.ast.nodeToSpan(node_id);
+        return .{ .start = s.start, .end = s.end };
     }
 
-    pub fn diagnosticAlloc(self: *Context, message: string, span: Span) void {
-        return self._diagnostic(Error.new(message), span);
+    pub fn spanT(self: *const Context, token_id: Ast.Node.Index) Span {
+        const s = self.semantic.ast.tokenToSpan(token_id);
+        return .{ .start = s.start, .end = s.end };
     }
 
-    pub fn diagnostic(self: *Context, message: string, span: Span) void {
-        return self._diagnostic(Error.newStatic(message), span);
+    pub fn diagnosticAlloc(self: *Context, message: string, spans: anytype) void {
+        return self._diagnostic(Error.new(message), &spans);
     }
 
-    fn _diagnostic(self: *Context, err: Error, _: Span) void {
+    /// Report a Rule violation.
+    ///
+    /// Takes a short summary of the problem (a static string) and a set of
+    /// [`Span`]s (anything that can be coerced into `[]const Span`)highlighting
+    /// the problematic code. `spans` should not be empty (they _can_ be, but
+    /// this is not user-friendly.).
+    ///
+    /// `spans` is anytype for more flexible coercion into a `[]const Span`
+    pub fn diagnostic(self: *Context, message: string, spans: anytype) void {
+        return self._diagnostic(Error.newStatic(message), &spans);
+    }
+
+    fn _diagnostic(self: *Context, err: Error, spans: []const Span) void {
         var e = err;
         const a = self.gpa;
         // var e = Error.newStatic(message);
+        e.code = self.curr_rule_name;
         e.source_name = if (self.source.pathname) |p| a.dupe(u8, p) catch @panic("OOM") else null;
         e.source = self.source.contents.clone();
+
+        if (spans.len > 0) {
+            e.labels = a.dupe(Span, spans) catch @panic("OOM");
+        }
         // TODO: handle errors better
         self.errors.append(e) catch @panic("Cannot add new error: Out of memory");
+    }
+
+    fn deinit(self: *Context) void {
+        self.errors.deinit();
+        self.* = undefined;
     }
 };
 
@@ -90,7 +115,10 @@ pub const Linter = struct {
     gpa: Allocator,
 
     pub fn init(gpa: Allocator) Linter {
-        var linter = Linter{ .rules = std.ArrayList(Rule).init(gpa), .gpa = gpa };
+        var linter = Linter{
+            .rules = std.ArrayList(Rule).init(gpa),
+            .gpa = gpa,
+        };
         var no_undef = NoUndefined{};
         // TODO: handle OOM
         linter.rules.append(no_undef.rule()) catch @panic("Cannot add new lint rule: Out of memory");
@@ -123,7 +151,11 @@ pub const Linter = struct {
             for (self.rules.items) |rule| {
                 ctx.updateForRule(&rule);
                 rule.runOnNode(wrapper, &ctx) catch |e| {
-                    const err = Error.fmt(self.gpa, "Rule '{s}' failed to run: {s}", .{ rule.name, @errorName(e) }) catch @panic("OOM");
+                    const err = Error.fmt(
+                        self.gpa,
+                        "Rule '{s}' failed to run: {s}",
+                        .{ rule.name, @errorName(e) },
+                    ) catch @panic("OOM");
                     ctx.errors.append(err) catch @panic("OOM");
                 };
             }

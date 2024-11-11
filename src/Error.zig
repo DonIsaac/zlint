@@ -6,17 +6,21 @@
 //! Errors are most commonly managed by a `Result`. In this form, the `Result`
 //! holds ownership over allocations.
 
+code: []const u8 = "",
 message: PossiblyStaticStr,
 severity: Severity = .err,
 /// Text ranges over problematic parts of the source code.
-labels: []Span = undefined,
+labels: []Span = NO_SPANS,
 /// Name of the file being linted.
 source_name: ?string = null,
 source: ?ArcStr = null,
 /// Optional help text. This will go under the code snippet.
 help: ?string = null,
 
-// Althought this is not [:0]const u8, it should not be mutated. Needs to be mut
+const NO_SPANS_ARR = [0]Span{};
+const NO_SPANS: []Span = NO_SPANS_ARR[0..0];
+
+// Although this is not [:0]const u8, it should not be mutated. Needs to be mut
 // for Arc dealloc reasons.
 const ArcStr = Arc([:0]u8);
 pub const PossiblyStaticStr = struct {
@@ -52,7 +56,7 @@ pub fn deinit(self: *Error, alloc: std.mem.Allocator) void {
     if (self.help != null) alloc.free(self.help.?);
     if (self.source_name != null) alloc.free(self.source_name.?);
     if (self.source != null) self.source.?.deinit();
-    // if (self.labels != null) alloc.free(self.labels);
+    if (self.labels.ptr != NO_SPANS.ptr) alloc.free(self.labels);
 }
 
 /// Severity level for issues found by lint rules.
