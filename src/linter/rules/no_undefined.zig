@@ -1,11 +1,11 @@
 const std = @import("std");
-const source = @import("../source.zig");
+const source = @import("../../source.zig");
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const Loc = std.zig.Loc;
 const Span = source.Span;
-const LinterContext = @import("../lint.zig").Context;
+const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
 

@@ -13,21 +13,27 @@
 ///
 /// `&'a str`
 name: string,
+
 /// Only populated for symbols not bound to an identifier. Otherwise, this is an
 /// empty string.
 debug_name: string,
+
 /// This symbol's type. Only present if statically determinable, since
 /// analysis doesn't currently do type checking.
 // ty: ?Type,
 /// Unique identifier for this symbol.
 id: Id,
+
 /// Scope this symbol is declared in.
 scope: Scope.Id,
+
 /// Index of the AST node declaring this symbol.
 ///
 /// Usually a `var`/`const` declaration, function statement, etc.
 decl: Ast.Node.Index,
+
 visibility: Visibility,
+
 flags: Flags,
 
 /// Symbols on "instance objects" (e.g. field properties and instance
@@ -35,6 +41,7 @@ flags: Flags,
 ///
 /// Do not write to this list directly.
 members: SymbolIdList = .{},
+
 /// Symbols directly accessible on the symbol itself (e.g. static methods,
 /// constants, enum members).
 ///
@@ -55,6 +62,7 @@ pub const Visibility = enum {
     public,
     private,
 };
+
 pub const Flags = packed struct {
     /// Comptime symbol.
     ///

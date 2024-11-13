@@ -1,4 +1,4 @@
-//! semantic analysis of a zig AST.
+//! semantic analysis of a Zig AST.
 //!
 //! We are intentionally not using Zig's AIR. That format strips away dead
 //! code, which may be in the process of being authored. Instead, we perform
