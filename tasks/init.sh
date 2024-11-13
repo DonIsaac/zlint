@@ -20,10 +20,14 @@ if which brew > /dev/null; then
     try_install brew entr
     try_install brew typos-cli typos
     try_install brew kcov
+    try_install brew bun
     elif which apt-get > /dev/null; then
     try_install apt-get entr
     try_install apt-get typos-cli typos
     try_install apt-get kcov
+    if ! which bun > /dev/null; then
+        echo "Bun is not installed. Please follow steps on https://bun.sh"
+    fi
 else
     echo "No supported package manager found. Please install dependencies manually and/or update this script to support your package manager."
     exit 1

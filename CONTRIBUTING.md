@@ -15,6 +15,7 @@ We use the following tools:
 - [just](https://github.com/casey/just) for running tasks
 - [entr](http://eradman.com/entrproject/) for an ad-hoc watch mode
 - [typos](https://github.com/crate-ci/typos) for spell checking
+- [bun](https://bun.sh/) for generating boilderplate for new rules and other tasks
 
 ### Details
 
@@ -49,6 +50,22 @@ brew install entr
 ## Building, Testing, etc.
 
 Run `just` (with no arguments) to see a full list of available tasks.
+
+When debugging E2E tests or the `zlint` binary, using a single-threaded build is
+often helpful.
+
+```sh
+just run -Dsingle-threaded
+just e2e -Dsingle-threaded
+```
+
+## Contributing New Rules
+
+1. Run `just new-rule <rule-name>` to generate boilderplate for a new rule.
+2. Open `src/linter.siz` and register it inside the `Linter`.
+3. Fill in the rule's method stubs.
+4. Add test cases.
+4. Open a PR.
 
 ## Conventions
 
