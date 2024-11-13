@@ -68,21 +68,22 @@ just e2e -Dsingle-threaded
 4. Open a PR.
 
 ## Conventions
+Please follow these conventions when contributing to ZLint.
 
-## Constructors and Destructors
+### Constructors and Destructors
 
 1. Constructors that allocate memory are named `init`.
 2. Constructors that do not allocate memory are named `new`.
 3. Destructors are named `deinit`.
 
-## File Naming and Structure
+### File Naming and Structure
 
 There are two kinds of files: "object" files and "namespace" files. Object files
 use the entire file as a single `struct`, storing their members in the top
 level. Namespace files do not do this, and instead declare or re-export various
 data types.
 
-### Object File Conventions
+#### Object File Conventions
 
 Object files use `PascalCase` for the file name. Their layout follows this order:
 
@@ -95,7 +96,7 @@ Object files use `PascalCase` for the file name. Their layout follows this order
 5. Imports
 6. Tests
 
-### Namespace File Conventions
+#### Namespace File Conventions
 
 Namespace files use `snake_case` for the file name. Avoid declaring functions in
 the top scope of these files. This is not a hard rule, as it makes sense in some
