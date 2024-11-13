@@ -86,7 +86,6 @@ const LintVisitor = struct {
     }
 
     fn lintFile(self: *LintVisitor, filepath: []u8) void {
-        std.debug.print("linting file '{s}'\n", .{filepath});
         self.lintFileImpl(filepath) catch |e| {
             log.err("Failed to lint file '{s}': {any}\n", .{ filepath, e });
         };

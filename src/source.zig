@@ -57,9 +57,21 @@ pub const LocationSpan = struct {
     span: LabeledSpan,
     location: Location,
 
-    pub fn fromSpan(contents: string, span: LabeledSpan) LocationSpan {
-        const loc = Location.fromSpan(contents, span.span);
-        return .{ .span = span, .location = loc };
+    pub fn fromSpan(contents: string, span: anytype) LocationSpan {
+        const labeled_span: LabeledSpan, const loc: Location = brk: {
+            switch (@TypeOf(span)) {
+                Span => {
+                    const labeled = .{ .span = span };
+                    break :brk .{ labeled, Location.fromSpan(contents, span) };
+                },
+                LabeledSpan => {
+                    break :brk .{ span, Location.fromSpan(contents, span.span) };
+                },
+                else => @panic("`span` must be a Span or LabeledSpan"),
+            }
+        };
+        // const loc = Location.fromSpan(contents, span.span);
+        return .{ .span = labeled_span, .location = loc };
     }
     pub inline fn start(self: LocationSpan) u32 {
         return self.span.span.start;
