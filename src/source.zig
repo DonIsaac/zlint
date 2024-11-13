@@ -81,6 +81,21 @@ pub const LocationSpan = struct {
 pub const Span = struct {
     start: u32,
     end: u32,
+
+    pub inline fn new(start: u32, end: u32) Span {
+        assert(end >= start);
+        return .{ .start = start, .end = end };
+    }
+
+    pub inline fn len(self: Span) u32 {
+        assert(self.end >= self.start);
+        return self.end - self.start;
+    }
+
+    pub inline fn snippet(self: Span, contents: string) string {
+        assert(self.end >= self.start);
+        return contents[self.start..self.end];
+    }
 };
 
 pub const Location = struct {

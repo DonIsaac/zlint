@@ -25,7 +25,7 @@
             "args": ["build", "-Dsingle-threaded"],
             "group": {
                 "kind": "build",
-                "isDefault": true
+                "isDefault": false
             },
             "presentation": {
                 "echo": true,
