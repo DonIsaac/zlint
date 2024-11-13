@@ -64,16 +64,19 @@ pub const Context = struct {
     // ============================ ERROR REPORTING ============================
 
     pub fn spanN(self: *const Context, node_id: Ast.Node.Index) Span {
+        // TODO: inline
         const s = self.semantic.ast.nodeToSpan(node_id);
         return .{ .start = s.start, .end = s.end };
     }
 
     pub fn spanT(self: *const Context, token_id: Ast.Node.Index) Span {
+        // TODO: inline
         const s = self.semantic.ast.tokenToSpan(token_id);
         return .{ .start = s.start, .end = s.end };
     }
 
     pub fn diagnosticAlloc(self: *Context, message: string, spans: anytype) void {
+        // TODO: inline
         return self._diagnostic(Error.new(message), &spans);
     }
 
@@ -86,6 +89,7 @@ pub const Context = struct {
     ///
     /// `spans` is anytype for more flexible coercion into a `[]const Span`
     pub fn diagnostic(self: *Context, message: string, spans: anytype) void {
+        // TODO: inline
         return self._diagnostic(Error.newStatic(message), &spans);
     }
 
@@ -138,7 +142,6 @@ pub const Linter = struct {
         }
         const semantic = semantic_result.value;
         var ctx = Context.init(self.gpa, &semantic, source);
-        print("running linter on source with {d} rules\n", .{self.rules.items.len});
 
         var i: usize = 0;
         while (i < ctx.semantic.ast.nodes.len) {

@@ -56,37 +56,57 @@ pub const Source = struct {
 pub const LocationSpan = struct {
     span: Span,
     location: Location,
+
+    pub fn fromSpan(contents: string, span: Span) LocationSpan {
+        const loc = Location.fromSpan(contents, span);
+        return .{ .span = span, .location = loc };
+    }
+    pub inline fn start(self: LocationSpan) u32 {
+        return self.span.start;
+    }
+    pub inline fn end(self: LocationSpan) u32 {
+        return self.span.end;
+    }
+    pub inline fn line(self: LocationSpan) u32 {
+        return self.location.line;
+    }
+    pub inline fn column(self: LocationSpan) u32 {
+        return self.location.column;
+    }
+    pub inline fn source(self: LocationSpan) string {
+        return self.location.source_line;
+    }
 };
+
 pub const Span = struct {
     start: u32,
     end: u32,
 };
 
 pub const Location = struct {
+    /// 1-based line number
     line: u32,
+    /// 1-based column number
     column: u32,
+    source_line: []const u8,
 
     pub fn fromSpan(contents: string, span: Span) Location {
-        const l = findLineColumn(contents, @intCast(span.start));
-        return Location{
-            .line = l.line,
-            .column = l.column,
-        };
+        return findLineColumn(contents, @intCast(span.start));
     }
     // TODO: toSpan()
 };
 
-/// Copied from std.zig.findLineColumn. Modified to support windows.
-pub fn findLineColumn(source: []const u8, byte_offset: u32) Location {
-    var line: u32 = 0;
-    var column: u32 = 0;
+/// Copied/modified from std.zig.findLineColumn.
+fn findLineColumn(source: []const u8, byte_offset: u32) Location {
+    var line: u32 = 1;
+    var column: u32 = 1;
     var line_start: u32 = 0;
     var i: u32 = 0;
     while (i < byte_offset) : (i += 1) {
         switch (source[i]) {
             '\n' => {
                 line += 1;
-                column = 0;
+                column = 1;
                 line_start = i + 1;
 
                 if (util.IS_WINDOWS and i < byte_offset and source[i + 1] == '\r') {
@@ -109,6 +129,30 @@ pub fn findLineColumn(source: []const u8, byte_offset: u32) Location {
     return .{
         .line = line,
         .column = column,
-        // .source_line = source[line_start..i],
+        .source_line = source[line_start..i],
     };
+}
+
+test findLineColumn {
+    const t = std.testing;
+    const source =
+        \\Foo bar
+        \\baz
+        \\bang
+    ;
+
+    {
+        const foo_loc = findLineColumn(source, 0);
+        try t.expectEqual(1, foo_loc.line);
+        try t.expectEqual(1, foo_loc.column);
+        try t.expectEqualStrings(foo_loc.source_line, "Foo bar");
+    }
+
+    {
+        const baz_offset = 9;
+        const baz_loc = findLineColumn(source, baz_offset);
+        try t.expectEqual(2, baz_loc.line);
+        try t.expectEqual(2, baz_loc.column);
+        try t.expectEqualStrings(baz_loc.source_line, "baz");
+    }
 }
