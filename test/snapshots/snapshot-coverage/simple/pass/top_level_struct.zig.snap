@@ -53,27 +53,40 @@
       "top", 
       
     ], 
-    "children": [
+    "bindings": {
+      "@This()": 0, 
+      "a": 1, 
+      "b": 2, 
+      "Foo": 3, 
+      "new": 4, 
+      
+    }, "children": [
       {
         "id": 1, 
         "flags": [
           
         ], 
-        "children": [
+        "bindings": {
+          
+        }, "children": [
           {
             "id": 2, 
             "flags": [
               "function", 
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 3, 
                 "flags": [
                   "block", 
                   
                 ], 
-                "children": [], 
+                "bindings": {
+                  
+                }, "children": [], 
                 
               }, 
             ], 

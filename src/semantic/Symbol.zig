@@ -104,11 +104,11 @@ pub const SymbolTable = struct {
     /// Do not write to this list directly.
     symbols: std.MultiArrayList(Symbol) = .{},
 
+    /// Get a symbol from the table.
     pub inline fn get(self: *const SymbolTable, id: Symbol.Id) *const Symbol {
         return &self.symbols.get(id);
     }
 
-    // zig fmt: off
     pub fn addSymbol(
         self: *SymbolTable,
         alloc: Allocator,
@@ -119,11 +119,10 @@ pub const SymbolTable = struct {
         visibility: Symbol.Visibility,
         flags: Symbol.Flags,
     ) Allocator.Error!Symbol.Id {
-
         assert(self.symbols.len < Symbol.MAX_ID);
 
         const id: Symbol.Id = @intCast(self.symbols.len);
-        const symbol =  Symbol{
+        const symbol = Symbol{
             .name = name orelse "",
             .debug_name = debug_name orelse "",
             // .ty = ty,
@@ -138,7 +137,6 @@ pub const SymbolTable = struct {
 
         return id;
     }
-    // zig fmt: on
 
     pub inline fn getMembers(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
         return &self.symbols.items(.members)[container];

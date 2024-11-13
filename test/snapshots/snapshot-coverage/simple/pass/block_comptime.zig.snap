@@ -35,7 +35,11 @@
       "top", 
       
     ], 
-    "children": [
+    "bindings": {
+      "@This()": 0, 
+      "x": 1, 
+      
+    }, "children": [
       {
         "id": 1, 
         "flags": [
@@ -43,7 +47,10 @@
           "comptime", 
           
         ], 
-        "children": [], 
+        "bindings": {
+          "y": 2, 
+          
+        }, "children": [], 
         
       }, 
     ], 

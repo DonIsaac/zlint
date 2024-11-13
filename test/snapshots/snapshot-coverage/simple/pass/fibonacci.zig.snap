@@ -98,34 +98,54 @@
       "top", 
       
     ], 
-    "children": [
+    "bindings": {
+      "@This()": 0, 
+      "std": 1, 
+      "Managed": 2, 
+      "main": 3, 
+      
+    }, "children": [
       {
         "id": 1, 
         "flags": [
           
         ], 
-        "children": [
+        "bindings": {
+          
+        }, "children": [
           {
             "id": 2, 
             "flags": [
               "function", 
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 3, 
                 "flags": [
                   "block", 
                   
                 ], 
-                "children": [
+                "bindings": {
+                  "allocator": 4, 
+                  "a": 5, 
+                  "b": 6, 
+                  "i": 7, 
+                  "c": 8, 
+                  "as": 9, 
+                  
+                }, "children": [
                   {
                     "id": 4, 
                     "flags": [
                       "block", 
                       
                     ], 
-                    "children": [], 
+                    "bindings": {
+                      
+                    }, "children": [], 
                     
                   }, 
                 ], 

@@ -849,15 +849,18 @@ inline fn declareSymbol(
     self: *SemanticBuilder,
     opts: DeclareSymbol,
 ) !Symbol.Id {
-    return self._semantic.symbols.addSymbol(
+    const scope = opts.scope_id orelse self.currentScope();
+    const symbol_id = try self._semantic.symbols.addSymbol(
         self._gpa,
         opts.declaration_node orelse self.currentNode(),
         opts.name,
         opts.debug_name,
-        opts.scope_id orelse self.currentScope(),
+        scope,
         opts.visibility,
         opts.flags,
     );
+    try self._semantic.scopes.addBinding(self._gpa, scope, symbol_id);
+    return symbol_id;
 }
 
 // =========================================================================

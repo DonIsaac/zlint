@@ -80,34 +80,51 @@
       "top", 
       
     ], 
-    "children": [
+    "bindings": {
+      "@This()": 0, 
+      "std": 1, 
+      "builtin": 2, 
+      "msg": 3, 
+      "simpleIf": 4, 
+      "comptimeIf": 7, 
+      
+    }, "children": [
       {
         "id": 1, 
         "flags": [
           
         ], 
-        "children": [
+        "bindings": {
+          
+        }, "children": [
           {
             "id": 2, 
             "flags": [
               "function", 
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 3, 
                 "flags": [
                   "block", 
                   
                 ], 
-                "children": [
+                "bindings": {
+                  "i": 5, 
+                  
+                }, "children": [
                   {
                     "id": 4, 
                     "flags": [
                       "block", 
                       
                     ], 
-                    "children": [], 
+                    "bindings": {
+                      
+                    }, "children": [], 
                     
                   }, {
                     "id": 5, 
@@ -115,7 +132,10 @@
                       "block", 
                       
                     ], 
-                    "children": [], 
+                    "bindings": {
+                      "pow": 6, 
+                      
+                    }, "children": [], 
                     
                   }, {
                     "id": 6, 
@@ -123,7 +143,9 @@
                       "block", 
                       
                     ], 
-                    "children": [], 
+                    "bindings": {
+                      
+                    }, "children": [], 
                     
                   }, 
                 ], 
@@ -136,21 +158,27 @@
         "flags": [
           
         ], 
-        "children": [
+        "bindings": {
+          
+        }, "children": [
           {
             "id": 8, 
             "flags": [
               "function", 
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 9, 
                 "flags": [
                   "block", 
                   
                 ], 
-                "children": [
+                "bindings": {
+                  
+                }, "children": [
                   {
                     "id": 10, 
                     "flags": [
@@ -158,7 +186,9 @@
                       "comptime", 
                       
                     ], 
-                    "children": [], 
+                    "bindings": {
+                      
+                    }, "children": [], 
                     
                   }, 
                 ], 

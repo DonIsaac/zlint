@@ -107,14 +107,22 @@
       "top", 
       
     ], 
-    "children": [
+    "bindings": {
+      "@This()": 0, 
+      "Box": 1, 
+      "FixedIntArray": 5, 
+      "add": 8, 
+      
+    }, "children": [
       {
         "id": 1, 
         "flags": [
           "comptime", 
           
         ], 
-        "children": [
+        "bindings": {
+          
+        }, "children": [
           {
             "id": 2, 
             "flags": [
@@ -122,7 +130,9 @@
               "comptime", 
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 3, 
                 "flags": [
@@ -130,7 +140,9 @@
                   "comptime", 
                   
                 ], 
-                "children": [
+                "bindings": {
+                  
+                }, "children": [
                   {
                     "id": 4, 
                     "flags": [
@@ -138,27 +150,38 @@
                       "comptime", 
                       
                     ], 
-                    "children": [
+                    "bindings": {
+                      "inner": 2, 
+                      "Self": 3, 
+                      "deref": 4, 
+                      
+                    }, "children": [
                       {
                         "id": 5, 
                         "flags": [
                           
                         ], 
-                        "children": [
+                        "bindings": {
+                          
+                        }, "children": [
                           {
                             "id": 6, 
                             "flags": [
                               "function", 
                               
                             ], 
-                            "children": [
+                            "bindings": {
+                              
+                            }, "children": [
                               {
                                 "id": 7, 
                                 "flags": [
                                   "block", 
                                   
                                 ], 
-                                "children": [], 
+                                "bindings": {
+                                  
+                                }, "children": [], 
                                 
                               }, 
                             ], 
@@ -178,7 +201,9 @@
           "comptime", 
           
         ], 
-        "children": [
+        "bindings": {
+          
+        }, "children": [
           {
             "id": 9, 
             "flags": [
@@ -186,7 +211,9 @@
               "comptime", 
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 10, 
                 "flags": [
@@ -194,7 +221,10 @@
                   "comptime", 
                   
                 ], 
-                "children": [
+                "bindings": {
+                  "l": 6, 
+                  
+                }, "children": [
                   {
                     "id": 11, 
                     "flags": [
@@ -202,7 +232,9 @@
                       "comptime", 
                       
                     ], 
-                    "children": [], 
+                    "bindings": {
+                      
+                    }, "children": [], 
                     
                   }, {
                     "id": 12, 
@@ -211,7 +243,10 @@
                       "comptime", 
                       
                     ], 
-                    "children": [], 
+                    "bindings": {
+                      "inner": 7, 
+                      
+                    }, "children": [], 
                     
                   }, 
                 ], 
@@ -224,21 +259,28 @@
         "flags": [
           
         ], 
-        "children": [
+        "bindings": {
+          
+        }, "children": [
           {
             "id": 14, 
             "flags": [
               "function", 
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 15, 
                 "flags": [
                   "block", 
                   
                 ], 
-                "children": [
+                "bindings": {
+                  "a2": 10, 
+                  
+                }, "children": [
                   {
                     "id": 16, 
                     "flags": [
@@ -246,7 +288,10 @@
                       "comptime", 
                       
                     ], 
-                    "children": [
+                    "bindings": {
+                      "c": 9, 
+                      
+                    }, "children": [
                       {
                         "id": 17, 
                         "flags": [
@@ -254,7 +299,9 @@
                           "comptime", 
                           
                         ], 
-                        "children": [], 
+                        "bindings": {
+                          
+                        }, "children": [], 
                         
                       }, 
                     ], 
