@@ -428,13 +428,14 @@ fn visitContainer(self: *SemanticBuilder, _: NodeIndex, container: full.Containe
 fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.ContainerField) !void {
     const main_token = self.AST().nodes.items(.main_token)[node_id];
     // main_token points to the field name
-    const identifier = self.getIdentifier(main_token);
-    const flags = Symbol.Flags{
-        .s_comptime = field.comptime_token != null,
-    };
     // NOTE: container fields are always public
     // TODO: record type annotations
-    _ = try self.declareMemberSymbol(identifier, .public, flags);
+    _ = try self.declareMemberSymbol(.{
+        .name = self.getIdentifier(main_token),
+        .flags = .{
+            .s_comptime = field.comptime_token != null,
+        },
+    });
     if (field.ast.value_expr != NULL_NODE) {
         try self.visit(field.ast.value_expr);
     }
@@ -448,9 +449,13 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
     // main_token points to `var`, `const` keyword. `.identifier` comes immediately afterwards
     const identifier: ?string = self.getIdentifier(node.main_token + 1);
     const debug_name: ?string = if (identifier == null) "<anonymous var decl>" else null;
-    const flags = Symbol.Flags{ .s_comptime = var_decl.comptime_token != null };
     const visibility = if (var_decl.visib_token == null) Symbol.Visibility.private else Symbol.Visibility.public;
-    const symbol_id = try self.bindSymbol(identifier, debug_name, visibility, flags);
+    const symbol_id = try self.bindSymbol(.{
+        .name = identifier,
+        .debug_name = debug_name,
+        .visibility = visibility,
+        .flags = .{ .s_comptime = var_decl.comptime_token != null },
+    });
     try self.enterContainerSymbol(symbol_id);
     defer self.exitContainerSymbol();
 
@@ -473,18 +478,16 @@ fn visitAssignDestructure(self: *SemanticBuilder, _: NodeIndex, destructure: ful
         };
         const identifier: ?string = self.getIdentifier(main_token + 1);
         util.assert(identifier != null, "assignment declarations are not valid when an identifier name is missing.", .{});
-        const flags = Symbol.Flags{
-            .s_comptime = is_comptime,
-            .s_const = token_tags[main_token] == .keyword_const,
-        };
         // note: intentionally not using bindSymbol (for now, at least)
-        _ = try self.declareSymbol(
-            var_id,
-            identifier,
-            null,
-            if (decl.visib_token != null) .public else .private,
-            flags,
-        );
+        _ = try self.declareSymbol(.{
+            .declaration_node = var_id,
+            .name = identifier,
+            .visibility = if (decl.visib_token != null) .public else .private,
+            .flags = .{
+                .s_comptime = is_comptime,
+                .s_const = token_tags[main_token] == .keyword_const,
+            },
+        });
     }
     try self.visit(destructure.ast.value_expr);
 }
@@ -560,7 +563,11 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
 
     if (token_tags[fallback_first - 1] == .pipe) {
         const identifier = self.getIdentifier(main_token) orelse return SemanticError.missing_identifier;
-        _ = try self.declareSymbol(node_id, identifier, null, .private, .{ .s_catch_param = true });
+        _ = try self.declareSymbol(.{
+            .name = identifier,
+            .visibility = .private,
+            .flags = .{ .s_catch_param = true },
+        });
     } else {
         assert(token_tags[fallback_first - 1] == .keyword_catch);
     }
@@ -588,7 +595,12 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     const identifier: ?string = if (proto.name_token) |tok| self.getIdentifier(tok) else null;
     const debug_name: ?string = if (identifier == null) "<anonymous fn>" else null;
     // TODO: bind methods as members
-    _ = try self.bindSymbol(identifier, debug_name, visibility, .{ .s_fn = true });
+    _ = try self.bindSymbol(.{
+        .name = identifier,
+        .debug_name = debug_name,
+        .visibility = visibility,
+        .flags = .{ .s_fn = true },
+    });
 
     var fn_signature_implies_comptime = false;
     const tags: []Node.Tag = ast.nodes.items(.tag);
@@ -650,7 +662,10 @@ fn enterRoot(self: *SemanticBuilder) !void {
 
     // Create root symbol and push it onto the stack. It too is never popped.
     // TODO: distinguish between bound name and escaped name.
-    const root_symbol_id = try self.declareSymbol(Semantic.ROOT_NODE_ID, null, "@This()", .public, .{ .s_const = true });
+    const root_symbol_id = try self.declareSymbol(.{
+        .debug_name = "@This()",
+        .flags = .{ .s_const = true },
+    });
     util.assert(root_symbol_id == 0, "Creating root symbol returned id {d} which is not the expected root id (0)", .{root_symbol_id});
     try self.enterContainerSymbol(root_symbol_id);
 }
@@ -782,16 +797,27 @@ inline fn currentContainerSymbolUnwrap(self: *const SemanticBuilder) Symbol.Id {
     return self._symbol_stack.getLast();
 }
 
+/// Data used to declare a new symbol
+const DeclareSymbol = struct {
+    /// AST Node declaring the symbol. Defaults to the current node.
+    declaration_node: ?NodeIndex = null,
+    /// Name of the identifier bound to this symbol. May be missing for
+    /// anonymous symbols. In these cases, provide a `debug_name`.
+    name: ?string = null,
+    /// An optional debug name for anonymous symbols
+    debug_name: ?string = null,
+    /// Visibility to external code. Defaults to public.
+    visibility: Symbol.Visibility = .public,
+    flags: Symbol.Flags = .{},
+    /// The scope where the symbol is declared. Defaults to the current scope.
+    scope_id: ?Scope.Id = null,
+};
+
 /// Create and bind a symbol to the current scope and container (parent) symbol.
-fn bindSymbol(
-    self: *SemanticBuilder,
-    name: ?string,
-    debug_name: ?string,
-    visibility: Symbol.Visibility,
-    flags: Symbol.Flags,
-) !Symbol.Id {
-    const declaration_node = self.currentNode();
-    const symbol_id = try self.declareSymbol(declaration_node, name, debug_name, visibility, flags);
+///
+/// Panics if the parent is a member symbol.
+fn bindSymbol(self: *SemanticBuilder, opts: DeclareSymbol) !Symbol.Id {
+    const symbol_id = try self.declareSymbol(opts);
     if (self.currentContainerSymbol()) |container_id| {
         assert(!self._semantic.symbols.get(container_id).flags.s_member);
         try self._semantic.symbols.addMember(self._gpa, symbol_id, container_id);
@@ -804,14 +830,11 @@ fn bindSymbol(
 /// the most recent container symbol. Returns the new member symbol's ID.
 fn declareMemberSymbol(
     self: *SemanticBuilder,
-    name: ?string,
-    visibility: Symbol.Visibility,
-    flags: Symbol.Flags,
+    opts: DeclareSymbol,
 ) !Symbol.Id {
-    var member_flags = flags;
-    member_flags.s_member = true;
-    const declaration_node = self.currentNode();
-    const member_symbol_id = try self.declareSymbol(declaration_node, name, null, visibility, member_flags);
+    var options = opts;
+    options.flags.s_member = true;
+    const member_symbol_id = try self.declareSymbol(options);
 
     const container_symbol_id = self.currentContainerSymbolUnwrap();
     assert(!self._semantic.symbols.get(container_symbol_id).flags.s_member);
@@ -820,25 +843,21 @@ fn declareMemberSymbol(
     return member_symbol_id;
 }
 
-/// Declare a symbol in the current scope.
+/// Declare a symbol in the current scope. Symbols created this way are not
+/// associated with a container symbol's members or exports.
 inline fn declareSymbol(
     self: *SemanticBuilder,
-    declaration_node: Ast.Node.Index,
-    name: ?string,
-    debug_name: ?string,
-    visibility: Symbol.Visibility,
-    flags: Symbol.Flags,
+    opts: DeclareSymbol,
 ) !Symbol.Id {
-    const symbol_id = try self._semantic.symbols.addSymbol(
+    return self._semantic.symbols.addSymbol(
         self._gpa,
-        declaration_node,
-        name,
-        debug_name,
-        self.currentScope(),
-        visibility,
-        flags,
+        opts.declaration_node orelse self.currentNode(),
+        opts.name,
+        opts.debug_name,
+        opts.scope_id orelse self.currentScope(),
+        opts.visibility,
+        opts.flags,
     );
-    return symbol_id;
 }
 
 // =========================================================================
