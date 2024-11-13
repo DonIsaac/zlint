@@ -1,0 +1,34 @@
+name: JavaScript
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize]
+    paths-ignore:
+      - "*"
+      - "!*.js"
+      - "!*.ts"
+      - "!.github/workflows/js.yaml"
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "*"
+      - "!*.js"
+      - "!*.ts"
+      - "!.github/workflows/js.yaml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Oxlint
+        run: bunx oxlint@latest --format github 
