@@ -1,59 +1,234 @@
 context_lines: u32 = 1,
+theme: GraphicalTheme = GraphicalTheme.unicode(),
+alloc: std.mem.Allocator,
 
 const MAX_CONTEXT_LINES: u32 = 3;
-// characters: Th
 
 pub fn format(self: *GraphicalFormatter, w: *Writer, e: Error) !void {
-    var LINEBUF: [MAX_CONTEXT_LINES * 2 + 1]Line = undefined;
-    var linebuf = LINEBUF[0..(self.context_lines * 2 + 1)];
+    var err = e;
+    if (e.severity == .off) return;
+    try self.renderHeader(w, &err);
+    try self.renderContext(w, &err);
+    try w.writeByte('\n');
+}
+
+fn renderHeader(self: *GraphicalFormatter, w: *Writer, e: *const Error) !void {
+    const icon = self.iconFor(e.severity);
+    const color = self.styleFor(e.severity);
+    const emphasize = self.theme.styles.emphasize;
+
+    try w.writeAll(color.open);
+    try w.writeAll(emphasize.open);
+    defer w.writeAll(emphasize.close) catch {};
+    defer w.writeAll(color.close) catch {};
+
+    try w.print("{s} ", .{icon});
 
     if (e.code.len > 0) {
-        try w.print("{s}: ", .{e.code});
+        try w.writeAll(e.code);
+        try w.writeAll(color.close);
+        try w.writeAll(": ");
+        try w.writeAll(color.open);
     }
-    try w.print("{s}", .{e.message.str});
 
-    if (e.labels.len > 0 and e.source != null) {
+    try w.print("{s}\n", .{e.message.str});
+}
 
-        // std.mem.sortUnstable()
-        const l = e.labels[0];
-        const src: []const u8 = e.source.?.deref().*;
-        // const lineNo, const colNo = getLineAndCol(src, l);
+fn labelsLt(_: void, a: LabeledSpan, b: LabeledSpan) bool {
+    return a.span.start < b.span.start;
+}
+
+fn renderContext(self: *GraphicalFormatter, w: *Writer, e: *Error) !void {
+    if (e.labels.items.len == 0 or e.source == null) return;
+
+    const src: []const u8 = e.source.?.deref().*;
+
+    std.sort.insertion(LabeledSpan, e.labels.items, {}, labelsLt);
+
+    var alloc = std.heap.stackFallback(@sizeOf(LocationSpan) * 8, self.alloc);
+    var locations = std.ArrayList(LocationSpan).init(alloc.get());
+    defer locations.deinit();
+
+    var largest_line_num: u32 = 0;
+    for (e.labels.items) |l| {
         const loc = LocationSpan.fromSpan(src, l);
-        try w.print("\n[{s}:{d}:{d}]\n", .{
-            if (e.source_name) |s| s else "<anonymous>",
-            loc.line(),
-            loc.column(),
-        });
-        for (0..linebuf.len) |i| {
-            linebuf[i] = Line{ .num = 0, .offset = 0, .contents = "" };
+        locations.append(loc) catch @panic("OOM");
+        largest_line_num = @max(largest_line_num, loc.line() + self.context_lines);
+    }
+    const lineum_width = std.math.log10(largest_line_num);
+
+    const primary: LocationSpan = blk: {
+        for (locations.items) |loc| {
+            if (loc.span.primary) {
+                break :blk loc;
+            }
         }
-        _ = contextFor(self.context_lines, linebuf, src, loc);
-        var lines_start: usize = 0;
-        var lines_end: usize = linebuf.len - 1;
-        const WHITESPACE = [_]u8{ ' ', '\t', '\n', '\r' };
-        while (lines_start < linebuf.len) : (lines_start += 1) {
-            const line = linebuf[lines_start];
-            if (line.num == 0 or std.mem.trim(u8, line.contents, &WHITESPACE).len == 0) continue;
-            break;
+        locations.items[0].span.primary = true;
+        break :blk locations.items[0];
+    };
+
+    try self.renderContextMasthead(w, e, lineum_width, primary);
+
+    for (locations.items) |loc| {
+        // const l = e.labels.items[i];
+        // const loc = locations.items[i];
+        try self.renderContextLines(w, src, lineum_width, locations.items, loc);
+    }
+    try self.renderContextFinisher(w, lineum_width);
+}
+
+fn renderContextMasthead(
+    self: *GraphicalFormatter,
+    w: *Writer,
+    e: *const Error,
+    // locations: []const LocationSpan,
+    lineum_width: u32,
+    primary_span: LocationSpan,
+) !void {
+    const chars = self.theme.characters;
+    const color = self.theme.styles.help;
+
+    try w.writeByteNTimes(' ', lineum_width + 3);
+
+    // ╭─[
+    try w.print("{s}{s}{s}", .{ chars.ltop, chars.hbar, chars.lbox });
+    try w.writeAll(color.open);
+    try w.print("{s}:{d}:{d}", .{
+        if (e.source_name) |s| s else "<anonymous>",
+        primary_span.line(),
+        primary_span.column(),
+    });
+    try w.writeAll(color.close);
+
+    // ]
+    try w.print("{s}\n", .{chars.rbox});
+}
+
+fn renderContextFinisher(self: *GraphicalFormatter, w: *Writer, lineum_col_width: u32) !void {
+    const chars = self.theme.characters;
+
+    try w.writeByteNTimes(' ', lineum_col_width + 3);
+    try w.writeAll(chars.lbot);
+    const BAR_LEN = 4;
+    try w.writeBytesNTimes(chars.hbar, BAR_LEN);
+}
+
+fn renderContextLines(
+    self: *GraphicalFormatter,
+    w: *Writer,
+    // e: *const Error,
+    src: []const u8,
+    lineum_width: u32,
+    // _: LabeledSpan,
+    locations: []const LocationSpan,
+    loc: LocationSpan,
+) !void {
+    var LINEBUF: [MAX_CONTEXT_LINES * 2 + 1]Line = undefined;
+    var linebuf = LINEBUF[0..(self.context_lines * 2 + 1)];
+    @memset(&LINEBUF, Line.EMPTY);
+    _ = contextFor(self.context_lines, linebuf, src, loc);
+
+    var lines_start: usize = 0;
+    var lines_end: usize = linebuf.len - 1;
+    while (lines_start < linebuf.len) : (lines_start += 1) {
+        const line = linebuf[lines_start];
+        if (line.num == 0 or util.trimWhitespace(line.contents).len == 0) continue;
+        break;
+    }
+    while (lines_end >= lines_start) : (lines_end -= 1) {
+        const line = linebuf[lines_end];
+        if (line.num == 0 or util.trimWhitespace(line.contents).len == 0) continue;
+        break;
+    }
+    lines_end += 1;
+
+    for (linebuf[lines_start..lines_end]) |line| {
+        // try w.print("{d}:", .{line.num});
+        // try w.writeByteNTimes(' ', padding);
+        try self.renderCodeLinePrefix(w, line.num, lineum_width);
+        try w.writeAll(line.contents);
+        if (util.IS_WINDOWS) {
+            try w.writeAll("\r\n");
+        } else {
+            try w.writeByte('\n');
         }
-        while (lines_end >= lines_start) : (lines_end -= 1) {
-            const line = linebuf[lines_end];
-            if (line.num == 0 or std.mem.trim(u8, line.contents, &WHITESPACE).len == 0) continue;
-            break;
-        }
-        lines_end += 1;
-        const padding = std.math.log10(linebuf[lines_end - 1].num) + 1;
-        for (linebuf[lines_start..lines_end]) |line| {
-            try w.print("{d}:", .{line.num});
-            try w.writeByteNTimes(' ', padding);
-            try w.writeAll(line.contents);
-            if (util.IS_WINDOWS) {
-                try w.writeAll("\r\n");
-            } else {
-                try w.writeByte('\n');
+        for (locations) |l| {
+            if (l.line() == line.num) {
+                try self.renderLabel(w, lineum_width, l);
             }
         }
     }
+}
+
+/// Render the line number column and the `|` separator. Has a trailing space.
+///
+/// e.g. '` 1 | `'
+fn renderCodeLinePrefix(self: *GraphicalFormatter, w: *Writer, lineum: u32, linenum_col_width: u32) !void {
+    const styles = self.theme.styles;
+    const chars = self.theme.characters;
+
+    const lineum_width = std.math.log10(lineum);
+    const padding_needed = linenum_col_width - lineum_width;
+
+    try w.print(" {s}{d}{s} ", .{ styles.linum.open, lineum, styles.linum.close });
+    try w.writeByteNTimes(' ', padding_needed);
+    try w.writeAll(chars.vbar);
+    try w.writeByte(' ');
+}
+
+// TODO: render label text
+// TODO: handle multi-line labels
+fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: LocationSpan) !void {
+    const chars = self.theme.characters;
+    const h = self.theme.styles.highlights;
+    const color = h[@min(@intFromBool(!loc.span.primary), h.len)];
+
+    try self.renderLabelPrefix(w, linum_col_len);
+    try w.writeByteNTimes(' ', loc.column());
+    {
+        try w.writeAll(color.open);
+        try w.writeBytesNTimes(chars.underline, loc.span.span.len());
+        try w.writeAll(color.close);
+    }
+    try w.writeAll("\n");
+}
+
+/// Renders enough space to pad-out the line number column followed by a
+/// vertical bar break with _no_ trailing space.
+fn renderLabelPrefix(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32) !void {
+    const chars = self.theme.characters;
+    try w.writeByteNTimes(' ', linum_col_len + 3);
+    try w.writeAll(chars.vbar_break);
+}
+
+fn styleFor(self: *GraphicalFormatter, severity: Error.Severity) GraphicalTheme.Chameleon {
+    return switch (severity) {
+        .err => self.theme.styles.err,
+        .warning => self.theme.styles.warning,
+        .notice => self.theme.styles.advice,
+        .off => @panic("off severity should not be rendered at all."),
+    };
+}
+fn highlightFor(self: *GraphicalFormatter, severity: Error.Severity) GraphicalTheme.Chameleon {
+    const highlights = self.theme.styles.highlights;
+    assert(highlights.len > 0);
+    const idx = switch (severity) {
+        .err => 0,
+        .warning => 1,
+        .notice => 2,
+        .off => @panic("off severity should not be rendered at all."),
+    };
+
+    return highlights[@min(idx, highlights.len - 1)];
+}
+
+fn iconFor(self: *GraphicalFormatter, severity: Error.Severity) util.string {
+    return switch (severity) {
+        .err => self.theme.characters.err,
+        .warning => self.theme.characters.warning,
+        .notice => self.theme.characters.advice,
+        .off => @panic("off severity should not be rendered at all."),
+    };
 }
 
 fn contextFor(
@@ -171,14 +346,16 @@ fn eatNewlineBefore(src: []const u8, i: *u32) void {
     if (i.* == 0) return;
     if (src[i.*] == '\n') i.* -= 1;
     if (i.* > 0 and src[i.*] == '\n') i.* -= 1;
-    if (IS_WINDOWS and i.* > 0) {
-        assert(src[i.*] == '\r');
-        i.* -= 1;
+    if (comptime util.IS_WINDOWS) {
+        if (i.* > 0) {
+            assert(src[i.*] == '\r');
+            i.* -= 1;
+        }
     }
 }
 
 fn eatNewlineAfter(src: []const u8, i: *u32) void {
-    if (comptime IS_WINDOWS) {
+    if (comptime util.IS_WINDOWS) {
         if (@as(u32, @intCast(src.len)) - i.* > 2) i.* += 2 else i.* = @intCast(src.len);
     } else {
         i.* = @min(@as(u32, @intCast(src.len)), i.* + 1);
@@ -202,16 +379,18 @@ const Line = struct {
 
 const GraphicalFormatter = @This();
 
-const IS_WINDOWS = builtin.target.os.tag == .windows;
-
 const std = @import("std");
 const builtin = @import("builtin");
 const util = @import("util");
+
 const assert = std.debug.assert;
 const Writer = std.fs.File.Writer; // TODO: use std.io.Writer?
 
+const GraphicalTheme = @import("GraphicalTheme.zig");
+
 const _source = @import("../../source.zig");
 const Span = _source.Span;
+const LabeledSpan = _source.LabeledSpan;
 const Location = _source.Location;
 const LocationSpan = _source.LocationSpan;
 

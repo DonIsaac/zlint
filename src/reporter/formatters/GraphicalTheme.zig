@@ -59,85 +59,94 @@ pub const ThemeStyles = struct {
     link: Chameleon,
     /// Style to apply to line numbers.
     linum: Chameleon,
+    emphasize: Chameleon,
     /// Styles to cycle through (using `.iter().cycle()`), to render the lines
     /// and text for diagnostic highlights.
-    highlights: []Chameleon,
+    highlights: []const Chameleon,
 
     /// Nice RGB colors.
     /// [Credit](http://terminal.sexy/#FRUV0NDQFRUVrEFCkKlZ9L91ap-1qnWfdbWq0NDQUFBQrEFCkKlZ9L91ap-1qnWfdbWq9fX1).
     pub fn rgb() ThemeStyles {
+        var c = Chameleon{};
         return .{
-            .err = Chameleon.rgb(255, 30, 30).createPreset(),
-            .warning = Chameleon.rgb(244, 191, 117).createPreset(),
-            .advice = Chameleon.rgb(106, 159, 181).createPreset(),
-            .help = Chameleon.rgb(106, 159, 181).createPreset(),
-            .link = Chameleon.rgb(92, 157, 255).underline().bold().createPreset(),
-            .linum = Chameleon.dim().createPreset(),
-            .highlights = []Chameleon{
-                Chameleon.rgb(246, 87, 248).createPreset(),
-                Chameleon.rgb(30, 201, 212).createPreset(),
-                Chameleon.rgb(145, 246, 111).createPreset(),
+            .err = c.rgb(255, 30, 30).createPreset(),
+            .warning = c.rgb(244, 191, 117).createPreset(),
+            .advice = c.rgb(106, 159, 181).createPreset(),
+            .help = c.rgb(106, 159, 181).createPreset(),
+            .link = c.rgb(92, 157, 255).underline().bold().createPreset(),
+            .linum = c.dim().createPreset(),
+            .emphasize = c.bold().createPreset(),
+            .highlights = &[_]Chameleon{
+                c.rgb(246, 87, 248).createPreset(),
+                c.rgb(30, 201, 212).createPreset(),
+                c.rgb(145, 246, 111).createPreset(),
             },
         };
     }
 
     /// ANSI color-based styles.
     pub fn ansi() ThemeStyles {
+        var c = Chameleon{};
         return .{
-            .err = Chameleon.red().createPreset(),
-            .warning = Chameleon.yellow().createPreset(),
-            .advice = Chameleon.cyan().createPreset(),
-            .help = Chameleon.cyan().createPreset(),
-            .link = Chameleon.cyan().underline().bold().createPreset(),
-            .linum = Chameleon.dim().createPreset(),
-            .highlights = []Chameleon{
-                Chameleon.magenta().bold().createPreset(),
-                Chameleon.yellow().bold().createPreset(),
-                Chameleon.green().bold().createPreset(),
+            .err = c.red().createPreset(),
+            .warning = c.yellow().createPreset(),
+            .advice = c.cyan().createPreset(),
+            .help = c.cyan().createPreset(),
+            .link = c.cyan().underline().bold().createPreset(),
+            .linum = c.dim().createPreset(),
+            .emphasize = c.bold().createPreset(),
+            .highlights = &[_]Chameleon{
+                c.magenta().bold().createPreset(),
+                c.yellow().bold().createPreset(),
+                c.green().bold().createPreset(),
             },
         };
     }
 
     pub fn none() ThemeStyles {
+        var c = Chameleon{};
         return .{
-            .err = Chameleon.createPreset(),
-            .warning = Chameleon.createPreset(),
-            .advice = Chameleon.createPreset(),
-            .help = Chameleon.createPreset(),
-            .link = Chameleon.createPreset(),
-            .linum = Chameleon.createPreset(),
-            .highlights = []Chameleon{Chameleon.createPreset()},
+            .err = c.createPreset(),
+            .warning = c.createPreset(),
+            .advice = c.createPreset(),
+            .help = c.createPreset(),
+            .link = c.createPreset(),
+            .linum = c.createPreset(),
+            .emphasize = c.createPreset(),
+            .highlights = &[_]Chameleon{c.createPreset()},
         };
     }
 };
 
-const char = u8;
+const char = []const u8;
 
 /// Copied from [miette's `ThemeCharacters`](https://github.com/zkat/miette/blob/5f441d011560a091fe5d6a6cdb05f09acf622d36/src/handlers/theme.rs#L197)
 pub const ThemeCharacters = struct {
-    hbar: char,
-    vbar: char,
-    xbar: char,
-    vbar_break: char,
+    hbar: char = undefined,
+    vbar: char = undefined,
+    xbar: char = undefined,
+    vbar_break: char = undefined,
 
-    uarrow: char,
-    rarrow: char,
+    uarrow: char = undefined,
+    rarrow: char = undefined,
 
-    ltop: char,
-    mtop: char,
-    rtop: char,
-    lbot: char,
-    rbot: char,
-    mbot: char,
+    ltop: char = undefined,
+    mtop: char = undefined,
+    rtop: char = undefined,
+    lbot: char = undefined,
+    rbot: char = undefined,
+    mbot: char = undefined,
 
-    lbox: char,
-    rbox: char,
+    /// e.g. `[`
+    lbox: char = undefined,
+    /// e.g. `]`
+    rbox: char = undefined,
 
-    lcross: char,
-    rcross: char,
+    lcross: char = undefined,
+    rcross: char = undefined,
 
-    underbar: char,
-    underline: char,
+    underbar: char = undefined,
+    underline: char = undefined,
 
     /// must be static
     err: []const u8,
@@ -149,24 +158,24 @@ pub const ThemeCharacters = struct {
     /// Fancy unicode-based graphical elements.
     pub fn unicode() ThemeCharacters {
         return .{
-            .hbar = '─',
-            .vbar = '│',
-            .xbar = '┼',
-            .vbar_break = '·',
-            .uarrow = '▲',
-            .rarrow = '▶',
-            .ltop = '╭',
-            .mtop = '┬',
-            .rtop = '╮',
-            .lbot = '╰',
-            .mbot = '┴',
-            .rbot = '╯',
-            .lbox = '[',
-            .rbox = ']',
-            .lcross = '├',
-            .rcross = '┤',
-            .underbar = '┬',
-            .underline = '─',
+            .hbar = "─",
+            .vbar = "│",
+            .xbar = "┼",
+            .vbar_break = "·",
+            .uarrow = "▲",
+            .rarrow = "▶",
+            .ltop = "╭",
+            .mtop = "┬",
+            .rtop = "╮",
+            .lbot = "╰",
+            .mbot = "┴",
+            .rbot = "╯",
+            .lbox = "[",
+            .rbox = "]",
+            .lcross = "├",
+            .rcross = "┤",
+            .underbar = "┬",
+            .underline = "─",
             .err = "×",
             .warning = "⚠",
             .advice = "☞",
@@ -176,24 +185,24 @@ pub const ThemeCharacters = struct {
     /// Emoji-heavy unicode characters.
     pub fn emoji() ThemeCharacters {
         return .{
-            .hbar = '─',
-            .vbar = '│',
-            .xbar = '┼',
-            .vbar_break = '·',
-            .uarrow = '▲',
-            .rarrow = '▶',
-            .ltop = '╭',
-            .mtop = '┬',
-            .rtop = '╮',
-            .lbot = '╰',
-            .mbot = '┴',
-            .rbot = '╯',
-            .lbox = '[',
-            .rbox = ']',
-            .lcross = '├',
-            .rcross = '┤',
-            .underbar = '┬',
-            .underline = '─',
+            .hbar = "─",
+            .vbar = "│",
+            .xbar = "┼",
+            .vbar_break = "·",
+            .uarrow = "▲",
+            .rarrow = "▶",
+            .ltop = "╭",
+            .mtop = "┬",
+            .rtop = "╮",
+            .lbot = "╰",
+            .mbot = "┴",
+            .rbot = "╯",
+            .lbox = "[",
+            .rbox = "]",
+            .lcross = "├",
+            .rcross = "┤",
+            .underbar = "┬",
+            .underline = "─",
             .err = "💥",
             .warning = "⚠️",
             .advice = "💡",
@@ -230,4 +239,5 @@ pub const ThemeCharacters = struct {
 
 const GraphicalTheme = @This();
 
-const Chameleon = @import("chameleon").ComptimeChameleon;
+pub const Chameleon = @import("chameleon").ComptimeChameleon;
+const std = @import("std");

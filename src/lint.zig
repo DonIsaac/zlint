@@ -8,6 +8,7 @@ const Arc = ptrs.Arc;
 const Error = @import("Error.zig");
 const Source = _source.Source;
 const Span = _source.Span;
+const LabeledSpan = _source.LabeledSpan;
 const Semantic = _semantic.Semantic;
 const SemanticBuilder = _semantic.SemanticBuilder;
 
@@ -63,16 +64,32 @@ pub const Context = struct {
 
     // ============================ ERROR REPORTING ============================
 
-    pub fn spanN(self: *const Context, node_id: Ast.Node.Index) Span {
+    pub fn spanN(self: *const Context, node_id: Ast.Node.Index) LabeledSpan {
         // TODO: inline
         const s = self.semantic.ast.nodeToSpan(node_id);
-        return .{ .start = s.start, .end = s.end };
+        return LabeledSpan.unlabeled(s.start, s.end);
     }
 
-    pub fn spanT(self: *const Context, token_id: Ast.Node.Index) Span {
+    pub fn spanT(self: *const Context, token_id: Ast.TokenIndex) LabeledSpan {
         // TODO: inline
         const s = self.semantic.ast.tokenToSpan(token_id);
-        return .{ .start = s.start, .end = s.end };
+        // return .{ .start = s.start, .end = s.end };
+        return LabeledSpan.unlabeled(s.start, s.end);
+    }
+
+    pub inline fn labelN(
+        self: *const Context,
+        node_id: Ast.Node.Index,
+        comptime fmt: []const u8,
+        args: anytype,
+    ) LabeledSpan {
+        const s = self.semantic.ast.nodeToSpan(node_id);
+        const label = std.fmt.allocPrint(self.gpa, fmt, args) catch @panic("OOM");
+        return LabeledSpan{
+            .span = .{ .start = s.start, .end = s.end },
+            .label = label,
+            .primary = false,
+        };
     }
 
     pub fn diagnosticAlloc(self: *Context, message: string, spans: anytype) void {
@@ -93,7 +110,7 @@ pub const Context = struct {
         return self._diagnostic(Error.newStatic(message), &spans);
     }
 
-    fn _diagnostic(self: *Context, err: Error, spans: []const Span) void {
+    fn _diagnostic(self: *Context, err: Error, spans: []const LabeledSpan) void {
         var e = err;
         const a = self.gpa;
         // var e = Error.newStatic(message);
@@ -102,7 +119,7 @@ pub const Context = struct {
         e.source = self.source.contents.clone();
 
         if (spans.len > 0) {
-            e.labels = a.dupe(Span, spans) catch @panic("OOM");
+            e.labels.appendSlice(a, spans) catch @panic("OOM");
         }
         // TODO: handle errors better
         self.errors.append(e) catch @panic("Cannot add new error: Out of memory");

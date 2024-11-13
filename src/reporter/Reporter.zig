@@ -1,6 +1,8 @@
+pub const FormatError = Writer.Error || std.mem.Allocator.Error;
+
 pub fn Reporter(
     Formatter: type,
-    FormatFn: fn (ctx: *Formatter, writer: *Writer, e: Error) Writer.Error!void,
+    FormatFn: fn (ctx: *Formatter, writer: *Writer, e: Error) FormatError!void,
 ) type {
     return struct {
         writer: Writer,

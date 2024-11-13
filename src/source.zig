@@ -54,18 +54,18 @@ pub const Source = struct {
 };
 
 pub const LocationSpan = struct {
-    span: Span,
+    span: LabeledSpan,
     location: Location,
 
-    pub fn fromSpan(contents: string, span: Span) LocationSpan {
-        const loc = Location.fromSpan(contents, span);
+    pub fn fromSpan(contents: string, span: LabeledSpan) LocationSpan {
+        const loc = Location.fromSpan(contents, span.span);
         return .{ .span = span, .location = loc };
     }
     pub inline fn start(self: LocationSpan) u32 {
-        return self.span.start;
+        return self.span.span.start;
     }
     pub inline fn end(self: LocationSpan) u32 {
-        return self.span.end;
+        return self.span.span.end;
     }
     pub inline fn line(self: LocationSpan) u32 {
         return self.location.line;
@@ -95,6 +95,18 @@ pub const Span = struct {
     pub inline fn snippet(self: Span, contents: string) string {
         assert(self.end >= self.start);
         return contents[self.start..self.end];
+    }
+};
+
+pub const LabeledSpan = struct {
+    span: Span,
+    label: ?string = null,
+    primary: bool = false,
+
+    pub inline fn unlabeled(start: u32, end: u32) LabeledSpan {
+        return .{
+            .span = .{ .start = start, .end = end },
+        };
     }
 };
 
