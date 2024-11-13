@@ -152,34 +152,52 @@
       "top", 
       
     ], 
-    "children": [
+    "bindings": {
+      "@This()": 0, 
+      "std": 1, 
+      "simpleWhile": 2, 
+      "whileWithClosure": 5, 
+      "whileWithExpr": 10, 
+      "rangeHasNumber": 14, 
+      
+    }, "children": [
       {
         "id": 1, 
         "flags": [
           
         ], 
-        "children": [
+        "bindings": {
+          
+        }, "children": [
           {
             "id": 2, 
             "flags": [
               "function", 
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 3, 
                 "flags": [
                   "block", 
                   
                 ], 
-                "children": [
+                "bindings": {
+                  "i": 3, 
+                  
+                }, "children": [
                   {
                     "id": 4, 
                     "flags": [
                       "block", 
                       
                     ], 
-                    "children": [], 
+                    "bindings": {
+                      "power_of_two": 4, 
+                      
+                    }, "children": [], 
                     
                   }, 
                 ], 
@@ -192,28 +210,40 @@
         "flags": [
           
         ], 
-        "children": [
+        "bindings": {
+          
+        }, "children": [
           {
             "id": 6, 
             "flags": [
               "function", 
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 7, 
                 "flags": [
                   "block", 
                   
                 ], 
-                "children": [
+                "bindings": {
+                  "map": 6, 
+                  "iter": 7, 
+                  
+                }, "children": [
                   {
                     "id": 8, 
                     "flags": [
                       "block", 
                       
                     ], 
-                    "children": [], 
+                    "bindings": {
+                      "k": 8, 
+                      "v": 9, 
+                      
+                    }, "children": [], 
                     
                   }, 
                 ], 
@@ -226,28 +256,38 @@
         "flags": [
           
         ], 
-        "children": [
+        "bindings": {
+          
+        }, "children": [
           {
             "id": 10, 
             "flags": [
               "function", 
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 11, 
                 "flags": [
                   "block", 
                   
                 ], 
-                "children": [
+                "bindings": {
+                  "x": 11, 
+                  "y": 12, 
+                  
+                }, "children": [
                   {
                     "id": 12, 
                     "flags": [
                       "block", 
                       
                     ], 
-                    "children": [], 
+                    "bindings": {
+                      
+                    }, "children": [], 
                     
                   }, {
                     "id": 13, 
@@ -255,7 +295,10 @@
                       "block", 
                       
                     ], 
-                    "children": [], 
+                    "bindings": {
+                      "my_xy": 13, 
+                      
+                    }, "children": [], 
                     
                   }, 
                 ], 
@@ -268,35 +311,46 @@
         "flags": [
           
         ], 
-        "children": [
+        "bindings": {
+          
+        }, "children": [
           {
             "id": 15, 
             "flags": [
               "function", 
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 16, 
                 "flags": [
                   "block", 
                   
                 ], 
-                "children": [
+                "bindings": {
+                  "i": 15, 
+                  
+                }, "children": [
                   {
                     "id": 17, 
                     "flags": [
                       "block", 
                       
                     ], 
-                    "children": [
+                    "bindings": {
+                      
+                    }, "children": [
                       {
                         "id": 18, 
                         "flags": [
                           "block", 
                           
                         ], 
-                        "children": [], 
+                        "bindings": {
+                          
+                        }, "children": [], 
                         
                       }, 
                     ], 

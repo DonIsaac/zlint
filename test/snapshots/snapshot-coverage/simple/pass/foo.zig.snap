@@ -80,34 +80,52 @@
       "top", 
       
     ], 
-    "children": [
+    "bindings": {
+      "@This()": 0, 
+      "std": 1, 
+      "bad": 2, 
+      "good": 3, 
+      "Foo": 4, 
+      
+    }, "children": [
       {
         "id": 1, 
         "flags": [
           "block", 
           
         ], 
-        "children": [
+        "bindings": {
+          "foo": 5, 
+          "Bar": 6, 
+          "baz": 7, 
+          
+        }, "children": [
           {
             "id": 2, 
             "flags": [
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 3, 
                 "flags": [
                   "function", 
                   
                 ], 
-                "children": [
+                "bindings": {
+                  
+                }, "children": [
                   {
                     "id": 4, 
                     "flags": [
                       "block", 
                       
                     ], 
-                    "children": [], 
+                    "bindings": {
+                      
+                    }, "children": [], 
                     
                   }, 
                 ], 

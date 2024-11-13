@@ -53,14 +53,23 @@
       "top", 
       
     ], 
-    "children": [
+    "bindings": {
+      "@This()": 0, 
+      "Foo": 1, 
+      
+    }, "children": [
       {
         "id": 1, 
         "flags": [
           "block", 
           
         ], 
-        "children": [], 
+        "bindings": {
+          "a": 2, 
+          "B": 3, 
+          "C": 4, 
+          
+        }, "children": [], 
         
       }, 
     ], 

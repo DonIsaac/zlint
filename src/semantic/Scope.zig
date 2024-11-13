@@ -58,7 +58,10 @@ pub const ScopeTree = struct {
     /// Mappings from scopes to their descendants.
     children: std.ArrayListUnmanaged(ScopeIdList) = .{},
 
+    bindings: std.ArrayListUnmanaged(SymbolIdList) = .{},
+
     const ScopeIdList = std.ArrayListUnmanaged(Scope.Id);
+    const SymbolIdList = std.ArrayListUnmanaged(Symbol.Id);
 
     /// Create a new scope and insert it into the scope tree.
     ///
@@ -69,10 +72,15 @@ pub const ScopeTree = struct {
         const id: Scope.Id = @intCast(self.scopes.len);
 
         // initialize the new scope
-        try self.scopes.append(alloc, Scope{ .id = id, .parent = parent, .flags = flags });
+        try self.scopes.append(alloc, Scope{
+            .id = id,
+            .parent = parent,
+            .flags = flags,
+        });
 
         // set up it's child list
         try self.children.append(alloc, .{});
+        try self.bindings.append(alloc, .{});
 
         // Add it to its parent's list of child scopes
         if (parent != null) {
@@ -85,6 +93,10 @@ pub const ScopeTree = struct {
         assert(self.scopes.len == self.children.items.len);
 
         return id;
+    }
+
+    pub fn addBinding(self: *ScopeTree, alloc: Allocator, scope_id: Scope.Id, symbol_id: Symbol.Id) Allocator.Error!void {
+        return self.bindings.items[scope_id].append(alloc, symbol_id);
     }
 
     pub fn deinit(self: *ScopeTree, alloc: Allocator) void {
@@ -100,6 +112,10 @@ pub const ScopeTree = struct {
             }
             self.children.deinit(alloc);
         }
+        for (0..self.bindings.items.len) |i| {
+            self.bindings.items[i].deinit(alloc);
+        }
+        self.bindings.deinit(alloc);
     }
 };
 
@@ -109,6 +125,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const Type = std.builtin.Type;
+const Symbol = @import("Symbol.zig");
 
 const string = @import("util").string;
 const assert = std.debug.assert;

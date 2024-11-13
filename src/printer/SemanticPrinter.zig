@@ -1,10 +1,12 @@
 printer: *Printer,
 semantic: *const Semantic,
+alloc: Allocator,
 
 pub fn new(printer: *Printer, semantic: *const Semantic) SemanticPrinter {
     return SemanticPrinter{
         .printer = printer,
         .semantic = semantic,
+        .alloc = semantic._gpa,
     };
 }
 
@@ -38,11 +40,18 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: 
 }
 
 pub fn printScopeTree(self: *SemanticPrinter) !void {
-    return self.printScope(&self.semantic.scopes.scopes.get(Semantic.ROOT_SCOPE_ID), &self.semantic.scopes);
+    return self.printScope(&self.semantic.scopes.scopes.get(Semantic.ROOT_SCOPE_ID));
 }
 
-fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope, scopes: *const Semantic.ScopeTree) !void {
+const StackAllocator = std.heap.StackFallbackAllocator(1024);
+fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
+    const scopes = &self.semantic.scopes;
+    const symbols = &self.semantic.symbols;
+    const bound_names = symbols.symbols.items(.name);
+    const debug_names = symbols.symbols.items(.debug_name);
+
     const p = self.printer;
+
     try p.pushObject();
     defer p.pop();
 
@@ -65,6 +74,21 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope, scopes: *con
     }
     try p.pIndent();
 
+    {
+        try p.pPropName("bindings");
+        try p.pushObject();
+        defer p.pop();
+        // var bindings = std.StringHashMap(Symbol.Id).init(fixed_alloc.get());
+        // defer bindings.deinit();
+        for (scopes.bindings.items[scope.id].items) |id| {
+            var name = bound_names[id];
+            if (name.len == 0) {
+                name = debug_names[id];
+            }
+            try p.pProp(name, "{d}", id);
+        }
+    }
+
     const children = &scopes.children.items[scope.id];
     if (children.items.len == 0) {
         try p.pPropName("children");
@@ -78,7 +102,7 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope, scopes: *con
     defer p.pop();
     for (children.items) |child_id| {
         const child = &scopes.scopes.get(child_id);
-        try self.printScope(child, scopes);
+        try self.printScope(child);
     }
 }
 
@@ -100,3 +124,4 @@ const Printer = @import("./Printer.zig");
 const _semantic = @import("../semantic.zig");
 const SemanticBuilder = _semantic.Builder;
 const Semantic = _semantic.Semantic;
+const Symbol = _semantic.Symbol;

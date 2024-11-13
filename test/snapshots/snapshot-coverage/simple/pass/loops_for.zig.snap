@@ -71,34 +71,50 @@
       "top", 
       
     ], 
-    "children": [
+    "bindings": {
+      "@This()": 0, 
+      "std": 1, 
+      "forOverArr": 2, 
+      "forWithMultiBindingClosure": 5, 
+      
+    }, "children": [
       {
         "id": 1, 
         "flags": [
           
         ], 
-        "children": [
+        "bindings": {
+          
+        }, "children": [
           {
             "id": 2, 
             "flags": [
               "function", 
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 3, 
                 "flags": [
                   "block", 
                   
                 ], 
-                "children": [
+                "bindings": {
+                  "arr": 3, 
+                  
+                }, "children": [
                   {
                     "id": 4, 
                     "flags": [
                       "block", 
                       
                     ], 
-                    "children": [], 
+                    "bindings": {
+                      "power_of_two": 4, 
+                      
+                    }, "children": [], 
                     
                   }, 
                 ], 
@@ -111,42 +127,55 @@
         "flags": [
           
         ], 
-        "children": [
+        "bindings": {
+          
+        }, "children": [
           {
             "id": 6, 
             "flags": [
               "function", 
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 7, 
                 "flags": [
                   "block", 
                   
                 ], 
-                "children": [
+                "bindings": {
+                  "mat4x4": 6, 
+                  
+                }, "children": [
                   {
                     "id": 8, 
                     "flags": [
                       "block", 
                       
                     ], 
-                    "children": [
+                    "bindings": {
+                      
+                    }, "children": [
                       {
                         "id": 9, 
                         "flags": [
                           "block", 
                           
                         ], 
-                        "children": [
+                        "bindings": {
+                          
+                        }, "children": [
                           {
                             "id": 10, 
                             "flags": [
                               "block", 
                               
                             ], 
-                            "children": [], 
+                            "bindings": {
+                              
+                            }, "children": [], 
                             
                           }, 
                         ], 

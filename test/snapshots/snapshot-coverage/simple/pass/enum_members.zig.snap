@@ -71,34 +71,51 @@
       "top", 
       
     ], 
-    "children": [
+    "bindings": {
+      "@This()": 0, 
+      "Foo": 1, 
+      
+    }, "children": [
       {
         "id": 1, 
         "flags": [
           "block", 
           
         ], 
-        "children": [
+        "bindings": {
+          "a": 2, 
+          "b": 3, 
+          "c": 4, 
+          "Bar": 5, 
+          "isNotA": 6, 
+          
+        }, "children": [
           {
             "id": 2, 
             "flags": [
               
             ], 
-            "children": [
+            "bindings": {
+              
+            }, "children": [
               {
                 "id": 3, 
                 "flags": [
                   "function", 
                   
                 ], 
-                "children": [
+                "bindings": {
+                  
+                }, "children": [
                   {
                     "id": 4, 
                     "flags": [
                       "block", 
                       
                     ], 
-                    "children": [], 
+                    "bindings": {
+                      
+                    }, "children": [], 
                     
                   }, 
                 ], 
