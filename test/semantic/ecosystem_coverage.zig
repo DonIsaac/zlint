@@ -41,7 +41,7 @@ fn testSemantic(alloc: Allocator, source: *const Source) !void {
         const p = source.pathname orelse "<missing>";
         print("ecosystem coverage: {s}\n", .{p});
     }
-    var res = try zlint.semantic.SemanticBuilder.build(alloc, source.contents);
+    var res = try zlint.semantic.SemanticBuilder.build(alloc, source.text());
     defer res.deinit();
     if (res.hasErrors()) return SemanticError.analysis_failed;
 }

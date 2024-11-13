@@ -13,7 +13,7 @@ zig-out
 *.swo
 .idea
 
-# temp files
+# temp & backup files
 tmp/
 .tmp/
 temp/
