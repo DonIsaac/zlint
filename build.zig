@@ -80,13 +80,6 @@ pub fn build(b: *std.Build) void {
     unit.installLibraryHeaders(libsp);
     b.installArtifact(unit);
 
-    const style_tests = b.addTest(.{
-        .root_source_file = b.path("src/reporter/formatters/Style.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    style_tests.root_module.addImport("util", util);
-
     // steps
 
     const run_exe = b.addRunArtifact(exe);
@@ -99,7 +92,6 @@ pub fn build(b: *std.Build) void {
     const run_tests = b.addRunArtifact(unit);
     const unit_step = b.step("test", "Run unit tests");
     unit_step.dependOn(&run_tests.step);
-    unit_step.dependOn(&style_tests.step);
 
     const run_e2e = b.addRunArtifact(e2e);
     const e2e_step = b.step("test-e2e", "Run e2e tests");
@@ -117,11 +109,10 @@ pub fn build(b: *std.Build) void {
         const check_lib = b.addStaticLibrary(.{ .name = "zlint", .root_source_file = b.path("src/root.zig"), .target = target, .optimize = optimize });
         const check_unit = b.addTest(.{ .root_source_file = b.path("src/root.zig") });
         const check_e2e = b.addExecutable(.{ .name = "test-e2e", .root_source_file = b.path("test/test_e2e.zig"), .target = target });
-        const check_styles = b.addTest(.{ .root_source_file = b.path("src/reporter/formatters/Style.zig"), .target = target, .optimize = optimize });
         check_e2e.root_module.addImport("zlint", zlint);
 
         const check = b.step("check", "Check for semantic errors");
-        inline for (.{ check_exe, check_lib, check_unit, check_e2e, check_styles }) |c| {
+        inline for (.{ check_exe, check_lib, check_unit, check_e2e }) |c| {
             c.root_module.addImport("util", util);
             c.root_module.addImport("smart-pointers", modsp);
             c.root_module.addImport("chameleon", modcham);
