@@ -82,6 +82,13 @@ clean:
         zig-out/bin zig-out/lib \
         .coverage
 
+new-rule name:
+    if which bun > /dev/null; then \
+        bun tasks/new-rule.ts {{name}}; \
+    else \
+        echo "Please install bun to use this command."; \
+    fi
+
 # Clear the screen, then run `zig build {{cmd}}`. Used by `just watch`.
 clear-run cmd:
     @clear
