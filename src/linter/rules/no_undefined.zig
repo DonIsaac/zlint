@@ -9,8 +9,6 @@ const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
 
-const print = std.debug.print;
-
 pub const NoUndefined = struct {
     pub const Name = "no-undefined";
 
@@ -25,7 +23,6 @@ pub const NoUndefined = struct {
     }
 
     pub fn rule(self: *NoUndefined) Rule {
-        // const r: *anyopaque = self;
         return Rule.init(self);
     }
 };
