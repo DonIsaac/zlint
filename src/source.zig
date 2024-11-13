@@ -54,18 +54,30 @@ pub const Source = struct {
 };
 
 pub const LocationSpan = struct {
-    span: Span,
+    span: LabeledSpan,
     location: Location,
 
-    pub fn fromSpan(contents: string, span: Span) LocationSpan {
-        const loc = Location.fromSpan(contents, span);
-        return .{ .span = span, .location = loc };
+    pub fn fromSpan(contents: string, span: anytype) LocationSpan {
+        const labeled_span: LabeledSpan, const loc: Location = brk: {
+            switch (@TypeOf(span)) {
+                Span => {
+                    const labeled = .{ .span = span };
+                    break :brk .{ labeled, Location.fromSpan(contents, span) };
+                },
+                LabeledSpan => {
+                    break :brk .{ span, Location.fromSpan(contents, span.span) };
+                },
+                else => @panic("`span` must be a Span or LabeledSpan"),
+            }
+        };
+        // const loc = Location.fromSpan(contents, span.span);
+        return .{ .span = labeled_span, .location = loc };
     }
     pub inline fn start(self: LocationSpan) u32 {
-        return self.span.start;
+        return self.span.span.start;
     }
     pub inline fn end(self: LocationSpan) u32 {
-        return self.span.end;
+        return self.span.span.end;
     }
     pub inline fn line(self: LocationSpan) u32 {
         return self.location.line;
@@ -81,6 +93,33 @@ pub const LocationSpan = struct {
 pub const Span = struct {
     start: u32,
     end: u32,
+
+    pub inline fn new(start: u32, end: u32) Span {
+        assert(end >= start);
+        return .{ .start = start, .end = end };
+    }
+
+    pub inline fn len(self: Span) u32 {
+        assert(self.end >= self.start);
+        return self.end - self.start;
+    }
+
+    pub inline fn snippet(self: Span, contents: string) string {
+        assert(self.end >= self.start);
+        return contents[self.start..self.end];
+    }
+};
+
+pub const LabeledSpan = struct {
+    span: Span,
+    label: ?string = null,
+    primary: bool = false,
+
+    pub inline fn unlabeled(start: u32, end: u32) LabeledSpan {
+        return .{
+            .span = .{ .start = start, .end = end },
+        };
+    }
 };
 
 pub const Location = struct {

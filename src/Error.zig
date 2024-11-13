@@ -10,15 +10,13 @@ code: []const u8 = "",
 message: PossiblyStaticStr,
 severity: Severity = .err,
 /// Text ranges over problematic parts of the source code.
-labels: []Span = NO_SPANS,
+labels: std.ArrayListUnmanaged(LabeledSpan) = .{},
+// labels: []LabeledSpan = NO_SPANS,
 /// Name of the file being linted.
 source_name: ?string = null,
 source: ?ArcStr = null,
 /// Optional help text. This will go under the code snippet.
 help: ?string = null,
-
-const NO_SPANS_ARR = [0]Span{};
-const NO_SPANS: []Span = NO_SPANS_ARR[0..0];
 
 // Although this is not [:0]const u8, it should not be mutated. Needs to be mut
 // for Arc dealloc reasons.
@@ -56,7 +54,7 @@ pub fn deinit(self: *Error, alloc: std.mem.Allocator) void {
     if (self.help != null) alloc.free(self.help.?);
     if (self.source_name != null) alloc.free(self.source_name.?);
     if (self.source != null) self.source.?.deinit();
-    if (self.labels.ptr != NO_SPANS.ptr) alloc.free(self.labels);
+    self.labels.deinit(alloc);
 }
 
 /// Severity level for issues found by lint rules.
@@ -65,9 +63,10 @@ pub fn deinit(self: *Error, alloc: std.mem.Allocator) void {
 /// - Errors cause a non-zero exit code. They are highlighted in red.
 /// - Warnings do not affect exit code and are yellow.
 /// - Off skips the rule entirely.
-const Severity = enum {
+pub const Severity = enum {
     err,
     warning,
+    notice,
     off,
 };
 
@@ -154,9 +153,13 @@ const Error = @This();
 
 const std = @import("std");
 const ptrs = @import("smart-pointers");
+const util = @import("util");
+const _src = @import("source.zig");
 
 const Allocator = std.mem.Allocator;
 const Arc = ptrs.Arc;
-const Span = @import("source.zig").Span;
-const string = @import("util").string;
-const Source = @import("source.zig").Source;
+const string = util.string;
+
+const Source = _src.Source;
+const Span = _src.Span;
+const LabeledSpan = _src.LabeledSpan;
