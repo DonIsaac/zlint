@@ -31,4 +31,4 @@ jobs:
         with:
           bun-version: latest
       - name: Oxlint
-        run: bunx oxlint@latest --format github 
+        run: bunx oxlint@latest --format github  -D correctness -D suspicious -D perf

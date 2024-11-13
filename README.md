@@ -1,6 +1,7 @@
 # ZLint
 
 [![codecov](https://codecov.io/gh/DonIsaac/zlint/graph/badge.svg?token=5bDT3yGZt8)](https://codecov.io/gh/DonIsaac/zlint)
+[![CI](https://github.com/DonIsaac/zlint/actions/workflows/ci.yaml/badge.svg)](https://github.com/DonIsaac/zlint/actions/workflows/ci.yaml)
 
 An opinionated linter for the Zig programming language.
 
