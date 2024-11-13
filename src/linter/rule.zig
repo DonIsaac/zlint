@@ -1,11 +1,10 @@
 const std = @import("std");
-const linter = @import("lint.zig");
 
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 
 const string = @import("util").string;
-const LinterContext = linter.Context;
+const LinterContext = @import("lint_context.zig");
 
 pub const NodeWrapper = struct {
     node: *const Ast.Node,

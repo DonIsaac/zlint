@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const lint = @import("lint.zig");
+const lint = @import("linter.zig");
 const util = @import("util");
 const Source = @import("source.zig").Source;
 const semantic = @import("semantic.zig");
