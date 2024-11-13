@@ -115,6 +115,7 @@ pub const ScopeTree = struct {
         for (0..self.bindings.items.len) |i| {
             self.bindings.items[i].deinit(alloc);
         }
+        self.bindings.deinit(alloc);
     }
 };
 
