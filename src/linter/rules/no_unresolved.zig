@@ -55,7 +55,7 @@ pub const NoUnresolved = struct {
             // note: pathname null check performed at start of function
             const dirname = path.dirname(ctx.source.pathname.?) orelse return;
             // FIXME: do not use fs.cwd(). this will break once users start
-            // specifing paths to lint. We should be recording an absolute path
+            // specifying paths to lint. We should be recording an absolute path
             // for each linted file.
             const dir = fs.cwd().openDir(dirname, .{}) catch std.debug.panic("Failed to open dir: {s}", .{dirname});
             const stat = dir.statFile(pathname) catch {
