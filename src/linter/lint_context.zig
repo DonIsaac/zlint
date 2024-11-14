@@ -62,9 +62,17 @@ pub inline fn labelN(
     };
 }
 
-pub fn diagnosticAlloc(self: *Context, message: string, spans: anytype) void {
+pub fn diagnosticFmt(
+    self: *Context,
+    comptime message: string,
+    args: anytype,
+    spans: anytype,
+) void {
     // TODO: inline
-    return self._diagnostic(Error.new(message), &spans);
+    return self._diagnostic(
+        Error.fmt(self.gpa, message, args) catch @panic("Failed to create error message: Out of memory"),
+        &spans,
+    );
 }
 
 /// Report a Rule violation.
@@ -72,7 +80,7 @@ pub fn diagnosticAlloc(self: *Context, message: string, spans: anytype) void {
 /// Takes a short summary of the problem (a static string) and a set of
 /// [`Span`]s (anything that can be coerced into `[]const Span`)highlighting
 /// the problematic code. If you need to allocate memory for your `message`, use
-/// `diagnosticAlloc`.
+/// `diagnosticFmt`.
 ///
 /// ## Example
 /// ```zig
@@ -97,7 +105,6 @@ pub fn diagnostic(self: *Context, message: string, spans: anytype) void {
 fn _diagnostic(self: *Context, err: Error, spans: []const LabeledSpan) void {
     var e = err;
     const a = self.gpa;
-    // var e = Error.newStatic(message);
     e.code = self.curr_rule_name;
     e.source_name = if (self.source.pathname) |p| a.dupe(u8, p) catch @panic("OOM") else null;
     e.source = self.source.contents.clone();
