@@ -27,19 +27,25 @@ pub fn main() !void {
 
     defer _ = gpa.deinit();
     const alloc = gpa.allocator();
+    var stack = std.heap.stackFallback(16, alloc);
+    const stack_alloc = stack.get();
 
-    const opts = Options.parseArgv();
-
-    // While under development, I'm unconditionally linting fixtures/foo.zig.
-    // I'll add file walking later.
-    print("opening top_level_struct.zig\n", .{});
-    const file = try fs.cwd().openFile("test/fixtures/simple/pass/top_level_struct.zig", .{});
-    var source = try Source.init(alloc, file, null);
-    defer source.deinit();
+    var opts = Options.parseArgv(stack_alloc);
+    defer opts.deinit(stack_alloc);
 
     if (opts.print_ast) {
-        @panic("todo: re-enable print command");
-        // return print_cmd.parseAndPrint(alloc, opts, source);
+        if (opts.args.items.len == 0) {
+            print("No files to print\nUsage: zlint --print-ast [filename]", .{});
+            std.process.exit(1);
+        }
+
+        const relative_path = opts.args.items[0];
+        print("Printing AST for {s}\n", .{relative_path});
+        const file = try fs.cwd().openFile(relative_path, .{});
+        errdefer file.close();
+        var source = try Source.init(alloc, file, null);
+        defer source.deinit();
+        return print_cmd.parseAndPrint(alloc, opts, source);
     }
 
     try lint_cmd.lint(alloc, opts);
