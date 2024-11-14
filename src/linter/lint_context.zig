@@ -71,10 +71,24 @@ pub fn diagnosticAlloc(self: *Context, message: string, spans: anytype) void {
 ///
 /// Takes a short summary of the problem (a static string) and a set of
 /// [`Span`]s (anything that can be coerced into `[]const Span`)highlighting
-/// the problematic code. `spans` should not be empty (they _can_ be, but
-/// this is not user-friendly.).
+/// the problematic code. If you need to allocate memory for your `message`, use
+/// `diagnosticAlloc`.
 ///
-/// `spans` is anytype for more flexible coercion into a `[]const Span`
+/// ## Example
+/// ```zig
+/// const MyRule = struct {
+///   pub fn runOnNode(_: *const MyRule, wrapper: NodeWrapper, ctx: *LinterContext) void {
+///     // check for a rule violation..
+///     ctx.diagnostic("This is a problem", .{ctx.spanN(wrapper.idx)});
+///   }
+/// };
+/// ```
+///
+/// ### Notes
+///
+/// - `spans` should not be empty (they _can_ be, but
+///   this is not user-friendly.).
+/// - `spans` is anytype for more flexible coercion into a `[]const Span`
 pub fn diagnostic(self: *Context, message: string, spans: anytype) void {
     // TODO: inline
     return self._diagnostic(Error.newStatic(message), &spans);

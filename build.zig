@@ -118,5 +118,28 @@ pub fn build(b: *std.Build) void {
             c.root_module.addImport("chameleon", modcham);
             check.dependOn(&c.step);
         }
+
+        const rules_path = "src/linter/rules";
+        const rules_dir = b.path(rules_path);
+        var rules = std.fs.openDirAbsolute(rules_dir.getPath(b), .{ .iterate = true }) catch |e| {
+            std.debug.panic("Failed to open rules directory: {any}", .{e});
+        };
+        defer rules.close();
+        var rules_walker = rules.walk(b.allocator) catch @panic("Failed to create rules walker");
+        var stack_fallback = std.heap.stackFallback(512, b.allocator);
+        const stack_alloc = stack_fallback.get();
+        while (true) {
+            const rule = rules_walker.next() catch continue orelse break;
+            const full_path = std.fs.path.join(stack_alloc, &[_][]const u8{ rules_path, rule.path }) catch @panic("OOM");
+            defer stack_alloc.free(full_path);
+            var fake_rule_tests = b.addTest(.{
+                .root_source_file = .{ .cwd_relative = full_path },
+                .optimize = optimize,
+                .target = target,
+            });
+            check.dependOn(&fake_rule_tests.step);
+        }
+        // for (rules.w)
+        // rules.
     }
 }
