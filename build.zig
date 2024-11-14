@@ -3,8 +3,6 @@ const Build = std.Build;
 const Module = std.Build.Module;
 
 pub fn build(b: *std.Build) void {
-    const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
     // default to -freference-trace, but respect -fnoreference-trace
     if (b.reference_trace == null) {
         b.reference_trace = 256;
@@ -13,71 +11,56 @@ pub fn build(b: *std.Build) void {
     // cli options
     const single_threaded = b.option(bool, "single-threaded", "Build a single-threaded executable");
 
+    var l = Linker.init(b);
+    defer l.deinit();
+
     // dependencies
-    const cham = b.dependency("chameleon", .{});
-    const modcham = cham.module("chameleon");
-    const sp = b.dependency("smart-pointers", .{ .target = target, .optimize = optimize });
-    const libsp = sp.artifact("smart-pointers");
-    const modsp = sp.module("smart-pointers");
+    l.dependency("chameleon", .{});
+    l.dependency("smart-pointers", .{});
 
     // modules
-    const util = b.createModule(.{
+    l.createModule("util", .{
         .root_source_file = b.path("src/util.zig"),
-        .single_threaded = single_threaded,
-        .target = target,
-        .optimize = optimize,
     });
+
     const zlint = b.addModule("zlint", .{
         .root_source_file = b.path("src/root.zig"),
         .single_threaded = single_threaded,
-        .target = target,
-        .optimize = optimize,
+        .target = l.target,
+        .optimize = l.optimize,
     });
-    zlint.addImport("util", util);
-    zlint.addImport("smart-pointers", modsp);
+    l.link(zlint, .{});
 
     // artifacts
     const exe = b.addExecutable(.{
         .name = "zlint",
         .root_source_file = b.path("src/main.zig"),
         .single_threaded = single_threaded,
-        .target = target,
-        .optimize = optimize,
+        .target = l.target,
+        .optimize = l.optimize,
     });
-    exe.root_module.addImport("util", util);
-    exe.root_module.addImport("smart-pointers", modsp);
-    exe.root_module.addImport("chameleon", modcham);
-    exe.linkLibrary(libsp);
-    exe.installLibraryHeaders(libsp);
+    l.link(&exe.root_module, .{});
     b.installArtifact(exe);
 
     const e2e = b.addExecutable(.{
         .name = "test-e2e",
         .root_source_file = b.path("test/test_e2e.zig"),
         .single_threaded = single_threaded,
-        .target = target,
-        .optimize = optimize,
+        .target = l.target,
+        .optimize = l.optimize,
     });
-    // util omitted
+    // util and chameleon omitted
+    l.link(&e2e.root_module, .{"smart-pointers"});
     e2e.root_module.addImport("zlint", zlint);
-    e2e.root_module.addImport("smart-pointers", modsp);
-    e2e.root_module.addImport("chameleon", modcham);
-    e2e.linkLibrary(libsp);
-    e2e.installLibraryHeaders(libsp);
     b.installArtifact(e2e);
 
     const unit = b.addTest(.{
         .root_source_file = b.path("src/main.zig"),
         .single_threaded = single_threaded,
-        .target = target,
-        .optimize = optimize,
+        .target = l.target,
+        .optimize = l.optimize,
     });
-    unit.root_module.addImport("util", util);
-    unit.root_module.addImport("zlint", zlint);
-    unit.root_module.addImport("smart-pointers", modsp);
-    unit.root_module.addImport("chameleon", modcham);
-    unit.linkLibrary(libsp);
-    unit.installLibraryHeaders(libsp);
+    l.link(&unit.root_module, .{});
     b.installArtifact(unit);
 
     // steps
@@ -104,20 +87,18 @@ pub fn build(b: *std.Build) void {
     // check is down here because it's weird. We create mocks of each artifacts
     // that never get installed. This (allegedly) skips llvm emit.
     {
-        const check_exe = b.addExecutable(.{ .name = "zlint", .root_source_file = b.path("src/main.zig"), .target = target });
+        const check_exe = b.addExecutable(.{ .name = "zlint", .root_source_file = b.path("src/main.zig"), .target = l.target });
         // mock library so zlint module is checked
-        const check_lib = b.addStaticLibrary(.{ .name = "zlint", .root_source_file = b.path("src/root.zig"), .target = target, .optimize = optimize });
+        const check_lib = b.addStaticLibrary(.{ .name = "zlint", .root_source_file = b.path("src/root.zig"), .target = l.target, .optimize = l.optimize });
         const check_test_lib = b.addTest(.{ .root_source_file = b.path("src/root.zig") });
         const check_test_exe = b.addTest(.{ .root_source_file = b.path("src/main.zig") });
-        const check_e2e = b.addExecutable(.{ .name = "test-e2e", .root_source_file = b.path("test/test_e2e.zig"), .target = target });
+        const check_e2e = b.addExecutable(.{ .name = "test-e2e", .root_source_file = b.path("test/test_e2e.zig"), .target = l.target });
         check_e2e.root_module.addImport("zlint", zlint);
 
         const check = b.step("check", "Check for semantic errors");
         const substeps = .{ check_exe, check_lib, check_test_lib, check_test_exe, check_e2e };
         inline for (substeps) |c| {
-            c.root_module.addImport("util", util);
-            c.root_module.addImport("smart-pointers", modsp);
-            c.root_module.addImport("chameleon", modcham);
+            l.link(&c.root_module, .{});
             check.dependOn(&c.step);
         }
 
@@ -143,3 +124,66 @@ pub fn build(b: *std.Build) void {
         // }
     }
 }
+
+/// Stores modules and dependencies. Use `link` to register them as imports.
+const Linker = struct {
+    b: *Build,
+    target: Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    dependencies: std.StringHashMapUnmanaged(*Build.Dependency) = .{},
+    modules: std.StringHashMapUnmanaged(*Module) = .{},
+
+    fn init(b: *Build) Linker {
+        return Linker{
+            .b = b,
+            .target = b.standardTargetOptions(.{}),
+            .optimize = b.standardOptimizeOption(.{}),
+        };
+    }
+
+    fn dependency(self: *Linker, comptime name: []const u8, options: anytype) void {
+        const dep = self.b.dependency(name, options);
+        self.dependencies.put(self.b.allocator, name, dep) catch @panic("OOM");
+        self.modules.put(self.b.allocator, name, dep.module(name)) catch @panic("OOM");
+    }
+
+    fn addModule(self: *Linker, comptime name: []const u8, options: Module.CreateOptions) void {
+        var opts = options;
+        opts.target = opts.target orelse self.target;
+        opts.optimize = opts.optimize orelse self.optimize;
+        const mod = self.b.addModule(name, opts);
+        self.modules.put(self.b.allocator, name, mod) catch @panic("OOM");
+    }
+
+    fn createModule(self: *Linker, comptime name: []const u8, options: Module.CreateOptions) void {
+        var opts = options;
+        opts.target = opts.target orelse self.target;
+        opts.optimize = opts.optimize orelse self.optimize;
+        const mod = self.b.createModule(opts);
+        self.modules.put(self.b.allocator, name, mod) catch @panic("OOM");
+    }
+
+    /// Link a set of modules as imports. When `imports` is empty, all modules
+    /// are linked.
+    fn link(self: *Linker, mod: *Module, comptime imports: anytype) void {
+        if (imports.len == 0) {
+            var it = self.modules.iterator();
+            while (it.next()) |ent| {
+                const name = ent.key_ptr.*;
+                const dep = ent.value_ptr.*;
+                if (mod == dep) continue;
+                mod.addImport(name, dep);
+            }
+        }
+
+        inline for (imports) |import| {
+            const dep = self.modules.get(import) orelse @panic("Missing module: " ++ import);
+            mod.addImport(import, dep);
+        }
+    }
+
+    fn deinit(self: *Linker) void {
+        self.dependencies.deinit(self.b.allocator);
+        self.modules.deinit(self.b.allocator);
+    }
+};
