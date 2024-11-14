@@ -27,8 +27,6 @@ const string = @import("util").string;
 
 // rules
 const rules = @import("./linter/rules.zig");
-// const NoUndefined = @import("linter/rules/no_undefined.zig").NoUndefined;
-// const NoUnresolved = @import("linter/rules/no_unresolved.zig").NoUnresolved;
 
 pub const Linter = struct {
     rules: std.ArrayList(Rule),
