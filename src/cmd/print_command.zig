@@ -28,7 +28,9 @@ const IS_DEBUG = builtin.mode == .Debug;
 const NULL_NODE_ID: NodeId = 0;
 
 pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source) !void {
-    var sema_result = try semantic.SemanticBuilder.build(alloc, source.text());
+    var builder = semantic.SemanticBuilder.init(alloc);
+    defer builder.deinit();
+    var sema_result = try builder.build(source.text());
     defer sema_result.deinit();
     if (sema_result.hasErrors()) {
         for (sema_result.errors.items) |err| {

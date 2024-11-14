@@ -12,10 +12,9 @@ const AstPrinter = zlint.printer.AstPrinter;
 const SemanticPrinter = zlint.printer.SemanticPrinter;
 
 const Error = error{
-// lb
-analysis_failed, // Parsing or semantic analysis failed.
-source_missing_filename // The walker produced a source without a filename.
-};
+    // The walker produced a source without a filename.
+    SourceMissingFilename,
+} || zlint.semantic.SemanticBuilder.SemanticError || Allocator.Error;
 
 fn run(alloc: Allocator) !void {
     var pass_fixtures = try std.fs.cwd().openDir("test/fixtures/simple/pass", .{ .iterate = true });
@@ -26,16 +25,18 @@ fn run(alloc: Allocator) !void {
 
 fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     // run analysis
-    var semantic_result = try zlint.semantic.SemanticBuilder.build(alloc, source.text());
+    var builder = zlint.semantic.SemanticBuilder.init(alloc);
+    defer builder.deinit();
+    var semantic_result = try builder.build(source.text());
     defer semantic_result.deinit();
     if (semantic_result.hasErrors()) {
-        return Error.analysis_failed;
+        return error.AnalysisFailed;
     }
     const semantic = semantic_result.value;
 
     // open (and maybe create) source-local snapshot file
     if (source.pathname == null) {
-        return Error.source_missing_filename;
+        return Error.SourceMissingFilename;
     }
     const source_name = try alloc.allocSentinel(u8, source.pathname.?.len, 0);
     defer alloc.free(source_name);

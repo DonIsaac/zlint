@@ -14,6 +14,7 @@ const GraphicalReporter = _report.GraphicalReporter;
 const Source = _source.Source;
 const Thread = std.Thread;
 const WalkState = walk.WalkState;
+const Error = @import("../Error.zig");
 
 const Linter = _lint.Linter;
 const Options = @import("../cli/Options.zig");
@@ -87,8 +88,9 @@ const LintVisitor = struct {
     }
 
     fn lintFile(self: *LintVisitor, filepath: []u8) void {
-        self.lintFileImpl(filepath) catch |e| {
-            log.err("Failed to lint file '{s}': {any}\n", .{ filepath, e });
+        self.lintFileImpl(filepath) catch |e| switch (e) {
+            error.OutOfMemory => @panic("Out of memory"),
+            else => {},
         };
     }
 
@@ -100,9 +102,10 @@ const LintVisitor = struct {
 
         var source = try Source.init(self.allocator, file, filepath);
         defer source.deinit();
+        var errors: ?std.ArrayList(Error) = null;
+        defer if (errors) |e| self.reporter.reportErrors(e);
 
-        const errors = try self.linter.runOnSource(&source);
-        self.reporter.reportErrors(errors);
+        try self.linter.runOnSource(&source, &errors);
         // defer errors.deinit();
         // for (errors.items) |err| {
         //     log.err("{s}\n", .{err.message});

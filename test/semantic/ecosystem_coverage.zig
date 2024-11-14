@@ -18,6 +18,8 @@ const REPOS_DIR = "zig-out/repos";
 
 var repos: std.json.Parsed([]Repo) = undefined;
 
+const SemanticError = zlint.semantic.SemanticBuilder.SemanticError;
+
 pub fn globalSetup(alloc: Allocator) !void {
     var repos_dir_fd = fs.cwd().openDir(REPOS_DIR, .{}) catch |e| {
         switch (e) {
@@ -41,9 +43,11 @@ fn testSemantic(alloc: Allocator, source: *const Source) !void {
         const p = source.pathname orelse "<missing>";
         print("ecosystem coverage: {s}\n", .{p});
     }
-    var res = try zlint.semantic.SemanticBuilder.build(alloc, source.text());
+    var builder = zlint.semantic.SemanticBuilder.init(alloc);
+    defer builder.deinit();
+    var res = try builder.build(source.text());
     defer res.deinit();
-    if (res.hasErrors()) return SemanticError.analysis_failed;
+    if (res.hasErrors()) return error.AnalysisFailed;
 }
 
 // const fns: test_runner.TestSuite.TestSuiteFns = .{
@@ -61,10 +65,6 @@ pub fn run(alloc: Allocator) !void {
         try suite.run();
     }
 }
-
-pub const SemanticError = error{
-    analysis_failed,
-};
 
 pub const SUITE = test_runner.TestFile{
     .name = "semantic_coverage",

@@ -107,27 +107,30 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
             try self.alloc.dupe(u8, self.filename),
         );
         defer source.deinit();
-
-        const pass_errors = self.linter.runOnSource(&source) catch |e| switch (e) {
+        var pass_errors: ?std.ArrayList(Error) = null;
+        self.linter.runOnSource(&source, &pass_errors) catch |e| switch (e) {
             error.OutOfMemory => return Allocator.Error.OutOfMemory,
             else => {
                 self.diagnostic.message = BooStr.fmt(
                     self.alloc,
-                    "Rule.runOnSource on rule '{s}' panicked with error: {s}",
-                    .{ self.rule.name, @errorName(e) },
+                    "Expected test case #{d} to pass:\n\n{s}\n\nError: {s}\n",
+                    .{ i + 1, self.rule.name, @errorName(e) },
                 ) catch @panic("OOM");
                 return LintTesterError.PassFailed;
             },
         };
-        defer pass_errors.deinit();
-        try self.errors.appendSlice(self.alloc, pass_errors.items);
-        if (pass_errors.items.len > 0) {
-            self.diagnostic.message = BooStr.fmt(
-                self.alloc,
-                "Expected test case #{d} to pass:\n\n{s}",
-                .{ i + 1, src },
-            ) catch @panic("OOM");
-            return LintTesterError.PassFailed;
+
+        if (pass_errors) |errors| {
+            defer errors.deinit();
+            try self.errors.appendSlice(self.alloc, errors.items);
+            if (errors.items.len > 0) {
+                self.diagnostic.message = BooStr.fmt(
+                    self.alloc,
+                    "Expected test case #{d} to pass:\n\n{s}",
+                    .{ i + 1, src },
+                ) catch @panic("OOM");
+                return LintTesterError.PassFailed;
+            }
         }
     }
 
@@ -142,20 +145,19 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
             try self.alloc.dupe(u8, self.filename),
         );
         defer source.deinit();
-        const fail_errors = self.linter.runOnSource(&source) catch |e| switch (e) {
+        var fail_errors: ?std.ArrayList(Error) = null;
+        defer if (fail_errors) |e| {
+            self.errors.appendSlice(self.alloc, e.items) catch @panic("OOM");
+            e.deinit();
+        };
+        self.linter.runOnSource(&source, &fail_errors) catch |e| switch (e) {
             error.OutOfMemory => return Allocator.Error.OutOfMemory,
             else => {
-                self.diagnostic.message = BooStr.fmt(
-                    self.alloc,
-                    "Rule.runOnSource on rule '{s}' panicked with error: {s}",
-                    .{ self.rule.name, @errorName(e) },
-                ) catch @panic("OOM");
-                return LintTesterError.FailPassed;
+                // A fail case did, in fact, fail? Good.
+                continue;
             },
         };
-        defer fail_errors.deinit();
-        try self.errors.appendSlice(self.alloc, fail_errors.items);
-        if (fail_errors.items.len == 0) {
+        if (fail_errors == null or fail_errors.?.items.len == 0) {
             self.diagnostic.message = BooStr.fmt(
                 self.alloc,
                 "Expected test case #{d} to fail:\n\n{s}",
