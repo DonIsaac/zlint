@@ -33,10 +33,9 @@ pub const NoUnresolved = struct {
         const tags: []Ast.Node.Tag = ctx.ast().nodes.items(.tag);
         const main_tokens = ctx.ast().nodes.items(.main_token);
 
-        // importing with a constant or something. Skip analysis. Maybe in the
-        // future we'll resolve references, but Semantic doesn't support that at
-        // the time of writing this rule.
+        // Note: this will get caught by ast check
         if (tags[node.data.lhs] != .string_literal) {
+            ctx.diagnostic("@import operand must be a string literal", .{ctx.spanN(node.data.lhs)});
             return;
         }
         const pathname_str = ctx.ast().tokenSlice(main_tokens[node.data.lhs]);
@@ -59,15 +58,17 @@ pub const NoUnresolved = struct {
             // for each linted file.
             const dir = fs.cwd().openDir(dirname, .{}) catch std.debug.panic("Failed to open dir: {s}", .{dirname});
             const stat = dir.statFile(pathname) catch {
-                ctx.diagnosticAlloc(
-                    std.fmt.allocPrint(ctx.gpa, "Unresolved import to '{s}'", .{pathname}) catch @panic("oom"),
+                ctx.diagnosticFmt(
+                    "Unresolved import to '{s}'",
+                    .{pathname},
                     .{ctx.spanN(node.data.lhs)},
                 );
                 return;
             };
             if (stat.kind == .directory) {
-                ctx.diagnosticAlloc(
-                    std.fmt.allocPrint(ctx.gpa, "Unresolved import to directory '{s}'", .{pathname}) catch @panic("oom"),
+                ctx.diagnosticFmt(
+                    "Unresolved import to directory '{s}'",
+                    .{pathname},
                     .{ctx.spanN(node.data.lhs)},
                 );
             }
