@@ -9,23 +9,22 @@ const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
 
-pub const NoUndefined = struct {
-    pub const Name = "no-undefined";
+const NoUndefined = @This();
+pub const Name = "no-undefined";
 
-    pub fn runOnNode(_: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterContext) void {
-        const node = wrapper.node;
-        const ast = ctx.ast();
+pub fn runOnNode(_: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterContext) void {
+    const node = wrapper.node;
+    const ast = ctx.ast();
 
-        if (node.tag != .identifier) return;
-        const name = ast.tokenSlice(node.main_token);
-        if (!std.mem.eql(u8, name, "undefined")) return;
-        ctx.diagnostic("Do not use undefined.", .{ctx.spanT(node.main_token)});
-    }
+    if (node.tag != .identifier) return;
+    const name = ast.tokenSlice(node.main_token);
+    if (!std.mem.eql(u8, name, "undefined")) return;
+    ctx.diagnostic("Do not use undefined.", .{ctx.spanT(node.main_token)});
+}
 
-    pub fn rule(self: *NoUndefined) Rule {
-        return Rule.init(self);
-    }
-};
+pub fn rule(self: *NoUndefined) Rule {
+    return Rule.init(self);
+}
 
 const RuleTester = @import("../tester.zig");
 test NoUndefined {
