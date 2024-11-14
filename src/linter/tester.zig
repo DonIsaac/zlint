@@ -16,7 +16,7 @@ alloc: Allocator,
 
 const RuleTester = @This();
 
-const SNAPSHOT_DIR = "src/linter/snapshots";
+const SNAPSHOT_DIR = "src/linter/rules/snapshots";
 
 const SnapshotError = fs.Dir.OpenError || fs.Dir.MakeError || fs.Dir.StatFileError || Allocator.Error || fs.File.WriteError;
 const TestError = error{
@@ -51,6 +51,12 @@ pub fn setFileName(self: *RuleTester, filename: string) void {
     self.filename = self.alloc.dupe(u8, filename) catch |e| {
         panic("Failed to allocate for filename {s}: {s}", .{ filename, @errorName(e) });
     };
+}
+pub fn withPath(self: *RuleTester, source_dir: string) *RuleTester {
+    const new_name = fs.path.join(self.alloc, &[_]string{ source_dir, self.filename }) catch @panic("OOM");
+    self.alloc.free(self.filename);
+    self.filename = new_name;
+    return self;
 }
 
 pub fn withPass(self: *RuleTester, comptime pass: []const [:0]const u8) *RuleTester {
@@ -130,9 +136,11 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
     for (self.fails.items) |src| {
         defer i += 1;
         // TODO: support static strings in Source w/o leaking memory.
-        const _src = try self.alloc.dupeZ(u8, src);
-        errdefer self.alloc.free(_src);
-        var source = try Source.fromString(self.alloc, _src, try self.alloc.dupe(u8, self.filename));
+        var source = try Source.fromString(
+            self.alloc,
+            try self.alloc.dupeZ(u8, src),
+            try self.alloc.dupe(u8, self.filename),
+        );
         defer source.deinit();
         const fail_errors = self.linter.runOnSource(&source) catch |e| switch (e) {
             error.OutOfMemory => return Allocator.Error.OutOfMemory,
@@ -167,7 +175,7 @@ fn saveSnapshot(self: *RuleTester) SnapshotError!void {
             return e;
         };
         defer snapshot_dir.close();
-        const snapshot_filename = try std.mem.concat(self.alloc, u8, &[_]string{ self.filename, ".snap" });
+        const snapshot_filename = try std.mem.concat(self.alloc, u8, &[_]string{ self.rule.name, ".snap" });
         defer self.alloc.free(snapshot_filename);
         const snapshot_file = snapshot_dir.createFile(snapshot_filename, .{ .truncate = true }) catch |e| {
             self.diagnostic.message = BooStr.fmt(

@@ -21,6 +21,7 @@ function main(argv: string[]) {
 
 const createRule = ({ name }) => {
     const StructName = kebabToPascal(name)
+    const underscored = name.replaceAll('-', '_');
     return /* zig */ `
 const std = @import("std");
 const _source = @import("../../source.zig");
@@ -47,8 +48,30 @@ pub const ${StructName} = struct {
     }
 };
 
-test {
-    std.testing.refAllDecls(@This());
+const RuleTester = @import("../tester.zig");
+test ${StructName} {
+    const t = std.testing;
+
+    var ${underscored} = ${StructName}{};
+    var runner = RuleTester.init(t.allocator, ${underscored}.rule());
+    defer runner.deinit();
+
+    // Code your rule should pass on
+    const pass = &[_][:0]const u8{
+        // TODO: add test cases
+        "const x = 1";
+    };
+
+    // Code your rule should fail on
+    const fail = &[_][:0]const u8{
+        // TODO: add test cases
+        "const x = 1";
+    };
+
+    try runner
+        .withPass(pass)
+        .withFail(fail)
+        .run();
 }
 `
 }
