@@ -46,6 +46,10 @@ pub const ${StructName} = struct {
         return Rule.init(self);
     }
 };
+
+test {
+    std.testing.refAllDecls(@This());
+}
 `
 }
 

@@ -27,6 +27,7 @@ const string = @import("util").string;
 
 // rules
 const NoUndefined = @import("linter/rules/no_undefined.zig").NoUndefined;
+const NoUnresolved = @import("linter/rules/no_unresolved.zig").NoUnresolved;
 
 pub const Linter = struct {
     rules: std.ArrayList(Rule),
@@ -38,8 +39,10 @@ pub const Linter = struct {
             .gpa = gpa,
         };
         var no_undef = NoUndefined{};
+        var no_unresolved = NoUnresolved{};
         // TODO: handle OOM
         linter.rules.append(no_undef.rule()) catch @panic("Cannot add new lint rule: Out of memory");
+        linter.rules.append(no_unresolved.rule()) catch @panic("Cannot add new lint rule: Out of memory");
         return linter;
     }
 

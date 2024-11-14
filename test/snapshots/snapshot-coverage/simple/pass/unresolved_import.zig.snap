@@ -1,0 +1,36 @@
+{
+  "symbols": [
+    {
+      "name": "", 
+      "debugName": "@This()", 
+      "declNode": "root", 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "members": [1], 
+      "exports": [], 
+      
+    }, {
+      "name": "foo", 
+      "debugName": "", 
+      "declNode": "simple_var_decl", 
+      "scope": 0, 
+      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "scopes": {
+    "id": 0, 
+    "flags": [
+      "top", 
+      
+    ], 
+    "bindings": {
+      "@This()": 0, 
+      "foo": 1, 
+      
+    }, "children": [], 
+    
+  }, 
+}
