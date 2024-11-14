@@ -86,9 +86,10 @@ test NoUnresolved {
     var no_unresolved = NoUnresolved{};
     var runner = RuleTester.init(t.allocator, no_unresolved.rule());
     defer runner.deinit();
+
     const pass = &[_][:0]const u8{
         "const std = @import(\"std\");",
-        "const x = @import(\"src/main.zig\");",
+        "const x = @import(\"main.zig\");",
     };
     const fail = &[_][:0]const u8{
         "const x = @import(\"does-not-exist.zig\");",
@@ -96,10 +97,10 @@ test NoUnresolved {
         // make the linter panic. uncomment when sema failures are handled
         // "const p = \"foo.zig\"\nconst x = @import(foo);",
     };
-    _ = pass;
+
     try runner
         .withPath("src")
-    // .withPass(pass)
+        .withPass(pass)
         .withFail(fail)
         .run();
 }
