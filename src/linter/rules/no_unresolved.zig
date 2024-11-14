@@ -80,6 +80,27 @@ pub const NoUnresolved = struct {
     }
 };
 
-test {
-    std.testing.refAllDecls(@This());
+const RuleTester = @import("../tester.zig");
+test NoUnresolved {
+    const t = std.testing;
+
+    var no_unresolved = NoUnresolved{};
+    var runner = RuleTester.init(t.allocator, no_unresolved.rule());
+    defer runner.deinit();
+    const pass = &[_][:0]const u8{
+        "const std = @import(\"std\");",
+        "const x = @import(\"src/main.zig\");",
+    };
+    const fail = &[_][:0]const u8{
+        "const x = @import(\"does-not-exist.zig\");",
+        // TODO: currently caught by semantic analysis. Right now sema failures
+        // make the linter panic. uncomment when sema failures are handled
+        // "const p = \"foo.zig\"\nconst x = @import(foo);",
+    };
+    _ = pass;
+    try runner
+        .withPath("src")
+    // .withPass(pass)
+        .withFail(fail)
+        .run();
 }
