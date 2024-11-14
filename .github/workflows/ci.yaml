@@ -35,7 +35,7 @@ jobs:
       - uses: extractions/setup-just@v2
         with:
           just-version: ${{ env.JUST_VERSION }}
-      - uses: goto-bus-stop/setup-zig@v2
+      - uses: mlugg/setup-zig@v1
         with:
           version: ${{ env.ZIG_VERSION }}
       # Run checks
@@ -48,7 +48,7 @@ jobs:
       - uses: actions/checkout@v4
       # Install tooling
       - uses: extractions/setup-just@v2
-      - uses: goto-bus-stop/setup-zig@v2
+      - uses: mlugg/setup-zig@v1
         with:
           version: ${{ env.ZIG_VERSION }}
       # Run tests
@@ -62,7 +62,7 @@ jobs:
       - uses: actions/checkout@v4
       # Install tooling
       - uses: extractions/setup-just@v2
-      - uses: goto-bus-stop/setup-zig@v2
+      - uses: mlugg/setup-zig@v1
         with:
           version: ${{ env.ZIG_VERSION }}
       - run: zig build --fetch
