@@ -6,17 +6,25 @@ on:
       - main
     types: [opened, synchronize]
     paths-ignore:
-      - "*"
-      - "!*.js"
-      - "!*.ts"
+      - "*.zig"
+      - "*.zon"
+      - "*.snap"
+      - "*.md"
+      - "*.sh"
+      - ".vscode/*"
+      - ".github/*"
       - "!.github/workflows/js.yaml"
   push:
     branches:
       - main
     paths-ignore:
-      - "*"
-      - "!*.js"
-      - "!*.ts"
+      - "*.zig"
+      - "*.zon"
+      - "*.snap"
+      - "*.md"
+      - "*.sh"
+      - ".vscode/*"
+      - ".github/*"
       - "!.github/workflows/js.yaml"
 
 concurrency:
