@@ -28,11 +28,11 @@ const IS_DEBUG = builtin.mode == .Debug;
 const NULL_NODE_ID: NodeId = 0;
 
 pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source) !void {
-    var sema_result = try semantic.Builder.build(alloc, source.contents);
+    var sema_result = try semantic.SemanticBuilder.build(alloc, source.text());
     defer sema_result.deinit();
     if (sema_result.hasErrors()) {
         for (sema_result.errors.items) |err| {
-            std.debug.print("{s}\n", .{err.message});
+            std.debug.print("{s}\n", .{err.message.str});
         }
         return;
     }

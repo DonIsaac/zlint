@@ -98,10 +98,10 @@ clear-run cmd:
 
 
 # temporary scripts for testing. Will be removed later
-print-ast filename="ast.json":
+print-ast source filename="ast.json":
     @mkdir -p tmp
     rm -f ./tmp/{{filename}}
-    zig build run -Dsingle-threaded -- --print-ast > ./tmp/{{filename}}
+    zig build run -Dsingle-threaded -- --print-ast {{source}} > ./tmp/{{filename}}
     prettier --write ./tmp/{{filename}}
 
 # Clone or update submodules
