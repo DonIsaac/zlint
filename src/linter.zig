@@ -26,8 +26,9 @@ const NodeWrapper = _rule.NodeWrapper;
 const string = @import("util").string;
 
 // rules
-const NoUndefined = @import("linter/rules/no_undefined.zig").NoUndefined;
-const NoUnresolved = @import("linter/rules/no_unresolved.zig").NoUnresolved;
+const rules = @import("./linter/rules.zig");
+// const NoUndefined = @import("linter/rules/no_undefined.zig").NoUndefined;
+// const NoUnresolved = @import("linter/rules/no_unresolved.zig").NoUnresolved;
 
 pub const Linter = struct {
     rules: std.ArrayList(Rule),
@@ -42,8 +43,8 @@ pub const Linter = struct {
     }
 
     pub fn registerAllRules(self: *Linter) void {
-        var no_undef = NoUndefined{};
-        var no_unresolved = NoUnresolved{};
+        var no_undef = rules.NoUndefined{};
+        var no_unresolved = rules.NoUnresolved{};
         // TODO: handle OOM
         self.rules.append(no_undef.rule()) catch @panic("Cannot add new lint rule: Out of memory");
         self.rules.append(no_unresolved.rule()) catch @panic("Cannot add new lint rule: Out of memory");

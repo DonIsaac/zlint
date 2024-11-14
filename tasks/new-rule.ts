@@ -34,19 +34,18 @@ const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
 
-pub const ${StructName} = struct {
-    pub const Name = "${name}";
+const ${StructName} = @This();
+pub const Name = "${name}";
 
-    pub fn runOnNode(_: *const ${StructName}, wrapper: NodeWrapper, ctx: *LinterContext) void {
-        _ = wrapper;
-        _ = ctx;
-        @panic("TODO: implement this rule");
-    }
+pub fn runOnNode(_: *const ${StructName}, wrapper: NodeWrapper, ctx: *LinterContext) void {
+    _ = wrapper;
+    _ = ctx;
+    @panic("TODO: implement this rule");
+}
 
-    pub fn rule(self: *${StructName}) Rule {
-        return Rule.init(self);
-    }
-};
+pub fn rule(self: *${StructName}) Rule {
+    return Rule.init(self);
+}
 
 const RuleTester = @import("../tester.zig");
 test ${StructName} {
