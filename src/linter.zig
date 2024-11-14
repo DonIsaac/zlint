@@ -34,16 +34,19 @@ pub const Linter = struct {
     gpa: Allocator,
 
     pub fn init(gpa: Allocator) Linter {
-        var linter = Linter{
+        const linter = Linter{
             .rules = std.ArrayList(Rule).init(gpa),
             .gpa = gpa,
         };
+        return linter;
+    }
+
+    pub fn registerAllRules(self: *Linter) void {
         var no_undef = NoUndefined{};
         var no_unresolved = NoUnresolved{};
         // TODO: handle OOM
-        linter.rules.append(no_undef.rule()) catch @panic("Cannot add new lint rule: Out of memory");
-        linter.rules.append(no_unresolved.rule()) catch @panic("Cannot add new lint rule: Out of memory");
-        return linter;
+        self.rules.append(no_undef.rule()) catch @panic("Cannot add new lint rule: Out of memory");
+        self.rules.append(no_unresolved.rule()) catch @panic("Cannot add new lint rule: Out of memory");
     }
 
     pub fn deinit(self: *Linter) void {
@@ -84,3 +87,8 @@ pub const Linter = struct {
         return ctx.errors;
     }
 };
+
+test {
+    std.testing.refAllDecls(@This());
+    std.testing.refAllDecls(@import("linter/tester.zig"));
+}

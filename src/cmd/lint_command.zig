@@ -41,7 +41,8 @@ const LintVisitor = struct {
     allocator: Allocator,
 
     fn init(allocator: Allocator, reporter: *GraphicalReporter, n_threads: ?u32) !LintVisitor {
-        const linter = Linter.init(allocator);
+        var linter = Linter.init(allocator);
+        linter.registerAllRules();
         const pool = try allocator.create(Thread.Pool);
         errdefer allocator.destroy(pool);
         try Thread.Pool.init(pool, Thread.Pool.Options{ .n_jobs = n_threads, .allocator = allocator });

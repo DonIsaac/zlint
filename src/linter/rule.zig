@@ -51,38 +51,6 @@ pub const Rule = struct {
     }
 };
 
-// test "simple rules" {
-//     const NoUndefined = struct {
-//         pub const Name = "NoUndefined";
-//
-//         pub fn runOnNode(self: *NoUndefined, node: *const Ast.Node) void {
-//             switch (node.tag) {
-//                 .identifier => {
-//                     node.main_token
-//                     if (ident == "undefined") {
-//                         std.debug.print("Error: found 'undefined' identifier\n", .{});
-//                     }
-//                 },
-//                 else => {},
-//                 },
-//                 else => {},
-//             }
-//             node.tag
-//             const decl = node.?;
-//             if (decl == null) {
-//                 return;
-//             }
-//             if (decl.NodeType == Ast.NodeTypeVariableDeclaration) {
-//                 const var_decl = decl.VariableDeclaration;
-//                 if (var_decl.type == null) {
-//                     std.debug.print("Error: variable declaration has no type\n", .{});
-//                 }
-//             }
-//         }
-//     };
-//     }
-// }
-
 fn getRuleName(ty: std.builtin.Type) string {
     switch (ty) {
         .Pointer => {

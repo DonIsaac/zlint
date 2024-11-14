@@ -86,7 +86,7 @@ pub const ThemeStyles = struct {
 
     /// ANSI color-based styles.
     pub fn ansi() ThemeStyles {
-        var c = Chameleon{};
+        comptime var c = Chameleon{};
         return .{
             .err = c.red().createPreset(),
             .warning = c.yellow().createPreset(),
@@ -104,16 +104,18 @@ pub const ThemeStyles = struct {
     }
 
     pub fn none() ThemeStyles {
-        var c = Chameleon{};
+        comptime var c = Chameleon{};
+        const empty = c.createPreset();
+        const empties = &[_]Chameleon{ empty, empty };
         return .{
-            .err = c.createPreset(),
-            .warning = c.createPreset(),
-            .advice = c.createPreset(),
-            .help = c.createPreset(),
-            .link = c.createPreset(),
-            .linum = c.createPreset(),
-            .emphasize = c.createPreset(),
-            .highlights = &[_]Chameleon{c.createPreset()},
+            .err = empty,
+            .warning = empty,
+            .advice = empty,
+            .help = empty,
+            .link = empty,
+            .linum = empty,
+            .emphasize = empty,
+            .highlights = empties,
         };
     }
 };
@@ -122,31 +124,31 @@ const char = []const u8;
 
 /// Copied from [miette's `ThemeCharacters`](https://github.com/zkat/miette/blob/5f441d011560a091fe5d6a6cdb05f09acf622d36/src/handlers/theme.rs#L197)
 pub const ThemeCharacters = struct {
-    hbar: char = undefined,
-    vbar: char = undefined,
-    xbar: char = undefined,
-    vbar_break: char = undefined,
+    hbar: char,
+    vbar: char,
+    xbar: char,
+    vbar_break: char,
 
-    uarrow: char = undefined,
-    rarrow: char = undefined,
+    uarrow: char,
+    rarrow: char,
 
-    ltop: char = undefined,
-    mtop: char = undefined,
-    rtop: char = undefined,
-    lbot: char = undefined,
-    rbot: char = undefined,
-    mbot: char = undefined,
+    ltop: char,
+    mtop: char,
+    rtop: char,
+    lbot: char,
+    rbot: char,
+    mbot: char,
 
     /// e.g. `[`
-    lbox: char = undefined,
+    lbox: char,
     /// e.g. `]`
-    rbox: char = undefined,
+    rbox: char,
 
-    lcross: char = undefined,
-    rcross: char = undefined,
+    lcross: char,
+    rcross: char,
 
-    underbar: char = undefined,
-    underline: char = undefined,
+    underbar: char,
+    underline: char,
 
     /// must be static
     err: []const u8,
@@ -212,24 +214,24 @@ pub const ThemeCharacters = struct {
     /// ASCII-art-based graphical elements. Works well on older terminals.
     pub fn ascii() ThemeCharacters {
         return .{
-            .hbar = '-',
-            .vbar = '|',
-            .xbar = '+',
-            .vbar_break = ':',
-            .uarrow = '^',
-            .rarrow = '>',
-            .ltop = ',',
-            .mtop = 'v',
-            .rtop = '.',
-            .lbot = '`',
-            .mbot = '^',
-            .rbot = '\'',
-            .lbox = '[',
-            .rbox = ']',
-            .lcross = '|',
-            .rcross = '|',
-            .underbar = '|',
-            .underline = '^',
+            .hbar = "-",
+            .vbar = "|",
+            .xbar = "+",
+            .vbar_break = ":",
+            .uarrow = "^",
+            .rarrow = ">",
+            .ltop = ",",
+            .mtop = "v",
+            .rtop = ".",
+            .lbot = "`",
+            .mbot = "^",
+            .rbot = "'",
+            .lbox = "[",
+            .rbox = "]",
+            .lcross = "|",
+            .rcross = "|",
+            .underbar = "|",
+            .underline = "^",
             .err = "x",
             .warning = "!",
             .advice = ">",
