@@ -1,0 +1,6 @@
+× no-undefined: Do not use undefined.
+   ╭─[no-undefined.zig:1:11]
+ 1 │ const x = undefined;
+   ·           ─────────
+   ╰────
+

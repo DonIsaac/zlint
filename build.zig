@@ -107,39 +107,39 @@ pub fn build(b: *std.Build) void {
         const check_exe = b.addExecutable(.{ .name = "zlint", .root_source_file = b.path("src/main.zig"), .target = target });
         // mock library so zlint module is checked
         const check_lib = b.addStaticLibrary(.{ .name = "zlint", .root_source_file = b.path("src/root.zig"), .target = target, .optimize = optimize });
-        const check_unit = b.addTest(.{ .root_source_file = b.path("src/root.zig") });
+        const check_test_lib = b.addTest(.{ .root_source_file = b.path("src/root.zig") });
+        const check_test_exe = b.addTest(.{ .root_source_file = b.path("src/main.zig") });
         const check_e2e = b.addExecutable(.{ .name = "test-e2e", .root_source_file = b.path("test/test_e2e.zig"), .target = target });
         check_e2e.root_module.addImport("zlint", zlint);
 
         const check = b.step("check", "Check for semantic errors");
-        inline for (.{ check_exe, check_lib, check_unit, check_e2e }) |c| {
+        const substeps = .{ check_exe, check_lib, check_test_lib, check_test_exe, check_e2e };
+        inline for (substeps) |c| {
             c.root_module.addImport("util", util);
             c.root_module.addImport("smart-pointers", modsp);
             c.root_module.addImport("chameleon", modcham);
             check.dependOn(&c.step);
         }
 
-        const rules_path = "src/linter/rules";
-        const rules_dir = b.path(rules_path);
-        var rules = std.fs.openDirAbsolute(rules_dir.getPath(b), .{ .iterate = true }) catch |e| {
-            std.debug.panic("Failed to open rules directory: {any}", .{e});
-        };
-        defer rules.close();
-        var rules_walker = rules.walk(b.allocator) catch @panic("Failed to create rules walker");
-        var stack_fallback = std.heap.stackFallback(512, b.allocator);
-        const stack_alloc = stack_fallback.get();
-        while (true) {
-            const rule = rules_walker.next() catch continue orelse break;
-            const full_path = std.fs.path.join(stack_alloc, &[_][]const u8{ rules_path, rule.path }) catch @panic("OOM");
-            defer stack_alloc.free(full_path);
-            var fake_rule_tests = b.addTest(.{
-                .root_source_file = .{ .cwd_relative = full_path },
-                .optimize = optimize,
-                .target = target,
-            });
-            check.dependOn(&fake_rule_tests.step);
-        }
-        // for (rules.w)
-        // rules.
+        // const rules_path = "src/linter/rules";
+        // const rules_dir = b.path(rules_path);
+        // var rules = std.fs.openDirAbsolute(rules_dir.getPath(b), .{ .iterate = true }) catch |e| {
+        //     std.debug.panic("Failed to open rules directory: {any}", .{e});
+        // };
+        // defer rules.close();
+        // var rules_walker = rules.walk(b.allocator) catch @panic("Failed to create rules walker");
+        // var stack_fallback = std.heap.stackFallback(512, b.allocator);
+        // const stack_alloc = stack_fallback.get();
+        // while (true) {
+        //     const rule = rules_walker.next() catch continue orelse break;
+        //     const full_path = std.fs.path.join(stack_alloc, &[_][]const u8{ rules_path, rule.path }) catch @panic("OOM");
+        //     defer stack_alloc.free(full_path);
+        //     var fake_rule_tests = b.addTest(.{
+        //         .root_source_file = .{ .cwd_relative = full_path },
+        //         .optimize = optimize,
+        //         .target = target,
+        //     });
+        //     check.dependOn(&fake_rule_tests.step);
+        // }
     }
 }

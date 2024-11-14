@@ -26,3 +26,20 @@ pub const NoUndefined = struct {
         return Rule.init(self);
     }
 };
+
+const RuleTester = @import("../tester.zig");
+test NoUndefined {
+    const t = std.testing;
+
+    var no_undefined = NoUndefined{};
+    var runner = RuleTester.init(t.allocator, no_undefined.rule());
+    defer runner.deinit();
+    try runner
+        .withPass(&[_][:0]const u8{
+        "const x: ?u32 = null;",
+    })
+        .withFail(&[_][:0]const u8{
+        "const x = undefined;",
+    })
+        .run();
+}

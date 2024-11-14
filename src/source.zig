@@ -14,9 +14,9 @@ const ArcStr = Arc([:0]u8);
 pub const Source = struct {
     // contents: Arc([]const u8),
     contents: ArcStr,
-    file: fs.File,
+    /// `null` for Sources created directly from strings
+    file: ?fs.File,
     pathname: ?string = null,
-    ast: ?Ast = null,
     gpa: Allocator,
 
     /// Create a source from an opened file. This file must be opened with at least read permissions.
@@ -35,17 +35,27 @@ pub const Source = struct {
             .gpa = gpa,
         };
     }
+    /// Create a source file directly from a string. Takes ownership of both
+    /// `contents` and `pathname`.
+    ///
+    /// Primarily used for testing.
+    pub fn fromString(gpa: Allocator, contents: [:0]u8, pathname: ?string) Allocator.Error!Source {
+        const contents_arc = try ArcStr.init(gpa, contents);
+        return Source{
+            .file = null,
+            .contents = contents_arc,
+            .pathname = pathname,
+            .gpa = gpa,
+        };
+    }
 
     pub inline fn text(self: *const Source) [:0]const u8 {
         return self.contents.deref().*;
     }
 
     pub fn deinit(self: *Source) void {
-        self.file.close();
+        if (self.file) |f| f.close();
         self.contents.deinit();
-        if (self.ast != null) {
-            self.ast.?.deinit(self.gpa);
-        }
         if (self.pathname != null) {
             self.gpa.free(self.pathname.?);
         }
@@ -70,9 +80,9 @@ pub const LocationSpan = struct {
                 else => @panic("`span` must be a Span or LabeledSpan"),
             }
         };
-        // const loc = Location.fromSpan(contents, span.span);
         return .{ .span = labeled_span, .location = loc };
     }
+
     pub inline fn start(self: LocationSpan) u32 {
         return self.span.span.start;
     }

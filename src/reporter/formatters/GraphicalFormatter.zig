@@ -4,7 +4,35 @@ alloc: std.mem.Allocator,
 
 const MAX_CONTEXT_LINES: u32 = 3;
 
-pub fn format(self: *GraphicalFormatter, w: *Writer, e: Error) !void {
+pub const FormatError = Writer.Error || std.mem.Allocator.Error;
+
+pub fn unicode(alloc: std.mem.Allocator, comptime color: bool) GraphicalFormatter {
+    // NOTE: must be comptime, otherwise none() returns a reference to a stack
+    // pointer.
+    const theme = comptime blk: {
+        var theme = GraphicalTheme.unicode();
+        if (!color) theme.styles = GraphicalTheme.ThemeStyles.none();
+        break :blk theme;
+    };
+    return .{ .theme = theme, .alloc = alloc };
+}
+
+pub fn ascii(alloc: std.mem.Allocator, comptime color: bool) GraphicalFormatter {
+    // NOTE: must be comptime, otherwise none() returns a reference to a stack
+    // pointer.
+    const theme = comptime blk: {
+        var theme = GraphicalTheme.ascii();
+        if (!color) theme.styles = GraphicalTheme.ThemeStyles.none();
+        break :blk theme;
+    };
+    return .{ .theme = theme, .alloc = alloc };
+}
+
+pub fn disableColors(self: *GraphicalFormatter) void {
+    self.theme.styles = GraphicalTheme.ThemeStyles.none();
+}
+
+pub fn format(self: *GraphicalFormatter, w: *Writer, e: Error) FormatError!void {
     var err = e;
     if (e.severity == .off) return;
     try self.renderHeader(w, &err);
@@ -12,7 +40,7 @@ pub fn format(self: *GraphicalFormatter, w: *Writer, e: Error) !void {
     try w.writeByte('\n');
 }
 
-fn renderHeader(self: *GraphicalFormatter, w: *Writer, e: *const Error) !void {
+fn renderHeader(self: *GraphicalFormatter, w: *Writer, e: *const Error) FormatError!void {
     const icon = self.iconFor(e.severity);
     const color = self.styleFor(e.severity);
     const emphasize = self.theme.styles.emphasize;
@@ -38,7 +66,7 @@ fn labelsLt(_: void, a: LabeledSpan, b: LabeledSpan) bool {
     return a.span.start < b.span.start;
 }
 
-fn renderContext(self: *GraphicalFormatter, w: *Writer, e: *Error) !void {
+fn renderContext(self: *GraphicalFormatter, w: *Writer, e: *Error) FormatError!void {
     if (e.labels.items.len == 0 or e.source == null) return;
 
     const src: []const u8 = e.source.?.deref().*;
@@ -84,7 +112,7 @@ fn renderContextMasthead(
     // locations: []const LocationSpan,
     lineum_width: u32,
     primary_span: LocationSpan,
-) !void {
+) FormatError!void {
     const chars = self.theme.characters;
     const color = self.theme.styles.help;
 
@@ -104,7 +132,7 @@ fn renderContextMasthead(
     try w.print("{s}\n", .{chars.rbox});
 }
 
-fn renderContextFinisher(self: *GraphicalFormatter, w: *Writer, lineum_col_width: u32) !void {
+fn renderContextFinisher(self: *GraphicalFormatter, w: *Writer, lineum_col_width: u32) FormatError!void {
     const chars = self.theme.characters;
 
     try w.writeByteNTimes(' ', lineum_col_width + 3);
@@ -163,7 +191,7 @@ fn renderContextLines(
 /// Render the line number column and the `|` separator. Has a trailing space.
 ///
 /// e.g. '` 1 | `'
-fn renderCodeLinePrefix(self: *GraphicalFormatter, w: *Writer, lineum: u32, linenum_col_width: u32) !void {
+fn renderCodeLinePrefix(self: *GraphicalFormatter, w: *Writer, lineum: u32, linenum_col_width: u32) FormatError!void {
     const styles = self.theme.styles;
     const chars = self.theme.characters;
 
@@ -178,10 +206,11 @@ fn renderCodeLinePrefix(self: *GraphicalFormatter, w: *Writer, lineum: u32, line
 
 // TODO: render label text
 // TODO: handle multi-line labels
-fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: LocationSpan) !void {
+fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: LocationSpan) FormatError!void {
     const chars = self.theme.characters;
     const h = self.theme.styles.highlights;
-    const color = h[@min(@intFromBool(!loc.span.primary), h.len)];
+    const idx: usize = @min(@intFromBool(!loc.span.primary), h.len - 1);
+    const color = h[idx];
 
     try self.renderLabelPrefix(w, linum_col_len);
     try w.writeByteNTimes(' ', loc.column());
@@ -195,7 +224,7 @@ fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: L
 
 /// Renders enough space to pad-out the line number column followed by a
 /// vertical bar break with _no_ trailing space.
-fn renderLabelPrefix(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32) !void {
+fn renderLabelPrefix(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32) FormatError!void {
     const chars = self.theme.characters;
     try w.writeByteNTimes(' ', linum_col_len + 3);
     try w.writeAll(chars.vbar_break);
