@@ -8,16 +8,18 @@ on:
     paths-ignore:
       - "*.md"
       - ".vscode/*"
-      - Justfile
       - zls.json
+      - ".github/workflows/*"
+      - "!.github/workflows/ci.yaml"
   push:
     branches:
       - main
     paths-ignore:
       - "*.md"
       - ".vscode/*"
-      - Justfile
       - zls.json
+      - ".github/workflows/*"
+      - "!.github/workflows/ci.yaml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

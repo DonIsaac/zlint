@@ -9,6 +9,11 @@ on:
 env:
   ZIG_VERSION: 0.13.0
 
+permissions:
+  id-token: write
+  contents: read
+  attestations: write
+
 jobs:
   build:
     strategy:
@@ -20,12 +25,16 @@ jobs:
       - uses: mlugg/setup-zig@v1
         with:
           version: ${{ env.ZIG_VERSION }}
+
       - name: zig build
         run: |
-          zig build \
-            --summary all \
-            --color on \
-            --release=safe
+          zig build --summary all --color on --release=safe
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: zig-out/bin/zlint
+
       - name: Upload zlint binary
         uses: actions/upload-artifact@v4
         with:
