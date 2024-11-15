@@ -300,7 +300,7 @@ fn contextFor(
     };
     lines_collected += 1;
     // move start back to the newline of the previous line
-    start -|= @intCast(util.NEWLINE.len);
+    start -|= 1;
 
     // collect lines before
     {
