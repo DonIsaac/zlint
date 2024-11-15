@@ -35,12 +35,20 @@ const NULL_NODE: NodeIndex = Semantic.NULL_NODE;
 const ROOT_SCOPE: Semantic.Scope.Id = Semantic.ROOT_SCOPE_ID;
 
 pub const Result = Error.Result(Semantic);
-const SemanticError = error{
+pub const SemanticError = error{
+    ParseFailed,
     /// Expected `ast.fullFoo` to return `Some(foo)` but it returned `None`,
-    full_mismatch,
+    FullMismatch,
     /// Expected an identifier name, but none was found.
-    missing_identifier,
+    MissingIdentifier,
 } || Allocator.Error;
+
+pub fn init(gpa: Allocator) SemanticBuilder {
+    return .{
+        ._gpa = gpa,
+        ._arena = ArenaAllocator.init(gpa),
+    };
+}
 
 /// Parse and analyze a Zig source file.
 ///
@@ -57,10 +65,11 @@ const SemanticError = error{
 /// In some  cases, SemanticBuilder may choose to panic instead of
 /// returning an error union. These assertions produce better release
 /// binaries and catch bugs earlier.
-pub fn build(gpa: Allocator, source: stringSlice) SemanticError!Result {
-    var builder = SemanticBuilder{ ._gpa = gpa, ._arena = ArenaAllocator.init(gpa) };
-    defer builder.deinit();
+pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Result {
+    // var builder = SemanticBuilder{ ._gpa = gpa, ._arena = ArenaAllocator.init(gpa) };
+    // defer builder.deinit();
     // NOTE: ast is moved
+    const gpa = builder._gpa;
     const ast = try builder.parse(source);
     const node_links = try NodeLinks.init(gpa, &ast);
     assert(ast.nodes.len == node_links.parents.items.len);
@@ -474,7 +483,7 @@ fn visitAssignDestructure(self: *SemanticBuilder, _: NodeIndex, destructure: ful
     for (destructure.ast.variables) |var_id| {
         const main_token: TokenIndex = main_tokens[var_id];
         const decl: full.VarDecl = ast.fullVarDecl(var_id) orelse {
-            return SemanticError.full_mismatch;
+            return SemanticError.FullMismatch;
         };
         const identifier: ?string = self.getIdentifier(main_token + 1);
         util.assert(identifier != null, "assignment declarations are not valid when an identifier name is missing.", .{});
@@ -562,7 +571,7 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
     defer self.exitScope();
 
     if (token_tags[fallback_first - 1] == .pipe) {
-        const identifier = self.getIdentifier(main_token) orelse return SemanticError.missing_identifier;
+        const identifier = self.getIdentifier(main_token) orelse return SemanticError.MissingIdentifier;
         _ = try self.declareSymbol(.{
             .name = identifier,
             .visibility = .private,
@@ -1110,7 +1119,9 @@ test "Struct/enum fields are bound bound to the struct/enums's member table" {
         "const Foo = enum { bar };",
     };
     for (programs) |program| {
-        var result = try SemanticBuilder.build(alloc, program);
+        var builder = SemanticBuilder.init(alloc);
+        defer builder.deinit();
+        var result = try builder.build(program);
         defer result.deinit();
         try std.testing.expect(!result.hasErrors());
         var semantic = result.value;
@@ -1150,7 +1161,9 @@ test "comptime blocks" {
         \\  break :blk y + 1;
         \\};
     ;
-    var result = try SemanticBuilder.build(alloc, src);
+    var builder = SemanticBuilder.init(alloc);
+    defer builder.deinit();
+    var result = try builder.build(src);
     defer result.deinit();
     try std.testing.expect(!result.hasErrors());
     var semantic = result.value;

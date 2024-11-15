@@ -52,19 +52,33 @@ pub const Linter = struct {
         self.rules.deinit();
     }
 
-    pub fn runOnSource(self: *Linter, source: *Source) !ErrorList {
-        var semantic_result = try SemanticBuilder.build(self.gpa, source.text());
-        defer semantic_result.deinit();
-        // TODO
+    pub fn runOnSource(
+        self: *Linter,
+        source: *Source,
+        errors: *?ErrorList,
+    ) (LintError || Allocator.Error)!void {
+        var builder = SemanticBuilder.init(self.gpa);
+        defer builder.deinit();
+
+        var semantic_result = builder.build(source.text()) catch |e| {
+            errors.* = builder._errors.toManaged(self.gpa);
+            return switch (e) {
+                error.ParseFailed => LintError.ParseFailed,
+                else => LintError.AnalysisFailed,
+            };
+        };
         if (semantic_result.hasErrors()) {
-            @panic("semantic analysis failed");
+            errors.* = builder._errors.toManaged(self.gpa);
+            semantic_result.value.deinit();
+            return LintError.AnalysisFailed;
         }
+        defer semantic_result.deinit();
+
         const semantic = semantic_result.value;
         var ctx = Context.init(self.gpa, &semantic, source);
 
-        var i: usize = 0;
-        while (i < ctx.semantic.ast.nodes.len) {
-            assert(i < std.math.maxInt(u32));
+        assert(ctx.semantic.ast.nodes.len < std.math.maxInt(u32));
+        for (0..ctx.semantic.ast.nodes.len) |i| {
             const node = ctx.semantic.ast.nodes.get(i);
             const wrapper: NodeWrapper = .{
                 .node = &node,
@@ -81,13 +95,23 @@ pub const Linter = struct {
                     ctx.errors.append(err) catch @panic("OOM");
                 };
             }
-            i += 1;
         }
-        return ctx.errors;
+
+        if (ctx.errors.items.len > 0) {
+            errors.* = ctx.errors;
+            return LintError.LintingFailed;
+        }
     }
+
+    pub const LintError = error{
+        ParseFailed,
+        AnalysisFailed,
+        LintingFailed,
+    };
 };
 
 test {
     std.testing.refAllDecls(@This());
     std.testing.refAllDecls(@import("linter/tester.zig"));
+    std.testing.refAllDeclsRecursive(rules);
 }

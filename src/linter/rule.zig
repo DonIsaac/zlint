@@ -56,7 +56,7 @@ fn getRuleName(ty: std.builtin.Type) string {
         .Pointer => {
             const child = ty.Pointer.child;
             if (!@hasDecl(child, "Name")) {
-                @panic("Rule must have a Name field");
+                @panic("Rule must have a `pub const Name: []const u8` field");
             }
             return child.Name;
         },
