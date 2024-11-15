@@ -359,10 +359,7 @@ fn eatNewlineBefore(src: []const u8, i: *u32) void {
     if (src[i.*] == '\n') i.* -= 1;
     if (i.* > 0 and src[i.*] == '\n') i.* -= 1;
     if (comptime util.IS_WINDOWS) {
-        if (i.* > 0) {
-            assert(src[i.*] == '\r');
-            i.* -= 1;
-        }
+        if (i.* > 0 and src[i.*] == '\r') i.* -= 1;
     }
 }
 
