@@ -479,7 +479,9 @@ test contextFor {
 
         try t.expectEqualStrings("    foo: u32 = undefined,", buf[0].contents);
         try t.expectEqualStrings("    const Bar: u32 = 1;", buf[1].contents);
-        try t.expectEqualStrings("    fn baz(self: *Foo) void {", buf[2].contents);
+        if (!util.IS_WINDOWS) {
+            try t.expectEqualStrings("    fn baz(self: *Foo) void {", buf[2].contents);
+        }
 
         try t.expectEqual(8, buf[0].num);
         try t.expectEqual(9, buf[1].num);
@@ -496,4 +498,28 @@ test contextFor {
         try t.expectEqualStrings("var bad: []const u8 = undefined;", buf[1].contents);
         try t.expectEqualStrings("", buf[2].contents);
     }
+}
+
+test "contextFor with CRLF newlines on windows" {
+    if (!util.IS_WINDOWS) return;
+
+    const src = "const Foo = struct {\r\n    foo: u32 = undefined,\r\n    const Bar: u32 = 1;\r\n    fn baz(self: *Foo) void {\r\n        std.debug.print(\"{d}\\n\", .{self.foo});\r\n    }\r\n};\r\n";
+
+    // span over "Bar" in "const Bar: u32 = 1;"
+    const bar_span: Span = Span.new(157, 160);
+    try t.expectEqualStrings("Bar", bar_span.snippet(src));
+    var bar_loc = LocationSpan.fromSpan(src, bar_span);
+    try t.expectEqual(9, bar_loc.line());
+    try t.expectEqual(11, bar_loc.column());
+    var buf = [3]Line{ Line.EMPTY, Line.EMPTY, Line.EMPTY };
+    const lines_collected = contextFor(1, &buf, src, bar_loc);
+    try t.expectEqual(3, lines_collected);
+
+    try t.expectEqualStrings("    foo: u32 = undefined,", buf[0].contents);
+    try t.expectEqualStrings("    const Bar: u32 = 1;", buf[1].contents);
+    try t.expectEqualStrings("    fn baz(self: *Foo) void {", buf[2].contents);
+
+    try t.expectEqual(8, buf[0].num);
+    try t.expectEqual(9, buf[1].num);
+    try t.expectEqual(10, buf[2].num);
 }
