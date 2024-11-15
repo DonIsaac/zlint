@@ -56,7 +56,7 @@ jobs:
           version: ${{ env.ZIG_VERSION }}
       # Run tests
       - run: zig build --fetch
-      - run: just test
+      - run: zig build test --summary all -freference-trace --color on
 
   e2e:
     name: Test E2E

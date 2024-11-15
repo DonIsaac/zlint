@@ -9,9 +9,13 @@ print_ast: bool = false,
 /// Positional arguments
 args: std.ArrayListUnmanaged(util.string) = .{},
 
-pub fn parseArgv(alloc: std.mem.Allocator) Options {
+const ParseError = error{OutOfMemory};
+pub fn parseArgv(alloc: std.mem.Allocator) ParseError!Options {
     var opts = Options{};
-    var argv = std.process.args();
+    // NOTE: args() is not supported on WASM and windows. When targeting another
+    // platform, argsWithAllocator does not actually allocate memory.
+    var argv = try std.process.argsWithAllocator(alloc);
+    defer argv.deinit();
 
     // skip binary name
     _ = argv.next() orelse {
@@ -20,7 +24,7 @@ pub fn parseArgv(alloc: std.mem.Allocator) Options {
     while (argv.next()) |arg| {
         if (arg.len == 0) continue;
         if (arg[0] != '-') {
-            opts.args.append(alloc, arg) catch @panic("OOM");
+            try opts.args.append(alloc, arg);
             continue;
         }
         if (eq(arg, "-V") or eq(arg, "--verbose")) {
