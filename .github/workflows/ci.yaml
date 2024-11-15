@@ -43,7 +43,10 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       # Install tooling
@@ -53,7 +56,7 @@ jobs:
           version: ${{ env.ZIG_VERSION }}
       # Run tests
       - run: zig build --fetch
-      - run: just test
+      - run: zig build test --summary all -freference-trace --color on
 
   e2e:
     name: Test E2E

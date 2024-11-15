@@ -30,7 +30,7 @@ pub fn main() !void {
     var stack = std.heap.stackFallback(16, alloc);
     const stack_alloc = stack.get();
 
-    var opts = Options.parseArgv(stack_alloc);
+    var opts = Options.parseArgv(stack_alloc) catch @panic("Failed to parse CLI arguments: Out of memory");
     defer opts.deinit(stack_alloc);
 
     if (opts.print_ast) {
