@@ -53,9 +53,6 @@ pub fn deinit(self: *Options, alloc: std.mem.Allocator) void {
 inline fn eq(arg: anytype, name: @TypeOf(arg)) bool {
     return std.mem.eql(u8, arg, name);
 }
-// inline fn eq(arg: [:0]const u8, name: [:0]const u8) bool {
-//     return std.mem.eql(u8, arg, name);
-// }
 
 const Options = @This();
 const std = @import("std");
