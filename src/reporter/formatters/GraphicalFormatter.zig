@@ -174,7 +174,7 @@ fn renderContextLines(
         // try w.print("{d}:", .{line.num});
         // try w.writeByteNTimes(' ', padding);
         try self.renderCodeLinePrefix(w, line.num, lineum_width);
-        try w.writeAll(line.contents);
+        try w.writeAll(util.trimWhitespaceRight(line.contents));
         if (util.IS_WINDOWS) {
             try w.writeAll("\r\n");
         } else {
@@ -296,74 +296,57 @@ fn contextFor(
     linebuf[context_lines] = Line{
         .num = lineno,
         .offset = start,
-        .contents = src[start..end],
+        .contents = util.trimWhitespaceRight(src[start..end]),
     };
     lines_collected += 1;
     // move start back to the newline of the previous line
-    start -|= 1;
-    const saved_end = end;
+    start -|= @intCast(util.NEWLINE.len);
 
     // collect lines before
     {
         var lines_left = context_lines;
-        while (start > 0 and lines_left > 0) : (lines_left -= 1) {
-            // move start/end into position at the end of the predecessor line.
-            // move start before the newline, but keep end on it.
-            end = start;
-            eatNewlineBefore(src, &start);
-            while (start > 0) : (start -= 1) {
-                if (src[start] == '\n') {
-                    start += 1;
-                    break;
-                }
-            }
-            // NOTE: lines_left is always > 0 (otherwise loop breaks)
-            linebuf[lines_left - 1] = Line{
-                .num = lineno - (context_lines - lines_left) - 1,
-                .offset = start,
-                .contents = src[start..end],
-            };
+        var it = std.mem.splitBackwardsScalar(u8, src[0..start], '\n');
+        while (lines_left > 0) : ({
+            lines_left -= 1;
             lines_collected += 1;
+        }) {
+            const prev_line = it.next() orelse break;
+            linebuf[lines_left - 1] = Line{
+                .num = (lineno - 1) - (context_lines - lines_left),
+                .offset = start,
+                .contents = util.trimWhitespaceRight(prev_line),
+            };
         }
         // reached start of file before collecting all lines, so we need to
         // zero-out the rest of the buffer
         if (lines_left != 0) {
             for (0..lines_left) |i| {
-                linebuf[i] = Line{ .num = 0, .offset = 0, .contents = "" };
+                linebuf[i] = Line.EMPTY;
             }
         }
     }
 
     // collect lines after
     {
-        // start at the line after the first line collected
-        start = saved_end;
-        eatNewlineAfter(src, &start);
-        end = start;
         var lines_left = context_lines;
-        while (end < len and lines_left > 0) : (lines_left -= 1) {
-            // move start/end into position at the start of the successor line
-            start = end;
-            while (end < len) : (end += 1) {
-                if (src[end] == '\n') {
-                    break;
-                }
-            }
-            const lineno_offset = (context_lines - lines_left) + 1;
-            assert(lineno_offset < linebuf.len);
-            linebuf[context_lines + lineno_offset] = Line{
-                .num = lineno + lineno_offset,
-                .offset = start,
-                .contents = src[start..end],
-            };
+        eatNewlineAfter(src, &end);
+        var it = std.mem.splitScalar(u8, src[end..len], '\n');
+        while (lines_left > 0) : ({
+            lines_left -= 1;
             lines_collected += 1;
-            eatNewlineAfter(src, &end);
+        }) {
+            const next_line = it.next() orelse break;
+            linebuf[context_lines + 1 + (context_lines - lines_left)] = Line{
+                .num = (lineno + 1) + (context_lines - lines_left),
+                .offset = end,
+                .contents = util.trimWhitespaceRight(next_line),
+            };
         }
         // same as before, but zeroing out the end
         if (lines_left != 0) {
             const buf_start = context_lines + 1 + lines_left;
             for (buf_start..linebuf.len) |i| {
-                linebuf[i] = Line{ .num = 0, .offset = 0, .contents = "" };
+                linebuf[i] = Line.EMPTY;
             }
         }
     }
@@ -471,6 +454,13 @@ test contextFor {
     try t.expectEqual(9, bar_loc.line());
     try t.expectEqual(11, bar_loc.column());
 
+    // span over "bad"
+    const bad_span: Span = Span.new(33, 36);
+    try t.expectEqualStrings("bad", bad_span.snippet(src));
+    const bad_loc = LocationSpan.fromSpan(src, bad_span);
+    try t.expectEqual(3, bad_loc.line());
+    try t.expectEqual(5, bad_loc.column());
+
     // 0 surrounding lines
     {
         var buf = [1]Line{Line.EMPTY};
@@ -497,5 +487,16 @@ test contextFor {
         try t.expectEqual(8, buf[0].num);
         try t.expectEqual(9, buf[1].num);
         try t.expectEqual(10, buf[2].num);
+    }
+
+    // When surrounded by empty lines
+    {
+        var buf = [3]Line{ Line.EMPTY, Line.EMPTY, Line.EMPTY };
+        const lines_collected = contextFor(1, &buf, src, bad_loc);
+        try t.expectEqual(3, lines_collected);
+
+        try t.expectEqualStrings("", buf[0].contents);
+        try t.expectEqualStrings("var bad: []const u8 = undefined;", buf[1].contents);
+        try t.expectEqualStrings("", buf[2].contents);
     }
 }
