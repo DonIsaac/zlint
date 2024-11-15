@@ -29,7 +29,7 @@ fn parse(alloc: Allocator, args_iter: anytype) ParseError!Options {
     while (argv.next()) |arg| {
         if (arg.len == 0) continue;
         if (arg[0] != '-') {
-            opts.args.append(alloc, arg) catch @panic("OOM");
+            try opts.args.append(alloc, arg);
             continue;
         }
         if (eq(arg, "-V") or eq(arg, "--verbose")) {
