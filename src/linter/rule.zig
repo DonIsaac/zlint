@@ -25,17 +25,23 @@ pub const Rule = struct {
 
     pub fn init(ptr: anytype) Rule {
         const T = @TypeOf(ptr);
-        const ptr_info = @typeInfo(T);
-        const name = getRuleName(ptr_info);
+        const ptr_info = comptime blk: {
+            const info = @typeInfo(T);
+            break :blk switch (info) {
+                .Pointer => info.Pointer,
+                else => @compileLog("Rule.init takes a pointer to a rule implementation, found an " ++ @tagName(info)),
+            };
+        };
+        const name: []const u8 = if (@hasDecl(ptr_info.child, "Name")) ptr_info.child.Name else {
+            @compileError("Rule must have a `pub const Name: []const u8` field");
+        };
 
         const gen = struct {
             pub fn runOnNode(pointer: *const anyopaque, node: NodeWrapper, ctx: *LinterContext) anyerror!void {
-                // TODO
-                // if (@hasDecl(T, "runOnNode")) {
-                // const self: T = @ptrCast(@alignCast(pointer));
-                const self: T = @ptrCast(@constCast(pointer));
-                return ptr_info.Pointer.child.runOnNode(self, node, ctx);
-                // }
+                if (@hasDecl(ptr_info.child, "runOnNode")) {
+                    const self: T = @ptrCast(@constCast(pointer));
+                    return ptr_info.child.runOnNode(self, node, ctx);
+                }
             }
         };
 
