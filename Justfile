@@ -102,7 +102,7 @@ print-ast source filename="ast.json":
     @mkdir -p tmp
     rm -f ./tmp/{{filename}}
     zig build run -Dsingle-threaded -- --print-ast {{source}} > ./tmp/{{filename}}
-    prettier --write ./tmp/{{filename}}
+    prettier --ignore-path=.prettierignore --write ./tmp/{{filename}}
 
 # Clone or update submodules
 submodules:

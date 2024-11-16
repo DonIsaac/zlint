@@ -35,6 +35,26 @@
                 "showReuseMessage": false,
                 "clear": true
             }
+        },
+        {
+            "label": "create tmp/ast.json",
+            "type": "shell",
+            "command": "${workspaceFolder}/tasks/create-ast-json.sh",
+            "presentation": {
+                "echo": true,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            }
+        },
+        {
+            "label": "pre print-ast",
+            "dependsOn": [
+                "create tmp/ast.json",
+                "build -Dsingle-threaded"
+            ]
         }
-    ]
+    ],
 }
