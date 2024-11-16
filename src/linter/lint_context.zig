@@ -116,6 +116,33 @@ fn _diagnostic(self: *Context, err: Error, spans: []const LabeledSpan) void {
     self.errors.append(e) catch @panic("Cannot add new error: Out of memory");
 }
 
+/// Find the comment block ending on the line before the given token.
+pub fn commentsBefore(self: *Context, token: Ast.TokenIndex) ?[]const u8 {
+    const source = self.ast().source;
+    var line_start = self.ast().tokenToSpan(token).start;
+    while (line_start > 0) : (line_start -= 1) {
+        if (source[line_start] == '\n') {
+            line_start += 1;
+            break;
+        }
+    }
+    if (line_start == 0) return null;
+    const comment_end = line_start;
+    var comment_start = line_start;
+
+    const source_before = util.trimWhitespaceRight(source[0..comment_end]);
+    var lines = mem.splitBackwardsScalar(u8, source_before, '\n');
+    while (lines.next()) |line| {
+        comment_start -|= @as(u32, @intCast(line.len)) + 1; // 1 for the newline
+        if (line.len == 0) continue;
+        const curr_snippet = util.trimWhitespace(source[comment_start..comment_end]);
+        if (comment_start == 0 or !mem.startsWith(u8, curr_snippet, "//")) break;
+    }
+
+    std.debug.assert(comment_start <= comment_end);
+    return if (comment_start == comment_end) null else source[comment_start..comment_end];
+}
+
 pub fn deinit(self: *Context) void {
     self.errors.deinit();
     self.* = undefined;
@@ -126,6 +153,7 @@ pub const ErrorList = std.ArrayList(Error);
 const Context = @This();
 
 const std = @import("std");
+const mem = std.mem;
 const util = @import("util");
 const _rule = @import("rule.zig");
 const _source = @import("../source.zig");
