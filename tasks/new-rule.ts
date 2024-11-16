@@ -31,14 +31,17 @@ const createRule = ({ name, StructName }) => {
     return /* zig */ `
 const std = @import("std");
 const _source = @import("../../source.zig");
+const semantic = @import("../../semantic.zig");
+const rule = @import("../rule.zig");
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
+const Symbol = semantic.Symbol;
 const Loc = std.zig.Loc;
 const Span = _source.Span;
 const LinterContext = @import("../lint_context.zig");
-const Rule = @import("../rule.zig").Rule;
-const NodeWrapper = @import("../rule.zig").NodeWrapper;
+const Rule = rule.Rule;
+const NodeWrapper = rule.NodeWrapper;
 
 // Rule metadata
 const ${StructName} = @This();
@@ -48,7 +51,13 @@ pub const Name = "${name}";
 pub fn runOnNode(_: *const ${StructName}, wrapper: NodeWrapper, ctx: *LinterContext) void {
     _ = wrapper;
     _ = ctx;
-    @panic("TODO: implement this rule");
+    @panic("TODO: implement runOnNode, or remove it if not needed");
+}
+
+pub fn runOnSymbol(_: *const ${StructName}, symbol: Symbol.Id, ctx: *LinterContext) void {
+    _ = symbol;
+    _ = ctx;
+    @panic("TODO: implement runOnSymbol, or remove it if not needed");
 }
 
 // Used by the Linter to register the rule so it can be run.

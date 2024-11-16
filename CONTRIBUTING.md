@@ -60,12 +60,10 @@ just e2e -Dsingle-threaded
 ```
 
 ## Contributing New Rules
-
-1. Run `just new-rule <rule-name>` to generate boilderplate for a new rule.
-2. Open `src/linter.siz` and register it inside the `Linter`.
-3. Fill in the rule's method stubs.
-4. Add test cases.
-4. Open a PR.
+Check out the [Creating
+Rules](https://github.com/DonIsaac/zlint/wiki/Creating-Rules) guide for how to
+write new lint rules. A list of rules we want to implement can be found on the
+[Rule Ideas board](https://github.com/DonIsaac/zlint/issues/3).
 
 ## Conventions
 Please follow these conventions when contributing to ZLint.
