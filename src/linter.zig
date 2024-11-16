@@ -76,23 +76,43 @@ pub const Linter = struct {
 
         const semantic = semantic_result.value;
         var ctx = Context.init(self.gpa, &semantic, source);
+        const nodes = ctx.semantic.ast.nodes;
+        assert(nodes.len < std.math.maxInt(u32));
 
-        assert(ctx.semantic.ast.nodes.len < std.math.maxInt(u32));
-        for (0..ctx.semantic.ast.nodes.len) |i| {
-            const node = ctx.semantic.ast.nodes.get(i);
-            const wrapper: NodeWrapper = .{
-                .node = &node,
-                .idx = @intCast(i),
-            };
-            for (self.rules.items) |rule| {
-                ctx.updateForRule(&rule);
+        // Check each node in the AST
+        // Note: rules are in outer loop for better cache locality. Nodes are
+        // stored in an arena, so iterating has good cache-hit characteristics.
+        for (self.rules.items) |rule| {
+            ctx.updateForRule(&rule);
+            for (0..nodes.len) |i| {
+                const node = nodes.get(i);
+                const wrapper: NodeWrapper = .{
+                    .node = &node,
+                    .idx = @intCast(i),
+                };
                 rule.runOnNode(wrapper, &ctx) catch |e| {
-                    const err = Error.fmt(
+                    const err = try Error.fmt(
                         self.gpa,
                         "Rule '{s}' failed to run: {s}",
                         .{ rule.name, @errorName(e) },
-                    ) catch @panic("OOM");
-                    ctx.errors.append(err) catch @panic("OOM");
+                    );
+                    try ctx.errors.append(err);
+                };
+            }
+        }
+
+        // Check each declared symbol
+        for (self.rules.items) |rule| {
+            ctx.updateForRule(&rule);
+            var symbols = ctx.semantic.symbols.iter();
+            while (symbols.next()) |symbol| {
+                rule.runOnSymbol(symbol, &ctx) catch |e| {
+                    const err = try Error.fmt(
+                        self.gpa,
+                        "Rule '{s}' failed to run: {s}",
+                        .{ rule.name, @errorName(e) },
+                    );
+                    try ctx.errors.append(err);
                 };
             }
         }
