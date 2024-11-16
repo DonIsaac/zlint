@@ -13,13 +13,14 @@
             "preLaunchTask": "build -Dsingle-threaded"
         },
         {
-            "name": "zlint --print-ast",
+            "name": "zlint --print-ast ${file}",
             "type": "lldb",
             "request": "launch",
-            "args": ["--print-ast"],
+            "args": ["--print-ast", "${relativeFile}"],
             "program": "${workspaceRoot}/zig-out/bin/zlint",
             "cwd": "${workspaceRoot}",
-            "preLaunchTask": "build"
+            "stdio": "${workspaceRoot}/tmp/ast.json",
+            "preLaunchTask": "pre print-ast"
         },
         {
             "name": "test-e2e",

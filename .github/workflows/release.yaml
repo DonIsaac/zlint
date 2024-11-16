@@ -18,7 +18,8 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # FIXME: handle windows paths in attestation and upload steps
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +41,7 @@ jobs:
         with:
           path: zig-out/bin/zlint
           name: zlint-${{ runner.os }}-${{ runner.arch }}
+          retention-days: 1
 
 
 # TODO

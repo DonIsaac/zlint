@@ -10,7 +10,13 @@ pub const Options = struct {
 };
 
 pub fn new(printer: *Printer, opts: Options, source: Source, ast: *const Ast) AstPrinter {
-    return .{ .opts = opts, .source = source, .ast = ast, .printer = printer, .max_node_id = @intCast(ast.nodes.len - 1) };
+    return .{
+        .opts = opts,
+        .source = source,
+        .ast = ast,
+        .printer = printer,
+        .max_node_id = @intCast(ast.nodes.len - 1),
+    };
 }
 
 pub fn setNodeLinks(self: *AstPrinter, node_links: *const NodeLinks) void {
@@ -77,6 +83,11 @@ fn printAstNode(self: *AstPrinter, node_id: NodeId) anyerror!void {
             const main_value = self.ast.tokenSlice(node.main_token);
             try self.printer.pPropStr("value", main_value);
         },
+        .identifier => {
+            const name = self.ast.getNodeSource(node_id);
+            try self.printer.pPropStr("name", name);
+        },
+        .fn_decl => return self.printFnDecl(node_id),
         .root => unreachable,
         else => {
             var call_buf: [1]NodeId = undefined;
@@ -123,15 +134,35 @@ fn printVarDecl(self: *AstPrinter, node: Node, var_decl: Ast.full.VarDecl) !void
     try self.printer.pPropStr("ident", ident);
     // const decl = ast.fullVarDecl(node_id) orelse unreachable;
     try self.printer.pPropJson("data", var_decl);
-    const _init = var_decl.ast.init_node;
-    try self.printer.pPropName("init");
-    try self.printAstNode(_init);
+    inline for (std.meta.fields(Ast.full.VarDecl.Components)) |field| {
+        if (std.mem.indexOf(u8, field.name, "_node")) |node_suffix_index| {
+            // std.debug.print("{any}\n", .{node_suffix_index});
+            const name: []const u8 = field.name[0..node_suffix_index];
+            const node_id = @field(var_decl.ast, field.name);
+            try self.printer.pPropName(name);
+            try self.printAstNode(node_id);
+        }
+    }
 }
 
 fn printCall(self: *AstPrinter, _: Node, call: Ast.full.Call) !void {
     try self.printer.pProp("async_token", "{any}", call.async_token);
     //     try self.printPropNode("fn_node", call.ast.fn_expr);
     try self.printPropNodeArray("params", call.ast.params);
+}
+fn printFnDecl(self: *AstPrinter, node: NodeId) !void {
+    const data: Node.Data = self.ast.nodes.items(.data)[node];
+    const p = self.printer;
+    var buf: [1]Node.Index = undefined;
+    const proto: Ast.full.FnProto = self.ast.fullFnProto(&buf, node) orelse @panic("fn decls always have a fn prototype");
+    if (proto.name_token) |n| {
+        try p.pPropStr("name", self.ast.tokenSlice(n));
+    } else {
+        try p.pProp("name", "{any}", .{null});
+    }
+    try self.printPropNodeArray("params", proto.ast.params);
+    try self.printPropNode("return_type", proto.ast.return_type);
+    try self.printPropNode("body", data.rhs);
 }
 
 fn printContainerDecl(self: *AstPrinter, _: Node, container: Ast.full.ContainerDecl) !void {
