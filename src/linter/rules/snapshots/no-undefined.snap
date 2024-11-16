@@ -4,3 +4,10 @@
    ·           ─────────
    ╰────
 
+× no-undefined: Do not use undefined.
+   ╭─[no-undefined.zig:2:11]
+ 1 │ // This is not a safety comment
+ 2 │ const x = undefined;
+   ·           ─────────
+   ╰────
+
