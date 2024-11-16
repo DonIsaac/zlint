@@ -28,8 +28,8 @@
             .hash = "1220d71e011c53ca52d972f5b085339f113e471ba4e4922d9ecc5c10f7b5cc998f19",
         },
         .chameleon = .{
-            .url = "git+https://github.com/tr1ckydev/chameleon#d3bee161f700d317ee9c3c73d5fa23b77f878872",
-            .hash = "1220c53fc33154099840f082250ff808ac56439c0349934ea0ae2a4e96c071745b90",
+            .url = "git+https://github.com/tr1ckydev/chameleon#9724f89ca2e56b33609090a6c6c6c1097844d1ee",
+            .hash = "12208314a762057bf5ed82b26b02cbfcf426066b9920bfdd1ddcb68d1d0c55c45ce3",
         },
     },
     .paths = .{
