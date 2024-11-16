@@ -4,23 +4,29 @@ import path from 'path'
 import fs from 'fs'
 
 const RULES_DIR = 'src/linter/rules'
+const RULES_MODULE = 'src/linter/rules.zig'
+const p = (...segs: string[]) => path.join(__dirname, '..', ...segs)
 
-function main(argv: string[]) {
+async function main(argv: string[]) {
     let ruleName = argv[2]
     // lower-kebab-case
     ruleName = ruleName.replaceAll(' ', '-').replaceAll('_', '-').toLowerCase()
+    const StructName = kebabToPascal(ruleName);
 
     // snake_case filenames
     const filename = `${ruleName.replaceAll('-', '_')}.zig`
-    const rulepath = path.resolve(__dirname, '..', RULES_DIR, filename)
+    const rulepath = p(RULES_DIR, filename)
     if (fs.existsSync(rulepath)) {
         throw new Error(`Rule ${ruleName} already exists`)
     }
-    fs.writeFileSync(rulepath, createRule({ name: ruleName }))
+    const reExport = `pub const ${StructName} = @import("./rules/${filename}");`
+    await Promise.all([
+        fs.promises.writeFile(rulepath, createRule({ name: ruleName, StructName })),
+        fs.promises.appendFile(p(RULES_MODULE), reExport)
+    ])
 }
 
-const createRule = ({ name }) => {
-    const StructName = kebabToPascal(name)
+const createRule = ({ name, StructName }) => {
     const underscored = name.replaceAll('-', '_');
     return /* zig */ `
 const std = @import("std");
@@ -34,15 +40,18 @@ const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
 
+// Rule metadata
 const ${StructName} = @This();
 pub const Name = "${name}";
 
+// Runs on each node in the AST. Useful for syntax-based rules.
 pub fn runOnNode(_: *const ${StructName}, wrapper: NodeWrapper, ctx: *LinterContext) void {
     _ = wrapper;
     _ = ctx;
     @panic("TODO: implement this rule");
 }
 
+// Used by the Linter to register the rule so it can be run.
 pub fn rule(self: *${StructName}) Rule {
     return Rule.init(self);
 }
@@ -58,21 +67,20 @@ test ${StructName} {
     // Code your rule should pass on
     const pass = &[_][:0]const u8{
         // TODO: add test cases
-        "const x = 1";
+        "const x = 1",
     };
 
     // Code your rule should fail on
     const fail = &[_][:0]const u8{
         // TODO: add test cases
-        "const x = 1";
+        "const x = 1",
     };
 
     try runner
         .withPass(pass)
         .withFail(fail)
         .run();
-}
-`
+}`.trim()
 }
 
 const kebabToPascal = (kebab: string) =>

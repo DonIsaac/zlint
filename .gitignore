@@ -5,6 +5,9 @@ zig-out
 # test artifacts
 .coverage
 
+# dependencies
+node_modules
+
 # os
 .DS_Store
 
