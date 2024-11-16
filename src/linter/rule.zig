@@ -1,9 +1,12 @@
 const std = @import("std");
+const util = @import("util");
+const semantic = @import("../semantic.zig");
 
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
+const string = util.string;
+const Symbol = semantic.Symbol;
 
-const string = @import("util").string;
 const LinterContext = @import("lint_context.zig");
 
 pub const NodeWrapper = struct {
@@ -17,11 +20,23 @@ pub const NodeWrapper = struct {
 };
 
 const RunOnNodeFn = *const fn (ptr: *const anyopaque, node: NodeWrapper, ctx: *LinterContext) anyerror!void;
+const RunOnSymbolFn = *const fn (ptr: *const anyopaque, symbol: Symbol.Id, ctx: *LinterContext) anyerror!void;
 
+/// A single lint rule.
+///
+/// ## Creating Rules
+/// Rules are structs (or anything else that can have methods) that have 1 or
+/// more of the following methods:
+/// - `runOnNode(*self, node, *ctx)`
+/// - `runOnSymbol(*self, symbol, *ctx)`
+/// `Rule` provides a uniform interface to `Linter`. `Rule.init` will look for
+/// those methods and, if they exist, stores pointers to them. These then get
+/// used by the `Linter` to check for violations.
 pub const Rule = struct {
     name: string,
     ptr: *anyopaque,
     runOnNodeFn: RunOnNodeFn,
+    runOnSymbolFn: RunOnSymbolFn,
 
     pub fn init(ptr: anytype) Rule {
         const T = @TypeOf(ptr);
@@ -43,17 +58,28 @@ pub const Rule = struct {
                     return ptr_info.child.runOnNode(self, node, ctx);
                 }
             }
+            pub fn runOnSymbol(pointer: *const anyopaque, symbol: Symbol.Id, ctx: *LinterContext) anyerror!void {
+                if (@hasDecl(ptr_info.child, "runOnSymbol")) {
+                    const self: T = @ptrCast(@constCast(pointer));
+                    return ptr_info.child.runOnSymbol(self, symbol, ctx);
+                }
+            }
         };
 
         return .{
             .name = name,
             .ptr = ptr,
             .runOnNodeFn = gen.runOnNode,
+            .runOnSymbolFn = gen.runOnSymbol,
         };
     }
 
     pub fn runOnNode(self: *const Rule, node: NodeWrapper, ctx: *LinterContext) !void {
         return self.runOnNodeFn(self.ptr, node, ctx);
+    }
+
+    pub fn runOnSymbol(self: *const Rule, symbol: Symbol.Id, ctx: *LinterContext) !void {
+        return self.runOnSymbolFn(self.ptr, symbol, ctx);
     }
 };
 
