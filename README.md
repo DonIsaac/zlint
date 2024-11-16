@@ -9,7 +9,7 @@ An opinionated linter for the Zig programming language.
 > This project is still very much under construction.
 
 ## Features
-- ZLint has its own semantic analyzer taht is completely separate from the Zig
+- ZLint has its own semantic analyzer that is completely separate from the Zig
   compiler. This means that ZLint still checks and understands code that may
   otherwise be ignored by Zig due to dead code elimination.
 - Pretty, detailed, and easy-to-understand error messages.
