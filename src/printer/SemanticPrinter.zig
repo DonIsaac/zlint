@@ -28,15 +28,12 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: 
 
     try self.printer.pPropStr("name", symbol.name);
     try self.printer.pPropStr("debugName", symbol.debug_name);
-    // try self.printer.pPropStr("kind", symbol.kind);
     const decl = self.semantic.ast.nodes.items(.tag)[symbol.decl];
     try self.printer.pPropWithNamespacedValue("declNode", decl);
-    // try self.printer.pPropStr("type", symbol.type);
     try self.printer.pProp("scope", "{d}", symbol.scope);
     try self.printer.pPropJson("flags", symbol.flags);
-    try self.printer.pPropJson("members", symbols.getMembers(symbol.id).items);
-    try self.printer.pPropJson("exports", symbols.getExports(symbol.id).items);
-    // try self.printer.pPropStr("location", symbol.location);
+    try self.printer.pPropJson("members", @as([]u32, @ptrCast(symbols.getMembers(symbol.id).items)));
+    try self.printer.pPropJson("exports", @as([]u32, @ptrCast(symbols.getExports(symbol.id).items)));
 }
 
 pub fn printScopeTree(self: *SemanticPrinter) !void {
@@ -81,11 +78,12 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
         // var bindings = std.StringHashMap(Symbol.Id).init(fixed_alloc.get());
         // defer bindings.deinit();
         for (scopes.bindings.items[scope.id].items) |id| {
-            var name = bound_names[id];
+            const i = id.int();
+            var name = bound_names[i];
             if (name.len == 0) {
-                name = debug_names[id];
+                name = debug_names[i];
             }
-            try p.pProp(name, "{d}", id);
+            try p.pProp(name, "{d}", i);
         }
     }
 

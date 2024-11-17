@@ -49,8 +49,10 @@ members: SymbolIdList = .{},
 exports: SymbolIdList = .{},
 
 /// Uniquely identifies a symbol across a source file.
-pub const Id = u32;
-pub const MAX_ID = std.math.maxInt(Id);
+pub const Id = NominalId(u32);
+pub const MAX_ID = Id.MAX;
+
+const SymbolIdList = std.ArrayListUnmanaged(Symbol.Id);
 
 /// Visibility to external code.
 ///
@@ -75,7 +77,7 @@ pub const Flags = packed struct {
     ///
     /// ```zig
     /// const Foo = struct {
-    ///   bar: u32, // <- this is a container field
+    ///   bar: Repr, // <- this is a container field
     /// }
     /// ```
     s_member: bool = false,
@@ -114,7 +116,7 @@ pub const SymbolTable = struct {
 
     /// Get a symbol from the table.
     pub inline fn get(self: *const SymbolTable, id: Symbol.Id) *const Symbol {
-        return &self.symbols.get(id);
+        return &self.symbols.get(id.into(usize));
     }
 
     pub fn addSymbol(
@@ -129,7 +131,8 @@ pub const SymbolTable = struct {
     ) Allocator.Error!Symbol.Id {
         assert(self.symbols.len < Symbol.MAX_ID);
 
-        const id: Symbol.Id = @intCast(self.symbols.len);
+        // const id: Symbol.Id = @intCast(self.symbols.len).into();
+        const id = Id.from(self.symbols.len);
         const symbol = Symbol{
             .name = name orelse "",
             .debug_name = debug_name orelse "",
@@ -147,11 +150,11 @@ pub const SymbolTable = struct {
     }
 
     pub inline fn getMembers(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
-        return &self.symbols.items(.members)[container];
+        return &self.symbols.items(.members)[container.int()];
     }
 
     pub inline fn getMembersMut(self: *SymbolTable, container: Symbol.Id) *SymbolIdList {
-        return &self.symbols.items(.members)[container];
+        return &self.symbols.items(.members)[container.int()];
     }
 
     pub fn addMember(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) Allocator.Error!void {
@@ -159,11 +162,11 @@ pub const SymbolTable = struct {
     }
 
     pub inline fn getExports(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
-        return &self.symbols.items(.exports)[container];
+        return &self.symbols.items(.exports)[container.int()];
     }
 
     pub inline fn getExportsMut(self: *SymbolTable, container: Symbol.Id) *SymbolIdList {
-        return &self.symbols.items(.exports)[container];
+        return &self.symbols.items(.exports)[container.int()];
     }
 
     pub inline fn addExport(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) Allocator.Error!void {
@@ -176,11 +179,11 @@ pub const SymbolTable = struct {
 
     pub fn deinit(self: *SymbolTable, alloc: Allocator) void {
         {
-            var i: Id = 0;
-            const len: Id = @intCast(self.symbols.len);
+            var i: Id.Repr = 0;
+            const len: Id.Repr = @intCast(self.symbols.len);
             while (i < len) {
-                self.getMembersMut(i).deinit(alloc);
-                self.getExportsMut(i).deinit(alloc);
+                self.getMembersMut(Id.from(i)).deinit(alloc);
+                self.getExportsMut(Id.from(i)).deinit(alloc);
                 i += 1;
             }
         }
@@ -189,7 +192,7 @@ pub const SymbolTable = struct {
 };
 
 pub const Iterator = struct {
-    curr: Symbol.Id = 0,
+    curr: Id.Repr = 0,
     table: *const SymbolTable,
 
     pub fn next(self: *Iterator) ?Symbol.Id {
@@ -198,7 +201,7 @@ pub const Iterator = struct {
         }
         const id = self.curr;
         self.curr += 1;
-        return id;
+        return Id.from(id);
     }
 };
 
@@ -210,11 +213,10 @@ const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const Scope = @import("Scope.zig");
 const Type = std.builtin.Type;
+const NominalId = @import("id.zig").NominalId;
 
 const assert = std.debug.assert;
 const string = @import("util").string;
-
-const SymbolIdList = std.ArrayListUnmanaged(Symbol.Id);
 
 test "SymbolTable.iter()" {
     const a = std.testing.allocator;
