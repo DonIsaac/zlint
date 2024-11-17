@@ -25,7 +25,7 @@ _arena: ArenaAllocator,
 ///
 /// The root scope is eventually the parent of all other scopes. Its parent is
 /// always `null`.
-pub const ROOT_SCOPE_ID: Scope.Id = 0;
+pub const ROOT_SCOPE_ID: Scope.Id = Scope.Id.from(0);
 /// The root node always has an index of 0. Since it is never referenced by other nodes,
 /// the Zig team uses it to represent `null` without wasting extra memory.
 pub const ROOT_NODE_ID: Ast.Node.Index = 0;

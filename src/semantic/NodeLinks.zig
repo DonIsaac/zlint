@@ -14,7 +14,7 @@
 /// - No node is its own parent
 /// - No node is the parent of the root node (0 in this case means `null`).
 parents: std.ArrayListUnmanaged(NodeIndex) = .{},
-scopes: std.ArrayListUnmanaged(ScopeId) = .{},
+scopes: std.ArrayListUnmanaged(Scope.Id) = .{},
 
 pub fn init(alloc: Allocator, ast: *const Ast) Allocator.Error!NodeLinks {
     var links: NodeLinks = .{};
@@ -22,7 +22,7 @@ pub fn init(alloc: Allocator, ast: *const Ast) Allocator.Error!NodeLinks {
     try links.parents.ensureTotalCapacityPrecise(alloc, ast.nodes.len);
     links.parents.appendNTimesAssumeCapacity(NULL_NODE, @intCast(ast.nodes.len));
     try links.scopes.ensureTotalCapacityPrecise(alloc, ast.nodes.len);
-    links.scopes.appendNTimesAssumeCapacity(NULL_NODE, @intCast(ast.nodes.len));
+    links.scopes.appendNTimesAssumeCapacity(Semantic.ROOT_SCOPE_ID, ast.nodes.len);
 
     return links;
 }
@@ -33,7 +33,7 @@ pub fn deinit(self: *NodeLinks, alloc: Allocator) void {
     }
 }
 
-pub inline fn setScope(self: *NodeLinks, node_id: NodeIndex, scope_id: ScopeId) void {
+pub inline fn setScope(self: *NodeLinks, node_id: NodeIndex, scope_id: Scope.Id) void {
     assert(
         node_id < self.scopes.items.len,
         "Node id out of bounds (id {d} >= {d})",
@@ -90,7 +90,7 @@ const NodeIndex = Ast.Node.Index;
 const Semantic = @import("./Semantic.zig");
 const ROOT_NODE_ID = Semantic.ROOT_NODE_ID;
 const NULL_NODE = Semantic.NULL_NODE;
-const ScopeId = Semantic.Scope.Id;
+const Scope = Semantic.Scope;
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;

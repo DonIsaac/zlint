@@ -1078,7 +1078,7 @@ fn printScopeStack(self: *const SemanticBuilder) void {
     const scope_flags = scopes.scopes.items(.flags);
     for (self._scope_stack.items) |id| {
         // const flags = scopes.scopes.items[id].flags;
-        print("  - {d}: (flags: {any})\n", .{ id, scope_flags[id] });
+        print("  - {d}: (flags: {any})\n", .{ id, scope_flags[id.into(usize)] });
     }
 }
 

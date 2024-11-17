@@ -49,7 +49,7 @@ pub fn NominalId(TRepr: type) type {
         pub inline fn from(value: anytype) Id {
             const T = @TypeOf(value);
             return switch (T) {
-                Repr => return @enumFromInt(value),
+                Repr, comptime_int => return @enumFromInt(value),
                 Id => return value,
                 Optional => @enumFromInt(@intFromEnum(value)),
                 // allow other int types
