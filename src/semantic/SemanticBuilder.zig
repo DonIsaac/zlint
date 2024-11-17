@@ -677,7 +677,7 @@ fn enterRoot(self: *SemanticBuilder) !void {
         .debug_name = "@This()",
         .flags = .{ .s_const = true },
     });
-    util.assert(root_symbol_id == 0, "Creating root symbol returned id {d} which is not the expected root id (0)", .{root_symbol_id});
+    util.assert(root_symbol_id.int() == 0, "Creating root symbol returned id {d} which is not the expected root id (0)", .{root_symbol_id});
     try self.enterContainerSymbol(root_symbol_id);
 }
 
@@ -692,7 +692,7 @@ inline fn assertRoot(self: *const SemanticBuilder) void {
     self.assertCtx(self._node_stack.items[0] == Semantic.ROOT_NODE_ID, "assertRoot: node stack is not at root", .{});
 
     self.assertCtx(self._symbol_stack.items.len == 1, "assertRoot: symbol stack is not at root", .{});
-    self.assertCtx(self._symbol_stack.items[0] == 0, "assertRoot: symbol stack is not at root", .{}); // TODO: create root symbol id.
+    self.assertCtx(self._symbol_stack.items[0].int() == 0, "assertRoot: symbol stack is not at root", .{}); // TODO: create root symbol id.
 }
 
 /// Update a single flag on the set of current scope flags, returning its
@@ -1064,8 +1064,9 @@ fn printSymbolStack(self: *const SemanticBuilder) void {
 
     print("Symbol stack:\n", .{});
     for (self._symbol_stack.items) |id| {
-        const name = names[id];
-        print("  - {d}: {s}\n", .{ id, name });
+        const i = id.int();
+        const name = names[i];
+        print("  - {d}: {s}\n", .{ i, name });
     }
 }
 
@@ -1136,7 +1137,7 @@ test "Struct/enum fields are bound bound to the struct/enums's member table" {
             var iter = semantic.symbols.iter();
             const names = semantic.symbols.symbols.items(.name);
             while (iter.next()) |id| {
-                const name = names[id];
+                const name = names[id.int()];
                 if (std.mem.eql(u8, name, "bar")) {
                     bar = semantic.symbols.get(id);
                 } else if (std.mem.eql(u8, name, "Foo")) {
