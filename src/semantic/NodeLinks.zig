@@ -14,23 +14,43 @@
 /// - No node is its own parent
 /// - No node is the parent of the root node (0 in this case means `null`).
 parents: std.ArrayListUnmanaged(NodeIndex) = .{},
+scopes: std.ArrayListUnmanaged(ScopeId) = .{},
 
 pub fn init(alloc: Allocator, ast: *const Ast) Allocator.Error!NodeLinks {
     var links: NodeLinks = .{};
+
     try links.parents.ensureTotalCapacityPrecise(alloc, ast.nodes.len);
     links.parents.appendNTimesAssumeCapacity(NULL_NODE, @intCast(ast.nodes.len));
+    try links.scopes.ensureTotalCapacityPrecise(alloc, ast.nodes.len);
+    links.scopes.appendNTimesAssumeCapacity(NULL_NODE, @intCast(ast.nodes.len));
 
     return links;
 }
 
 pub fn deinit(self: *NodeLinks, alloc: Allocator) void {
-    self.parents.deinit(alloc);
+    inline for (.{ "parents", "scopes" }) |name| {
+        @field(self, name).deinit(alloc);
+    }
+}
+
+pub inline fn setScope(self: *NodeLinks, node_id: NodeIndex, scope_id: ScopeId) void {
+    assert(
+        node_id < self.scopes.items.len,
+        "Node id out of bounds (id {d} >= {d})",
+        .{ node_id, self.scopes.items.len },
+    );
+
+    self.scopes.items[node_id] = scope_id;
 }
 
 pub inline fn setParent(self: *NodeLinks, child_id: NodeIndex, parent_id: NodeIndex) void {
     assert(child_id != parent_id, "AST nodes cannot be children of themselves", .{});
     assert(child_id != NULL_NODE, "Re-assigning the root node's parent is illegal behavior", .{});
-    assert(parent_id < self.parents.items.len, "Parent node id out of bounds (id {d} >= {d})", .{ parent_id, self.parents.items.len });
+    assert(
+        parent_id < self.parents.items.len,
+        "Parent node id out of bounds (id {d} >= {d})",
+        .{ parent_id, self.parents.items.len },
+    );
 
     self.parents.items[child_id] = parent_id;
 }
@@ -62,12 +82,15 @@ const ParentIdsIterator = struct {
         return self.curr_id;
     }
 };
+
 const NodeLinks = @This();
 
 const Ast = std.zig.Ast;
 const NodeIndex = Ast.Node.Index;
-const ROOT_NODE_ID = @import("./Semantic.zig").ROOT_NODE_ID;
-const NULL_NODE = @import("./Semantic.zig").NULL_NODE;
+const Semantic = @import("./Semantic.zig");
+const ROOT_NODE_ID = Semantic.ROOT_NODE_ID;
+const NULL_NODE = Semantic.NULL_NODE;
+const ScopeId = Semantic.Scope.Id;
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
