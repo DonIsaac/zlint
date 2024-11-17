@@ -51,12 +51,14 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
 
     // join it with the current file's folder to get where it would be
     {
-        // note: pathname null check performed at start of function
+        // NOTE: pathname null check performed at start of function
         const dirname = path.dirname(ctx.source.pathname.?) orelse return;
         // FIXME: do not use fs.cwd(). this will break once users start
         // specifying paths to lint. We should be recording an absolute path
         // for each linted file.
         const dir = fs.cwd().openDir(dirname, .{}) catch std.debug.panic("Failed to open dir: {s}", .{dirname});
+        // TODO: use absolute paths and cache stat results.
+        // depends on: https://github.com/DonIsaac/zlint/issues/81
         const stat = dir.statFile(pathname) catch {
             ctx.diagnosticFmt(
                 "Unresolved import to '{s}'",

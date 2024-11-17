@@ -73,13 +73,14 @@ pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Resul
     const ast = try builder.parse(source);
     const node_links = try NodeLinks.init(gpa, &ast);
     assert(ast.nodes.len == node_links.parents.items.len);
+    assert(ast.nodes.len == node_links.scopes.items.len);
 
     // reserve capacity for stacks
     try builder._scope_stack.ensureTotalCapacity(gpa, 8); // TODO: use stack fallback allocator?
     try builder._symbol_stack.ensureTotalCapacity(gpa, 8);
     // TODO: verify this hypothesis. What is the max node stack len while
     // building? (avg over a representative sample of real Zig files.)
-    try builder._node_stack.ensureTotalCapacity(gpa, @max(ast.nodes.len >> 2, 8));
+    try builder._node_stack.ensureTotalCapacity(gpa, @max(ast.nodes.len, 32) >> 2);
 
     builder._semantic = Semantic{
         .ast = ast,
