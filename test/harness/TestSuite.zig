@@ -2,13 +2,17 @@
 test_fn: *const TestFn,
 setup_fn: ?*const fn (suite: *TestSuite) anyerror!void,
 teardown_fn: ?*const fn (suite: *TestSuite) anyerror!void,
+
+group_name: []const u8,
+suite_name: []const u8,
 dir: fs.Dir,
 walker: fs.Dir.Walker,
-snapshot: fs.File,
-alloc: Allocator,
+
 errors: std.ArrayListUnmanaged(string) = .{},
 errors_mutex: std.Thread.Mutex = .{},
 stats: Stats = .{},
+
+alloc: Allocator,
 
 const TestFn = fn (alloc: Allocator, source: *const Source) anyerror!void;
 const SetupFn = fn (suite: *TestSuite) anyerror!void;
@@ -26,34 +30,22 @@ pub fn init(
     group_name: string,
     suite_name: string,
     fns: TestSuiteFns,
-    // test_fn: *const TestFn,
-    // setup_fn: ?*const fn (suite: *TestSuite) anyerror!void,
 ) !TestSuite {
-    const SNAP_EXT = ".snap";
-    // +1 for sentinel (TODO: check if needed)
-    var stack_alloc = std.heap.stackFallback(256 + SNAP_EXT.len + 1, alloc);
-    var allocator = stack_alloc.get();
-
-    const snapshot_name = try std.mem.concat(alloc, u8, &[_]string{ suite_name, SNAP_EXT });
-    defer allocator.free(snapshot_name);
-
-    const snapshot = try utils.TestFolders.openSnapshotFile(alloc, group_name, snapshot_name);
     const walker = try dir.walk(alloc);
 
     return TestSuite{
-        // line bream
         .test_fn = fns.test_fn,
         .setup_fn = fns.setup_fn,
         .teardown_fn = fns.teardown_fn,
+        .group_name = group_name,
+        .suite_name = suite_name,
         .dir = dir,
         .walker = walker,
-        .snapshot = snapshot,
         .alloc = alloc,
     };
 }
 
 pub fn deinit(self: *TestSuite) void {
-    self.snapshot.close();
     self.walker.deinit();
     self.dir.close();
     {
@@ -131,18 +123,34 @@ fn pushErr(self: *TestSuite, msg: string, err: anytype) void {
 }
 
 fn writeSnapshot(self: *TestSuite) !void {
+    const snapshot = try self.openSnapshotFile();
+    defer snapshot.close();
+    const writer = snapshot.writer();
+
     const pass = self.stats.pass.load(.monotonic);
     const total = self.stats.total();
     const pct = self.stats.passPct();
 
-    try self.snapshot.writer().print("Passed: {d}% ({d}/{d})\n\n", .{ pct, pass, total });
+    try writer.print("Passed: {d}% ({d}/{d})\n\n", .{ pct, pass, total });
     self.errors_mutex.lock();
     defer self.errors_mutex.unlock();
     // errors must be sorted for stable `git diff` output
     std.mem.sort(string, self.errors.items, {}, stringsLessThan);
     for (self.errors.items) |err| {
-        try self.snapshot.writer().print("{s}\n", .{err});
+        try writer.print("{s}\n", .{err});
     }
+}
+
+fn openSnapshotFile(self: *TestSuite) !fs.File {
+    const SNAP_EXT = ".snap";
+
+    var stack_alloc = std.heap.stackFallback(1024, self.alloc);
+    var allocator = stack_alloc.get();
+
+    const snapshot_name = try std.mem.concat(allocator, u8, &[_]string{ self.suite_name, SNAP_EXT });
+    defer allocator.free(snapshot_name);
+
+    return utils.TestFolders.openSnapshotFile(allocator, self.group_name, snapshot_name);
 }
 
 fn stringsLessThan(_: void, a: []const u8, b: []const u8) bool {
