@@ -19,7 +19,8 @@ source: ?ArcStr = null,
 help: ?string = null,
 
 // Although this is not [:0]const u8, it should not be mutated. Needs to be mut
-// for Arc dealloc reasons.
+// to indicate to Arc it's owned by the Error. Otherwise, arc.deinit() won't
+// free the slice.
 const ArcStr = Arc([:0]u8);
 pub const PossiblyStaticStr = struct {
     static: bool = true,

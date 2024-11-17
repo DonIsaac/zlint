@@ -17,6 +17,7 @@ pub fn Reporter(
             };
         }
         pub fn reportErrors(self: *Self, errors: std.ArrayList(Error)) void {
+            if (errors.items.len == 0) return;
             self.writer_lock.lock();
             defer self.writer_lock.unlock();
 
