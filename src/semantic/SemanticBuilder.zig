@@ -473,6 +473,7 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
         try self.visit(var_decl.ast.init_node);
     }
 }
+
 fn visitAssignDestructure(self: *SemanticBuilder, _: NodeIndex, destructure: full.AssignDestructure) SemanticError!void {
     self.assertCtx(destructure.ast.variables.len > 0, "Invalid destructuring assignment: no variables are being declared.", .{});
     const ast = self.AST();
@@ -754,6 +755,7 @@ inline fn enterNode(self: *SemanticBuilder, node_id: NodeIndex) !void {
     }
     const curr_node = self.currentNode();
     self._semantic.node_links.setParent(node_id, curr_node);
+    self._semantic.node_links.setScope(node_id, self.currentScope());
     try self._node_stack.append(self._gpa, node_id);
 }
 
