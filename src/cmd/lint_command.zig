@@ -106,10 +106,6 @@ const LintVisitor = struct {
         defer if (errors) |e| self.reporter.reportErrors(e);
 
         try self.linter.runOnSource(&source, &errors);
-        // defer errors.deinit();
-        // for (errors.items) |err| {
-        //     log.err("{s}\n", .{err.message});
-        // }
     }
 
     fn deinit(self: *LintVisitor) void {
