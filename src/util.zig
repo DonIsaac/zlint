@@ -67,6 +67,7 @@ fn BooGeneric(T: type) type {
         }
     };
 }
+
 fn BooSlice(T: type) type {
     const Borrow = union(enum) {
         borrowed: []const T,

@@ -238,6 +238,7 @@ fn styleFor(self: *GraphicalFormatter, severity: Error.Severity) GraphicalTheme.
         .off => @panic("off severity should not be rendered at all."),
     };
 }
+
 fn highlightFor(self: *GraphicalFormatter, severity: Error.Severity) GraphicalTheme.Chameleon {
     const highlights = self.theme.styles.highlights;
     assert(highlights.len > 0);

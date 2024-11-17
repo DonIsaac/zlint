@@ -150,6 +150,7 @@ fn printCall(self: *AstPrinter, _: Node, call: Ast.full.Call) !void {
     //     try self.printPropNode("fn_node", call.ast.fn_expr);
     try self.printPropNodeArray("params", call.ast.params);
 }
+
 fn printFnDecl(self: *AstPrinter, node: NodeId) !void {
     const data: Node.Data = self.ast.nodes.items(.data)[node];
     const p = self.printer;
