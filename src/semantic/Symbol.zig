@@ -225,8 +225,8 @@ test "SymbolTable.iter()" {
     var table = SymbolTable{};
     defer table.deinit(a);
 
-    _ = try table.addSymbol(a, 1, "a", null, 0, .public, .{});
-    _ = try table.addSymbol(a, 1, "b", null, 1, .public, .{});
+    _ = try table.addSymbol(a, 1, "a", null, Scope.Id.new(0), .public, .{});
+    _ = try table.addSymbol(a, 1, "b", null, Scope.Id.new(1), .public, .{});
     try expectEqual(2, table.symbols.len);
 
     var iter = table.iter();

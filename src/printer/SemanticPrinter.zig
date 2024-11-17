@@ -37,7 +37,7 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: 
 }
 
 pub fn printScopeTree(self: *SemanticPrinter) !void {
-    return self.printScope(&self.semantic.scopes.scopes.get(Semantic.ROOT_SCOPE_ID));
+    return self.printScope(&self.semantic.scopes.getScope(Semantic.ROOT_SCOPE_ID));
 }
 
 const StackAllocator = std.heap.StackFallbackAllocator(1024);
@@ -77,7 +77,7 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
         defer p.pop();
         // var bindings = std.StringHashMap(Symbol.Id).init(fixed_alloc.get());
         // defer bindings.deinit();
-        for (scopes.bindings.items[scope.id].items) |id| {
+        for (scopes.bindings.items[scope.id.int()].items) |id| {
             const i = id.int();
             var name = bound_names[i];
             if (name.len == 0) {
@@ -87,7 +87,7 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
         }
     }
 
-    const children = &scopes.children.items[scope.id];
+    const children = &scopes.children.items[scope.id.int()];
     if (children.items.len == 0) {
         try p.pPropName("children");
         try p.writer.print("[]", .{});
@@ -99,7 +99,7 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
     try p.pushArray();
     defer p.pop();
     for (children.items) |child_id| {
-        const child = &scopes.scopes.get(child_id);
+        const child = &scopes.getScope(child_id);
         try self.printScope(child);
     }
 }

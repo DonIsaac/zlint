@@ -5,8 +5,8 @@ flags: Flags,
 parent: ?Id,
 
 /// Uniquely identifies a scope within a source file.
-pub const Id = u32;
-pub const MAX_ID = std.math.maxInt(Id);
+pub const Id = NominalId(u32);
+pub const MAX_ID = Id.MAX;
 
 const FLAGS_REPR = u16;
 /// Scope flags provide hints about what kind of node is creating the
@@ -63,13 +63,17 @@ pub const ScopeTree = struct {
     const ScopeIdList = std.ArrayListUnmanaged(Scope.Id);
     const SymbolIdList = std.ArrayListUnmanaged(Symbol.Id);
 
+    pub fn getScope(self: *const ScopeTree, id: Scope.Id) Scope {
+        return self.scopes.get(id.into(usize));
+    }
+
     /// Create a new scope and insert it into the scope tree.
     ///
     /// ## Errors
     /// If allocation fails. Usually due to OOM.
     pub fn addScope(self: *ScopeTree, alloc: Allocator, parent: ?Scope.Id, flags: Scope.Flags) !Scope.Id {
         assert(self.scopes.len < Scope.MAX_ID);
-        const id: Scope.Id = @intCast(self.scopes.len);
+        const id: Scope.Id = Id.from(self.scopes.len);
 
         // initialize the new scope
         try self.scopes.append(alloc, Scope{
@@ -84,8 +88,9 @@ pub const ScopeTree = struct {
 
         // Add it to its parent's list of child scopes
         if (parent != null) {
-            assert(parent.? < self.children.items.len);
-            var parentChildren: *ScopeIdList = &self.children.items[parent.?];
+            const p = parent.?.int();
+            assert(p < self.children.items.len);
+            var parentChildren: *ScopeIdList = &self.children.items[p];
             try parentChildren.append(alloc, id);
         }
 
@@ -96,7 +101,7 @@ pub const ScopeTree = struct {
     }
 
     pub fn addBinding(self: *ScopeTree, alloc: Allocator, scope_id: Scope.Id, symbol_id: Symbol.Id) Allocator.Error!void {
-        return self.bindings.items[scope_id].append(alloc, symbol_id);
+        return self.bindings.items[scope_id.int()].append(alloc, symbol_id);
     }
 
     pub fn deinit(self: *ScopeTree, alloc: Allocator) void {
@@ -126,6 +131,7 @@ const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const Type = std.builtin.Type;
 const Symbol = @import("Symbol.zig");
+const NominalId = @import("id.zig").NominalId;
 
 const string = @import("util").string;
 const assert = std.debug.assert;
@@ -149,16 +155,16 @@ test "ScopeTree.addScope" {
     defer tree.deinit(alloc);
 
     const root_id = try tree.addScope(alloc, null, .{ .s_top = true });
-    const root = tree.scopes.get(root_id);
+    const root = tree.getScope(root_id);
     try expectEqual(1, tree.scopes.len);
-    try expectEqual(0, root_id);
-    try expectEqual(0, root.id);
+    try expectEqual(0, root_id.int());
+    try expectEqual(0, root.id.int());
     try expectEqual(Scope.Flags{ .s_top = true }, root.flags);
     try expectEqual(root, tree.scopes.get(0));
 
     const child_id = try tree.addScope(alloc, root.id, .{});
-    const child = tree.scopes.get(child_id);
-    try expectEqual(1, child.id);
+    const child = tree.getScope(child_id);
+    try expectEqual(1, child.id.int());
     try expectEqual(Scope.Flags{}, child.flags);
     try expectEqual(root.id, child.parent);
     try expectEqual(child, tree.scopes.get(1));
@@ -166,5 +172,5 @@ test "ScopeTree.addScope" {
     try expectEqual(2, tree.scopes.len);
     try expectEqual(2, tree.children.items.len);
     try expectEqual(1, tree.children.items[0].items.len);
-    try expectEqual(1, tree.children.items[0].items[0]);
+    try expectEqual(1, tree.children.items[0].items[0].int());
 }

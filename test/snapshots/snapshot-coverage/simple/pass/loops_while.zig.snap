@@ -4,7 +4,7 @@
       "name": "", 
       "debugName": "@This()", 
       "declNode": "root", 
-      "scope": 0, 
+      "scope": semantic.id.NominalId(u32)(0), 
       "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], 
       "exports": [], 
@@ -13,7 +13,7 @@
       "name": "std", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": 0, 
+      "scope": semantic.id.NominalId(u32)(0), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -22,7 +22,7 @@
       "name": "simpleWhile", 
       "debugName": "", 
       "declNode": "fn_decl", 
-      "scope": 0, 
+      "scope": semantic.id.NominalId(u32)(0), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -31,7 +31,7 @@
       "name": "i", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": 3, 
+      "scope": semantic.id.NominalId(u32)(3), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -40,7 +40,7 @@
       "name": "power_of_two", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": 4, 
+      "scope": semantic.id.NominalId(u32)(4), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -49,7 +49,7 @@
       "name": "whileWithClosure", 
       "debugName": "", 
       "declNode": "fn_decl", 
-      "scope": 0, 
+      "scope": semantic.id.NominalId(u32)(0), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -58,7 +58,7 @@
       "name": "map", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": 7, 
+      "scope": semantic.id.NominalId(u32)(7), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -67,7 +67,7 @@
       "name": "iter", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": 7, 
+      "scope": semantic.id.NominalId(u32)(7), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -76,7 +76,7 @@
       "name": "k", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": 8, 
+      "scope": semantic.id.NominalId(u32)(8), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -85,7 +85,7 @@
       "name": "v", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": 8, 
+      "scope": semantic.id.NominalId(u32)(8), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -94,7 +94,7 @@
       "name": "whileWithExpr", 
       "debugName": "", 
       "declNode": "fn_decl", 
-      "scope": 0, 
+      "scope": semantic.id.NominalId(u32)(0), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -103,7 +103,7 @@
       "name": "x", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": 11, 
+      "scope": semantic.id.NominalId(u32)(11), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -112,7 +112,7 @@
       "name": "y", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": 11, 
+      "scope": semantic.id.NominalId(u32)(11), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -121,7 +121,7 @@
       "name": "my_xy", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": 13, 
+      "scope": semantic.id.NominalId(u32)(13), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -130,7 +130,7 @@
       "name": "rangeHasNumber", 
       "debugName": "", 
       "declNode": "fn_decl", 
-      "scope": 0, 
+      "scope": semantic.id.NominalId(u32)(0), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -139,7 +139,7 @@
       "name": "i", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": 16, 
+      "scope": semantic.id.NominalId(u32)(16), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "members": [], 
       "exports": [], 
@@ -147,7 +147,7 @@
     }, 
   ], 
   "scopes": {
-    "id": 0, 
+    "id": semantic.id.NominalId(u32)(0), 
     "flags": [
       "top", 
       
@@ -162,7 +162,7 @@
       
     }, "children": [
       {
-        "id": 1, 
+        "id": semantic.id.NominalId(u32)(1), 
         "flags": [
           
         ], 
@@ -170,7 +170,7 @@
           
         }, "children": [
           {
-            "id": 2, 
+            "id": semantic.id.NominalId(u32)(2), 
             "flags": [
               "function", 
               
@@ -179,7 +179,7 @@
               
             }, "children": [
               {
-                "id": 3, 
+                "id": semantic.id.NominalId(u32)(3), 
                 "flags": [
                   "block", 
                   
@@ -189,7 +189,7 @@
                   
                 }, "children": [
                   {
-                    "id": 4, 
+                    "id": semantic.id.NominalId(u32)(4), 
                     "flags": [
                       "block", 
                       
@@ -206,7 +206,7 @@
           }, 
         ], 
       }, {
-        "id": 5, 
+        "id": semantic.id.NominalId(u32)(5), 
         "flags": [
           
         ], 
@@ -214,7 +214,7 @@
           
         }, "children": [
           {
-            "id": 6, 
+            "id": semantic.id.NominalId(u32)(6), 
             "flags": [
               "function", 
               
@@ -223,7 +223,7 @@
               
             }, "children": [
               {
-                "id": 7, 
+                "id": semantic.id.NominalId(u32)(7), 
                 "flags": [
                   "block", 
                   
@@ -234,7 +234,7 @@
                   
                 }, "children": [
                   {
-                    "id": 8, 
+                    "id": semantic.id.NominalId(u32)(8), 
                     "flags": [
                       "block", 
                       
@@ -252,7 +252,7 @@
           }, 
         ], 
       }, {
-        "id": 9, 
+        "id": semantic.id.NominalId(u32)(9), 
         "flags": [
           
         ], 
@@ -260,7 +260,7 @@
           
         }, "children": [
           {
-            "id": 10, 
+            "id": semantic.id.NominalId(u32)(10), 
             "flags": [
               "function", 
               
@@ -269,7 +269,7 @@
               
             }, "children": [
               {
-                "id": 11, 
+                "id": semantic.id.NominalId(u32)(11), 
                 "flags": [
                   "block", 
                   
@@ -280,7 +280,7 @@
                   
                 }, "children": [
                   {
-                    "id": 12, 
+                    "id": semantic.id.NominalId(u32)(12), 
                     "flags": [
                       "block", 
                       
@@ -290,7 +290,7 @@
                     }, "children": [], 
                     
                   }, {
-                    "id": 13, 
+                    "id": semantic.id.NominalId(u32)(13), 
                     "flags": [
                       "block", 
                       
@@ -307,7 +307,7 @@
           }, 
         ], 
       }, {
-        "id": 14, 
+        "id": semantic.id.NominalId(u32)(14), 
         "flags": [
           
         ], 
@@ -315,7 +315,7 @@
           
         }, "children": [
           {
-            "id": 15, 
+            "id": semantic.id.NominalId(u32)(15), 
             "flags": [
               "function", 
               
@@ -324,7 +324,7 @@
               
             }, "children": [
               {
-                "id": 16, 
+                "id": semantic.id.NominalId(u32)(16), 
                 "flags": [
                   "block", 
                   
@@ -334,7 +334,7 @@
                   
                 }, "children": [
                   {
-                    "id": 17, 
+                    "id": semantic.id.NominalId(u32)(17), 
                     "flags": [
                       "block", 
                       
@@ -343,7 +343,7 @@
                       
                     }, "children": [
                       {
-                        "id": 18, 
+                        "id": semantic.id.NominalId(u32)(18), 
                         "flags": [
                           "block", 
                           
