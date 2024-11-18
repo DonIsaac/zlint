@@ -165,6 +165,13 @@ pub const SymbolTable = struct {
         return ref_id;
     }
 
+    pub fn getReference(
+        self: *const SymbolTable,
+        reference_id: Reference.Id,
+    ) Reference {
+        return self.references.get(reference_id.into(usize));
+    }
+
     pub inline fn getMembers(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
         return &self.symbols.items(.members)[container.int()];
     }

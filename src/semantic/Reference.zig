@@ -2,7 +2,7 @@
 
 pub const Reference = @This();
 
-symbol: Symbol.Id,
+symbol: Symbol.Id.Optional,
 scope: Scope.Id,
 node: Node.Index,
 identifier: []const u8,

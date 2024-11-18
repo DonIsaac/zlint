@@ -204,12 +204,12 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             const container = ast.fullContainerDecl(&buf, node_id) orelse unreachable;
             return self.visitContainer(node_id, container);
         },
+
+        // variable/field declarations
         .container_field, .container_field_align, .container_field_init => {
             const field = ast.fullContainerField(node_id) orelse unreachable;
             return self.visitContainerField(node_id, field);
         },
-        .field_access, .unwrap_optional => return self.visit(data[node_id].lhs),
-        // variable declarations
         .global_var_decl, .local_var_decl, .simple_var_decl, .aligned_var_decl => {
             const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
             return self.visitVarDecl(node_id, decl);
@@ -218,6 +218,12 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             const destructure = ast.assignDestructure(node_id);
             return self.visitAssignDestructure(node_id, destructure);
         },
+
+        // variable/field references
+        .identifier => return self.visitIdentifier(node_id),
+        .field_access => return self.visitFieldAccess(node_id),
+
+        // initializations
         .array_init,
         .array_init_comma,
         .array_init_dot,
@@ -329,7 +335,6 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         .test_decl => return self.visit(data[node_id].rhs),
 
         // lhs/rhs for these nodes are always undefined
-        .identifier,
         .char_literal,
         .number_literal,
         .unreachable_literal,
@@ -361,6 +366,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
 
         // lhs is a node, rhs is a token
         .grouped_expression,
+        .unwrap_optional,
         // lhs is a node, rhs is an index into Slice
         .slice,
         .slice_sentinel,
@@ -436,6 +442,7 @@ fn visitContainer(self: *SemanticBuilder, _: NodeIndex, container: full.Containe
     }
 }
 
+/// ======================= VARIABLE/FIELD DECLARATIONS ========================
 /// Visit a container field (e.g. a struct property, enum variant, etc).
 ///
 /// ```zig
@@ -483,8 +490,16 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
     }
 }
 
-fn visitAssignDestructure(self: *SemanticBuilder, _: NodeIndex, destructure: full.AssignDestructure) SemanticError!void {
-    self.assertCtx(destructure.ast.variables.len > 0, "Invalid destructuring assignment: no variables are being declared.", .{});
+fn visitAssignDestructure(
+    self: *SemanticBuilder,
+    _: NodeIndex,
+    destructure: full.AssignDestructure,
+) SemanticError!void {
+    self.assertCtx(
+        destructure.ast.variables.len > 0,
+        "Invalid destructuring assignment: no variables are being declared.",
+        .{},
+    );
     const ast = self.AST();
     const main_tokens: []TokenIndex = ast.nodes.items(.main_token);
     const token_tags: []Token.Tag = ast.tokens.items(.tag);
@@ -510,6 +525,18 @@ fn visitAssignDestructure(self: *SemanticBuilder, _: NodeIndex, destructure: ful
     }
     try self.visit(destructure.ast.value_expr);
 }
+
+// ========================= VARIABLE/FIELD REFERENCES  ========================
+
+fn visitIdentifier(self: *SemanticBuilder, node_id: NodeIndex) !void {
+    return self.recordReference(.{ .node = node_id });
+}
+
+fn visitFieldAccess(self: *SemanticBuilder, node_id: NodeIndex) !void {
+    return self.visit(self.getNodeData(node_id).lhs);
+}
+
+// =============================================================================
 
 fn visitArrayInit(self: *SemanticBuilder, _: NodeIndex, arr: full.ArrayInit) !void {
     for (arr.ast.elements) |el| {
@@ -595,11 +622,14 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
 }
 
 inline fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnProto) !void {
-    try self.enterScope(.{});
-    defer self.exitScope();
-    for (fn_proto.ast.params) |param| {
-        try self.visit(param);
+    {
+        try self.enterScope(.{});
+        defer self.exitScope();
+        for (fn_proto.ast.params) |param| {
+            try self.visit(param);
+        }
     }
+    try self.visit(fn_proto.ast.return_type);
 }
 
 inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
@@ -693,6 +723,8 @@ fn enterRoot(self: *SemanticBuilder) !void {
 ///
 /// This function gets erased in ReleaseFast builds.
 inline fn assertRoot(self: *const SemanticBuilder) void {
+    if (!util.IS_DEBUG) return // don't run assertions in any kind of release build
+
     self.assertCtx(self._scope_stack.items.len == 1, "assertRoot: scope stack is not at root", .{});
     self.assertCtx(self._scope_stack.items[0] == Semantic.ROOT_SCOPE_ID, "assertRoot: scope stack is not at root", .{});
 
@@ -910,13 +942,15 @@ fn recordReference(self: *SemanticBuilder, opts: CreateReference) Allocator.Erro
     };
 
     const reference = Reference{
+        .symbol = Symbol.Id.Optional.from(opts.symbol),
         .identifier = identifier,
         .scope = scope,
         .flags = flags,
         .node = node,
     };
+
     if (opts.symbol) |symbol| {
-        try self._semantic.symbols.addReference(self._gpa, symbol, reference);
+        _ = try self._semantic.symbols.addReference(self._gpa, symbol, reference);
     } else {
         try self._unresolved_references.append(self._gpa, reference);
     }
