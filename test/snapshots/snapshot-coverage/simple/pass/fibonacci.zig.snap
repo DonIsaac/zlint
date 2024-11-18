@@ -122,6 +122,7 @@
       
     }, 
   ], 
+  "unresolvedReferences": [],
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
     "flags": [

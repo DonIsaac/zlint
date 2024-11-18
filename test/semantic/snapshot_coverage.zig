@@ -53,6 +53,10 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     try sem_printer.printSymbolTable();
     try printer.pIndent();
 
+    try printer.pPropName("unresolvedReferences");
+    try sem_printer.printUnresolvedReferences();
+    try printer.pIndent();
+
     try printer.pPropName("scopes");
     try sem_printer.printScopeTree();
     printer.pop();

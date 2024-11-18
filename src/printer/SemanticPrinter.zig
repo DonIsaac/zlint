@@ -40,18 +40,18 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: 
             self.printer.pop();
             self.printer.pIndent() catch @panic("print failed");
         }
-        const tags = self.semantic.ast.nodes.items(.tag);
         for (symbol.references.items) |ref_id| {
-            const ref = symbols.getReference(ref_id);
-            const sid: ?Symbol.Id.Repr = if (ref.symbol.unwrap()) |id| id.int() else null;
-            const printable = PrintableReference{
-                .symbol = sid,
-                .scope = ref.scope.int(),
-                .node = tags[ref.node],
-                .identifier = ref.identifier,
-                .flags = ref.flags,
-            };
-            try self.printer.pJson(printable);
+            try self.printReference(ref_id);
+            // const ref = symbols.getReference(ref_id);
+            // const sid: ?Symbol.Id.Repr = if (ref.symbol.unwrap()) |id| id.int() else null;
+            // const printable = PrintableReference{
+            //     .symbol = sid,
+            //     .scope = ref.scope.int(),
+            //     .node = tags[ref.node],
+            //     .identifier = ref.identifier,
+            //     .flags = ref.flags,
+            // };
+            // try self.printer.pJson(printable);
             self.printer.pComma();
             try self.printer.pIndent();
         }
@@ -59,6 +59,51 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: 
 
     try self.printer.pPropJson("members", @as([]u32, @ptrCast(symbols.getMembers(symbol.id).items)));
     try self.printer.pPropJson("exports", @as([]u32, @ptrCast(symbols.getExports(symbol.id).items)));
+}
+
+pub fn printUnresolvedReferences(self: *SemanticPrinter) !void {
+    const p = self.printer;
+    const symbols = &self.semantic.symbols;
+
+    if (symbols.unresolved_references.items.len == 0) {
+        try p.print("[],", .{});
+        return;
+    }
+
+    try p.pushArray();
+    defer p.pop();
+    for (symbols.unresolved_references.items) |ref_id| {
+        // const ref = symbols.getReference(ref_id);
+        // const sid: ?Symbol.Id.Repr = if (ref.symbol.unwrap()) |id| id.int() else null;
+        // const printable = PrintableReference{
+        //     .symbol = sid,
+        //     .scope = ref.scope.int(),
+        //     .node = tags[ref.node],
+        //     .identifier = ref.identifier,
+        //     .flags = ref.flags,
+        // };
+        // try self.printer.pJson(printable);
+        try self.printReference(ref_id);
+        self.printer.pComma();
+        try self.printer.pIndent();
+    }
+    // for (self._semantic.symbols.references.items) |ref_id| {
+    // }
+}
+
+fn printReference(self: *SemanticPrinter, ref_id: Reference.Id) !void {
+    const ref = self.semantic.symbols.getReference(ref_id);
+    const tags = self.semantic.ast.nodes.items(.tag);
+
+    const sid: ?Symbol.Id.Repr = if (ref.symbol.unwrap()) |id| id.int() else null;
+    const printable = PrintableReference{
+        .symbol = sid,
+        .scope = ref.scope.int(),
+        .node = tags[ref.node],
+        .identifier = ref.identifier,
+        .flags = ref.flags,
+    };
+    try self.printer.pJson(printable);
 }
 
 pub fn printScopeTree(self: *SemanticPrinter) !void {

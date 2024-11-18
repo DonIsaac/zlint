@@ -13,7 +13,7 @@ _arena: ArenaAllocator,
 _curr_scope_id: Semantic.Scope.Id = ROOT_SCOPE,
 _curr_symbol_id: ?Semantic.Symbol.Id = null,
 _curr_scope_flags: Scope.Flags = .{},
-_curr_reference_flags: Reference.Flags = .{},
+_curr_reference_flags: Reference.Flags = .{ .read = true },
 
 // stacks
 
@@ -28,7 +28,7 @@ _node_stack: std.ArrayListUnmanaged(NodeIndex) = .{},
 /// in the source.
 ///
 /// We try to resolve these each time a scope is exited.
-_unresolved_references: std.ArrayListUnmanaged(Reference) = .{},
+_unresolved_references: std.ArrayListUnmanaged(Reference.Id) = .{},
 
 /// SAFETY: initialized after parsing.
 _semantic: Semantic = undefined,
@@ -529,7 +529,7 @@ fn visitAssignDestructure(
 // ========================= VARIABLE/FIELD REFERENCES  ========================
 
 fn visitIdentifier(self: *SemanticBuilder, node_id: NodeIndex) !void {
-    return self.recordReference(.{ .node = node_id });
+    _ = try self.recordReference(.{ .node = node_id });
 }
 
 fn visitFieldAccess(self: *SemanticBuilder, node_id: NodeIndex) !void {
@@ -925,7 +925,7 @@ const CreateReference = struct {
     identifier: ?[]const u8 = null,
 };
 
-fn recordReference(self: *SemanticBuilder, opts: CreateReference) Allocator.Error!void {
+fn recordReference(self: *SemanticBuilder, opts: CreateReference) Allocator.Error!Reference.Id {
     const node = opts.node orelse self.currentNode();
     const scope = opts.scope orelse self.currentScope();
     const flags = opts.flags.merge(self._curr_reference_flags);
@@ -949,11 +949,12 @@ fn recordReference(self: *SemanticBuilder, opts: CreateReference) Allocator.Erro
         .node = node,
     };
 
-    if (opts.symbol) |symbol| {
-        _ = try self._semantic.symbols.addReference(self._gpa, symbol, reference);
-    } else {
-        try self._unresolved_references.append(self._gpa, reference);
+    const ref_id = try self._semantic.symbols.addReference(self._gpa, reference);
+    if (reference.symbol == .none) {
+        try self._unresolved_references.append(self._gpa, ref_id);
     }
+
+    return ref_id;
 }
 
 // =========================================================================

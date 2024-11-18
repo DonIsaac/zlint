@@ -116,6 +116,7 @@ pub const SymbolTable = struct {
     /// Do not write to this list directly.
     symbols: std.MultiArrayList(Symbol) = .{},
     references: std.MultiArrayList(Reference) = .{},
+    unresolved_references: std.ArrayListUnmanaged(Reference.Id) = .{},
 
     /// Get a symbol from the table.
     pub inline fn get(self: *const SymbolTable, id: Symbol.Id) *const Symbol {
@@ -155,12 +156,13 @@ pub const SymbolTable = struct {
     pub fn addReference(
         self: *SymbolTable,
         alloc: Allocator,
-        symbol: Symbol.Id,
         reference: Reference,
     ) Allocator.Error!Reference.Id {
         const ref_id = Reference.Id.from(self.references.len);
         try self.references.append(alloc, reference);
-        try self.symbols.items(.references)[symbol.int()].append(alloc, ref_id);
+        if (reference.symbol.unwrap()) |symbol_id| {
+            try self.symbols.items(.references)[symbol_id.into(usize)].append(alloc, ref_id);
+        }
 
         return ref_id;
     }
@@ -170,6 +172,13 @@ pub const SymbolTable = struct {
         reference_id: Reference.Id,
     ) Reference {
         return self.references.get(reference_id.into(usize));
+    }
+
+    pub fn getReferencesMut(
+        self: *SymbolTable,
+        symbol_id: Symbol.Id,
+    ) *std.ArrayListUnmanaged(Reference.Id) {
+        return &self.symbols.items(.members)[symbol_id.int()];
     }
 
     pub inline fn getMembers(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
@@ -205,12 +214,16 @@ pub const SymbolTable = struct {
             var i: Id.Repr = 0;
             const len: Id.Repr = @intCast(self.symbols.len);
             while (i < len) {
-                self.getMembersMut(Id.from(i)).deinit(alloc);
-                self.getExportsMut(Id.from(i)).deinit(alloc);
+                const id = Id.from(i);
+                self.getMembersMut(id).deinit(alloc);
+                self.getExportsMut(id).deinit(alloc);
+                // self.getReferencesMut(id).deinit(alloc);
                 i += 1;
             }
         }
         self.symbols.deinit(alloc);
+        self.references.deinit(alloc);
+        self.unresolved_references.deinit(alloc);
     }
 };
 
