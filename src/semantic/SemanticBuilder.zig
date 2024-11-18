@@ -107,6 +107,7 @@ pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Resul
         builder.visitNode(node) catch |e| return e;
         builder.assertRoot();
     }
+    builder._semantic.symbols.unresolved_references = builder._unresolved_references;
 
     return Result.new(builder._gpa, builder._semantic, builder._errors);
 }
@@ -250,6 +251,26 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             const struct_init = ast.fullStructInit(&buf, node_id) orelse unreachable;
             return self.visitStructInit(node_id, struct_init);
         },
+        // assignment
+        .assign_mul,
+        .assign_div,
+        .assign_mod,
+        .assign_add,
+        .assign_sub,
+        .assign_shl,
+        .assign_shl_sat,
+        .assign_shr,
+        .assign_bit_and,
+        .assign_bit_xor,
+        .assign_bit_or,
+        .assign_mul_wrap,
+        .assign_add_wrap,
+        .assign_sub_wrap,
+        .assign_mul_sat,
+        .assign_add_sat,
+        .assign_sub_sat,
+        .assign,
+        => return self.visitAssignment(node_id, tag),
         // function-related nodes
 
         // function declarations
@@ -487,6 +508,26 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
     if (var_decl.ast.init_node != NULL_NODE) {
         assert(var_decl.ast.init_node < self.AST().nodes.len);
         try self.visit(var_decl.ast.init_node);
+    }
+}
+
+// ================================ ASSIGNMENT =================================
+
+fn visitAssignment(self: *SemanticBuilder, node_id: NodeIndex, tag: Node.Tag) SemanticError!void {
+    const does_read_lhs = tag != .assign;
+    const children = self.getNodeData(node_id);
+    const flags = self._curr_reference_flags;
+
+    {
+        self._curr_reference_flags.write = true;
+        self._curr_reference_flags.read = does_read_lhs;
+        defer self._curr_reference_flags = flags;
+        try self.visit(children.lhs);
+    }
+    {
+        assert(self._curr_reference_flags.read);
+        assert(!self._curr_reference_flags.write);
+        try self.visit(children.rhs);
     }
 }
 
@@ -1261,4 +1302,27 @@ test "comptime blocks" {
     const block_scope = scopes.get(1);
     try std.testing.expect(block_scope.flags.s_block);
     try std.testing.expect(block_scope.flags.s_comptime);
+}
+
+test "references" {
+    const t = std.testing;
+    const alloc = std.testing.allocator;
+
+    const src =
+        \\fn foo() u32 {
+        \\  var x: u32 = 1;
+        \\  const y: u32 = x + 1;
+        \\  x += y;
+        \\  return x;
+        \\}
+    ;
+    var builder = SemanticBuilder.init(alloc);
+    defer builder.deinit();
+    var result = try builder.build(src);
+    defer result.deinit();
+    try t.expect(!result.hasErrors());
+    const semantic = result.value;
+
+    _ = semantic;
+    // try t.expectEqual(0, semantic.symbols.unresolved_references.items.len);
 }

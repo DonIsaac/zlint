@@ -178,7 +178,7 @@ pub const SymbolTable = struct {
         self: *SymbolTable,
         symbol_id: Symbol.Id,
     ) *std.ArrayListUnmanaged(Reference.Id) {
-        return &self.symbols.items(.members)[symbol_id.int()];
+        return &self.symbols.items(.references)[symbol_id.int()];
     }
 
     pub inline fn getMembers(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
@@ -217,7 +217,7 @@ pub const SymbolTable = struct {
                 const id = Id.from(i);
                 self.getMembersMut(id).deinit(alloc);
                 self.getExportsMut(id).deinit(alloc);
-                // self.getReferencesMut(id).deinit(alloc);
+                self.getReferencesMut(id).deinit(alloc);
                 i += 1;
             }
         }
