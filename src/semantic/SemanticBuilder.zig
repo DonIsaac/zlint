@@ -13,6 +13,7 @@ _arena: ArenaAllocator,
 _curr_scope_id: Semantic.Scope.Id = ROOT_SCOPE,
 _curr_symbol_id: ?Semantic.Symbol.Id = null,
 _curr_scope_flags: Scope.Flags = .{},
+_curr_reference_flags: Reference.Flags = .{},
 
 // stacks
 
@@ -21,8 +22,15 @@ _scope_stack: std.ArrayListUnmanaged(Semantic.Scope.Id) = .{},
 /// is pushed here. This lets us record members and exports.
 _symbol_stack: std.ArrayListUnmanaged(Semantic.Symbol.Id) = .{},
 _node_stack: std.ArrayListUnmanaged(NodeIndex) = .{},
+/// References encountered but that could not be resolved. Includes references
+/// that occur before symbol declaration, and we haven't seen the declaration yet.
+/// After analysis, references in this list are to symbols not declared anywhere
+/// in the source.
+///
+/// We try to resolve these each time a scope is exited.
+_unresolved_references: std.ArrayListUnmanaged(Reference) = .{},
 
-/// SAFETY: initialized after parsing. Same safety rationale as _root_scope.
+/// SAFETY: initialized after parsing.
 _semantic: Semantic = undefined,
 /// Errors encountered during parsing and analysis.
 ///
@@ -875,6 +883,45 @@ inline fn declareSymbol(
     return symbol_id;
 }
 
+// =========================== Subsection: References ==========================
+
+const CreateReference = struct {
+    node: ?NodeIndex = null,
+    scope: ?Scope.Id = null,
+    symbol: ?Symbol.Id = null,
+    flags: Reference.Flags = .{},
+    identifier: ?[]const u8 = null,
+};
+
+fn recordReference(self: *SemanticBuilder, opts: CreateReference) Allocator.Error!void {
+    const node = opts.node orelse self.currentNode();
+    const scope = opts.scope orelse self.currentScope();
+    const flags = opts.flags.merge(self._curr_reference_flags);
+    const identifier = opts.identifier orelse brk: {
+        const ast = self.AST();
+        const mains = ast.nodes.items(.main_token);
+        const token_tags = ast.tokens.items(.tag);
+        const main_token: TokenIndex = mains[node];
+
+        if (token_tags[main_token] == .identifier) {
+            break :brk ast.tokenSlice(main_token);
+        }
+        break :brk ast.getNodeSource(node);
+    };
+
+    const reference = Reference{
+        .identifier = identifier,
+        .scope = scope,
+        .flags = flags,
+        .node = node,
+    };
+    if (opts.symbol) |symbol| {
+        try self._semantic.symbols.addReference(self._gpa, symbol, reference);
+    } else {
+        try self._unresolved_references.append(self._gpa, reference);
+    }
+}
+
 // =========================================================================
 // ============================ RANDOM GETTERS =============================
 // =========================================================================
@@ -1088,6 +1135,7 @@ const Semantic = @import("./Semantic.zig");
 const Scope = Semantic.Scope;
 const Symbol = Semantic.Symbol;
 const NodeLinks = Semantic.NodeLinks;
+const Reference = Semantic.Reference;
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;

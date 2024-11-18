@@ -30,11 +30,13 @@ scope: Scope.Id,
 /// Index of the AST node declaring this symbol.
 ///
 /// Usually a `var`/`const` declaration, function statement, etc.
-decl: Ast.Node.Index,
+decl: Node.Index,
 
 visibility: Visibility,
 
 flags: Flags,
+
+references: std.ArrayListUnmanaged(Reference.Id) = .{},
 
 /// Symbols on "instance objects" (e.g. field properties and instance
 /// methods).
@@ -113,6 +115,7 @@ pub const SymbolTable = struct {
     ///
     /// Do not write to this list directly.
     symbols: std.MultiArrayList(Symbol) = .{},
+    references: std.MultiArrayList(Reference) = .{},
 
     /// Get a symbol from the table.
     pub inline fn get(self: *const SymbolTable, id: Symbol.Id) *const Symbol {
@@ -122,7 +125,7 @@ pub const SymbolTable = struct {
     pub fn addSymbol(
         self: *SymbolTable,
         alloc: Allocator,
-        declaration_node: Ast.Node.Index,
+        declaration_node: Node.Index,
         name: ?string,
         debug_name: ?string,
         scope_id: Scope.Id,
@@ -147,6 +150,19 @@ pub const SymbolTable = struct {
         try self.symbols.append(alloc, symbol);
 
         return id;
+    }
+
+    pub fn addReference(
+        self: *SymbolTable,
+        alloc: Allocator,
+        symbol: Symbol.Id,
+        reference: Reference,
+    ) Allocator.Error!Reference.Id {
+        const ref_id = Reference.Id.from(self.references.len);
+        try self.references.append(alloc, reference);
+        try self.symbols.items(.references)[symbol.int()].append(alloc, ref_id);
+
+        return ref_id;
     }
 
     pub inline fn getMembers(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
@@ -208,12 +224,13 @@ pub const Iterator = struct {
 const Symbol = @This();
 
 const std = @import("std");
-
 const Allocator = std.mem.Allocator;
-const Ast = std.zig.Ast;
-const Scope = @import("Scope.zig");
 const Type = std.builtin.Type;
 const NominalId = @import("id.zig").NominalId;
+
+const Node = std.zig.Ast.Node;
+const Scope = @import("Scope.zig");
+const Reference = @import("Reference.zig");
 
 const assert = std.debug.assert;
 const string = @import("util").string;

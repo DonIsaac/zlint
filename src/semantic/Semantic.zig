@@ -53,10 +53,11 @@ const Type = std.builtin.Type;
 const assert = std.debug.assert;
 
 pub const NodeLinks = @import("NodeLinks.zig");
-pub const Scope = @import("./Scope.zig");
+pub const Scope = @import("Scope.zig");
 pub const ScopeTree = Scope.ScopeTree;
-pub const Symbol = @import("./Symbol.zig");
+pub const Symbol = @import("Symbol.zig");
 pub const SymbolTable = Symbol.SymbolTable;
+pub const Reference = @import("Reference.zig");
 
 const util = @import("util");
 const string = util.string;
