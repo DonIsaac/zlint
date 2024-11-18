@@ -32,6 +32,31 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: 
     try self.printer.pPropWithNamespacedValue("declNode", decl);
     try self.printer.pProp("scope", "{d}", symbol.scope);
     try self.printer.pPropJson("flags", symbol.flags);
+
+    {
+        try self.printer.pPropName("references");
+        try self.printer.pushArray();
+        defer {
+            self.printer.pop();
+            self.printer.pIndent() catch @panic("print failed");
+        }
+        const tags = self.semantic.ast.nodes.items(.tag);
+        for (symbol.references.items) |ref_id| {
+            const ref = symbols.getReference(ref_id);
+            const sid: ?Symbol.Id.Repr = if (ref.symbol.unwrap()) |id| id.int() else null;
+            const printable = PrintableReference{
+                .symbol = sid,
+                .scope = ref.scope.int(),
+                .node = tags[ref.node],
+                .identifier = ref.identifier,
+                .flags = ref.flags,
+            };
+            try self.printer.pJson(printable);
+            self.printer.pComma();
+            try self.printer.pIndent();
+        }
+    }
+
     try self.printer.pPropJson("members", @as([]u32, @ptrCast(symbols.getMembers(symbol.id).items)));
     try self.printer.pPropJson("exports", @as([]u32, @ptrCast(symbols.getExports(symbol.id).items)));
 }
@@ -113,6 +138,14 @@ fn printStrIf(p: *Printer, str: []const u8, cond: bool) !void {
     try p.pIndent();
 }
 
+const PrintableReference = struct {
+    symbol: ?Symbol.Id.Repr,
+    scope: Scope.Id.Repr,
+    node: Node.Tag,
+    identifier: []const u8,
+    flags: Reference.Flags,
+};
+
 const SemanticPrinter = @This();
 
 const std = @import("std");
@@ -123,3 +156,6 @@ const _semantic = @import("../semantic.zig");
 const SemanticBuilder = _semantic.Builder;
 const Semantic = _semantic.Semantic;
 const Symbol = _semantic.Symbol;
+const Scope = _semantic.Scope;
+const Reference = _semantic.Reference;
+const Node = std.zig.Ast.Node;
