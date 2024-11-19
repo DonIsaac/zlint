@@ -49,6 +49,14 @@ pub const Flags = packed struct(FLAGS_REPR) {
         const b: FLAGS_REPR = @bitCast(other);
         return @bitCast(a | b);
     }
+
+    /// Returns `true` if two sets of flags have exactly the same flags
+    /// enabled/diabled.
+    pub fn eq(self: Flags, other: Flags) bool {
+        const a: FLAGS_REPR = @bitCast(self);
+        const b: FLAGS_REPR = @bitCast(other);
+        return a == b;
+    }
 };
 
 /// Stores variable scopes created by a zig program.
@@ -63,6 +71,20 @@ pub const ScopeTree = struct {
     const ScopeIdList = std.ArrayListUnmanaged(Scope.Id);
     const SymbolIdList = std.ArrayListUnmanaged(Symbol.Id);
 
+    /// Returns the number of declared scopes in a program.
+    ///
+    /// Shorthand for `scope_tree.scopes.len`.
+    pub inline fn len(self: *const ScopeTree) u32 {
+        @setRuntimeSafety(!util.IS_DEBUG);
+        assert(self.scopes.len < Id.MAX);
+
+        return @intCast(self.scopes.len);
+    }
+
+    /// Get all properties of a scope by ID.
+    ///
+    /// Avoid this when possible. Prefer using property slices for better cache
+    /// locality.
     pub fn getScope(self: *const ScopeTree, id: Scope.Id) Scope {
         return self.scopes.get(id.into(usize));
     }
@@ -118,16 +140,12 @@ pub const ScopeTree = struct {
     pub fn deinit(self: *ScopeTree, alloc: Allocator) void {
         self.scopes.deinit(alloc);
 
-        {
-            var i: usize = 0;
-            const len = self.children.items.len;
-            while (i < len) {
-                var children = self.children.items[i];
-                children.deinit(alloc);
-                i += 1;
-            }
-            self.children.deinit(alloc);
+        for (0..self.children.items.len) |i| {
+            var children = self.children.items[i];
+            children.deinit(alloc);
         }
+        self.children.deinit(alloc);
+
         for (0..self.bindings.items.len) |i| {
             self.bindings.items[i].deinit(alloc);
         }
@@ -153,29 +171,32 @@ const ScopeParentIterator = struct {
 const Scope = @This();
 
 const std = @import("std");
+const util = @import("util");
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const Type = std.builtin.Type;
 const Symbol = @import("Symbol.zig");
 const NominalId = @import("id.zig").NominalId;
 
-const string = @import("util").string;
+const string = util.string;
 const assert = std.debug.assert;
+
+const t = std.testing;
 
 test Flags {
     const block = Flags{ .s_block = true };
     const top = Flags{ .s_top = true };
     const empty = Flags{};
-    try std.testing.expectEqual(Flags{ .s_block = true, .s_top = true }, block.merge(top));
+    try t.expectEqual(Flags{ .s_block = true, .s_top = true }, block.merge(top));
 
-    try std.testing.expectEqual(block, block.merge(empty));
-    try std.testing.expectEqual(block, block.merge(block));
-    try std.testing.expectEqual(block, block.merge(.{ .s_block = false }));
+    try t.expectEqual(block, block.merge(empty));
+    try t.expectEqual(block, block.merge(block));
+    try t.expectEqual(block, block.merge(.{ .s_block = false }));
 }
 
 test "ScopeTree.addScope" {
-    const alloc = std.testing.allocator;
-    const expectEqual = std.testing.expectEqual;
+    const alloc = t.allocator;
+    const expectEqual = t.expectEqual;
 
     var tree = ScopeTree{};
     defer tree.deinit(alloc);
@@ -192,11 +213,22 @@ test "ScopeTree.addScope" {
     const child = tree.getScope(child_id);
     try expectEqual(1, child.id.int());
     try expectEqual(Scope.Flags{}, child.flags);
-    try expectEqual(root.id, child.parent.unwrap());
+    try expectEqual(root.id, child.parent.unwrap().?);
     try expectEqual(child, tree.scopes.get(1));
 
     try expectEqual(2, tree.scopes.len);
     try expectEqual(2, tree.children.items.len);
     try expectEqual(1, tree.children.items[0].items.len);
     try expectEqual(1, tree.children.items[0].items[0].int());
+}
+
+test "Flags.merge" {
+    const expected = Flags{ .s_block = true, .s_enum = true };
+    const a = Flags{ .s_block = true };
+
+    var result = a.merge(.{ .s_enum = true });
+    try t.expect(expected.eq(result));
+
+    result = a.merge(.{ .s_enum = true, .s_comptime = true });
+    try t.expect(!expected.eq(result));
 }

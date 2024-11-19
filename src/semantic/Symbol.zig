@@ -209,6 +209,11 @@ pub const SymbolTable = struct {
         return Iterator{ .table = self };
     }
 
+    pub inline fn iterReferences(self: *const SymbolTable, id: Symbol.Id) ReferenceIterator {
+        const refs = self.symbols.items(.references)[id.int()].items;
+        return ReferenceIterator{ .table = self, .refs = refs };
+    }
+
     pub fn deinit(self: *SymbolTable, alloc: Allocator) void {
         {
             var i: Id.Repr = 0;
@@ -238,6 +243,24 @@ pub const Iterator = struct {
         const id = self.curr;
         self.curr += 1;
         return Id.from(id);
+    }
+};
+
+pub const ReferenceIterator = struct {
+    curr: usize = 0,
+    table: *const SymbolTable,
+    refs: []Reference.Id,
+
+    pub inline fn len(self: ReferenceIterator) usize {
+        return self.refs.len;
+    }
+
+    pub fn next(self: *ReferenceIterator) ?Reference {
+        if (self.curr >= self.refs.len) return null;
+
+        defer self.curr += 1;
+        const ref_id = self.refs[self.curr];
+        return self.table.getReference(ref_id);
     }
 };
 

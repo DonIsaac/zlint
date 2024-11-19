@@ -1312,6 +1312,7 @@ test "comptime blocks" {
 }
 
 test "references" {
+    const mem = std.mem;
     const t = std.testing;
     const alloc = std.testing.allocator;
 
@@ -1330,6 +1331,33 @@ test "references" {
     try t.expect(!result.hasErrors());
     const semantic = result.value;
 
-    _ = semantic;
-    // try t.expectEqual(0, semantic.symbols.unresolved_references.items.len);
+    // FIXME: should be 2 (maybe 3?) but is 4
+    try t.expectEqual(4, semantic.scopes.len());
+    try t.expectEqual(0, semantic.symbols.unresolved_references.items.len);
+
+    const names = semantic.symbols.symbols.items(.name);
+    var it = semantic.symbols.iter();
+    const x: Symbol.Id = brk: {
+        while (it.next()) |s| {
+            if (mem.eql(u8, names[s.int()], "x")) {
+                break :brk s;
+            }
+        }
+        @panic("Could not find variable `x`.");
+    };
+
+    var refs = semantic.symbols.iterReferences(x);
+    try t.expectEqual(3, refs.len());
+
+    // const y: u32 = x + 1;
+    var ref = refs.next().?;
+    try t.expectEqual(ref.flags, Reference.Flags{ .read = true });
+
+    // x += y;
+    ref = refs.next().?;
+    try t.expectEqual(ref.flags, Reference.Flags{ .read = true, .write = true });
+
+    // return x;
+    ref = refs.next().?;
+    try t.expectEqual(ref.flags, Reference.Flags{ .read = true });
 }
