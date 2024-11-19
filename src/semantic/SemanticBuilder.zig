@@ -570,7 +570,14 @@ fn visitAssignDestructure(
 // ========================= VARIABLE/FIELD REFERENCES  ========================
 
 fn visitIdentifier(self: *SemanticBuilder, node_id: NodeIndex) !void {
-    _ = try self.recordReference(.{ .node = node_id });
+    const ident = self.AST().getNodeSource(node_id);
+    const symbol = self._semantic.resolveBinding(self.currentScope(), ident);
+
+    _ = try self.recordReference(.{
+        .node = node_id,
+        .symbol = symbol,
+        .identifier = ident,
+    });
 }
 
 fn visitFieldAccess(self: *SemanticBuilder, node_id: NodeIndex) !void {

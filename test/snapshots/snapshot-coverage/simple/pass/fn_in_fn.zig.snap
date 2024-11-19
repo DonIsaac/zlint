@@ -31,6 +31,7 @@
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "references": [
+        {"symbol":2,"scope":3,"node":"identifier","identifier":"inner","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
         
       ], 
       "members": [3], 
@@ -54,7 +55,6 @@
     {"symbol":null,"scope":1,"node":"identifier","identifier":"u32","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
     {"symbol":null,"scope":5,"node":"identifier","identifier":"u32","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
     {"symbol":null,"scope":7,"node":"identifier","identifier":"b","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":3,"node":"identifier","identifier":"inner","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
     {"symbol":null,"scope":3,"node":"identifier","identifier":"a","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
     
   ], 

@@ -2,7 +2,7 @@
 id: Id,
 /// Scope hints.
 flags: Flags,
-parent: ?Id,
+parent: Id.Optional,
 
 /// Uniquely identifies a scope within a source file.
 pub const Id = NominalId(u32);
@@ -78,7 +78,7 @@ pub const ScopeTree = struct {
         // initialize the new scope
         try self.scopes.append(alloc, Scope{
             .id = id,
-            .parent = parent,
+            .parent = Id.Optional.from(parent),
             .flags = flags,
         });
 
@@ -104,6 +104,17 @@ pub const ScopeTree = struct {
         return self.bindings.items[scope_id.int()].append(alloc, symbol_id);
     }
 
+    pub fn getBindings(self: *const ScopeTree, scope_id: Scope.Id) []const Symbol.Id {
+        return self.bindings.items[scope_id.int()].items;
+    }
+
+    pub fn iterParents(self: *const ScopeTree, scope_id: Scope.Id) ScopeParentIterator {
+        return .{
+            .curr = scope_id.into(Id.Optional),
+            .parents = self.scopes.items(.parent),
+        };
+    }
+
     pub fn deinit(self: *ScopeTree, alloc: Allocator) void {
         self.scopes.deinit(alloc);
 
@@ -121,6 +132,21 @@ pub const ScopeTree = struct {
             self.bindings.items[i].deinit(alloc);
         }
         self.bindings.deinit(alloc);
+    }
+};
+
+const ScopeParentIterator = struct {
+    curr: Scope.Id.Optional,
+    // tree: *const ScopeTree,
+    parents: []const Id.Optional,
+
+    pub fn next(self: *ScopeParentIterator) ?Scope.Id {
+        // const parents = self.tree.scopes.items(.parent);
+        const curr = self.curr.unwrap();
+        if (curr) |c| {
+            self.curr = self.parents[c.int()];
+        }
+        return curr;
     }
 };
 
@@ -166,7 +192,7 @@ test "ScopeTree.addScope" {
     const child = tree.getScope(child_id);
     try expectEqual(1, child.id.int());
     try expectEqual(Scope.Flags{}, child.flags);
-    try expectEqual(root.id, child.parent);
+    try expectEqual(root.id, child.parent.unwrap());
     try expectEqual(child, tree.scopes.get(1));
 
     try expectEqual(2, tree.scopes.len);

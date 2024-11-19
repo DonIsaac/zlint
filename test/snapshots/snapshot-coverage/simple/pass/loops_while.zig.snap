@@ -19,6 +19,9 @@
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "references": [
+        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":1,"scope":8,"node":"identifier","identifier":"std","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":1,"scope":13,"node":"identifier","identifier":"std","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
         
       ], 
       "members": [], 
@@ -43,6 +46,10 @@
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "references": [
+        {"symbol":3,"scope":3,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":3,"scope":4,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":3,"scope":4,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":3,"scope":4,"node":"identifier","identifier":"i","flags":{"read":true,"write":true,"call":false,"type":false,"member":false,"_":0}}, 
         
       ], 
       "members": [], 
@@ -55,6 +62,7 @@
       "scope": semantic.id.NominalId(u32)(4), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "references": [
+        {"symbol":4,"scope":4,"node":"identifier","identifier":"power_of_two","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
         
       ], 
       "members": [], 
@@ -79,6 +87,9 @@
       "scope": semantic.id.NominalId(u32)(7), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "references": [
+        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
         
       ], 
       "members": [], 
@@ -91,6 +102,7 @@
       "scope": semantic.id.NominalId(u32)(7), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "references": [
+        {"symbol":7,"scope":7,"node":"identifier","identifier":"iter","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
         
       ], 
       "members": [], 
@@ -103,6 +115,7 @@
       "scope": semantic.id.NominalId(u32)(8), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "references": [
+        {"symbol":8,"scope":8,"node":"identifier","identifier":"k","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
         
       ], 
       "members": [], 
@@ -115,6 +128,7 @@
       "scope": semantic.id.NominalId(u32)(8), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "references": [
+        {"symbol":9,"scope":8,"node":"identifier","identifier":"v","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
         
       ], 
       "members": [], 
@@ -139,6 +153,9 @@
       "scope": semantic.id.NominalId(u32)(11), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "references": [
+        {"symbol":11,"scope":11,"node":"identifier","identifier":"x","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":11,"scope":12,"node":"identifier","identifier":"x","flags":{"read":true,"write":true,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":11,"scope":13,"node":"identifier","identifier":"x","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
         
       ], 
       "members": [], 
@@ -151,6 +168,9 @@
       "scope": semantic.id.NominalId(u32)(11), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "references": [
+        {"symbol":12,"scope":11,"node":"identifier","identifier":"y","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":12,"scope":12,"node":"identifier","identifier":"y","flags":{"read":true,"write":true,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":12,"scope":13,"node":"identifier","identifier":"y","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
         
       ], 
       "members": [], 
@@ -163,6 +183,7 @@
       "scope": semantic.id.NominalId(u32)(13), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "references": [
+        {"symbol":13,"scope":13,"node":"identifier","identifier":"my_xy","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
         
       ], 
       "members": [], 
@@ -187,6 +208,9 @@
       "scope": semantic.id.NominalId(u32)(16), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
       "references": [
+        {"symbol":15,"scope":16,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":15,"scope":16,"node":"identifier","identifier":"i","flags":{"read":true,"write":true,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":15,"scope":17,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
         
       ], 
       "members": [], 
@@ -195,37 +219,13 @@
     }, 
   ], 
   "unresolvedReferences": [
-    {"symbol":null,"scope":3,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":4,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":4,"node":"identifier","identifier":"std","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":4,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":4,"node":"identifier","identifier":"power_of_two","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":4,"node":"identifier","identifier":"i","flags":{"read":true,"write":true,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":7,"node":"identifier","identifier":"map","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":7,"node":"identifier","identifier":"map","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":7,"node":"identifier","identifier":"map","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":7,"node":"identifier","identifier":"iter","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
     {"symbol":null,"scope":8,"node":"identifier","identifier":"ent","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
     {"symbol":null,"scope":8,"node":"identifier","identifier":"ent","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":8,"node":"identifier","identifier":"std","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":8,"node":"identifier","identifier":"k","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":8,"node":"identifier","identifier":"v","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":11,"node":"identifier","identifier":"x","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":11,"node":"identifier","identifier":"y","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":12,"node":"identifier","identifier":"x","flags":{"read":true,"write":true,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":12,"node":"identifier","identifier":"y","flags":{"read":true,"write":true,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":13,"node":"identifier","identifier":"x","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":13,"node":"identifier","identifier":"y","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":13,"node":"identifier","identifier":"std","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":13,"node":"identifier","identifier":"my_xy","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
     {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
     {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
     {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
     {"symbol":null,"scope":16,"node":"identifier","identifier":"begin","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":16,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
     {"symbol":null,"scope":16,"node":"identifier","identifier":"end","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":16,"node":"identifier","identifier":"i","flags":{"read":true,"write":true,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":17,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
     {"symbol":null,"scope":17,"node":"identifier","identifier":"number","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
     {"symbol":null,"scope":18,"node":"identifier","identifier":"true","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
     {"symbol":null,"scope":16,"node":"identifier","identifier":"false","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 

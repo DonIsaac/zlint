@@ -32,6 +32,32 @@ pub const ROOT_NODE_ID: Ast.Node.Index = 0;
 /// Alias for `ROOT_NODE_ID`. Used in null-node check contexts for code clarity.
 pub const NULL_NODE: Ast.Node.Index = ROOT_NODE_ID;
 
+/// Find the symbol bound to an identifier name that was declared in some scope.
+///
+/// To find a binding that is referrable within a scope, but that may not have
+/// been declared in it, use `resolveBinding`.
+pub fn getBinding(self: *const Semantic, scope_id: Scope.Id, name: []const u8) ?Symbol.Id {
+    const bindings = self.scopes.getBindings(scope_id);
+    const names = self.symbols.symbols.items(.name);
+    for (bindings) |symbol_id| {
+        if (std.mem.eql(u8, names[symbol_id.into(usize)], name)) {
+            return symbol_id;
+        }
+    }
+    return null;
+}
+
+/// Find an in-scope symbol bound to an identifier name.
+///
+/// To only find symbols declared within a scope, use `getBinding`.
+pub fn resolveBinding(self: *const Semantic, scope_id: Scope.Id, name: []const u8) ?Symbol.Id {
+    var it = self.scopes.iterParents(scope_id);
+    while (it.next()) |scope| {
+        if (self.getBinding(scope, name)) |binding| return binding;
+    }
+    return null;
+}
+
 pub fn deinit(self: *Semantic) void {
     // NOTE: ast is arena allocated, so no need to deinit it. freeing the arena
     // is sufficient.
