@@ -209,6 +209,7 @@ pub const SymbolTable = struct {
         return Iterator{ .table = self };
     }
 
+    /// Iterate over a symbol's references.
     pub inline fn iterReferences(self: *const SymbolTable, id: Symbol.Id) ReferenceIterator {
         const refs = self.symbols.items(.references)[id.int()].items;
         return ReferenceIterator{ .table = self, .refs = refs };
