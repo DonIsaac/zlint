@@ -18,7 +18,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         
       ], 

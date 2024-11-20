@@ -18,7 +18,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":1,"scope":0,"node":"identifier","identifier":"std","flags":["read"]}, 
         {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["read"]}, 
@@ -35,7 +35,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":2,"scope":3,"node":"identifier","identifier":"Managed","flags":["read"]}, 
         {"symbol":2,"scope":3,"node":"identifier","identifier":"Managed","flags":["read"]}, 
@@ -64,7 +64,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":4,"scope":3,"node":"identifier","identifier":"allocator","flags":["read"]}, 
         {"symbol":4,"scope":3,"node":"identifier","identifier":"allocator","flags":["read"]}, 
@@ -82,7 +82,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
-      "flags": [], 
+      "flags": ["variable"], 
       "references": [
         {"symbol":5,"scope":3,"node":"identifier","identifier":"a","flags":["read"]}, 
         {"symbol":5,"scope":4,"node":"identifier","identifier":"a","flags":["read"]}, 
@@ -99,7 +99,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
-      "flags": [], 
+      "flags": ["variable"], 
       "references": [
         {"symbol":6,"scope":3,"node":"identifier","identifier":"b","flags":["read"]}, 
         {"symbol":6,"scope":4,"node":"identifier","identifier":"b","flags":["read"]}, 
@@ -116,7 +116,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
-      "flags": [], 
+      "flags": ["variable"], 
       "references": [
         {"symbol":7,"scope":3,"node":"identifier","identifier":"i","flags":["read"]}, 
         {"symbol":7,"scope":3,"node":"identifier","identifier":"i","flags":["read","write"]}, 
@@ -131,7 +131,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
-      "flags": [], 
+      "flags": ["variable"], 
       "references": [
         {"symbol":8,"scope":3,"node":"identifier","identifier":"c","flags":["read"]}, 
         {"symbol":8,"scope":4,"node":"identifier","identifier":"c","flags":["read"]}, 
@@ -147,7 +147,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":9,"scope":3,"node":"identifier","identifier":"as","flags":["read"]}, 
         {"symbol":9,"scope":3,"node":"identifier","identifier":"as","flags":["read"]}, 

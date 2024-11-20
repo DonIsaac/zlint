@@ -45,7 +45,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":3,"scope":3,"node":"identifier","identifier":"inner","flags":["read"]}, 
         

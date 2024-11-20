@@ -18,7 +18,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["read"]}, 
         {"symbol":1,"scope":10,"node":"identifier","identifier":"std","flags":["read"]}, 
@@ -46,7 +46,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":3,"scope":3,"node":"identifier","identifier":"arr","flags":["read"]}, 
         
@@ -60,7 +60,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(4), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":4,"scope":4,"node":"identifier","identifier":"power_of_two","flags":["read"]}, 
         
@@ -87,7 +87,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(7), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":6,"scope":7,"node":"identifier","identifier":"mat4x4","flags":["read"]}, 
         

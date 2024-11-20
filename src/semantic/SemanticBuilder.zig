@@ -513,16 +513,29 @@ fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.C
 /// separately, because their lhs/rhs nodes and main token mean different
 /// things.
 fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDecl) !void {
-    const node = self.getNode(node_id);
+    // const node = self.getNode(node_id);
     // main_token points to `var`, `const` keyword. `.identifier` comes immediately afterwards
-    const identifier: ?string = self.getIdentifier(node.main_token + 1);
+    const ast = self.AST();
+    const main_token: TokenIndex = ast.nodes.items(.main_token)[node_id];
+
+    const identifier: ?string = self.getIdentifier(main_token + 1);
     const debug_name: ?string = if (identifier == null) "<anonymous var decl>" else null;
     const visibility = if (var_decl.visib_token == null) Symbol.Visibility.private else Symbol.Visibility.public;
+    const is_const: bool = blk: {
+        const token_tags = ast.tokens.items(.tag);
+        const main_tag = token_tags[main_token];
+        if (util.IS_DEBUG) assert(main_tag == .keyword_var or main_tag == .keyword_const);
+        break :blk main_tag == .keyword_const;
+    };
     const symbol_id = try self.bindSymbol(.{
         .name = identifier,
         .debug_name = debug_name,
         .visibility = visibility,
-        .flags = .{ .s_comptime = var_decl.comptime_token != null },
+        .flags = .{
+            .s_variable = true,
+            .s_comptime = var_decl.comptime_token != null,
+            .s_const = is_const,
+        },
     });
     try self.enterContainerSymbol(symbol_id);
     defer self.exitContainerSymbol();
@@ -581,6 +594,7 @@ fn visitAssignDestructure(
             .name = identifier,
             .visibility = if (decl.visib_token != null) .public else .private,
             .flags = .{
+                .s_variable = true,
                 .s_comptime = is_comptime,
                 .s_const = token_tags[main_token] == .keyword_const,
             },
