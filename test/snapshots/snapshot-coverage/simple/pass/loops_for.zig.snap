@@ -20,8 +20,8 @@
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": [], 
       "references": [
-        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-        {"symbol":1,"scope":10,"node":"identifier","identifier":"std","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["read"]}, 
+        {"symbol":1,"scope":10,"node":"identifier","identifier":"std","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -48,7 +48,7 @@
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": [], 
       "references": [
-        {"symbol":3,"scope":3,"node":"identifier","identifier":"arr","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":3,"scope":3,"node":"identifier","identifier":"arr","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -62,7 +62,7 @@
       "scope": semantic.id.NominalId(u32)(4), 
       "flags": [], 
       "references": [
-        {"symbol":4,"scope":4,"node":"identifier","identifier":"power_of_two","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":4,"scope":4,"node":"identifier","identifier":"power_of_two","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -89,7 +89,7 @@
       "scope": semantic.id.NominalId(u32)(7), 
       "flags": [], 
       "references": [
-        {"symbol":6,"scope":7,"node":"identifier","identifier":"mat4x4","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":6,"scope":7,"node":"identifier","identifier":"mat4x4","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -98,12 +98,12 @@
     }, 
   ], 
   "unresolvedReferences": [
-    {"symbol":null,"scope":4,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":4,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":8,"node":"identifier","identifier":"row","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":9,"node":"identifier","identifier":"row_index","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":9,"node":"identifier","identifier":"column_index","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":10,"node":"identifier","identifier":"cell","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":4,"node":"identifier","identifier":"i","flags":["read"]}, 
+    {"symbol":null,"scope":4,"node":"identifier","identifier":"i","flags":["read"]}, 
+    {"symbol":null,"scope":8,"node":"identifier","identifier":"row","flags":["read"]}, 
+    {"symbol":null,"scope":9,"node":"identifier","identifier":"row_index","flags":["read"]}, 
+    {"symbol":null,"scope":9,"node":"identifier","identifier":"column_index","flags":["read"]}, 
+    {"symbol":null,"scope":10,"node":"identifier","identifier":"cell","flags":["read"]}, 
     
   ], 
   "scopes": {

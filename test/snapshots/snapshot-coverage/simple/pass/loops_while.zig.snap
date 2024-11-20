@@ -20,9 +20,9 @@
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": [], 
       "references": [
-        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-        {"symbol":1,"scope":8,"node":"identifier","identifier":"std","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-        {"symbol":1,"scope":13,"node":"identifier","identifier":"std","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["read"]}, 
+        {"symbol":1,"scope":8,"node":"identifier","identifier":"std","flags":["read"]}, 
+        {"symbol":1,"scope":13,"node":"identifier","identifier":"std","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -49,10 +49,10 @@
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": [], 
       "references": [
-        {"symbol":3,"scope":3,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-        {"symbol":3,"scope":4,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-        {"symbol":3,"scope":4,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-        {"symbol":3,"scope":4,"node":"identifier","identifier":"i","flags":{"read":true,"write":true,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":3,"scope":3,"node":"identifier","identifier":"i","flags":["read"]}, 
+        {"symbol":3,"scope":4,"node":"identifier","identifier":"i","flags":["read"]}, 
+        {"symbol":3,"scope":4,"node":"identifier","identifier":"i","flags":["read"]}, 
+        {"symbol":3,"scope":4,"node":"identifier","identifier":"i","flags":["read","write"]}, 
         
       ], 
       "members": [], 
@@ -66,7 +66,7 @@
       "scope": semantic.id.NominalId(u32)(4), 
       "flags": [], 
       "references": [
-        {"symbol":4,"scope":4,"node":"identifier","identifier":"power_of_two","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":4,"scope":4,"node":"identifier","identifier":"power_of_two","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -93,9 +93,9 @@
       "scope": semantic.id.NominalId(u32)(7), 
       "flags": [], 
       "references": [
-        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":["read"]}, 
+        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":["read"]}, 
+        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -109,7 +109,7 @@
       "scope": semantic.id.NominalId(u32)(7), 
       "flags": [], 
       "references": [
-        {"symbol":7,"scope":7,"node":"identifier","identifier":"iter","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":7,"scope":7,"node":"identifier","identifier":"iter","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -123,7 +123,7 @@
       "scope": semantic.id.NominalId(u32)(8), 
       "flags": [], 
       "references": [
-        {"symbol":8,"scope":8,"node":"identifier","identifier":"k","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":8,"scope":8,"node":"identifier","identifier":"k","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -137,7 +137,7 @@
       "scope": semantic.id.NominalId(u32)(8), 
       "flags": [], 
       "references": [
-        {"symbol":9,"scope":8,"node":"identifier","identifier":"v","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":9,"scope":8,"node":"identifier","identifier":"v","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -164,9 +164,9 @@
       "scope": semantic.id.NominalId(u32)(11), 
       "flags": [], 
       "references": [
-        {"symbol":11,"scope":11,"node":"identifier","identifier":"x","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-        {"symbol":11,"scope":12,"node":"identifier","identifier":"x","flags":{"read":true,"write":true,"call":false,"type":false,"member":false,"_":0}}, 
-        {"symbol":11,"scope":13,"node":"identifier","identifier":"x","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":11,"scope":11,"node":"identifier","identifier":"x","flags":["read"]}, 
+        {"symbol":11,"scope":12,"node":"identifier","identifier":"x","flags":["read","write"]}, 
+        {"symbol":11,"scope":13,"node":"identifier","identifier":"x","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -180,9 +180,9 @@
       "scope": semantic.id.NominalId(u32)(11), 
       "flags": [], 
       "references": [
-        {"symbol":12,"scope":11,"node":"identifier","identifier":"y","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-        {"symbol":12,"scope":12,"node":"identifier","identifier":"y","flags":{"read":true,"write":true,"call":false,"type":false,"member":false,"_":0}}, 
-        {"symbol":12,"scope":13,"node":"identifier","identifier":"y","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":12,"scope":11,"node":"identifier","identifier":"y","flags":["read"]}, 
+        {"symbol":12,"scope":12,"node":"identifier","identifier":"y","flags":["read","write"]}, 
+        {"symbol":12,"scope":13,"node":"identifier","identifier":"y","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -196,7 +196,7 @@
       "scope": semantic.id.NominalId(u32)(13), 
       "flags": [], 
       "references": [
-        {"symbol":13,"scope":13,"node":"identifier","identifier":"my_xy","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":13,"scope":13,"node":"identifier","identifier":"my_xy","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -223,7 +223,7 @@
       "scope": semantic.id.NominalId(u32)(14), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":15,"scope":16,"node":"identifier","identifier":"begin","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":15,"scope":16,"node":"identifier","identifier":"begin","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -237,7 +237,7 @@
       "scope": semantic.id.NominalId(u32)(14), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":16,"scope":16,"node":"identifier","identifier":"end","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":16,"scope":16,"node":"identifier","identifier":"end","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -251,7 +251,7 @@
       "scope": semantic.id.NominalId(u32)(14), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":17,"scope":17,"node":"identifier","identifier":"number","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":17,"scope":17,"node":"identifier","identifier":"number","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -265,9 +265,9 @@
       "scope": semantic.id.NominalId(u32)(16), 
       "flags": [], 
       "references": [
-        {"symbol":18,"scope":16,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-        {"symbol":18,"scope":16,"node":"identifier","identifier":"i","flags":{"read":true,"write":true,"call":false,"type":false,"member":false,"_":0}}, 
-        {"symbol":18,"scope":17,"node":"identifier","identifier":"i","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":18,"scope":16,"node":"identifier","identifier":"i","flags":["read"]}, 
+        {"symbol":18,"scope":16,"node":"identifier","identifier":"i","flags":["read","write"]}, 
+        {"symbol":18,"scope":17,"node":"identifier","identifier":"i","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -276,13 +276,13 @@
     }, 
   ], 
   "unresolvedReferences": [
-    {"symbol":null,"scope":8,"node":"identifier","identifier":"ent","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":8,"node":"identifier","identifier":"ent","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":18,"node":"identifier","identifier":"true","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":16,"node":"identifier","identifier":"false","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":8,"node":"identifier","identifier":"ent","flags":["read"]}, 
+    {"symbol":null,"scope":8,"node":"identifier","identifier":"ent","flags":["read"]}, 
+    {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":["read"]}, 
+    {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":["read"]}, 
+    {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":["read"]}, 
+    {"symbol":null,"scope":18,"node":"identifier","identifier":"true","flags":["read"]}, 
+    {"symbol":null,"scope":16,"node":"identifier","identifier":"false","flags":["read"]}, 
     
   ], 
   "scopes": {

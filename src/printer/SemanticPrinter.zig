@@ -80,13 +80,27 @@ fn printReference(self: *SemanticPrinter, ref_id: Reference.Id) !void {
     const ref = self.semantic.symbols.getReference(ref_id);
     const tags = self.semantic.ast.nodes.items(.tag);
 
+    const flag_fields = std.meta.fields(Reference.Flags);
+    var buf: [flag_fields.len * @sizeOf([]const u8)]u8 = undefined;
+    var fixed_alloc = std.heap.FixedBufferAllocator.init(&buf);
+    const alloc = fixed_alloc.allocator();
+    var flags = std.ArrayList([]const u8).init(alloc);
+    flags.ensureTotalCapacityPrecise(flag_fields.len) catch @panic("fixed buffer is not large enough.");
+
+    inline for (flag_fields) |field| {
+        const f = @field(ref.flags, field.name);
+        if (@TypeOf(f) == bool and f) {
+            flags.appendAssumeCapacity(field.name);
+        }
+    }
+
     const sid: ?Symbol.Id.Repr = if (ref.symbol.unwrap()) |id| id.int() else null;
     const printable = PrintableReference{
         .symbol = sid,
         .scope = ref.scope.int(),
         .node = tags[ref.node],
         .identifier = ref.identifier,
-        .flags = ref.flags,
+        .flags = flags.items,
     };
     try self.printer.pJson(printable);
 }
@@ -180,7 +194,8 @@ const PrintableReference = struct {
     scope: Scope.Id.Repr,
     node: Node.Tag,
     identifier: []const u8,
-    flags: Reference.Flags,
+    // flags: Reference.Flags,
+    flags: []const []const u8,
 };
 
 const SemanticPrinter = @This();

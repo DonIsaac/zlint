@@ -33,7 +33,7 @@
       "scope": semantic.id.NominalId(u32)(1), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":2,"scope":3,"node":"identifier","identifier":"a","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":2,"scope":3,"node":"identifier","identifier":"a","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -47,7 +47,7 @@
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": [], 
       "references": [
-        {"symbol":3,"scope":3,"node":"identifier","identifier":"inner","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":3,"scope":3,"node":"identifier","identifier":"inner","flags":["read"]}, 
         
       ], 
       "members": [4], 
@@ -74,7 +74,7 @@
       "scope": semantic.id.NominalId(u32)(5), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":5,"scope":7,"node":"identifier","identifier":"b","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        {"symbol":5,"scope":7,"node":"identifier","identifier":"b","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -83,8 +83,8 @@
     }, 
   ], 
   "unresolvedReferences": [
-    {"symbol":null,"scope":1,"node":"identifier","identifier":"u32","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
-    {"symbol":null,"scope":5,"node":"identifier","identifier":"u32","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":1,"node":"identifier","identifier":"u32","flags":["read"]}, 
+    {"symbol":null,"scope":5,"node":"identifier","identifier":"u32","flags":["read"]}, 
     
   ], 
   "scopes": {
