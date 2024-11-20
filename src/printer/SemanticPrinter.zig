@@ -12,7 +12,7 @@ pub fn new(printer: *Printer, semantic: *const Semantic) SemanticPrinter {
 
 pub fn printSymbolTable(self: *SemanticPrinter) !void {
     const symbols = &self.semantic.symbols;
-    try self.printer.pushArray();
+    try self.printer.pushArray(true);
     defer self.printer.pop();
 
     var iter = symbols.iter();
@@ -34,11 +34,15 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: 
     const decl = self.semantic.ast.nodes.items(.tag)[symbol.decl];
     try self.printer.pPropWithNamespacedValue("declNode", decl);
     try self.printer.pProp("scope", "{d}", symbol.scope);
-    try self.printer.pPropJson("flags", symbol.flags);
+    {
+        try self.printer.pPropName("flags");
+        try self.printFlags(Symbol.Flags, symbol.flags);
+        try self.printer.pIndent();
+    }
 
     {
         try self.printer.pPropName("references");
-        try self.printer.pushArray();
+        try self.printer.pushArray(true);
         defer {
             self.printer.pop();
             self.printer.pIndent() catch @panic("print failed");
@@ -63,7 +67,7 @@ pub fn printUnresolvedReferences(self: *SemanticPrinter) !void {
         return;
     }
 
-    try p.pushArray();
+    try p.pushArray(true);
     defer p.pop();
     for (symbols.unresolved_references.items) |ref_id| {
         try self.printReference(ref_id);
@@ -76,13 +80,27 @@ fn printReference(self: *SemanticPrinter, ref_id: Reference.Id) !void {
     const ref = self.semantic.symbols.getReference(ref_id);
     const tags = self.semantic.ast.nodes.items(.tag);
 
+    const flag_fields = std.meta.fields(Reference.Flags);
+    var buf: [flag_fields.len * @sizeOf([]const u8)]u8 = undefined;
+    var fixed_alloc = std.heap.FixedBufferAllocator.init(&buf);
+    const alloc = fixed_alloc.allocator();
+    var flags = std.ArrayList([]const u8).init(alloc);
+    flags.ensureTotalCapacityPrecise(flag_fields.len) catch @panic("fixed buffer is not large enough.");
+
+    inline for (flag_fields) |field| {
+        const f = @field(ref.flags, field.name);
+        if (@TypeOf(f) == bool and f) {
+            flags.appendAssumeCapacity(field.name);
+        }
+    }
+
     const sid: ?Symbol.Id.Repr = if (ref.symbol.unwrap()) |id| id.int() else null;
     const printable = PrintableReference{
         .symbol = sid,
         .scope = ref.scope.int(),
         .node = tags[ref.node],
         .identifier = ref.identifier,
-        .flags = ref.flags,
+        .flags = flags.items,
     };
     try self.printer.pJson(printable);
 }
@@ -105,28 +123,14 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
 
     try p.pProp("id", "{d}", scope.id);
 
-    {
-        const f = scope.flags;
-        try p.pPropName("flags");
-        try p.pushArray();
-        defer p.pop();
-        try printStrIf(p, "top", f.s_top);
-        try printStrIf(p, "function", f.s_function);
-        try printStrIf(p, "struct", f.s_struct);
-        try printStrIf(p, "enum", f.s_enum);
-        try printStrIf(p, "union", f.s_union);
-        try printStrIf(p, "block", f.s_block);
-        try printStrIf(p, "comptime", f.s_comptime);
-        try printStrIf(p, "catch", f.s_catch);
-    }
+    try p.pPropName("flags");
+    try self.printFlags(Scope.Flags, scope.flags);
     try p.pIndent();
 
     {
         try p.pPropName("bindings");
         try p.pushObject();
         defer p.popIndent();
-        // var bindings = std.StringHashMap(Symbol.Id).init(fixed_alloc.get());
-        // defer bindings.deinit();
         for (scopes.bindings.items[scope.id.int()].items) |id| {
             const i = id.int();
             var name = bound_names[i];
@@ -146,7 +150,7 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
         return;
     }
     try p.pPropName("children");
-    try p.pushArray();
+    try p.pushArray(true);
     defer p.popIndent();
     for (children.items) |child_id| {
         const child = &scopes.getScope(child_id);
@@ -163,12 +167,35 @@ fn printStrIf(p: *Printer, str: []const u8, cond: bool) !void {
     try p.pIndent();
 }
 
+fn printFlags(self: *SemanticPrinter, T: type, flags: T) !void {
+    const p = self.printer;
+    try p.pushArray(false);
+    defer p.popNoIndent();
+    const fields = std.meta.fields(T);
+    var first = true;
+
+    inline for (fields) |field| {
+        const f = @field(flags, field.name);
+        if (@TypeOf(f) != bool) continue;
+        var name: []const u8 = field.name;
+        // "s_block" -> "block". less noisy.
+        if (std.mem.startsWith(u8, name, "s_")) name = name[2..];
+        // only print flags that are present.
+        if (f) {
+            if (!first) p.pComma();
+            try p.pString(name);
+            first = false;
+        }
+    }
+}
+
 const PrintableReference = struct {
     symbol: ?Symbol.Id.Repr,
     scope: Scope.Id.Repr,
     node: Node.Tag,
     identifier: []const u8,
-    flags: Reference.Flags,
+    // flags: Reference.Flags,
+    flags: []const []const u8,
 };
 
 const SemanticPrinter = @This();
