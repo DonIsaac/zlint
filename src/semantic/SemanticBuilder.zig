@@ -734,11 +734,15 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
     defer self.exitScope();
 
     if (token_tags[fallback_first - 1] == .pipe) {
-        const identifier = self.getIdentifier(main_token) orelse return SemanticError.MissingIdentifier;
+        const identifier = self.getIdentifier(main_token + 2) orelse return SemanticError.MissingIdentifier;
         _ = try self.declareSymbol(.{
             .name = identifier,
             .visibility = .private,
-            .flags = .{ .s_catch_param = true },
+            .flags = .{
+                .s_payload = true,
+                .s_const = true,
+                .s_catch_param = true,
+            },
         });
     } else {
         assert(token_tags[fallback_first - 1] == .keyword_catch);
