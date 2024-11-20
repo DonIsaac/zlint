@@ -20,6 +20,15 @@ test "control flow payloads - value and error" {
         \\    _ = err;
         \\  }
         \\}
+        ,
+        \\fn main() void {
+        \\  const placeholder: ?u32 = null;
+        \\  try foo() catch |err| @panic(@errorName(err));
+        \\  if (placeholder) |x| {
+        \\    // don't care
+        \\  }
+        \\}
+        ,
     };
 
     for (sources) |source| {
