@@ -86,6 +86,11 @@ pub const Flags = packed struct {
 
     /// A function declaration. Never a builtin. Could be a method.
     s_fn: bool = false,
+    /// A function parameter.
+    ///
+    /// NOTE: Function parameter symbols use their type annotation as their
+    /// declaration node. Zig does not appear to create an identifier node for parameters.
+    s_fn_param: bool = false,
     s_catch_param: bool = false,
 };
 
