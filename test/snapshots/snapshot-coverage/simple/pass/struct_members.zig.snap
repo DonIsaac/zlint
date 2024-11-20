@@ -12,7 +12,8 @@
       "members": [1], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Foo", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -24,7 +25,8 @@
       "members": [2,3,4], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "a", 
       "debugName": "", 
       "declNode": "container_field_init", 
@@ -36,7 +38,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "B", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -48,7 +51,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "C", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -73,7 +77,8 @@
       "@This()": 0, 
       "Foo": 1, 
       
-    }, "children": [
+    }, 
+    "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
         "flags": [
@@ -85,9 +90,11 @@
           "B": 3, 
           "C": 4, 
           
-        }, "children": [], 
+        }, 
+        "children": [], 
         
       }, 
     ], 
+    
   }, 
 }

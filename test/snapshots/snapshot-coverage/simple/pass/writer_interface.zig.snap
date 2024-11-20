@@ -12,7 +12,8 @@
       "members": [1], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Writer", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -25,7 +26,8 @@
       "members": [2,3,4,5,6,7,10], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "ptr", 
       "debugName": "", 
       "declNode": "container_field_init", 
@@ -39,7 +41,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "writeAllFn", 
       "debugName": "", 
       "declNode": "container_field_init", 
@@ -51,7 +54,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "init", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -63,7 +67,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "T", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -76,7 +81,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "ptr_info", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -89,7 +95,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "gen", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -102,7 +109,8 @@
       "members": [8,9], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "writeAll", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -114,7 +122,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "self", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -127,7 +136,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "writeAll", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -141,7 +151,17 @@
       
     }, 
   ], 
-  "unresolvedReferences": [],
+  "unresolvedReferences": [
+    {"symbol":null,"scope":6,"node":"identifier","identifier":"anyopaque","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":6,"node":"identifier","identifier":"u8","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":8,"node":"identifier","identifier":"pointer","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":8,"node":"identifier","identifier":"data","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":9,"node":"identifier","identifier":"u8","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":11,"node":"identifier","identifier":"self","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":11,"node":"identifier","identifier":"self","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":11,"node":"identifier","identifier":"data","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    
+  ], 
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
     "flags": [
@@ -152,7 +172,8 @@
       "@This()": 0, 
       "Writer": 1, 
       
-    }, "children": [
+    }, 
+    "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
         "flags": [
@@ -165,7 +186,8 @@
           "init": 4, 
           "writeAll": 10, 
           
-        }, "children": [
+        }, 
+        "children": [
           {
             "id": semantic.id.NominalId(u32)(2), 
             "flags": [
@@ -173,7 +195,8 @@
             ], 
             "bindings": {
               
-            }, "children": [
+            }, 
+            "children": [
               {
                 "id": semantic.id.NominalId(u32)(3), 
                 "flags": [
@@ -182,7 +205,8 @@
                 ], 
                 "bindings": {
                   
-                }, "children": [
+                }, 
+                "children": [
                   {
                     "id": semantic.id.NominalId(u32)(4), 
                     "flags": [
@@ -194,7 +218,8 @@
                       "ptr_info": 6, 
                       "gen": 7, 
                       
-                    }, "children": [
+                    }, 
+                    "children": [
                       {
                         "id": semantic.id.NominalId(u32)(5), 
                         "flags": [
@@ -204,7 +229,8 @@
                         "bindings": {
                           "writeAll": 8, 
                           
-                        }, "children": [
+                        }, 
+                        "children": [
                           {
                             "id": semantic.id.NominalId(u32)(6), 
                             "flags": [
@@ -212,7 +238,8 @@
                             ], 
                             "bindings": {
                               
-                            }, "children": [
+                            }, 
+                            "children": [
                               {
                                 "id": semantic.id.NominalId(u32)(7), 
                                 "flags": [
@@ -221,7 +248,8 @@
                                 ], 
                                 "bindings": {
                                   
-                                }, "children": [
+                                }, 
+                                "children": [
                                   {
                                     "id": semantic.id.NominalId(u32)(8), 
                                     "flags": [
@@ -231,20 +259,27 @@
                                     "bindings": {
                                       "self": 9, 
                                       
-                                    }, "children": [], 
+                                    }, 
+                                    "children": [], 
                                     
                                   }, 
                                 ], 
+                                
                               }, 
                             ], 
+                            
                           }, 
                         ], 
+                        
                       }, 
                     ], 
+                    
                   }, 
                 ], 
+                
               }, 
             ], 
+            
           }, {
             "id": semantic.id.NominalId(u32)(9), 
             "flags": [
@@ -252,7 +287,8 @@
             ], 
             "bindings": {
               
-            }, "children": [
+            }, 
+            "children": [
               {
                 "id": semantic.id.NominalId(u32)(10), 
                 "flags": [
@@ -261,7 +297,8 @@
                 ], 
                 "bindings": {
                   
-                }, "children": [
+                }, 
+                "children": [
                   {
                     "id": semantic.id.NominalId(u32)(11), 
                     "flags": [
@@ -270,15 +307,20 @@
                     ], 
                     "bindings": {
                       
-                    }, "children": [], 
+                    }, 
+                    "children": [], 
                     
                   }, 
                 ], 
+                
               }, 
             ], 
+            
           }, 
         ], 
+        
       }, 
     ], 
+    
   }, 
 }

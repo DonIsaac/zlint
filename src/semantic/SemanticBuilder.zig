@@ -1039,8 +1039,10 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
     const parent = self._unresolved_references.parent();
     const names = self.symbolTable().symbols.items(.name);
     const bindings: []const Symbol.Id = self.scopeTree().getBindings(self.currentScope());
-    const ref_names: []const string = self.symbolTable().references.items(.identifier);
+    var references = self.symbolTable().references;
+    const ref_names: []const string = references.items(.identifier);
     const ref_symbols: []Symbol.Id.Optional = self.symbolTable().references.items(.symbol);
+    const symbol_refs = self.symbolTable().symbols.items(.references);
 
     const resolved_map = try stack.alloc(bool, curr.items.len);
     var num_resolved: usize = 0;
@@ -1052,17 +1054,20 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
         for (0..curr.items.len) |i| {
             if (resolved_map[i]) continue;
             const ref_id: Reference.Id = curr.items[i];
-            const ref_name = ref_names[ref_id.int()];
+            const ref = ref_id.int();
+            const ref_name = ref_names[ref];
             // we resolved the reference :)
             if (mem.eql(u8, name, ref_name)) {
                 num_resolved += 1;
                 resolved_map[i] = true;
-                ref_symbols[ref_id.int()] = binding.into(Symbol.Id.Optional);
+                // link ref -> symbol and symbol -> ref
+                ref_symbols[ref] = binding.into(Symbol.Id.Optional);
+                try symbol_refs[binding.int()].append(self._gpa, ref_id);
             }
         }
     }
 
-    const num_unresolved = curr.items.len - resolved_map.len;
+    const num_unresolved = curr.items.len - num_resolved;
     if (num_unresolved > 0) {
         if (parent) |p| {
             try p.ensureUnusedCapacity(self._gpa, num_unresolved);
@@ -1077,6 +1082,7 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
             _ = self._unresolved_references.frames.pop();
         } else {
             const temp = try self._gpa.dupe(Reference.Id, curr.items);
+            defer self._gpa.free(temp);
             var i: usize = 0;
             var j: usize = 0;
             while (i < temp.len) : (i += 1) {
@@ -1209,10 +1215,10 @@ inline fn getToken(self: *const SemanticBuilder, token_id: TokenIndex) RawToken 
         .{ token_id, len },
     );
 
-    const t = self.AST().tokens.get(token_id);
+    const tok = self.AST().tokens.get(token_id);
     return .{
-        .tag = t.tag,
-        .start = t.start,
+        .tag = tok.tag,
+        .start = tok.start,
     };
 }
 
@@ -1383,6 +1389,10 @@ const IS_DEBUG = util.IS_DEBUG;
 const string = util.string;
 const stringSlice = util.stringSlice;
 
+const t = std.testing;
+test {
+    t.refAllDecls(@import("test/symbol_ref_test.zig"));
+}
 test "Struct/enum fields are bound bound to the struct/enums's member table" {
     const alloc = std.testing.allocator;
     const programs = [_][:0]const u8{
@@ -1445,54 +1455,4 @@ test "comptime blocks" {
     const block_scope = scopes.get(1);
     try std.testing.expect(block_scope.flags.s_block);
     try std.testing.expect(block_scope.flags.s_comptime);
-}
-
-test "references" {
-    const t = std.testing;
-    const alloc = std.testing.allocator;
-
-    const src =
-        \\fn foo() u32 {
-        \\  var x: u32 = 1;
-        \\  const y: u32 = x + 1;
-        \\  x += y;
-        \\  return x;
-        \\}
-    ;
-    var builder = SemanticBuilder.init(alloc);
-    defer builder.deinit();
-    var result = try builder.build(src);
-    defer result.deinit();
-    try t.expect(!result.hasErrors());
-    const semantic = result.value;
-
-    // FIXME: should be 2 (maybe 3?) but is 4
-    try t.expectEqual(4, semantic.scopes.len());
-    try t.expectEqual(0, semantic.symbols.unresolved_references.items.len);
-
-    const names = semantic.symbols.symbols.items(.name);
-    var it = semantic.symbols.iter();
-    const x: Symbol.Id = brk: {
-        while (it.next()) |s| {
-            if (mem.eql(u8, names[s.int()], "x")) {
-                break :brk s;
-            }
-        }
-        @panic("Could not find variable `x`.");
-    };
-
-    var refs = semantic.symbols.iterReferences(x);
-    try t.expectEqual(3, refs.len());
-
-    // const y: u32 = x + 1;
-    var ref = refs.next().?;
-    try t.expectEqual(ref.flags, Reference.Flags{ .read = true });
-
-    // x += y;
-    ref = refs.next().?;
-    try t.expectEqual(ref.flags, Reference.Flags{ .read = true, .write = true });
-
-    // return x;
-    ref = refs.next().?;
-    try t.expectEqual(ref.flags, Reference.Flags{ .read = true });
 }

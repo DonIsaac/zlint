@@ -12,7 +12,8 @@
       "members": [1], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Foo", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -26,7 +27,8 @@
       "members": [2,3,4,5,6], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "a", 
       "debugName": "", 
       "declNode": "container_field_init", 
@@ -38,7 +40,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "b", 
       "debugName": "", 
       "declNode": "container_field_init", 
@@ -50,7 +53,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "c", 
       "debugName": "", 
       "declNode": "container_field_init", 
@@ -62,7 +66,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Bar", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -74,7 +79,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "isNotA", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -88,7 +94,10 @@
       
     }, 
   ], 
-  "unresolvedReferences": [],
+  "unresolvedReferences": [
+    {"symbol":null,"scope":4,"node":"identifier","identifier":"self","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    
+  ], 
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
     "flags": [
@@ -99,7 +108,8 @@
       "@This()": 0, 
       "Foo": 1, 
       
-    }, "children": [
+    }, 
+    "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
         "flags": [
@@ -113,7 +123,8 @@
           "Bar": 5, 
           "isNotA": 6, 
           
-        }, "children": [
+        }, 
+        "children": [
           {
             "id": semantic.id.NominalId(u32)(2), 
             "flags": [
@@ -121,7 +132,8 @@
             ], 
             "bindings": {
               
-            }, "children": [
+            }, 
+            "children": [
               {
                 "id": semantic.id.NominalId(u32)(3), 
                 "flags": [
@@ -130,7 +142,8 @@
                 ], 
                 "bindings": {
                   
-                }, "children": [
+                }, 
+                "children": [
                   {
                     "id": semantic.id.NominalId(u32)(4), 
                     "flags": [
@@ -139,15 +152,20 @@
                     ], 
                     "bindings": {
                       
-                    }, "children": [], 
+                    }, 
+                    "children": [], 
                     
                   }, 
                 ], 
+                
               }, 
             ], 
+            
           }, 
         ], 
+        
       }, 
     ], 
+    
   }, 
 }

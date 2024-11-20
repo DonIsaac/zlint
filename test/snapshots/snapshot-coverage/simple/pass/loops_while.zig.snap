@@ -12,7 +12,8 @@
       "members": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "std", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -27,7 +28,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "simpleWhile", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -39,7 +41,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "i", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -55,7 +58,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "power_of_two", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -68,7 +72,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "whileWithClosure", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -80,7 +85,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "map", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -95,7 +101,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "iter", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -108,7 +115,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "k", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -121,7 +129,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "v", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -134,7 +143,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "whileWithExpr", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -146,7 +156,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "x", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -161,7 +172,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "y", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -176,7 +188,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "my_xy", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -189,7 +202,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "rangeHasNumber", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -201,7 +215,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "i", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -218,7 +233,19 @@
       
     }, 
   ], 
-  "unresolvedReferences": [],
+  "unresolvedReferences": [
+    {"symbol":null,"scope":8,"node":"identifier","identifier":"ent","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":8,"node":"identifier","identifier":"ent","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":16,"node":"identifier","identifier":"begin","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":16,"node":"identifier","identifier":"end","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":17,"node":"identifier","identifier":"number","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":18,"node":"identifier","identifier":"true","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    {"symbol":null,"scope":16,"node":"identifier","identifier":"false","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+    
+  ], 
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
     "flags": [
@@ -233,7 +260,8 @@
       "whileWithExpr": 10, 
       "rangeHasNumber": 14, 
       
-    }, "children": [
+    }, 
+    "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
         "flags": [
@@ -241,7 +269,8 @@
         ], 
         "bindings": {
           
-        }, "children": [
+        }, 
+        "children": [
           {
             "id": semantic.id.NominalId(u32)(2), 
             "flags": [
@@ -250,7 +279,8 @@
             ], 
             "bindings": {
               
-            }, "children": [
+            }, 
+            "children": [
               {
                 "id": semantic.id.NominalId(u32)(3), 
                 "flags": [
@@ -260,7 +290,8 @@
                 "bindings": {
                   "i": 3, 
                   
-                }, "children": [
+                }, 
+                "children": [
                   {
                     "id": semantic.id.NominalId(u32)(4), 
                     "flags": [
@@ -270,14 +301,18 @@
                     "bindings": {
                       "power_of_two": 4, 
                       
-                    }, "children": [], 
+                    }, 
+                    "children": [], 
                     
                   }, 
                 ], 
+                
               }, 
             ], 
+            
           }, 
         ], 
+        
       }, {
         "id": semantic.id.NominalId(u32)(5), 
         "flags": [
@@ -285,7 +320,8 @@
         ], 
         "bindings": {
           
-        }, "children": [
+        }, 
+        "children": [
           {
             "id": semantic.id.NominalId(u32)(6), 
             "flags": [
@@ -294,7 +330,8 @@
             ], 
             "bindings": {
               
-            }, "children": [
+            }, 
+            "children": [
               {
                 "id": semantic.id.NominalId(u32)(7), 
                 "flags": [
@@ -305,7 +342,8 @@
                   "map": 6, 
                   "iter": 7, 
                   
-                }, "children": [
+                }, 
+                "children": [
                   {
                     "id": semantic.id.NominalId(u32)(8), 
                     "flags": [
@@ -316,14 +354,18 @@
                       "k": 8, 
                       "v": 9, 
                       
-                    }, "children": [], 
+                    }, 
+                    "children": [], 
                     
                   }, 
                 ], 
+                
               }, 
             ], 
+            
           }, 
         ], 
+        
       }, {
         "id": semantic.id.NominalId(u32)(9), 
         "flags": [
@@ -331,7 +373,8 @@
         ], 
         "bindings": {
           
-        }, "children": [
+        }, 
+        "children": [
           {
             "id": semantic.id.NominalId(u32)(10), 
             "flags": [
@@ -340,7 +383,8 @@
             ], 
             "bindings": {
               
-            }, "children": [
+            }, 
+            "children": [
               {
                 "id": semantic.id.NominalId(u32)(11), 
                 "flags": [
@@ -351,7 +395,8 @@
                   "x": 11, 
                   "y": 12, 
                   
-                }, "children": [
+                }, 
+                "children": [
                   {
                     "id": semantic.id.NominalId(u32)(12), 
                     "flags": [
@@ -360,7 +405,8 @@
                     ], 
                     "bindings": {
                       
-                    }, "children": [], 
+                    }, 
+                    "children": [], 
                     
                   }, {
                     "id": semantic.id.NominalId(u32)(13), 
@@ -371,14 +417,18 @@
                     "bindings": {
                       "my_xy": 13, 
                       
-                    }, "children": [], 
+                    }, 
+                    "children": [], 
                     
                   }, 
                 ], 
+                
               }, 
             ], 
+            
           }, 
         ], 
+        
       }, {
         "id": semantic.id.NominalId(u32)(14), 
         "flags": [
@@ -386,7 +436,8 @@
         ], 
         "bindings": {
           
-        }, "children": [
+        }, 
+        "children": [
           {
             "id": semantic.id.NominalId(u32)(15), 
             "flags": [
@@ -395,7 +446,8 @@
             ], 
             "bindings": {
               
-            }, "children": [
+            }, 
+            "children": [
               {
                 "id": semantic.id.NominalId(u32)(16), 
                 "flags": [
@@ -405,7 +457,8 @@
                 "bindings": {
                   "i": 15, 
                   
-                }, "children": [
+                }, 
+                "children": [
                   {
                     "id": semantic.id.NominalId(u32)(17), 
                     "flags": [
@@ -414,7 +467,8 @@
                     ], 
                     "bindings": {
                       
-                    }, "children": [
+                    }, 
+                    "children": [
                       {
                         "id": semantic.id.NominalId(u32)(18), 
                         "flags": [
@@ -423,17 +477,23 @@
                         ], 
                         "bindings": {
                           
-                        }, "children": [], 
+                        }, 
+                        "children": [], 
                         
                       }, 
                     ], 
+                    
                   }, 
                 ], 
+                
               }, 
             ], 
+            
           }, 
         ], 
+        
       }, 
     ], 
+    
   }, 
 }
