@@ -104,7 +104,8 @@
       "forOverArr": 2, 
       "forWithMultiBindingClosure": 5, 
       
-    }, "children": [
+    }, 
+    "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
         "flags": [
@@ -112,7 +113,8 @@
         ], 
         "bindings": {
           
-        }, "children": [
+        }, 
+        "children": [
           {
             "id": semantic.id.NominalId(u32)(2), 
             "flags": [
@@ -121,7 +123,8 @@
             ], 
             "bindings": {
               
-            }, "children": [
+            }, 
+            "children": [
               {
                 "id": semantic.id.NominalId(u32)(3), 
                 "flags": [
@@ -131,7 +134,8 @@
                 "bindings": {
                   "arr": 3, 
                   
-                }, "children": [
+                }, 
+                "children": [
                   {
                     "id": semantic.id.NominalId(u32)(4), 
                     "flags": [
@@ -141,14 +145,18 @@
                     "bindings": {
                       "power_of_two": 4, 
                       
-                    }, "children": [], 
+                    }, 
+                    "children": [], 
                     
                   }, 
                 ], 
+                
               }, 
             ], 
+            
           }, 
         ], 
+        
       }, {
         "id": semantic.id.NominalId(u32)(5), 
         "flags": [
@@ -156,7 +164,8 @@
         ], 
         "bindings": {
           
-        }, "children": [
+        }, 
+        "children": [
           {
             "id": semantic.id.NominalId(u32)(6), 
             "flags": [
@@ -165,7 +174,8 @@
             ], 
             "bindings": {
               
-            }, "children": [
+            }, 
+            "children": [
               {
                 "id": semantic.id.NominalId(u32)(7), 
                 "flags": [
@@ -175,7 +185,8 @@
                 "bindings": {
                   "mat4x4": 6, 
                   
-                }, "children": [
+                }, 
+                "children": [
                   {
                     "id": semantic.id.NominalId(u32)(8), 
                     "flags": [
@@ -184,7 +195,8 @@
                     ], 
                     "bindings": {
                       
-                    }, "children": [
+                    }, 
+                    "children": [
                       {
                         "id": semantic.id.NominalId(u32)(9), 
                         "flags": [
@@ -193,7 +205,8 @@
                         ], 
                         "bindings": {
                           
-                        }, "children": [
+                        }, 
+                        "children": [
                           {
                             "id": semantic.id.NominalId(u32)(10), 
                             "flags": [
@@ -202,19 +215,26 @@
                             ], 
                             "bindings": {
                               
-                            }, "children": [], 
+                            }, 
+                            "children": [], 
                             
                           }, 
                         ], 
+                        
                       }, 
                     ], 
+                    
                   }, 
                 ], 
+                
               }, 
             ], 
+            
           }, 
         ], 
+        
       }, 
     ], 
+    
   }, 
 }

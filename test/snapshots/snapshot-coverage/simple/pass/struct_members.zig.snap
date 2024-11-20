@@ -73,7 +73,8 @@
       "@This()": 0, 
       "Foo": 1, 
       
-    }, "children": [
+    }, 
+    "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
         "flags": [
@@ -85,9 +86,11 @@
           "B": 3, 
           "C": 4, 
           
-        }, "children": [], 
+        }, 
+        "children": [], 
         
       }, 
     ], 
+    
   }, 
 }

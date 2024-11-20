@@ -121,7 +121,7 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
     {
         try p.pPropName("bindings");
         try p.pushObject();
-        defer p.pop();
+        defer p.popIndent();
         // var bindings = std.StringHashMap(Symbol.Id).init(fixed_alloc.get());
         // defer bindings.deinit();
         for (scopes.bindings.items[scope.id.int()].items) |id| {
@@ -144,7 +144,7 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
     }
     try p.pPropName("children");
     try p.pushArray();
-    defer p.pop();
+    defer p.popIndent();
     for (children.items) |child_id| {
         const child = &scopes.getScope(child_id);
         try self.printScope(child);

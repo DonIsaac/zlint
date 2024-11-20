@@ -37,7 +37,8 @@
       "@This()": 0, 
       "foo": 1, 
       
-    }, "children": [], 
+    }, 
+    "children": [], 
     
   }, 
 }

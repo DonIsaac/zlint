@@ -151,6 +151,10 @@ pub fn pop(self: *Printer) void {
     _ = res catch @panic("failed to write container end");
 }
 
+pub fn popIndent(self: *Printer) void {
+    self.pop();
+    self.pIndent() catch @panic("failed to write indent after container end");
+}
 pub fn pIndent(self: *Printer) !void {
     try self.writer.writeAll(self._newline);
     try self.writer.writeByteNTimes(self.indent, self.shiftwidth * self.container_stack.items.len);

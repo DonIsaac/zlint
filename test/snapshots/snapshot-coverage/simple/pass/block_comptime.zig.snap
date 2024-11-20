@@ -51,7 +51,8 @@
       "@This()": 0, 
       "x": 1, 
       
-    }, "children": [
+    }, 
+    "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
         "flags": [
@@ -62,9 +63,11 @@
         "bindings": {
           "y": 2, 
           
-        }, "children": [], 
+        }, 
+        "children": [], 
         
       }, 
     ], 
+    
   }, 
 }
