@@ -6,6 +6,9 @@
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "references": [
+        
+      ], 
       "members": [1,2], 
       "exports": [], 
       
@@ -15,6 +18,9 @@
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true,"s_catch_param":false}, 
+      "references": [
+        
+      ], 
       "members": [], 
       "exports": [], 
       
@@ -24,6 +30,10 @@
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "references": [
+        {"symbol":2,"scope":3,"node":"identifier","identifier":"inner","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
+        
+      ], 
       "members": [3], 
       "exports": [], 
       
@@ -33,11 +43,15 @@
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(4), 
       "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true,"s_catch_param":false}, 
+      "references": [
+        
+      ], 
       "members": [], 
       "exports": [], 
       
     }, 
   ], 
+  "unresolvedReferences": [],
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
     "flags": [

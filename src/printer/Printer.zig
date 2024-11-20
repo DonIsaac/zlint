@@ -72,6 +72,11 @@ pub fn pPropJson(self: *Printer, key: []const u8, value: anytype) !void {
     try self.pIndent();
 }
 
+pub fn pJson(self: *Printer, value: anytype) !void {
+    const options: std.json.StringifyOptions = .{};
+    try stringify(value, options, self.writer);
+}
+
 /// Print an object property key with a trailing `:`, without printing a value.
 pub fn pPropName(self: *Printer, key: []const u8) !void {
     try self.pString(key);

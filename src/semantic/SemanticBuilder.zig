@@ -13,6 +13,7 @@ _arena: ArenaAllocator,
 _curr_scope_id: Semantic.Scope.Id = ROOT_SCOPE,
 _curr_symbol_id: ?Semantic.Symbol.Id = null,
 _curr_scope_flags: Scope.Flags = .{},
+_curr_reference_flags: Reference.Flags = .{ .read = true },
 
 // stacks
 
@@ -21,8 +22,15 @@ _scope_stack: std.ArrayListUnmanaged(Semantic.Scope.Id) = .{},
 /// is pushed here. This lets us record members and exports.
 _symbol_stack: std.ArrayListUnmanaged(Semantic.Symbol.Id) = .{},
 _node_stack: std.ArrayListUnmanaged(NodeIndex) = .{},
+/// References encountered but that could not be resolved. Includes references
+/// that occur before symbol declaration, and we haven't seen the declaration yet.
+/// After analysis, references in this list are to symbols not declared anywhere
+/// in the source.
+///
+/// We try to resolve these each time a scope is exited.
+_unresolved_references: ReferenceStack = .{},
 
-/// SAFETY: initialized after parsing. Same safety rationale as _root_scope.
+/// SAFETY: initialized after parsing.
 _semantic: Semantic = undefined,
 /// Errors encountered during parsing and analysis.
 ///
@@ -100,6 +108,28 @@ pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Resul
         builder.assertRoot();
     }
 
+    // resolve references to symbols declared in root
+    try builder.resolveReferencesInCurrentScope();
+    // Take whatever references still haven't been resolved and move them to
+    // Semantic.
+    switch (builder._unresolved_references.len()) {
+        0 => builder._semantic.symbols.unresolved_references = .{},
+        1 => {
+            const unresolved = try builder._unresolved_references.curr().toOwnedSlice(builder._gpa);
+            builder._semantic.symbols.unresolved_references = .{
+                .items = unresolved,
+                .capacity = unresolved.len,
+            };
+        },
+        else => {
+            util.assert(
+                builder._unresolved_references.len() == 1,
+                "Expected 0 or 1, got {d}",
+                .{builder._unresolved_references.len()},
+            );
+        },
+    }
+
     return Result.new(builder._gpa, builder._semantic, builder._errors);
 }
 
@@ -109,6 +139,7 @@ pub fn deinit(self: *SemanticBuilder) void {
     self._scope_stack.deinit(self._gpa);
     self._symbol_stack.deinit(self._gpa);
     self._node_stack.deinit(self._gpa);
+    self._unresolved_references.deinit(self._gpa);
 }
 
 fn parse(self: *SemanticBuilder, source: stringSlice) !Ast {
@@ -196,12 +227,12 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             const container = ast.fullContainerDecl(&buf, node_id) orelse unreachable;
             return self.visitContainer(node_id, container);
         },
+
+        // variable/field declarations
         .container_field, .container_field_align, .container_field_init => {
             const field = ast.fullContainerField(node_id) orelse unreachable;
             return self.visitContainerField(node_id, field);
         },
-        .field_access, .unwrap_optional => return self.visit(data[node_id].lhs),
-        // variable declarations
         .global_var_decl, .local_var_decl, .simple_var_decl, .aligned_var_decl => {
             const decl = self.AST().fullVarDecl(node_id) orelse unreachable;
             return self.visitVarDecl(node_id, decl);
@@ -210,6 +241,12 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             const destructure = ast.assignDestructure(node_id);
             return self.visitAssignDestructure(node_id, destructure);
         },
+
+        // variable/field references
+        .identifier => return self.visitIdentifier(node_id),
+        .field_access => return self.visitFieldAccess(node_id),
+
+        // initializations
         .array_init,
         .array_init_comma,
         .array_init_dot,
@@ -236,6 +273,26 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             const struct_init = ast.fullStructInit(&buf, node_id) orelse unreachable;
             return self.visitStructInit(node_id, struct_init);
         },
+        // assignment
+        .assign_mul,
+        .assign_div,
+        .assign_mod,
+        .assign_add,
+        .assign_sub,
+        .assign_shl,
+        .assign_shl_sat,
+        .assign_shr,
+        .assign_bit_and,
+        .assign_bit_xor,
+        .assign_bit_or,
+        .assign_mul_wrap,
+        .assign_add_wrap,
+        .assign_sub_wrap,
+        .assign_mul_sat,
+        .assign_add_sat,
+        .assign_sub_sat,
+        .assign,
+        => return self.visitAssignment(node_id, tag),
         // function-related nodes
 
         // function declarations
@@ -321,7 +378,6 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         .test_decl => return self.visit(data[node_id].rhs),
 
         // lhs/rhs for these nodes are always undefined
-        .identifier,
         .char_literal,
         .number_literal,
         .unreachable_literal,
@@ -353,6 +409,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
 
         // lhs is a node, rhs is a token
         .grouped_expression,
+        .unwrap_optional,
         // lhs is a node, rhs is an index into Slice
         .slice,
         .slice_sentinel,
@@ -428,6 +485,7 @@ fn visitContainer(self: *SemanticBuilder, _: NodeIndex, container: full.Containe
     }
 }
 
+/// ======================= VARIABLE/FIELD DECLARATIONS ========================
 /// Visit a container field (e.g. a struct property, enum variant, etc).
 ///
 /// ```zig
@@ -475,8 +533,36 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
     }
 }
 
-fn visitAssignDestructure(self: *SemanticBuilder, _: NodeIndex, destructure: full.AssignDestructure) SemanticError!void {
-    self.assertCtx(destructure.ast.variables.len > 0, "Invalid destructuring assignment: no variables are being declared.", .{});
+// ================================ ASSIGNMENT =================================
+
+fn visitAssignment(self: *SemanticBuilder, node_id: NodeIndex, tag: Node.Tag) SemanticError!void {
+    const does_read_lhs = tag != .assign;
+    const children = self.getNodeData(node_id);
+    const flags = self._curr_reference_flags;
+
+    {
+        self._curr_reference_flags.write = true;
+        self._curr_reference_flags.read = does_read_lhs;
+        defer self._curr_reference_flags = flags;
+        try self.visit(children.lhs);
+    }
+    {
+        assert(self._curr_reference_flags.read);
+        assert(!self._curr_reference_flags.write);
+        try self.visit(children.rhs);
+    }
+}
+
+fn visitAssignDestructure(
+    self: *SemanticBuilder,
+    _: NodeIndex,
+    destructure: full.AssignDestructure,
+) SemanticError!void {
+    self.assertCtx(
+        destructure.ast.variables.len > 0,
+        "Invalid destructuring assignment: no variables are being declared.",
+        .{},
+    );
     const ast = self.AST();
     const main_tokens: []TokenIndex = ast.nodes.items(.main_token);
     const token_tags: []Token.Tag = ast.tokens.items(.tag);
@@ -502,6 +588,25 @@ fn visitAssignDestructure(self: *SemanticBuilder, _: NodeIndex, destructure: ful
     }
     try self.visit(destructure.ast.value_expr);
 }
+
+// ========================= VARIABLE/FIELD REFERENCES  ========================
+
+fn visitIdentifier(self: *SemanticBuilder, node_id: NodeIndex) !void {
+    const ident = self.AST().getNodeSource(node_id);
+    const symbol = self._semantic.resolveBinding(self.currentScope(), ident);
+
+    _ = try self.recordReference(.{
+        .node = node_id,
+        .symbol = symbol,
+        .identifier = ident,
+    });
+}
+
+fn visitFieldAccess(self: *SemanticBuilder, node_id: NodeIndex) !void {
+    return self.visit(self.getNodeData(node_id).lhs);
+}
+
+// =============================================================================
 
 fn visitArrayInit(self: *SemanticBuilder, _: NodeIndex, arr: full.ArrayInit) !void {
     for (arr.ast.elements) |el| {
@@ -587,11 +692,14 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
 }
 
 inline fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnProto) !void {
-    try self.enterScope(.{});
-    defer self.exitScope();
-    for (fn_proto.ast.params) |param| {
-        try self.visit(param);
+    {
+        try self.enterScope(.{});
+        defer self.exitScope();
+        for (fn_proto.ast.params) |param| {
+            try self.visit(param);
+        }
     }
+    try self.visit(fn_proto.ast.return_type);
 }
 
 inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
@@ -665,6 +773,7 @@ fn enterRoot(self: *SemanticBuilder) !void {
 
     // SemanticBuilder.init() allocates enough space for 8 scopes.
     self._scope_stack.appendAssumeCapacity(root_scope_id);
+    try self._unresolved_references.enter(self._gpa);
 
     // push root node onto the stack. It is never popped.
     // Similar to root scope, the root node is pushed differently than
@@ -685,6 +794,8 @@ fn enterRoot(self: *SemanticBuilder) !void {
 ///
 /// This function gets erased in ReleaseFast builds.
 inline fn assertRoot(self: *const SemanticBuilder) void {
+    if (!util.IS_DEBUG) return // don't run assertions in any kind of release build
+
     self.assertCtx(self._scope_stack.items.len == 1, "assertRoot: scope stack is not at root", .{});
     self.assertCtx(self._scope_stack.items[0] == Semantic.ROOT_SCOPE_ID, "assertRoot: scope stack is not at root", .{});
 
@@ -729,11 +840,14 @@ fn enterScope(self: *SemanticBuilder, flags: Scope.Flags) !void {
     const merged_flags = flags.merge(self._curr_scope_flags);
     const scope = try self._semantic.scopes.addScope(self._gpa, parent_id, merged_flags);
     try self._scope_stack.append(self._gpa, scope);
+    try self._unresolved_references.enter(self._gpa);
 }
 
 /// Exit the current scope. It is a bug to pop the root scope.
 inline fn exitScope(self: *SemanticBuilder) void {
     self.assertCtx(self._scope_stack.items.len > 1, "Invariant violation: cannot pop the root scope", .{});
+    self.resolveReferencesInCurrentScope() catch @panic("OOM");
+    // self._unresolved_references.exit(self._gpa);
     _ = self._scope_stack.pop();
 }
 
@@ -874,6 +988,157 @@ inline fn declareSymbol(
     try self._semantic.scopes.addBinding(self._gpa, scope, symbol_id);
     return symbol_id;
 }
+
+// =========================== Subsection: References ==========================
+
+const CreateReference = struct {
+    node: ?NodeIndex = null,
+    scope: ?Scope.Id = null,
+    symbol: ?Symbol.Id = null,
+    flags: Reference.Flags = .{},
+    identifier: ?[]const u8 = null,
+};
+
+fn recordReference(self: *SemanticBuilder, opts: CreateReference) Allocator.Error!Reference.Id {
+    const node = opts.node orelse self.currentNode();
+    const scope = opts.scope orelse self.currentScope();
+    const flags = opts.flags.merge(self._curr_reference_flags);
+    const identifier = opts.identifier orelse brk: {
+        const ast = self.AST();
+        const mains = ast.nodes.items(.main_token);
+        const token_tags = ast.tokens.items(.tag);
+        const main_token: TokenIndex = mains[node];
+
+        if (token_tags[main_token] == .identifier) {
+            break :brk ast.tokenSlice(main_token);
+        }
+        break :brk ast.getNodeSource(node);
+    };
+
+    const reference = Reference{
+        .symbol = Symbol.Id.Optional.from(opts.symbol),
+        .identifier = identifier,
+        .scope = scope,
+        .flags = flags,
+        .node = node,
+    };
+
+    const ref_id = try self._semantic.symbols.addReference(self._gpa, reference);
+    if (reference.symbol == .none) {
+        try self._unresolved_references.append(self._gpa, ref_id);
+    }
+
+    return ref_id;
+}
+
+fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void {
+    var stacka = std.heap.stackFallback(64, self._gpa);
+    const stack = stacka.get();
+    //
+    const curr = self._unresolved_references.curr();
+    const parent = self._unresolved_references.parent();
+    const names = self.symbolTable().symbols.items(.name);
+    const bindings: []const Symbol.Id = self.scopeTree().getBindings(self.currentScope());
+    const ref_names: []const string = self.symbolTable().references.items(.identifier);
+    const ref_symbols: []Symbol.Id.Optional = self.symbolTable().references.items(.symbol);
+
+    const resolved_map = try stack.alloc(bool, curr.items.len);
+    var num_resolved: usize = 0;
+    @memset(resolved_map, false);
+    defer stack.free(resolved_map);
+
+    for (bindings) |binding| {
+        const name: string = names[binding.int()];
+        for (0..curr.items.len) |i| {
+            if (resolved_map[i]) continue;
+            const ref_id: Reference.Id = curr.items[i];
+            const ref_name = ref_names[ref_id.int()];
+            // we resolved the reference :)
+            if (mem.eql(u8, name, ref_name)) {
+                num_resolved += 1;
+                resolved_map[i] = true;
+                ref_symbols[ref_id.int()] = binding.into(Symbol.Id.Optional);
+            }
+        }
+    }
+
+    const num_unresolved = curr.items.len - resolved_map.len;
+    if (num_unresolved > 0) {
+        if (parent) |p| {
+            try p.ensureUnusedCapacity(self._gpa, num_unresolved);
+            for (0..curr.items.len) |i| {
+                if (resolved_map[i]) continue;
+                p.appendAssumeCapacity(curr.items[i]);
+            }
+            // only delete current frame when we can't move things to the parent. We
+            // want the last frame to exist so we can move it to the list of
+            // unresolved references in the symbol table
+            curr.deinit(self._gpa);
+            _ = self._unresolved_references.frames.pop();
+        } else {
+            const temp = try self._gpa.dupe(Reference.Id, curr.items);
+            var i: usize = 0;
+            var j: usize = 0;
+            while (i < temp.len) : (i += 1) {
+                if (!resolved_map[i]) continue;
+                curr.items[j] = temp[i];
+                j += 1;
+            }
+        }
+    } else {
+        curr.deinit(self._gpa);
+        _ = self._unresolved_references.frames.pop();
+    }
+}
+
+const ReferenceStack = struct {
+    frames: std.ArrayListUnmanaged(ReferenceIdList) = .{},
+
+    const ReferenceIdList = std.ArrayListUnmanaged(Reference.Id);
+
+    fn init(alloc: Allocator) Allocator.Error!ReferenceStack {
+        var self: ReferenceStack = .{};
+        try self.frames.ensureTotalCapacity(alloc, 16);
+
+        return self;
+    }
+
+    /// current frame
+    pub fn curr(self: *ReferenceStack) *ReferenceIdList {
+        assert(self.len() > 0);
+        return &self.frames.items[self.len() - 1];
+    }
+
+    /// parent frame. `null` when currently in root scope.
+    pub fn parent(self: *ReferenceStack) ?*ReferenceIdList {
+        return if (self.len() <= 1) null else &self.frames.items[self.len() - 2];
+    }
+
+    /// current number of frames
+    inline fn len(self: ReferenceStack) usize {
+        return self.frames.items.len;
+    }
+
+    fn enter(self: *ReferenceStack, alloc: Allocator) Allocator.Error!void {
+        try self.frames.append(alloc, .{});
+    }
+    fn exit(self: *ReferenceStack, alloc: Allocator) void {
+        var frame = self.frames.pop();
+        frame.deinit(alloc);
+    }
+
+    /// Add an unresolved reference to the current frame
+    fn append(self: *ReferenceStack, alloc: Allocator, ref: Reference.Id) Allocator.Error!void {
+        try self.curr().append(alloc, ref);
+    }
+
+    fn deinit(self: *ReferenceStack, alloc: Allocator) void {
+        for (0..self.frames.items.len) |i| {
+            self.frames.items[i].deinit(alloc);
+        }
+        self.frames.deinit(alloc);
+    }
+};
 
 // =========================================================================
 // ============================ RANDOM GETTERS =============================
@@ -1045,13 +1310,13 @@ fn debugNodeStack(self: *const SemanticBuilder) void {
         const source = if (id == 0) "" else ast.getNodeSource(id);
         const loc = ast.tokenLocation(token_offset, main_token);
         const snippet =
-            if (source.len > 48) std.mem.concat(
+            if (source.len > 48) mem.concat(
             self._gpa,
             u8,
             &[_]string{ source[0..32], " ... ", source[(source.len - 16)..source.len] },
         ) catch @panic("Out of memory") else source;
         print("  - [{d}, {d}:{d}] {any} - {s}\n", .{ id, loc.line, loc.column, tag, snippet });
-        if (!std.mem.eql(u8, source, snippet)) {
+        if (!mem.eql(u8, source, snippet)) {
             self._gpa.free(snippet);
         }
     }
@@ -1088,8 +1353,10 @@ const Semantic = @import("./Semantic.zig");
 const Scope = Semantic.Scope;
 const Symbol = Semantic.Symbol;
 const NodeLinks = Semantic.NodeLinks;
+const Reference = Semantic.Reference;
 
 const std = @import("std");
+const mem = std.mem;
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Type = std.builtin.Type;
@@ -1178,4 +1445,54 @@ test "comptime blocks" {
     const block_scope = scopes.get(1);
     try std.testing.expect(block_scope.flags.s_block);
     try std.testing.expect(block_scope.flags.s_comptime);
+}
+
+test "references" {
+    const t = std.testing;
+    const alloc = std.testing.allocator;
+
+    const src =
+        \\fn foo() u32 {
+        \\  var x: u32 = 1;
+        \\  const y: u32 = x + 1;
+        \\  x += y;
+        \\  return x;
+        \\}
+    ;
+    var builder = SemanticBuilder.init(alloc);
+    defer builder.deinit();
+    var result = try builder.build(src);
+    defer result.deinit();
+    try t.expect(!result.hasErrors());
+    const semantic = result.value;
+
+    // FIXME: should be 2 (maybe 3?) but is 4
+    try t.expectEqual(4, semantic.scopes.len());
+    try t.expectEqual(0, semantic.symbols.unresolved_references.items.len);
+
+    const names = semantic.symbols.symbols.items(.name);
+    var it = semantic.symbols.iter();
+    const x: Symbol.Id = brk: {
+        while (it.next()) |s| {
+            if (mem.eql(u8, names[s.int()], "x")) {
+                break :brk s;
+            }
+        }
+        @panic("Could not find variable `x`.");
+    };
+
+    var refs = semantic.symbols.iterReferences(x);
+    try t.expectEqual(3, refs.len());
+
+    // const y: u32 = x + 1;
+    var ref = refs.next().?;
+    try t.expectEqual(ref.flags, Reference.Flags{ .read = true });
+
+    // x += y;
+    ref = refs.next().?;
+    try t.expectEqual(ref.flags, Reference.Flags{ .read = true, .write = true });
+
+    // return x;
+    ref = refs.next().?;
+    try t.expectEqual(ref.flags, Reference.Flags{ .read = true });
 }

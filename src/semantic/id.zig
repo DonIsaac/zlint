@@ -143,6 +143,13 @@ pub fn NominalId(TRepr: type) type {
                     @enumFromInt(@intFromEnum(self));
             }
 
+            pub inline fn from(id: ?Id) Optional {
+                return if (id) |i|
+                    @enumFromInt(@intFromEnum(i))
+                else
+                    Optional.none;
+            }
+
             pub inline fn tryFrom(value: anytype) ?Optional {
                 return Id.from(value).optional();
             }

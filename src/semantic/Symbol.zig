@@ -30,11 +30,13 @@ scope: Scope.Id,
 /// Index of the AST node declaring this symbol.
 ///
 /// Usually a `var`/`const` declaration, function statement, etc.
-decl: Ast.Node.Index,
+decl: Node.Index,
 
 visibility: Visibility,
 
 flags: Flags,
+
+references: std.ArrayListUnmanaged(Reference.Id) = .{},
 
 /// Symbols on "instance objects" (e.g. field properties and instance
 /// methods).
@@ -113,6 +115,8 @@ pub const SymbolTable = struct {
     ///
     /// Do not write to this list directly.
     symbols: std.MultiArrayList(Symbol) = .{},
+    references: std.MultiArrayList(Reference) = .{},
+    unresolved_references: std.ArrayListUnmanaged(Reference.Id) = .{},
 
     /// Get a symbol from the table.
     pub inline fn get(self: *const SymbolTable, id: Symbol.Id) *const Symbol {
@@ -122,7 +126,7 @@ pub const SymbolTable = struct {
     pub fn addSymbol(
         self: *SymbolTable,
         alloc: Allocator,
-        declaration_node: Ast.Node.Index,
+        declaration_node: Node.Index,
         name: ?string,
         debug_name: ?string,
         scope_id: Scope.Id,
@@ -147,6 +151,34 @@ pub const SymbolTable = struct {
         try self.symbols.append(alloc, symbol);
 
         return id;
+    }
+
+    pub fn addReference(
+        self: *SymbolTable,
+        alloc: Allocator,
+        reference: Reference,
+    ) Allocator.Error!Reference.Id {
+        const ref_id = Reference.Id.from(self.references.len);
+        try self.references.append(alloc, reference);
+        if (reference.symbol.unwrap()) |symbol_id| {
+            try self.symbols.items(.references)[symbol_id.into(usize)].append(alloc, ref_id);
+        }
+
+        return ref_id;
+    }
+
+    pub fn getReference(
+        self: *const SymbolTable,
+        reference_id: Reference.Id,
+    ) Reference {
+        return self.references.get(reference_id.into(usize));
+    }
+
+    pub fn getReferencesMut(
+        self: *SymbolTable,
+        symbol_id: Symbol.Id,
+    ) *std.ArrayListUnmanaged(Reference.Id) {
+        return &self.symbols.items(.references)[symbol_id.int()];
     }
 
     pub inline fn getMembers(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
@@ -177,17 +209,27 @@ pub const SymbolTable = struct {
         return Iterator{ .table = self };
     }
 
+    /// Iterate over a symbol's references.
+    pub inline fn iterReferences(self: *const SymbolTable, id: Symbol.Id) ReferenceIterator {
+        const refs = self.symbols.items(.references)[id.int()].items;
+        return ReferenceIterator{ .table = self, .refs = refs };
+    }
+
     pub fn deinit(self: *SymbolTable, alloc: Allocator) void {
         {
             var i: Id.Repr = 0;
             const len: Id.Repr = @intCast(self.symbols.len);
             while (i < len) {
-                self.getMembersMut(Id.from(i)).deinit(alloc);
-                self.getExportsMut(Id.from(i)).deinit(alloc);
+                const id = Id.from(i);
+                self.getMembersMut(id).deinit(alloc);
+                self.getExportsMut(id).deinit(alloc);
+                self.getReferencesMut(id).deinit(alloc);
                 i += 1;
             }
         }
         self.symbols.deinit(alloc);
+        self.references.deinit(alloc);
+        self.unresolved_references.deinit(alloc);
     }
 };
 
@@ -205,15 +247,34 @@ pub const Iterator = struct {
     }
 };
 
+pub const ReferenceIterator = struct {
+    curr: usize = 0,
+    table: *const SymbolTable,
+    refs: []Reference.Id,
+
+    pub inline fn len(self: ReferenceIterator) usize {
+        return self.refs.len;
+    }
+
+    pub fn next(self: *ReferenceIterator) ?Reference {
+        if (self.curr >= self.refs.len) return null;
+
+        defer self.curr += 1;
+        const ref_id = self.refs[self.curr];
+        return self.table.getReference(ref_id);
+    }
+};
+
 const Symbol = @This();
 
 const std = @import("std");
-
 const Allocator = std.mem.Allocator;
-const Ast = std.zig.Ast;
-const Scope = @import("Scope.zig");
 const Type = std.builtin.Type;
 const NominalId = @import("id.zig").NominalId;
+
+const Node = std.zig.Ast.Node;
+const Scope = @import("Scope.zig");
+const Reference = @import("Reference.zig");
 
 const assert = std.debug.assert;
 const string = @import("util").string;
