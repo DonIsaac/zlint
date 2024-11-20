@@ -109,20 +109,6 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
 
     try p.pProp("id", "{d}", scope.id);
 
-    // {
-    //     const f = scope.flags;
-    //     try p.pPropName("flags");
-    //     try p.pushArray(true);
-    //     defer p.pop();
-    //     try printStrIf(p, "top", f.s_top);
-    //     try printStrIf(p, "function", f.s_function);
-    //     try printStrIf(p, "struct", f.s_struct);
-    //     try printStrIf(p, "enum", f.s_enum);
-    //     try printStrIf(p, "union", f.s_union);
-    //     try printStrIf(p, "block", f.s_block);
-    //     try printStrIf(p, "comptime", f.s_comptime);
-    //     try printStrIf(p, "catch", f.s_catch);
-    // }
     try p.pPropName("flags");
     try self.printFlags(Scope.Flags, scope.flags);
     try p.pIndent();
@@ -131,8 +117,6 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
         try p.pPropName("bindings");
         try p.pushObject();
         defer p.popIndent();
-        // var bindings = std.StringHashMap(Symbol.Id).init(fixed_alloc.get());
-        // defer bindings.deinit();
         for (scopes.bindings.items[scope.id.int()].items) |id| {
             const i = id.int();
             var name = bound_names[i];
