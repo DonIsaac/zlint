@@ -130,10 +130,25 @@ pub fn pushObject(self: *Printer) !void {
 
 /// Enter into an array container. When exited (i.e. `pop()`), a closing square bracket will
 /// be printed.
-pub fn pushArray(self: *Printer) !void {
+pub fn pushArray(self: *Printer, comptime indent: bool) !void {
     try self.container_stack.append(ContainerKind.array);
     _ = try self.writer.write("[");
-    try self.pIndent();
+    if (indent) {
+        try self.pIndent();
+    }
+}
+
+/// TODO: refactor pop() to take a boolean parameter to enable/disable indent printing.
+pub fn popNoIndent(self: *Printer) void {
+    const kind = self.container_stack.pop();
+    const res = switch (kind) {
+        ContainerKind.object => self.writer.write("}"),
+        ContainerKind.array => self.writer.write("]"),
+    };
+    if (self.container_stack.items.len > 0) {
+        self.pComma();
+    }
+    _ = res catch @panic("failed to write container end");
 }
 
 /// Exit out of an object or array container, printing the correspodning

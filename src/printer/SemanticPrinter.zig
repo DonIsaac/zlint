@@ -12,7 +12,7 @@ pub fn new(printer: *Printer, semantic: *const Semantic) SemanticPrinter {
 
 pub fn printSymbolTable(self: *SemanticPrinter) !void {
     const symbols = &self.semantic.symbols;
-    try self.printer.pushArray();
+    try self.printer.pushArray(true);
     defer self.printer.pop();
 
     var iter = symbols.iter();
@@ -34,11 +34,15 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: 
     const decl = self.semantic.ast.nodes.items(.tag)[symbol.decl];
     try self.printer.pPropWithNamespacedValue("declNode", decl);
     try self.printer.pProp("scope", "{d}", symbol.scope);
-    try self.printer.pPropJson("flags", symbol.flags);
+    {
+        try self.printer.pPropName("flags");
+        try self.printFlags(Symbol.Flags, symbol.flags);
+        try self.printer.pIndent();
+    }
 
     {
         try self.printer.pPropName("references");
-        try self.printer.pushArray();
+        try self.printer.pushArray(true);
         defer {
             self.printer.pop();
             self.printer.pIndent() catch @panic("print failed");
@@ -63,7 +67,7 @@ pub fn printUnresolvedReferences(self: *SemanticPrinter) !void {
         return;
     }
 
-    try p.pushArray();
+    try p.pushArray(true);
     defer p.pop();
     for (symbols.unresolved_references.items) |ref_id| {
         try self.printReference(ref_id);
@@ -105,20 +109,22 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
 
     try p.pProp("id", "{d}", scope.id);
 
-    {
-        const f = scope.flags;
-        try p.pPropName("flags");
-        try p.pushArray();
-        defer p.pop();
-        try printStrIf(p, "top", f.s_top);
-        try printStrIf(p, "function", f.s_function);
-        try printStrIf(p, "struct", f.s_struct);
-        try printStrIf(p, "enum", f.s_enum);
-        try printStrIf(p, "union", f.s_union);
-        try printStrIf(p, "block", f.s_block);
-        try printStrIf(p, "comptime", f.s_comptime);
-        try printStrIf(p, "catch", f.s_catch);
-    }
+    // {
+    //     const f = scope.flags;
+    //     try p.pPropName("flags");
+    //     try p.pushArray(true);
+    //     defer p.pop();
+    //     try printStrIf(p, "top", f.s_top);
+    //     try printStrIf(p, "function", f.s_function);
+    //     try printStrIf(p, "struct", f.s_struct);
+    //     try printStrIf(p, "enum", f.s_enum);
+    //     try printStrIf(p, "union", f.s_union);
+    //     try printStrIf(p, "block", f.s_block);
+    //     try printStrIf(p, "comptime", f.s_comptime);
+    //     try printStrIf(p, "catch", f.s_catch);
+    // }
+    try p.pPropName("flags");
+    try self.printFlags(Scope.Flags, scope.flags);
     try p.pIndent();
 
     {
@@ -146,7 +152,7 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
         return;
     }
     try p.pPropName("children");
-    try p.pushArray();
+    try p.pushArray(true);
     defer p.popIndent();
     for (children.items) |child_id| {
         const child = &scopes.getScope(child_id);
@@ -161,6 +167,24 @@ fn printStrIf(p: *Printer, str: []const u8, cond: bool) !void {
     try p.pString(str);
     p.pComma();
     try p.pIndent();
+}
+
+fn printFlags(self: *SemanticPrinter, T: type, flags: T) !void {
+    const p = self.printer;
+    try p.pushArray(false);
+    defer p.popNoIndent();
+    const fields = std.meta.fields(T);
+    var first = true;
+
+    inline for (fields) |field| {
+        const f = @field(flags, field.name);
+        if (@TypeOf(f) != bool) continue;
+        if (f) {
+            if (!first) p.pComma();
+            try p.pString(field.name);
+            first = false;
+        }
+    }
 }
 
 const PrintableReference = struct {

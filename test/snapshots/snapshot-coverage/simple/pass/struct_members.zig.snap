@@ -5,7 +5,7 @@
       "debugName": "@This()", 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false,"s_fn_param":false,"s_catch_param":false}, 
+      "flags": ["s_const"], 
       "references": [
         
       ], 
@@ -18,7 +18,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_fn_param":false,"s_catch_param":false}, 
+      "flags": [], 
       "references": [
         
       ], 
@@ -31,7 +31,7 @@
       "debugName": "", 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false,"s_fn_param":false,"s_catch_param":false}, 
+      "flags": ["s_member"], 
       "references": [
         
       ], 
@@ -44,7 +44,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_fn_param":false,"s_catch_param":false}, 
+      "flags": [], 
       "references": [
         
       ], 
@@ -57,7 +57,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_fn_param":false,"s_catch_param":false}, 
+      "flags": [], 
       "references": [
         
       ], 
@@ -69,10 +69,7 @@
   "unresolvedReferences": [],
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
-    "flags": [
-      "top", 
-      
-    ], 
+    "flags": ["s_top"], 
     "bindings": {
       "@This()": 0, 
       "Foo": 1, 
@@ -81,10 +78,7 @@
     "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
-        "flags": [
-          "block", 
-          
-        ], 
+        "flags": ["s_block"], 
         "bindings": {
           "a": 2, 
           "B": 3, 
