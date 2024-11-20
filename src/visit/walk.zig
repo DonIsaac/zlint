@@ -1,16 +1,44 @@
 pub const WalkState = enum { Continue, Skip, Stop };
 
+/// Traverses an AST in a depth-first manner.
+///
+/// Visitors are structs (or some other container) that control the walk and
+/// optionally inspect each node as it is encountered.
+///
+/// ## Visiting Nodes
+/// For each kind of node (e.g. `fn_decl`), `Walker` will call `Visitor`'s
+/// `visit_fn_decl` method with 1. a mutable pointer to a Visitor instance and
+/// 2. the node id. Visitors do not need methods for each kind of node; missing
+/// visit methods will simply not be called.
+///
+/// Visit methods control the walk by returning a `WalkState`. This has the
+/// following behavior:
+/// - `Continue`: keep traversing the AST as normal
+/// - `Skip`: do not stop traversal, but do not visit this node's children
+/// - `Stop`: halt traversal. This is effectively `return`.
+///
+/// ## Hooks
+/// Visitors may optionally have an `enterNode` and/or `exitNode` method. These
+/// get called before and after visiting each node, respectively. Just like
+/// visit methods, these are also passed a mutable pointer to a Visitor instance
+/// and the current node's id.
 pub fn Walker(Visitor: type, Error: type) type {
-    // const V = Visitor(TError);
-    // const Error = V.Error;
     const tag_info = @typeInfo(Node.Tag).Enum;
     const VisitFn = fn (visitor: *Visitor, node: Node.Index) Error!WalkState;
 
+    // stores pointers to Visitor's visit methods. Each kind of node (ie each
+    // variant of Node.Tag) gets a similarly named visit function. For example,
+    // when visiting a `fn_proto` node, a pointer to `visit_fn_proto` gets
+    // stored in the vtable at the int index for `fn_proto`.
     comptime var vtable: [tag_info.fields.len]?*VisitFn = undefined;
     for (tag_info.fields) |field| {
         const id: usize = field.value;
         // e.g. visit_if_stmt, visit_less_than, visit_greater_than
         const visit_fn_name = "visit_" ++ field.name;
+
+        // visitors who do not care about visiting certain kinds of nodes do not
+        // need to implement visitor methods for them. Visiting will simply be
+        // skipped, and walking will continue as normal.
         if (!@hasDecl(Visitor, visit_fn_name)) {
             vtable[id] = null;
             continue;
@@ -28,18 +56,23 @@ pub fn Walker(Visitor: type, Error: type) type {
         visitor: *Visitor,
         stack: std.ArrayListUnmanaged(Node.Index) = .{},
         alloc: Allocator,
-        visit_vtable: [tag_info.fields.len]?*VisitFn,
+        // visit_vtable: [tag_info.fields.len]?*VisitFn,
 
         const Self = @This();
 
         pub fn init(allocator: Allocator, ast: *Ast, visitor: *Visitor) Allocator.Error!Self {
             var self = Self{ .alloc = allocator, .ast = ast, .visitor = visitor };
+            var stackfb = std.heap.stackFallback(64, allocator);
+            const stack = stackfb.get();
             const root_decls = ast.rootDecls();
-            try self.stack.ensureTotalCapacity(@max(ast.nodes.len >> 4, 8 + root_decls.len));
+            try self.stack.ensureTotalCapacity(allocator, @max(ast.nodes.len >> 4, 8 + root_decls.len));
 
             // push root declarations onto stack in reverse order so that nodes
             // are visited in a left-to-right depth first fashion
-            const root_decls_rev: [root_decls.len]Node.Index = undefined;
+            // const root_decls_rev: [root_decls.len]Node.Index = undefined;
+            const root_decls_rev: []Node.Index = try stack.alloc(Node.Index, root_decls.len);
+            defer stack.free(root_decls_rev);
+
             @memcpy(root_decls_rev, root_decls);
             std.mem.reverse(Node.Index, root_decls_rev);
             self.stack.appendSliceAssumeCapacity(root_decls);
@@ -52,7 +85,7 @@ pub fn Walker(Visitor: type, Error: type) type {
         }
 
         inline fn exitNode(self: *Self, node: Node.Index) void {
-            if (@hasDecl(Visitor, "exitNode")) return self.visitor.enterNode(node);
+            if (@hasDecl(Visitor, "exitNode")) return self.visitor.exitNode(node);
         }
 
         pub fn walk(self: *Self) Error!void {
@@ -70,56 +103,57 @@ pub fn Walker(Visitor: type, Error: type) type {
                     WalkState.Continue;
 
                 switch (state) {
-                    .Continue => self.pushChildren(node, tag),
+                    .Continue => try self.pushChildren(node, tag),
                     .Skip => {},
                     .Stop => return,
                 }
             }
         }
 
-        fn pushChildren(self: *Self, node: Node.Index, tag: Node.Tag) void {
+        fn pushChildren(self: *Self, node: Node.Index, tag: Node.Tag) Allocator.Error!void {
             const datas: []const Node.Data = self.ast.nodes.items(.data);
 
             const data = datas[node];
             switch (NodeDataKind.from(tag)) {
                 // lhs/rhs are nodes. either may be omitted
                 .node => {
-                    self.push(data.rhs);
-                    self.push(data.lhs);
+                    try self.push(data.rhs);
+                    try self.push(data.lhs);
                 },
                 // lhs/rhs are definitly-present nodes
                 .node_unconditional => {
-                    self.pushUnconditional(data.rhs);
-                    self.pushUnconditional(data.lhs);
+                    try self.pushUnconditional(data.rhs);
+                    try self.pushUnconditional(data.lhs);
                 },
                 // only lhs is a node; rhs is ignored
                 .node_token, .node_unset => {
-                    self.push(data.lhs);
+                    try self.push(data.lhs);
                 },
                 // only rhs is a node, lhs is ignored
                 .token_node, .unset_node => {
-                    self.push(data.rhs);
+                    try self.push(data.rhs);
                 },
                 .node_subrange => {
-                    self.push(data.lhs);
+                    try self.push(data.lhs);
                     const range = self.ast.extraData(data.rhs, Node.SubRange);
                     assert(range.end - range.start > 0);
                     const members = self.ast.extra_data[range.start..range.end];
-                    self.pushN(members);
+                    try self.pushN(members);
                 },
                 .subrange_node => {
-                    self.push(data.rhs);
+                    try self.push(data.rhs);
                     const range = self.ast.extraData(data.lhs, Node.SubRange);
                     assert(range.end - range.start > 0);
                     const members = self.ast.extra_data[range.start..range.end];
-                    self.pushN(members);
+                    try self.pushN(members);
                 },
                 .subrange => {
                     const members = self.ast.extra_data[data.lhs..data.rhs];
-                    self.pushN(members);
+                    try self.pushN(members);
                 },
                 // lhs/rhs both ignored
                 .unset, .token => {},
+                else => @panic("todo"),
             }
         }
 
@@ -695,3 +729,41 @@ const Ast = std.zig.Ast;
 const Node = Ast.Node;
 // const NodeIndex = Ast.Node.Index;
 const Semantic = semantic.Semantic;
+
+const t = std.testing;
+test Walker {
+    const src =
+        \\const std = @import("std");
+        \\fn foo() void {
+        \\  const x = 1;
+        \\  std.debug.print("{d}\n", .{x});
+        \\}
+    ;
+
+    const Foo = struct {
+        depth: u32 = 0,
+        nodes_visited: u32 = 0,
+        const Self = @This();
+        fn enterNode(self: *Self, n: Node.Index) !void {
+            std.debug.print("entering node {d}\n", .{n});
+            self.depth += 1;
+            self.nodes_visited += 1;
+        }
+        fn exitNode(self: *Self, n: Node.Index) void {
+            std.debug.print("exiting node {d}\n", .{n});
+            t.expect(self.depth > 0) catch @panic("expect failed");
+            self.depth -= 1;
+        }
+    };
+    const FooWalker = Walker(Foo, anyerror);
+
+    var ast = try std.zig.Ast.parse(t.allocator, src, .zig);
+    defer ast.deinit(t.allocator);
+    var foo = Foo{};
+    var walker = try FooWalker.init(t.allocator, &ast, &foo);
+    defer walker.deinit();
+
+    try walker.walk();
+    try t.expectEqual(0, foo.depth);
+    try t.expectEqual(16, foo.nodes_visited);
+}

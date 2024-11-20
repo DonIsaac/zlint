@@ -11,3 +11,5 @@ pub const printer = struct {
     pub const SemanticPrinter = @import("printer/SemanticPrinter.zig");
     pub const AstPrinter = @import("printer/AstPrinter.zig");
 };
+
+pub const walk = @import("visit/walk.zig");
