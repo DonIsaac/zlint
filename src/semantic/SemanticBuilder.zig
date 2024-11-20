@@ -1039,8 +1039,10 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
     const parent = self._unresolved_references.parent();
     const names = self.symbolTable().symbols.items(.name);
     const bindings: []const Symbol.Id = self.scopeTree().getBindings(self.currentScope());
-    const ref_names: []const string = self.symbolTable().references.items(.identifier);
+    var references = self.symbolTable().references;
+    const ref_names: []const string = references.items(.identifier);
     const ref_symbols: []Symbol.Id.Optional = self.symbolTable().references.items(.symbol);
+    const symbol_refs = self.symbolTable().symbols.items(.references);
 
     const resolved_map = try stack.alloc(bool, curr.items.len);
     var num_resolved: usize = 0;
@@ -1052,12 +1054,15 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
         for (0..curr.items.len) |i| {
             if (resolved_map[i]) continue;
             const ref_id: Reference.Id = curr.items[i];
-            const ref_name = ref_names[ref_id.int()];
+            const ref = ref_id.int();
+            const ref_name = ref_names[ref];
             // we resolved the reference :)
             if (mem.eql(u8, name, ref_name)) {
                 num_resolved += 1;
                 resolved_map[i] = true;
-                ref_symbols[ref_id.int()] = binding.into(Symbol.Id.Optional);
+                // link ref -> symbol and symbol -> ref
+                ref_symbols[ref] = binding.into(Symbol.Id.Optional);
+                try symbol_refs[binding.int()].append(self._gpa, ref_id);
             }
         }
     }

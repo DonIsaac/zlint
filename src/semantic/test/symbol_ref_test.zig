@@ -8,6 +8,8 @@ const Symbol = @import("../Symbol.zig");
 const report = @import("../../reporter.zig");
 const Reference = @import("../Reference.zig");
 
+const printer = @import("../../root.zig").printer;
+
 const t = std.testing;
 const panic = std.debug.panic;
 const print = std.debug.print;
@@ -19,13 +21,13 @@ fn build(src: [:0]const u8) !Semantic {
     defer builder.deinit();
 
     var result = builder.build(src) catch |e| {
-        print("Analysis failed on source:\n\n{s}\n", .{src});
+        print("Analysis failed on source:\n\n{s}\n\n", .{src});
         return e;
     };
     errdefer result.value.deinit();
     r.reportErrors(result.errors.toManaged(t.allocator));
     if (result.hasErrors()) {
-        panic("Analysis failed on source:\n\n{s}\n", .{src});
+        panic("Analysis failed on source:\n\n{s}\n\n", .{src});
     }
 
     return result.value;
@@ -69,10 +71,15 @@ test "references record where and how a symbol is used" {
     try t.expectEqual(ref.flags, Reference.Flags{ .read = true });
 }
 
-test "various read references" {
+test "simple references where `x` is referenced a single time" {
     const sources = [_][:0]const u8{
         \\const x = 1;
         \\const y = x;
+        ,
+        \\const x = 1;
+        \\const y = blk: {
+        \\  if (x > 0) break :blk 1 else break :blk 2;
+        \\};
         ,
         \\const std = @import("std");
         \\fn foo() void {
@@ -84,20 +91,6 @@ test "various read references" {
         \\}
         ,
         // FIXME: these are all failing
-        // \\fn foo() void {
-        // \\  {
-        // \\    const y = x;
-        // \\    _ = y;
-        // \\  }
-        // \\  const x = 1;
-        // \\}
-        // ,
-        // \\fn foo() void {
-        // \\  const y = x;
-        // \\  _ = y;
-        // \\}
-        // \\const x = 1;
-        // ,
         // \\fn foo(x: u32) u32 {
         // \\  return x;
         // \\}
@@ -123,12 +116,69 @@ test "various read references" {
             if (sem.symbols.getSymbolNamed("x")) |_x| {
                 break :brk _x;
             } else {
-                panic("Symbol 'x' not found in source:\n\n{s}\n", .{source});
+                panic("Symbol 'x' not found in source:\n\n{s}\n\n", .{source});
             }
         };
         const refs = sem.symbols.getReferences(x);
         t.expectEqual(1, refs.len) catch |e| {
-            print("Source:\n\n{s}\n", .{source});
+            print("Source:\n\n{s}\n\n", .{source});
+            return e;
+        };
+    }
+}
+
+test "symbols referenced before their declaration" {
+    const sources = [_][:0]const u8{
+        \\const y = x;
+        \\const x = @import("x.zig");
+        ,
+        \\fn foo() void {
+        \\  const y = x + 1;
+        \\}
+        \\const x = @import("x.zig");
+        ,
+        \\const y = blk: {
+        \\  break :blk x;
+        \\};
+        \\const x = @import("x.zig");
+        ,
+        // FIXME: these are all failing
+        // \\fn foo() void {
+        // \\  {
+        // \\    const y = x;
+        // \\    _ = y;
+        // \\  }
+        // \\  const x = 1;
+        // \\}
+        // ,
+        // \\fn foo() void {
+        // \\  const y = x;
+        // \\  _ = y;
+        // \\}
+        // \\const x = 1;
+        // ,
+    };
+
+    // var p = printer.Printer.init(t.allocator, std.io.getStdErr().writer());
+    // defer p.deinit();
+    for (sources) |source| {
+        var sem = try build(source);
+        defer sem.deinit();
+        // var sp = printer.SemanticPrinter.new(&p, &sem);
+        // print("Symbol table:\n\n", .{});
+        // try sp.printSymbolTable();
+        // print("\n\nUnresolved references:\n\n", .{});
+        // try sp.printUnresolvedReferences();
+        const x: Symbol.Id = brk: {
+            if (sem.symbols.getSymbolNamed("x")) |_x| {
+                break :brk _x;
+            } else {
+                panic("Symbol 'x' not found in source:\n\n{s}\n\n", .{source});
+            }
+        };
+        const refs = sem.symbols.getReferences(x);
+        t.expectEqual(1, refs.len) catch |e| {
+            print("Source:\n\n{s}\n\n", .{source});
             return e;
         };
         // try t.expectFmt(refs.len == 1, "Expected 'x' to have 1 reference, found {d}. Source:\n\n{s}\n", .{ refs.len, source });
