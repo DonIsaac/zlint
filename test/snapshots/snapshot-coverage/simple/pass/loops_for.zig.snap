@@ -21,7 +21,7 @@
       "flags": ["variable", "const"], 
       "references": [
         {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["read"]}, 
-        {"symbol":1,"scope":10,"node":"identifier","identifier":"std","flags":["read"]}, 
+        {"symbol":1,"scope":11,"node":"identifier","identifier":"std","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -103,7 +103,7 @@
     {"symbol":null,"scope":8,"node":"identifier","identifier":"row","flags":["read"]}, 
     {"symbol":null,"scope":9,"node":"identifier","identifier":"row_index","flags":["read"]}, 
     {"symbol":null,"scope":9,"node":"identifier","identifier":"column_index","flags":["read"]}, 
-    {"symbol":null,"scope":10,"node":"identifier","identifier":"cell","flags":["read"]}, 
+    {"symbol":null,"scope":11,"node":"identifier","identifier":"cell","flags":["read"]}, 
     
   ], 
   "scopes": {
@@ -195,7 +195,25 @@
                         "children": [
                           {
                             "id": semantic.id.NominalId(u32)(10), 
-                            "flags": ["block"], 
+                            "flags": [], 
+                            "bindings": {
+                              
+                            }, 
+                            "children": [
+                              {
+                                "id": semantic.id.NominalId(u32)(11), 
+                                "flags": ["block"], 
+                                "bindings": {
+                                  
+                                }, 
+                                "children": [], 
+                                
+                              }, 
+                            ], 
+                            
+                          }, {
+                            "id": semantic.id.NominalId(u32)(12), 
+                            "flags": [], 
                             "bindings": {
                               
                             }, 

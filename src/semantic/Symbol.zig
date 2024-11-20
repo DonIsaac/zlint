@@ -76,6 +76,16 @@ pub const Flags = packed struct {
     /// - [Container Level Variables](https://ziglang.org/documentation/master/#Container-Level-Variables)
     /// - [Local Variables](https://ziglang.org/documentation/master/#Local-Variables)
     s_variable: bool = false,
+    /// A symbol bound by a control flow statement. e.g. `x` in `if (foo) |x| {}`
+    ///
+    /// Note that no identifier node is parsed for payload symbols, so symbols
+    /// of this type will have their `declaration_node` set to the control flow
+    /// block itself.
+    ///
+    /// `while`, `for`, `if`, `else`, and `catch` may all bind payloads.  Like
+    /// function parameters, these are implicitly `const` and always have
+    /// `s_const` set.
+    s_payload: bool = false,
     /// Comptime symbol.
     ///
     /// Not `true` for inferred comptime parameters. That is, this is only

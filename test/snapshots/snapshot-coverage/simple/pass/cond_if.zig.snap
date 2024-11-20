@@ -9,7 +9,7 @@
       "references": [
         
       ], 
-      "members": [1,2,3,4,5,6,7], 
+      "members": [1,2,3,4,5,6,7,8,9], 
       "exports": [], 
       
     }, 
@@ -20,7 +20,9 @@
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["read"]}, 
+        {"symbol":1,"scope":7,"node":"identifier","identifier":"std","flags":["read"]}, 
+        {"symbol":1,"scope":23,"node":"identifier","identifier":"std","flags":["read"]}, 
+        {"symbol":1,"scope":25,"node":"identifier","identifier":"std","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -35,7 +37,7 @@
       "flags": ["variable", "const"], 
       "references": [
         {"symbol":2,"scope":0,"node":"identifier","identifier":"builtin","flags":["read"]}, 
-        {"symbol":2,"scope":9,"node":"identifier","identifier":"builtin","flags":["read"]}, 
+        {"symbol":2,"scope":15,"node":"identifier","identifier":"builtin","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -72,15 +74,15 @@
       "name": "i", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(3), 
+      "scope": semantic.id.NominalId(u32)(5), 
       "flags": ["variable"], 
       "references": [
-        {"symbol":5,"scope":3,"node":"identifier","identifier":"i","flags":["read"]}, 
-        {"symbol":5,"scope":3,"node":"identifier","identifier":"i","flags":["read"]}, 
         {"symbol":5,"scope":5,"node":"identifier","identifier":"i","flags":["read"]}, 
         {"symbol":5,"scope":5,"node":"identifier","identifier":"i","flags":["read"]}, 
-        {"symbol":5,"scope":5,"node":"identifier","identifier":"i","flags":["write"]}, 
-        {"symbol":5,"scope":6,"node":"identifier","identifier":"i","flags":["write"]}, 
+        {"symbol":5,"scope":10,"node":"identifier","identifier":"i","flags":["read"]}, 
+        {"symbol":5,"scope":10,"node":"identifier","identifier":"i","flags":["read"]}, 
+        {"symbol":5,"scope":10,"node":"identifier","identifier":"i","flags":["write"]}, 
+        {"symbol":5,"scope":12,"node":"identifier","identifier":"i","flags":["write"]}, 
         
       ], 
       "members": [], 
@@ -91,10 +93,10 @@
       "name": "pow", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(5), 
+      "scope": semantic.id.NominalId(u32)(10), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":6,"scope":5,"node":"identifier","identifier":"pow","flags":["read"]}, 
+        {"symbol":6,"scope":10,"node":"identifier","identifier":"pow","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -114,6 +116,61 @@
       "exports": [], 
       
     }, 
+    {
+      "name": "ifWithPayload", 
+      "debugName": "", 
+      "declNode": "fn_decl", 
+      "scope": semantic.id.NominalId(u32)(0), 
+      "flags": ["fn"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "res", 
+      "debugName": "", 
+      "declNode": "simple_var_decl", 
+      "scope": semantic.id.NominalId(u32)(21), 
+      "flags": ["variable", "const"], 
+      "references": [
+        {"symbol":9,"scope":21,"node":"identifier","identifier":"res","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "x", 
+      "debugName": "", 
+      "declNode": "block_two_semicolon", 
+      "scope": semantic.id.NominalId(u32)(22), 
+      "flags": ["payload", "const"], 
+      "references": [
+        {"symbol":10,"scope":23,"node":"identifier","identifier":"x","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "err", 
+      "debugName": "", 
+      "declNode": "block_two_semicolon", 
+      "scope": semantic.id.NominalId(u32)(24), 
+      "flags": ["payload", "const"], 
+      "references": [
+        {"symbol":11,"scope":25,"node":"identifier","identifier":"err","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
   ], 
   "unresolvedReferences": [],
   "scopes": {
@@ -126,6 +183,7 @@
       "msg": 3, 
       "simpleIf": 4, 
       "comptimeIf": 7, 
+      "ifWithPayload": 8, 
       
     }, 
     "children": [
@@ -135,16 +193,32 @@
         "bindings": {
           
         }, 
+        "children": [], 
+        
+      }, {
+        "id": semantic.id.NominalId(u32)(2), 
+        "flags": [], 
+        "bindings": {
+          
+        }, 
+        "children": [], 
+        
+      }, {
+        "id": semantic.id.NominalId(u32)(3), 
+        "flags": [], 
+        "bindings": {
+          
+        }, 
         "children": [
           {
-            "id": semantic.id.NominalId(u32)(2), 
+            "id": semantic.id.NominalId(u32)(4), 
             "flags": ["function"], 
             "bindings": {
               
             }, 
             "children": [
               {
-                "id": semantic.id.NominalId(u32)(3), 
+                "id": semantic.id.NominalId(u32)(5), 
                 "flags": ["block"], 
                 "bindings": {
                   "i": 5, 
@@ -152,25 +226,119 @@
                 }, 
                 "children": [
                   {
-                    "id": semantic.id.NominalId(u32)(4), 
-                    "flags": ["block"], 
-                    "bindings": {
-                      
-                    }, 
-                    "children": [], 
-                    
-                  }, {
-                    "id": semantic.id.NominalId(u32)(5), 
-                    "flags": ["block"], 
-                    "bindings": {
-                      "pow": 6, 
-                      
-                    }, 
-                    "children": [], 
-                    
-                  }, {
                     "id": semantic.id.NominalId(u32)(6), 
-                    "flags": ["block"], 
+                    "flags": [], 
+                    "bindings": {
+                      
+                    }, 
+                    "children": [
+                      {
+                        "id": semantic.id.NominalId(u32)(7), 
+                        "flags": ["block"], 
+                        "bindings": {
+                          
+                        }, 
+                        "children": [], 
+                        
+                      }, 
+                    ], 
+                    
+                  }, {
+                    "id": semantic.id.NominalId(u32)(8), 
+                    "flags": [], 
+                    "bindings": {
+                      
+                    }, 
+                    "children": [], 
+                    
+                  }, {
+                    "id": semantic.id.NominalId(u32)(9), 
+                    "flags": [], 
+                    "bindings": {
+                      
+                    }, 
+                    "children": [
+                      {
+                        "id": semantic.id.NominalId(u32)(10), 
+                        "flags": ["block"], 
+                        "bindings": {
+                          "pow": 6, 
+                          
+                        }, 
+                        "children": [], 
+                        
+                      }, 
+                    ], 
+                    
+                  }, {
+                    "id": semantic.id.NominalId(u32)(11), 
+                    "flags": [], 
+                    "bindings": {
+                      
+                    }, 
+                    "children": [
+                      {
+                        "id": semantic.id.NominalId(u32)(12), 
+                        "flags": ["block"], 
+                        "bindings": {
+                          
+                        }, 
+                        "children": [], 
+                        
+                      }, 
+                    ], 
+                    
+                  }, 
+                ], 
+                
+              }, 
+            ], 
+            
+          }, 
+        ], 
+        
+      }, {
+        "id": semantic.id.NominalId(u32)(13), 
+        "flags": [], 
+        "bindings": {
+          
+        }, 
+        "children": [
+          {
+            "id": semantic.id.NominalId(u32)(14), 
+            "flags": ["function"], 
+            "bindings": {
+              
+            }, 
+            "children": [
+              {
+                "id": semantic.id.NominalId(u32)(15), 
+                "flags": ["block"], 
+                "bindings": {
+                  
+                }, 
+                "children": [
+                  {
+                    "id": semantic.id.NominalId(u32)(16), 
+                    "flags": ["comptime"], 
+                    "bindings": {
+                      
+                    }, 
+                    "children": [
+                      {
+                        "id": semantic.id.NominalId(u32)(17), 
+                        "flags": ["block", "comptime"], 
+                        "bindings": {
+                          
+                        }, 
+                        "children": [], 
+                        
+                      }, 
+                    ], 
+                    
+                  }, {
+                    "id": semantic.id.NominalId(u32)(18), 
+                    "flags": ["comptime"], 
                     "bindings": {
                       
                     }, 
@@ -186,33 +354,64 @@
         ], 
         
       }, {
-        "id": semantic.id.NominalId(u32)(7), 
+        "id": semantic.id.NominalId(u32)(19), 
         "flags": [], 
         "bindings": {
           
         }, 
         "children": [
           {
-            "id": semantic.id.NominalId(u32)(8), 
+            "id": semantic.id.NominalId(u32)(20), 
             "flags": ["function"], 
             "bindings": {
               
             }, 
             "children": [
               {
-                "id": semantic.id.NominalId(u32)(9), 
+                "id": semantic.id.NominalId(u32)(21), 
                 "flags": ["block"], 
                 "bindings": {
+                  "res": 9, 
                   
                 }, 
                 "children": [
                   {
-                    "id": semantic.id.NominalId(u32)(10), 
-                    "flags": ["block", "comptime"], 
+                    "id": semantic.id.NominalId(u32)(22), 
+                    "flags": [], 
                     "bindings": {
+                      "x": 10, 
                       
                     }, 
-                    "children": [], 
+                    "children": [
+                      {
+                        "id": semantic.id.NominalId(u32)(23), 
+                        "flags": ["block"], 
+                        "bindings": {
+                          
+                        }, 
+                        "children": [], 
+                        
+                      }, 
+                    ], 
+                    
+                  }, {
+                    "id": semantic.id.NominalId(u32)(24), 
+                    "flags": [], 
+                    "bindings": {
+                      "err": 11, 
+                      
+                    }, 
+                    "children": [
+                      {
+                        "id": semantic.id.NominalId(u32)(25), 
+                        "flags": ["block"], 
+                        "bindings": {
+                          
+                        }, 
+                        "children": [], 
+                        
+                      }, 
+                    ], 
                     
                   }, 
                 ], 

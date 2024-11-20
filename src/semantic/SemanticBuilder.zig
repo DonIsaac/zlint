@@ -652,11 +652,52 @@ inline fn visitFor(self: *SemanticBuilder, _: NodeIndex, for_stmt: full.For) !vo
 }
 
 inline fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) !void {
+    const ast = self.AST();
+    const tags = ast.tokens.items(.tag);
+
     try self.visit(if_stmt.ast.cond_expr);
-    // HYPOTHESIS: these will contain blocks, which enter/exit a scope when
-    // visited. Thus we can/should skip that here.
-    try self.visit(if_stmt.ast.then_expr);
-    try self.visit(if_stmt.ast.else_expr);
+
+    // TODO: should payloads be in a separate scope as the block or naw?
+    {
+        // if (cond) |payload| then
+        // payload is only available in `then`, not `else`
+        try self.enterScope(.{});
+        defer self.exitScope();
+        if (if_stmt.payload_token) |payload| {
+            const ident_tok = if (tags[payload] == .identifier) payload else payload + 1;
+            if (tags[ident_tok] != .identifier) return error.MissingIdentifier;
+            _ = try self.declareSymbol(.{
+                .declaration_node = if_stmt.ast.then_expr,
+                .name = ast.tokenSlice(ident_tok),
+                .flags = .{
+                    .s_payload = true,
+                    .s_const = true,
+                },
+            });
+        }
+
+        try self.visit(if_stmt.ast.then_expr);
+    }
+    {
+        // same thing, but for else block
+        try self.enterScope(.{});
+        defer self.exitScope();
+
+        if (if_stmt.error_token) |payload| {
+            const ident_tok = if (tags[payload] == .identifier) payload else payload + 1;
+            if (tags[ident_tok] != .identifier) return error.MissingIdentifier;
+            _ = try self.declareSymbol(.{
+                .declaration_node = if_stmt.ast.else_expr,
+                .name = ast.tokenSlice(ident_tok),
+                .flags = .{
+                    .s_payload = true,
+                    .s_const = true,
+                },
+            });
+        }
+
+        try self.visit(if_stmt.ast.else_expr);
+    }
 }
 
 fn visitSwitch(self: *SemanticBuilder, _: NodeIndex, condition: NodeIndex, cases: []NodeIndex) !void {
@@ -1436,6 +1477,7 @@ const stringSlice = util.stringSlice;
 const t = std.testing;
 test {
     t.refAllDecls(@import("test/symbol_ref_test.zig"));
+    t.refAllDecls(@import("test/symbol_decl_test.zig"));
 }
 test "Struct/enum fields are bound bound to the struct/enums's member table" {
     const alloc = std.testing.allocator;

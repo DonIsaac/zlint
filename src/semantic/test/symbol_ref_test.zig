@@ -1,6 +1,7 @@
 const std = @import("std");
 const mem = std.mem;
 const util = @import("util");
+const test_util = @import("util.zig");
 
 const SemanticBuilder = @import("../SemanticBuilder.zig");
 const Semantic = @import("../Semantic.zig");
@@ -13,40 +14,7 @@ const printer = @import("../../root.zig").printer;
 const t = std.testing;
 const panic = std.debug.panic;
 const print = std.debug.print;
-
-fn build(src: [:0]const u8) !Semantic {
-    var r = report.GraphicalReporter.init(std.io.getStdErr().writer(), report.GraphicalFormatter.unicode(t.allocator, false));
-    var builder = SemanticBuilder.init(t.allocator);
-    defer builder.deinit();
-
-    var result = builder.build(src) catch |e| {
-        print("Analysis failed on source:\n\n{s}\n\n", .{src});
-        return e;
-    };
-    errdefer result.value.deinit();
-    r.reportErrors(result.errors.toManaged(t.allocator));
-    if (result.hasErrors()) {
-        panic("Analysis failed on source:\n\n{s}\n\n", .{src});
-    }
-
-    return result.value;
-}
-
-fn debugSemantic(semantic: *const Semantic) !void {
-    var p = printer.Printer.init(t.allocator, std.io.getStdErr().writer());
-    defer p.deinit();
-    var sp = printer.SemanticPrinter.new(&p, semantic);
-
-    print("Symbol table:\n\n", .{});
-    try sp.printSymbolTable();
-
-    print("\n\nUnresolved references:\n\n", .{});
-    try sp.printUnresolvedReferences();
-
-    print("\n\nScopes:\n\n", .{});
-    try sp.printScopeTree();
-    print("\n\n", .{});
-}
+const build = test_util.build;
 
 test "references record where and how a symbol is used" {
     const src =
@@ -115,13 +83,13 @@ test "simple references where `x` is referenced a single time" {
         // \\  const arr = std.heap.page_allocator.alloc(u32, 8) catch |x| @panic(@errorName(x));
         // \\}
         // ,
-        // \\const std = @import("std");
-        // \\fn main() u32 {
-        // \\  const y: ?u32 = null;
-        // \\  if (y) |x| {
-        // \\    std.debug.print("y is non-null: {d}\n", .{x});
-        // \\  }
-        // \\}
+        \\const std = @import("std");
+        \\fn main() u32 {
+        \\  const y: ?u32 = null;
+        \\  if (y) |x| {
+        \\    std.debug.print("y is non-null: {d}\n", .{x});
+        \\  }
+        \\}
     };
 
     for (sources) |source| {
