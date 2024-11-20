@@ -174,6 +174,12 @@ pub const SymbolTable = struct {
         return self.references.get(reference_id.into(usize));
     }
 
+    pub fn getReferences(
+        self: *const SymbolTable,
+        symbol_id: Symbol.Id,
+    ) []const Reference.Id {
+        return self.symbols.items(.references)[symbol_id.int()].items;
+    }
     pub fn getReferencesMut(
         self: *SymbolTable,
         symbol_id: Symbol.Id,
@@ -203,6 +209,24 @@ pub const SymbolTable = struct {
 
     pub inline fn addExport(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) Allocator.Error!void {
         try self.getExportsMut(container).append(alloc, member);
+    }
+
+    /// Look for a symbol bound to the given identifier. Mostly used for
+    /// testing.
+    ///
+    /// Returns the first found
+    /// symbol. Since symbols are bound in the order they're declared, this will
+    /// be the first declaration.
+    pub fn getSymbolNamed(self: *const SymbolTable, name: []const u8) ?Symbol.Id {
+        const names = self.symbols.items(.name);
+
+        for (0..names.len) |symbol_id| {
+            if (std.mem.eql(u8, names[symbol_id], name)) {
+                return Symbol.Id.from(symbol_id);
+            }
+        }
+
+        return null;
     }
 
     pub inline fn iter(self: *const SymbolTable) Iterator {

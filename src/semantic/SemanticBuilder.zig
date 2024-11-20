@@ -1209,10 +1209,10 @@ inline fn getToken(self: *const SemanticBuilder, token_id: TokenIndex) RawToken 
         .{ token_id, len },
     );
 
-    const t = self.AST().tokens.get(token_id);
+    const tok = self.AST().tokens.get(token_id);
     return .{
-        .tag = t.tag,
-        .start = t.start,
+        .tag = tok.tag,
+        .start = tok.start,
     };
 }
 
@@ -1383,6 +1383,10 @@ const IS_DEBUG = util.IS_DEBUG;
 const string = util.string;
 const stringSlice = util.stringSlice;
 
+const t = std.testing;
+test {
+    t.refAllDecls(@import("test/symbol_ref_test.zig"));
+}
 test "Struct/enum fields are bound bound to the struct/enums's member table" {
     const alloc = std.testing.allocator;
     const programs = [_][:0]const u8{
@@ -1445,54 +1449,4 @@ test "comptime blocks" {
     const block_scope = scopes.get(1);
     try std.testing.expect(block_scope.flags.s_block);
     try std.testing.expect(block_scope.flags.s_comptime);
-}
-
-test "references" {
-    const t = std.testing;
-    const alloc = std.testing.allocator;
-
-    const src =
-        \\fn foo() u32 {
-        \\  var x: u32 = 1;
-        \\  const y: u32 = x + 1;
-        \\  x += y;
-        \\  return x;
-        \\}
-    ;
-    var builder = SemanticBuilder.init(alloc);
-    defer builder.deinit();
-    var result = try builder.build(src);
-    defer result.deinit();
-    try t.expect(!result.hasErrors());
-    const semantic = result.value;
-
-    // FIXME: should be 2 (maybe 3?) but is 4
-    try t.expectEqual(4, semantic.scopes.len());
-    try t.expectEqual(0, semantic.symbols.unresolved_references.items.len);
-
-    const names = semantic.symbols.symbols.items(.name);
-    var it = semantic.symbols.iter();
-    const x: Symbol.Id = brk: {
-        while (it.next()) |s| {
-            if (mem.eql(u8, names[s.int()], "x")) {
-                break :brk s;
-            }
-        }
-        @panic("Could not find variable `x`.");
-    };
-
-    var refs = semantic.symbols.iterReferences(x);
-    try t.expectEqual(3, refs.len());
-
-    // const y: u32 = x + 1;
-    var ref = refs.next().?;
-    try t.expectEqual(ref.flags, Reference.Flags{ .read = true });
-
-    // x += y;
-    ref = refs.next().?;
-    try t.expectEqual(ref.flags, Reference.Flags{ .read = true, .write = true });
-
-    // return x;
-    ref = refs.next().?;
-    try t.expectEqual(ref.flags, Reference.Flags{ .read = true });
 }
