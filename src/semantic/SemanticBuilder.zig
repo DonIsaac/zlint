@@ -28,7 +28,7 @@ _node_stack: std.ArrayListUnmanaged(NodeIndex) = .{},
 /// in the source.
 ///
 /// We try to resolve these each time a scope is exited.
-_unresolved_references: std.ArrayListUnmanaged(Reference.Id) = .{},
+_unresolved_references: ReferenceStack = .{},
 
 /// SAFETY: initialized after parsing.
 _semantic: Semantic = undefined,
@@ -107,7 +107,28 @@ pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Resul
         builder.visitNode(node) catch |e| return e;
         builder.assertRoot();
     }
-    builder._semantic.symbols.unresolved_references = builder._unresolved_references;
+
+    // resolve references to symbols declared in root
+    try builder.resolveReferencesInCurrentScope();
+    // Take whatever references still haven't been resolved and move them to
+    // Semantic.
+    switch (builder._unresolved_references.len()) {
+        0 => builder._semantic.symbols.unresolved_references = .{},
+        1 => {
+            const unresolved = try builder._unresolved_references.curr().toOwnedSlice(builder._gpa);
+            builder._semantic.symbols.unresolved_references = .{
+                .items = unresolved,
+                .capacity = unresolved.len,
+            };
+        },
+        else => {
+            util.assert(
+                builder._unresolved_references.len() == 1,
+                "Expected 0 or 1, got {d}",
+                .{builder._unresolved_references.len()},
+            );
+        },
+    }
 
     return Result.new(builder._gpa, builder._semantic, builder._errors);
 }
@@ -751,6 +772,7 @@ fn enterRoot(self: *SemanticBuilder) !void {
 
     // SemanticBuilder.init() allocates enough space for 8 scopes.
     self._scope_stack.appendAssumeCapacity(root_scope_id);
+    try self._unresolved_references.enter(self._gpa);
 
     // push root node onto the stack. It is never popped.
     // Similar to root scope, the root node is pushed differently than
@@ -817,11 +839,14 @@ fn enterScope(self: *SemanticBuilder, flags: Scope.Flags) !void {
     const merged_flags = flags.merge(self._curr_scope_flags);
     const scope = try self._semantic.scopes.addScope(self._gpa, parent_id, merged_flags);
     try self._scope_stack.append(self._gpa, scope);
+    try self._unresolved_references.enter(self._gpa);
 }
 
 /// Exit the current scope. It is a bug to pop the root scope.
 inline fn exitScope(self: *SemanticBuilder) void {
     self.assertCtx(self._scope_stack.items.len > 1, "Invariant violation: cannot pop the root scope", .{});
+    self.resolveReferencesInCurrentScope() catch @panic("OOM");
+    // self._unresolved_references.exit(self._gpa);
     _ = self._scope_stack.pop();
 }
 
@@ -1005,6 +1030,116 @@ fn recordReference(self: *SemanticBuilder, opts: CreateReference) Allocator.Erro
     return ref_id;
 }
 
+fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void {
+    var stacka = std.heap.stackFallback(64, self._gpa);
+    const stack = stacka.get();
+    //
+    const curr = self._unresolved_references.curr();
+    const parent = self._unresolved_references.parent();
+    const names = self.symbolTable().symbols.items(.name);
+    const bindings: []const Symbol.Id = self.scopeTree().getBindings(self.currentScope());
+    const ref_names: []const string = self.symbolTable().references.items(.identifier);
+    const ref_symbols: []Symbol.Id.Optional = self.symbolTable().references.items(.symbol);
+
+    const resolved_map = try stack.alloc(bool, curr.items.len);
+    var num_resolved: usize = 0;
+    @memset(resolved_map, false);
+    defer stack.free(resolved_map);
+
+    for (bindings) |binding| {
+        const name: string = names[binding.int()];
+        for (0..curr.items.len) |i| {
+            if (resolved_map[i]) continue;
+            const ref_id: Reference.Id = curr.items[i];
+            const ref_name = ref_names[ref_id.int()];
+            // we resolved the reference :)
+            if (mem.eql(u8, name, ref_name)) {
+                num_resolved += 1;
+                resolved_map[i] = true;
+                ref_symbols[ref_id.int()] = binding.into(Symbol.Id.Optional);
+            }
+        }
+    }
+
+    const num_unresolved = curr.items.len - resolved_map.len;
+    if (num_unresolved > 0) {
+        if (parent) |p| {
+            try p.ensureUnusedCapacity(self._gpa, num_unresolved);
+            for (0..curr.items.len) |i| {
+                if (resolved_map[i]) continue;
+                p.appendAssumeCapacity(curr.items[i]);
+            }
+            // only delete current frame when we can't move things to the parent. We
+            // want the last frame to exist so we can move it to the list of
+            // unresolved references in the symbol table
+            curr.deinit(self._gpa);
+            _ = self._unresolved_references.frames.pop();
+        } else {
+            const temp = try self._gpa.dupe(Reference.Id, curr.items);
+            var i: usize = 0;
+            var j: usize = 0;
+            while (i < temp.len) : (i += 1) {
+                if (!resolved_map[i]) continue;
+                curr.items[j] = temp[i];
+                j += 1;
+            }
+        }
+    } else {
+        curr.deinit(self._gpa);
+        _ = self._unresolved_references.frames.pop();
+    }
+}
+
+const ReferenceStack = struct {
+    frames: std.ArrayListUnmanaged(ReferenceIdList) = .{},
+
+    const ReferenceIdList = std.ArrayListUnmanaged(Reference.Id);
+
+    fn init(alloc: Allocator) Allocator.Error!ReferenceStack {
+        var self: ReferenceStack = .{};
+        try self.frames.ensureTotalCapacity(alloc, 16);
+
+        return self;
+    }
+
+    /// current frame
+    pub fn curr(self: *ReferenceStack) *ReferenceIdList {
+        assert(self.len() > 0);
+        return &self.frames.items[self.len() - 1];
+    }
+
+    /// parent frame. `null` when currently in root scope.
+    pub fn parent(self: *ReferenceStack) ?*ReferenceIdList {
+        return if (self.len() <= 1) null else &self.frames.items[self.len() - 2];
+    }
+
+    /// current number of frames
+    inline fn len(self: ReferenceStack) usize {
+        return self.frames.items.len;
+    }
+
+    fn enter(self: *ReferenceStack, alloc: Allocator) Allocator.Error!void {
+        try self.frames.append(alloc, .{});
+    }
+    fn exit(self: *ReferenceStack, alloc: Allocator) void {
+        var frame = self.frames.pop();
+        frame.deinit(alloc);
+    }
+
+    /// Add an unresolved reference to the current frame
+    fn append(self: *ReferenceStack, alloc: Allocator, ref: Reference.Id) Allocator.Error!void {
+        try self.curr().append(alloc, ref);
+    }
+
+    fn deinit(self: *ReferenceStack, alloc: Allocator) void {
+        for (self.frames.items) |frame| {
+            var f = @constCast(frame);
+            f.refs.deinit(alloc);
+        }
+        self.frames.deinit(alloc);
+    }
+};
+
 // =========================================================================
 // ============================ RANDOM GETTERS =============================
 // =========================================================================
@@ -1175,13 +1310,13 @@ fn debugNodeStack(self: *const SemanticBuilder) void {
         const source = if (id == 0) "" else ast.getNodeSource(id);
         const loc = ast.tokenLocation(token_offset, main_token);
         const snippet =
-            if (source.len > 48) std.mem.concat(
+            if (source.len > 48) mem.concat(
             self._gpa,
             u8,
             &[_]string{ source[0..32], " ... ", source[(source.len - 16)..source.len] },
         ) catch @panic("Out of memory") else source;
         print("  - [{d}, {d}:{d}] {any} - {s}\n", .{ id, loc.line, loc.column, tag, snippet });
-        if (!std.mem.eql(u8, source, snippet)) {
+        if (!mem.eql(u8, source, snippet)) {
             self._gpa.free(snippet);
         }
     }
@@ -1221,6 +1356,7 @@ const NodeLinks = Semantic.NodeLinks;
 const Reference = Semantic.Reference;
 
 const std = @import("std");
+const mem = std.mem;
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Type = std.builtin.Type;
@@ -1312,7 +1448,6 @@ test "comptime blocks" {
 }
 
 test "references" {
-    const mem = std.mem;
     const t = std.testing;
     const alloc = std.testing.allocator;
 
