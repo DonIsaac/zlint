@@ -12,7 +12,8 @@
       "members": [1,2], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "foo", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -24,7 +25,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "inner", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -37,7 +39,8 @@
       "members": [3], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "bar", 
       "debugName": "", 
       "declNode": "fn_decl", 

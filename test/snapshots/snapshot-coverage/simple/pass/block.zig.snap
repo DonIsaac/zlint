@@ -12,7 +12,8 @@
       "members": [1,2,3,4,5,6,7,8,9,10,11,12,13,14], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "empty", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -24,7 +25,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "x", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -37,7 +39,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "one", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -49,7 +52,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "y", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -62,7 +66,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "two", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -74,7 +79,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "z", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -87,7 +93,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "a", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -100,7 +107,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "many", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -112,7 +120,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "a", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -125,7 +134,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "b", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -138,7 +148,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "c", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -151,7 +162,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "d", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -164,7 +176,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "e", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -177,7 +190,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "f", 
       "debugName": "", 
       "declNode": "simple_var_decl", 

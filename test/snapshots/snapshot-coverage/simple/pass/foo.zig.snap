@@ -12,7 +12,8 @@
       "members": [1,2,3,4], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "std", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -25,7 +26,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "bad", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -37,7 +39,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "good", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -49,7 +52,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Foo", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -62,7 +66,8 @@
       "members": [5,6,7], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "foo", 
       "debugName": "", 
       "declNode": "container_field_init", 
@@ -74,7 +79,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Bar", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -86,7 +92,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "baz", 
       "debugName": "", 
       "declNode": "fn_decl", 

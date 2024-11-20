@@ -12,7 +12,8 @@
       "members": [1,2,3,4,5,6,7,8,9,10], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Box", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -24,7 +25,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "inner", 
       "debugName": "", 
       "declNode": "container_field_init", 
@@ -36,7 +38,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Self", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -49,7 +52,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "deref", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -61,7 +65,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "FixedIntArray", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -73,7 +78,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "l", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -87,7 +93,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "inner", 
       "debugName": "", 
       "declNode": "container_field_init", 
@@ -99,7 +106,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "add", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -111,7 +119,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "c", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -124,7 +133,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "a2", 
       "debugName": "", 
       "declNode": "simple_var_decl", 

@@ -12,7 +12,8 @@
       "members": [1], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Writer", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -25,7 +26,8 @@
       "members": [2,3,4,5,6,7,10], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "ptr", 
       "debugName": "", 
       "declNode": "container_field_init", 
@@ -39,7 +41,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "writeAllFn", 
       "debugName": "", 
       "declNode": "container_field_init", 
@@ -51,7 +54,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "init", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -63,7 +67,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "T", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -76,7 +81,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "ptr_info", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -89,7 +95,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "gen", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -102,7 +109,8 @@
       "members": [8,9], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "writeAll", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -114,7 +122,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "self", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -127,7 +136,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "writeAll", 
       "debugName": "", 
       "declNode": "fn_decl", 

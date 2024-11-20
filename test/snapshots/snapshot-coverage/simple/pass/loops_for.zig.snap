@@ -12,7 +12,8 @@
       "members": [1,2,3,4,5,6], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "std", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -26,7 +27,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "forOverArr", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -38,7 +40,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "arr", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -51,7 +54,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "power_of_two", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -64,7 +68,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "forWithMultiBindingClosure", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -76,7 +81,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "mat4x4", 
       "debugName": "", 
       "declNode": "simple_var_decl", 

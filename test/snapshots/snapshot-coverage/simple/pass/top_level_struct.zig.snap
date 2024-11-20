@@ -12,7 +12,8 @@
       "members": [1,2,3,4], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "a", 
       "debugName": "", 
       "declNode": "container_field_init", 
@@ -24,7 +25,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "b", 
       "debugName": "", 
       "declNode": "container_field_init", 
@@ -36,7 +38,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Foo", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -48,7 +51,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "new", 
       "debugName": "", 
       "declNode": "fn_decl", 

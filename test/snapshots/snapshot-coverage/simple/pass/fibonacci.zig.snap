@@ -12,7 +12,8 @@
       "members": [1,2,3,4,5,6,7,8,9], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "std", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -28,7 +29,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Managed", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -43,7 +45,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "main", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -55,7 +58,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "allocator", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -72,7 +76,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "a", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -88,7 +93,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "b", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -104,7 +110,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "i", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -118,7 +125,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "c", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -133,7 +141,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "as", 
       "debugName": "", 
       "declNode": "simple_var_decl", 

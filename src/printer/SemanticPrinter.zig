@@ -19,6 +19,9 @@ pub fn printSymbolTable(self: *SemanticPrinter) !void {
     while (iter.next()) |id| {
         const symbol = symbols.get(id);
         try self.printSymbol(symbol, symbols);
+        if (id.int() + 1 != symbols.symbols.len) {
+            try self.printer.pIndent();
+        }
     }
 }
 

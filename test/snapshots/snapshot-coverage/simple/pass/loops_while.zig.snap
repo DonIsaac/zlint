@@ -12,7 +12,8 @@
       "members": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "std", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -27,7 +28,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "simpleWhile", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -39,7 +41,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "i", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -55,7 +58,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "power_of_two", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -68,7 +72,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "whileWithClosure", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -80,7 +85,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "map", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -95,7 +101,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "iter", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -108,7 +115,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "k", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -121,7 +129,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "v", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -134,7 +143,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "whileWithExpr", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -146,7 +156,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "x", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -161,7 +172,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "y", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -176,7 +188,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "my_xy", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
@@ -189,7 +202,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "rangeHasNumber", 
       "debugName": "", 
       "declNode": "fn_decl", 
@@ -201,7 +215,8 @@
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "i", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
