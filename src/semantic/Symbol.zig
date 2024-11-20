@@ -68,12 +68,23 @@ pub const Visibility = enum {
 };
 
 pub const Flags = packed struct {
+    /// A container-level or local variable.
+    ///
+    /// If it's declared with a `const` or `var` keyword, this is true. Note
+    /// that this includes static and threadlocal variables.
+    /// ## References
+    /// - [Container Level Variables](https://ziglang.org/documentation/master/#Container-Level-Variables)
+    /// - [Local Variables](https://ziglang.org/documentation/master/#Local-Variables)
+    s_variable: bool = false,
     /// Comptime symbol.
     ///
     /// Not `true` for inferred comptime parameters. That is, this is only
     /// `true` when the `comptime` modifier is present.
     s_comptime: bool = false,
-    /// TODO: not recorded yet
+    /// Whether this symbol is a constant.
+    ///
+    /// Includes explicitly-defined constants (e.g. that use the `const`
+    /// keyword) and implicit constants (e.g. function parameters).
     s_const: bool = false,
     /// Indicates a container field.
     ///

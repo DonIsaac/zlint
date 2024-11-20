@@ -18,7 +18,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":1,"scope":9,"node":"identifier","identifier":"Writer","flags":["read"]}, 
         
@@ -86,7 +86,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(4), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":6,"scope":4,"node":"identifier","identifier":"T","flags":["read"]}, 
         
@@ -100,7 +100,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(4), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":7,"scope":8,"node":"identifier","identifier":"ptr_info","flags":["read"]}, 
         
@@ -114,7 +114,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(4), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":8,"scope":4,"node":"identifier","identifier":"gen","flags":["read"]}, 
         
@@ -169,7 +169,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(8), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":12,"scope":8,"node":"identifier","identifier":"self","flags":["read"]}, 
         

@@ -31,7 +31,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":2,"scope":3,"node":"identifier","identifier":"x","flags":["read"]}, 
         
@@ -58,7 +58,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(7), 
-      "flags": [], 
+      "flags": ["variable"], 
       "references": [
         {"symbol":4,"scope":8,"node":"identifier","identifier":"y","flags":["write"]}, 
         
@@ -85,7 +85,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(11), 
-      "flags": [], 
+      "flags": ["variable"], 
       "references": [
         {"symbol":6,"scope":12,"node":"identifier","identifier":"z","flags":["write"]}, 
         
@@ -99,7 +99,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(12), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":7,"scope":12,"node":"identifier","identifier":"a","flags":["read"]}, 
         
@@ -126,7 +126,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(15), 
-      "flags": [], 
+      "flags": ["variable"], 
       "references": [
         {"symbol":9,"scope":16,"node":"identifier","identifier":"a","flags":["read","write"]}, 
         
@@ -140,7 +140,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(16), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":10,"scope":16,"node":"identifier","identifier":"b","flags":["read"]}, 
         
@@ -154,7 +154,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(16), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":11,"scope":16,"node":"identifier","identifier":"c","flags":["read"]}, 
         
@@ -168,7 +168,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(16), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":12,"scope":16,"node":"identifier","identifier":"d","flags":["read"]}, 
         
@@ -182,7 +182,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(16), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":13,"scope":16,"node":"identifier","identifier":"e","flags":["read"]}, 
         
@@ -196,7 +196,7 @@
       "debugName": "", 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(16), 
-      "flags": [], 
+      "flags": ["variable", "const"], 
       "references": [
         {"symbol":14,"scope":16,"node":"identifier","identifier":"f","flags":["read"]}, 
         
