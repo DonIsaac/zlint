@@ -603,6 +603,7 @@ fn visitIdentifier(self: *SemanticBuilder, node_id: NodeIndex) !void {
 }
 
 fn visitFieldAccess(self: *SemanticBuilder, node_id: NodeIndex) !void {
+    // TODO: record references
     return self.visit(self.getNodeData(node_id).lhs);
 }
 
@@ -695,11 +696,39 @@ inline fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnPr
     {
         try self.enterScope(.{});
         defer self.exitScope();
-        for (fn_proto.ast.params) |param| {
-            try self.visit(param);
-        }
+        try self.visitFnProtoParams(fn_proto);
     }
     try self.visit(fn_proto.ast.return_type);
+}
+
+fn visitFnProtoParams(self: *SemanticBuilder, fn_proto: full.FnProto) !void {
+    const ast = self.AST();
+    var it = fn_proto.iterate(ast);
+    const tags = ast.tokens.items(.tag);
+
+    while (it.next()) |param| {
+        // NOTE: I don't think Zig creates identifier nodes for function
+        // parameters. Checking out the nodes in fn_proto.ast.params, they are
+        // the same as FnProto.Iterator uses for .type_expr.
+        const node_id = param.type_expr;
+
+        // bind parameter symbol
+        if (param.name_token) |name_token| {
+            const identifier = ast.tokenSlice(name_token);
+            const prev_tag: Token.Tag = tags[name_token - 1];
+            _ = try self.declareSymbol(.{
+                .declaration_node = node_id,
+                .name = identifier,
+                .flags = .{
+                    .s_comptime = prev_tag == .keyword_comptime,
+                    .s_fn_param = true,
+                    .s_const = true, // function parameters are always implicitly const
+                },
+            });
+        }
+
+        try self.visit(param.type_expr);
+    }
 }
 
 inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
@@ -729,17 +758,18 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
             break;
         }
     }
-    fn_signature_implies_comptime = fn_signature_implies_comptime or std.mem.eql(u8, ast.getNodeSource(proto.ast.return_type), "type");
+    fn_signature_implies_comptime = fn_signature_implies_comptime or mem.eql(u8, ast.getNodeSource(proto.ast.return_type), "type");
 
     // parameters are in a new scope b/c other symbols in the same scope as
     // the declared fn cannot access them.
     const was_comptime = self.setScopeFlag("s_comptime", fn_signature_implies_comptime);
     defer self.restoreScopeFlag("s_comptime", was_comptime);
+
+    // note: intentionally not calling visitFnProto b/c we don't want the scope
+    // created for params to exit until _after_ we visit the function body.
     try self.enterScope(.{});
     defer self.exitScope();
-    for (proto.ast.params) |param| {
-        try self.visit(param);
-    }
+    try self.visitFnProtoParams(proto);
 
     // Function body is also in a new scope. Declaring a symbol with the
     // same name as a parameter is an illegal shadow, not a redeclaration

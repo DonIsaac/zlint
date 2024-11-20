@@ -105,11 +105,11 @@ test "simple references where `x` is referenced a single time" {
         \\  }
         \\}
         ,
+        \\fn foo(x: u32) u32 {
+        \\  return x;
+        \\}
+        ,
         // FIXME: these are all failing
-        // \\fn foo(x: u32) u32 {
-        // \\  return x;
-        // \\}
-        // ,
         // \\const std = @import("std");
         // \\fn main() u32 {
         // \\  const arr = std.heap.page_allocator.alloc(u32, 8) catch |x| @panic(@errorName(x));
