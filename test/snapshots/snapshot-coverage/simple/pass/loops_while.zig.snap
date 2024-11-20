@@ -5,7 +5,7 @@
       "debugName": "@This()", 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["s_const"], 
+      "flags": ["const"], 
       "references": [
         
       ], 
@@ -34,7 +34,7 @@
       "debugName": "", 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["s_fn"], 
+      "flags": ["fn"], 
       "references": [
         
       ], 
@@ -78,7 +78,7 @@
       "debugName": "", 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["s_fn"], 
+      "flags": ["fn"], 
       "references": [
         
       ], 
@@ -149,7 +149,7 @@
       "debugName": "", 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["s_fn"], 
+      "flags": ["fn"], 
       "references": [
         
       ], 
@@ -208,7 +208,7 @@
       "debugName": "", 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["s_fn"], 
+      "flags": ["fn"], 
       "references": [
         
       ], 
@@ -221,7 +221,7 @@
       "debugName": "", 
       "declNode": "identifier", 
       "scope": semantic.id.NominalId(u32)(14), 
-      "flags": ["s_const", "s_fn_param"], 
+      "flags": ["const", "fn_param"], 
       "references": [
         {"symbol":15,"scope":16,"node":"identifier","identifier":"begin","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
         
@@ -235,7 +235,7 @@
       "debugName": "", 
       "declNode": "identifier", 
       "scope": semantic.id.NominalId(u32)(14), 
-      "flags": ["s_const", "s_fn_param"], 
+      "flags": ["const", "fn_param"], 
       "references": [
         {"symbol":16,"scope":16,"node":"identifier","identifier":"end","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
         
@@ -249,7 +249,7 @@
       "debugName": "", 
       "declNode": "identifier", 
       "scope": semantic.id.NominalId(u32)(14), 
-      "flags": ["s_const", "s_fn_param"], 
+      "flags": ["const", "fn_param"], 
       "references": [
         {"symbol":17,"scope":17,"node":"identifier","identifier":"number","flags":{"read":true,"write":false,"call":false,"type":false,"member":false,"_":0}}, 
         
@@ -287,7 +287,7 @@
   ], 
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
-    "flags": ["s_top"], 
+    "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
       "std": 1, 
@@ -307,14 +307,14 @@
         "children": [
           {
             "id": semantic.id.NominalId(u32)(2), 
-            "flags": ["s_function"], 
+            "flags": ["function"], 
             "bindings": {
               
             }, 
             "children": [
               {
                 "id": semantic.id.NominalId(u32)(3), 
-                "flags": ["s_block"], 
+                "flags": ["block"], 
                 "bindings": {
                   "i": 3, 
                   
@@ -322,7 +322,7 @@
                 "children": [
                   {
                     "id": semantic.id.NominalId(u32)(4), 
-                    "flags": ["s_block"], 
+                    "flags": ["block"], 
                     "bindings": {
                       "power_of_two": 4, 
                       
@@ -347,14 +347,14 @@
         "children": [
           {
             "id": semantic.id.NominalId(u32)(6), 
-            "flags": ["s_function"], 
+            "flags": ["function"], 
             "bindings": {
               
             }, 
             "children": [
               {
                 "id": semantic.id.NominalId(u32)(7), 
-                "flags": ["s_block"], 
+                "flags": ["block"], 
                 "bindings": {
                   "map": 6, 
                   "iter": 7, 
@@ -363,7 +363,7 @@
                 "children": [
                   {
                     "id": semantic.id.NominalId(u32)(8), 
-                    "flags": ["s_block"], 
+                    "flags": ["block"], 
                     "bindings": {
                       "k": 8, 
                       "v": 9, 
@@ -389,14 +389,14 @@
         "children": [
           {
             "id": semantic.id.NominalId(u32)(10), 
-            "flags": ["s_function"], 
+            "flags": ["function"], 
             "bindings": {
               
             }, 
             "children": [
               {
                 "id": semantic.id.NominalId(u32)(11), 
-                "flags": ["s_block"], 
+                "flags": ["block"], 
                 "bindings": {
                   "x": 11, 
                   "y": 12, 
@@ -405,7 +405,7 @@
                 "children": [
                   {
                     "id": semantic.id.NominalId(u32)(12), 
-                    "flags": ["s_block"], 
+                    "flags": ["block"], 
                     "bindings": {
                       
                     }, 
@@ -413,7 +413,7 @@
                     
                   }, {
                     "id": semantic.id.NominalId(u32)(13), 
-                    "flags": ["s_block"], 
+                    "flags": ["block"], 
                     "bindings": {
                       "my_xy": 13, 
                       
@@ -441,14 +441,14 @@
         "children": [
           {
             "id": semantic.id.NominalId(u32)(15), 
-            "flags": ["s_function"], 
+            "flags": ["function"], 
             "bindings": {
               
             }, 
             "children": [
               {
                 "id": semantic.id.NominalId(u32)(16), 
-                "flags": ["s_block"], 
+                "flags": ["block"], 
                 "bindings": {
                   "i": 18, 
                   
@@ -456,14 +456,14 @@
                 "children": [
                   {
                     "id": semantic.id.NominalId(u32)(17), 
-                    "flags": ["s_block"], 
+                    "flags": ["block"], 
                     "bindings": {
                       
                     }, 
                     "children": [
                       {
                         "id": semantic.id.NominalId(u32)(18), 
-                        "flags": ["s_block"], 
+                        "flags": ["block"], 
                         "bindings": {
                           
                         }, 

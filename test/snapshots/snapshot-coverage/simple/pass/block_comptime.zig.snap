@@ -5,7 +5,7 @@
       "debugName": "@This()", 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["s_const"], 
+      "flags": ["const"], 
       "references": [
         
       ], 
@@ -45,7 +45,7 @@
   "unresolvedReferences": [],
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
-    "flags": ["s_top"], 
+    "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
       "x": 1, 
@@ -54,7 +54,7 @@
     "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
-        "flags": ["s_block", "s_comptime"], 
+        "flags": ["block", "comptime"], 
         "bindings": {
           "y": 2, 
           

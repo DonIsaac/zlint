@@ -5,7 +5,7 @@
       "debugName": "@This()", 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["s_const"], 
+      "flags": ["const"], 
       "references": [
         
       ], 
@@ -51,7 +51,7 @@
       "debugName": "", 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["s_fn"], 
+      "flags": ["fn"], 
       "references": [
         
       ], 
@@ -161,7 +161,7 @@
   "unresolvedReferences": [],
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
-    "flags": ["s_top"], 
+    "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
       "std": 1, 
@@ -179,14 +179,14 @@
         "children": [
           {
             "id": semantic.id.NominalId(u32)(2), 
-            "flags": ["s_function"], 
+            "flags": ["function"], 
             "bindings": {
               
             }, 
             "children": [
               {
                 "id": semantic.id.NominalId(u32)(3), 
-                "flags": ["s_block"], 
+                "flags": ["block"], 
                 "bindings": {
                   "allocator": 4, 
                   "a": 5, 
@@ -199,7 +199,7 @@
                 "children": [
                   {
                     "id": semantic.id.NominalId(u32)(4), 
-                    "flags": ["s_block"], 
+                    "flags": ["block"], 
                     "bindings": {
                       
                     }, 

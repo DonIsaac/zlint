@@ -179,9 +179,13 @@ fn printFlags(self: *SemanticPrinter, T: type, flags: T) !void {
     inline for (fields) |field| {
         const f = @field(flags, field.name);
         if (@TypeOf(f) != bool) continue;
+        var name: []const u8 = field.name;
+        // "s_block" -> "block". less noisy.
+        if (std.mem.startsWith(u8, name, "s_")) name = name[2..];
+        // only print flags that are present.
         if (f) {
             if (!first) p.pComma();
-            try p.pString(field.name);
+            try p.pString(name);
             first = false;
         }
     }

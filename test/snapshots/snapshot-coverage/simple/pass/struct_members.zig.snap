@@ -5,7 +5,7 @@
       "debugName": "@This()", 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["s_const"], 
+      "flags": ["const"], 
       "references": [
         
       ], 
@@ -31,7 +31,7 @@
       "debugName": "", 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": ["s_member"], 
+      "flags": ["member"], 
       "references": [
         
       ], 
@@ -69,7 +69,7 @@
   "unresolvedReferences": [],
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
-    "flags": ["s_top"], 
+    "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
       "Foo": 1, 
@@ -78,7 +78,7 @@
     "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
-        "flags": ["s_block"], 
+        "flags": ["block"], 
         "bindings": {
           "a": 2, 
           "B": 3, 
