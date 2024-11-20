@@ -14,9 +14,8 @@ const t = std.testing;
 const panic = std.debug.panic;
 const print = std.debug.print;
 
-var r = report.GraphicalReporter.init(std.io.getStdErr().writer(), report.GraphicalFormatter.unicode(t.allocator, false));
-
 fn build(src: [:0]const u8) !Semantic {
+    var r = report.GraphicalReporter.init(std.io.getStdErr().writer(), report.GraphicalFormatter.unicode(t.allocator, false));
     var builder = SemanticBuilder.init(t.allocator);
     defer builder.deinit();
 
