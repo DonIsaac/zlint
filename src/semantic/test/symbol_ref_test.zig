@@ -33,6 +33,22 @@ fn build(src: [:0]const u8) !Semantic {
     return result.value;
 }
 
+fn debugSemantic(semantic: *const Semantic) !void {
+    var p = printer.Printer.init(t.allocator, std.io.getStdErr().writer());
+    defer p.deinit();
+    var sp = printer.SemanticPrinter.new(&p, semantic);
+
+    print("Symbol table:\n\n", .{});
+    try sp.printSymbolTable();
+
+    print("\n\nUnresolved references:\n\n", .{});
+    try sp.printUnresolvedReferences();
+
+    print("\n\nScopes:\n\n", .{});
+    try sp.printScopeTree();
+    print("\n\n", .{});
+}
+
 test "references record where and how a symbol is used" {
     const src =
         \\fn foo() u32 {
@@ -142,33 +158,26 @@ test "symbols referenced before their declaration" {
         \\};
         \\const x = @import("x.zig");
         ,
-        // FIXME: these are all failing
-        // \\fn foo() void {
-        // \\  {
-        // \\    const y = x;
-        // \\    _ = y;
-        // \\  }
-        // \\  const x = 1;
-        // \\}
-        // ,
-        // \\fn foo() void {
-        // \\  const y = x;
-        // \\  _ = y;
-        // \\}
-        // \\const x = 1;
-        // ,
+        \\fn foo() void {
+        \\  {
+        \\    const y = x;
+        \\    _ = y;
+        \\  }
+        \\  const x = 1;
+        \\}
+        ,
+        \\fn foo() void {
+        \\  const y = x;
+        \\  _ = y;
+        \\}
+        \\const x = 1;
+        ,
     };
 
-    // var p = printer.Printer.init(t.allocator, std.io.getStdErr().writer());
-    // defer p.deinit();
     for (sources) |source| {
         var sem = try build(source);
         defer sem.deinit();
-        // var sp = printer.SemanticPrinter.new(&p, &sem);
-        // print("Symbol table:\n\n", .{});
-        // try sp.printSymbolTable();
-        // print("\n\nUnresolved references:\n\n", .{});
-        // try sp.printUnresolvedReferences();
+        // try debugSemantic(&sem);
         const x: Symbol.Id = brk: {
             if (sem.symbols.getSymbolNamed("x")) |_x| {
                 break :brk _x;
@@ -181,7 +190,5 @@ test "symbols referenced before their declaration" {
             print("Source:\n\n{s}\n\n", .{source});
             return e;
         };
-        // try t.expectFmt(refs.len == 1, "Expected 'x' to have 1 reference, found {d}. Source:\n\n{s}\n", .{ refs.len, source });
-        // // try t.expect(refs.len == 2);
     }
 }

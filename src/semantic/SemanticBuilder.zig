@@ -1067,7 +1067,7 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
         }
     }
 
-    const num_unresolved = curr.items.len - resolved_map.len;
+    const num_unresolved = curr.items.len - num_resolved;
     if (num_unresolved > 0) {
         if (parent) |p| {
             try p.ensureUnusedCapacity(self._gpa, num_unresolved);
@@ -1082,6 +1082,7 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
             _ = self._unresolved_references.frames.pop();
         } else {
             const temp = try self._gpa.dupe(Reference.Id, curr.items);
+            defer self._gpa.free(temp);
             var i: usize = 0;
             var j: usize = 0;
             while (i < temp.len) : (i += 1) {
