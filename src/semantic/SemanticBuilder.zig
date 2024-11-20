@@ -139,6 +139,7 @@ pub fn deinit(self: *SemanticBuilder) void {
     self._scope_stack.deinit(self._gpa);
     self._symbol_stack.deinit(self._gpa);
     self._node_stack.deinit(self._gpa);
+    self._unresolved_references.deinit(self._gpa);
 }
 
 fn parse(self: *SemanticBuilder, source: stringSlice) !Ast {
@@ -1132,9 +1133,8 @@ const ReferenceStack = struct {
     }
 
     fn deinit(self: *ReferenceStack, alloc: Allocator) void {
-        for (self.frames.items) |frame| {
-            var f = @constCast(frame);
-            f.refs.deinit(alloc);
+        for (0..self.frames.items.len) |i| {
+            self.frames.items[i].deinit(alloc);
         }
         self.frames.deinit(alloc);
     }
