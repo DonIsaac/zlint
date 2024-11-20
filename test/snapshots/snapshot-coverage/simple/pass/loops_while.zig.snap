@@ -281,7 +281,7 @@
     {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":["read"]}, 
     {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":["read"]}, 
     {"symbol":null,"scope":14,"node":"identifier","identifier":"usize","flags":["read"]}, 
-    {"symbol":null,"scope":18,"node":"identifier","identifier":"true","flags":["read"]}, 
+    {"symbol":null,"scope":19,"node":"identifier","identifier":"true","flags":["read"]}, 
     {"symbol":null,"scope":16,"node":"identifier","identifier":"false","flags":["read"]}, 
     
   ], 
@@ -463,7 +463,25 @@
                     "children": [
                       {
                         "id": semantic.id.NominalId(u32)(18), 
-                        "flags": ["block"], 
+                        "flags": [], 
+                        "bindings": {
+                          
+                        }, 
+                        "children": [
+                          {
+                            "id": semantic.id.NominalId(u32)(19), 
+                            "flags": ["block"], 
+                            "bindings": {
+                              
+                            }, 
+                            "children": [], 
+                            
+                          }, 
+                        ], 
+                        
+                      }, {
+                        "id": semantic.id.NominalId(u32)(20), 
+                        "flags": [], 
                         "bindings": {
                           
                         }, 

@@ -138,7 +138,7 @@
       "name": "inner", 
       "debugName": "", 
       "declNode": "container_field_init", 
-      "scope": semantic.id.NominalId(u32)(12), 
+      "scope": semantic.id.NominalId(u32)(14), 
       "flags": ["member"], 
       "references": [
         
@@ -164,11 +164,11 @@
       "name": "a", 
       "debugName": "", 
       "declNode": "identifier", 
-      "scope": semantic.id.NominalId(u32)(13), 
+      "scope": semantic.id.NominalId(u32)(15), 
       "flags": ["comptime", "const", "fn_param"], 
       "references": [
-        {"symbol":12,"scope":16,"node":"identifier","identifier":"a","flags":["read"]}, 
-        {"symbol":12,"scope":15,"node":"identifier","identifier":"a","flags":["read"]}, 
+        {"symbol":12,"scope":18,"node":"identifier","identifier":"a","flags":["read"]}, 
+        {"symbol":12,"scope":17,"node":"identifier","identifier":"a","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -179,10 +179,10 @@
       "name": "b", 
       "debugName": "", 
       "declNode": "identifier", 
-      "scope": semantic.id.NominalId(u32)(13), 
+      "scope": semantic.id.NominalId(u32)(15), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":13,"scope":15,"node":"identifier","identifier":"b","flags":["read"]}, 
+        {"symbol":13,"scope":17,"node":"identifier","identifier":"b","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -193,10 +193,10 @@
       "name": "c", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(16), 
+      "scope": semantic.id.NominalId(u32)(18), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":14,"scope":16,"node":"identifier","identifier":"c","flags":["read"]}, 
+        {"symbol":14,"scope":18,"node":"identifier","identifier":"c","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -207,10 +207,10 @@
       "name": "a2", 
       "debugName": "", 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(15), 
+      "scope": semantic.id.NominalId(u32)(17), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":15,"scope":15,"node":"identifier","identifier":"a2","flags":["read"]}, 
+        {"symbol":15,"scope":17,"node":"identifier","identifier":"a2","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -221,8 +221,8 @@
   "unresolvedReferences": [
     {"symbol":null,"scope":1,"node":"identifier","identifier":"type","flags":["read"]}, 
     {"symbol":null,"scope":8,"node":"identifier","identifier":"usize","flags":["read"]}, 
-    {"symbol":null,"scope":13,"node":"identifier","identifier":"isize","flags":["read"]}, 
-    {"symbol":null,"scope":13,"node":"identifier","identifier":"usize","flags":["read"]}, 
+    {"symbol":null,"scope":15,"node":"identifier","identifier":"isize","flags":["read"]}, 
+    {"symbol":null,"scope":15,"node":"identifier","identifier":"usize","flags":["read"]}, 
     
   ], 
   "scopes": {
@@ -334,14 +334,32 @@
                 "children": [
                   {
                     "id": semantic.id.NominalId(u32)(11), 
-                    "flags": ["block", "comptime"], 
+                    "flags": ["comptime"], 
+                    "bindings": {
+                      
+                    }, 
+                    "children": [
+                      {
+                        "id": semantic.id.NominalId(u32)(12), 
+                        "flags": ["block", "comptime"], 
+                        "bindings": {
+                          
+                        }, 
+                        "children": [], 
+                        
+                      }, 
+                    ], 
+                    
+                  }, {
+                    "id": semantic.id.NominalId(u32)(13), 
+                    "flags": ["comptime"], 
                     "bindings": {
                       
                     }, 
                     "children": [], 
                     
                   }, {
-                    "id": semantic.id.NominalId(u32)(12), 
+                    "id": semantic.id.NominalId(u32)(14), 
                     "flags": ["block", "comptime"], 
                     "bindings": {
                       "inner": 10, 
@@ -359,7 +377,7 @@
         ], 
         
       }, {
-        "id": semantic.id.NominalId(u32)(13), 
+        "id": semantic.id.NominalId(u32)(15), 
         "flags": [], 
         "bindings": {
           "a": 12, 
@@ -368,14 +386,14 @@
         }, 
         "children": [
           {
-            "id": semantic.id.NominalId(u32)(14), 
+            "id": semantic.id.NominalId(u32)(16), 
             "flags": ["function"], 
             "bindings": {
               
             }, 
             "children": [
               {
-                "id": semantic.id.NominalId(u32)(15), 
+                "id": semantic.id.NominalId(u32)(17), 
                 "flags": ["block"], 
                 "bindings": {
                   "a2": 15, 
@@ -383,7 +401,7 @@
                 }, 
                 "children": [
                   {
-                    "id": semantic.id.NominalId(u32)(16), 
+                    "id": semantic.id.NominalId(u32)(18), 
                     "flags": ["block", "comptime"], 
                     "bindings": {
                       "c": 14, 
@@ -391,8 +409,26 @@
                     }, 
                     "children": [
                       {
-                        "id": semantic.id.NominalId(u32)(17), 
-                        "flags": ["block", "comptime"], 
+                        "id": semantic.id.NominalId(u32)(19), 
+                        "flags": ["comptime"], 
+                        "bindings": {
+                          
+                        }, 
+                        "children": [
+                          {
+                            "id": semantic.id.NominalId(u32)(20), 
+                            "flags": ["block", "comptime"], 
+                            "bindings": {
+                              
+                            }, 
+                            "children": [], 
+                            
+                          }, 
+                        ], 
+                        
+                      }, {
+                        "id": semantic.id.NominalId(u32)(21), 
+                        "flags": ["comptime"], 
                         "bindings": {
                           
                         }, 
