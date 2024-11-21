@@ -29,10 +29,22 @@ async function main(argv: string[]) {
 const createRule = ({ name, StructName }) => {
     const underscored = name.replaceAll('-', '_');
     return /* zig */ `
+//! ## What This Rule Does
+//! Explain what this rule checks for. Also explain why this is a problem.
+//!
+//! ## Examples
+//! Examples of **incorrect** code for this rule:
+//! \`\`\`zig
+//!\`\`\`
+//!
+//! Examples of **correct** code for this rule:
+//! \`\`\`zig
+//!\`\`\`
+
 const std = @import("std");
 const _source = @import("../../source.zig");
 const semantic = @import("../../semantic.zig");
-const rule = @import("../rule.zig");
+const _rule = @import("../rule.zig");
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
@@ -40,8 +52,8 @@ const Symbol = semantic.Symbol;
 const Loc = std.zig.Loc;
 const Span = _source.Span;
 const LinterContext = @import("../lint_context.zig");
-const Rule = rule.Rule;
-const NodeWrapper = rule.NodeWrapper;
+const Rule = _rule.Rule;
+const NodeWrapper = _rule.NodeWrapper;
 
 // Rule metadata
 const ${StructName} = @This();
