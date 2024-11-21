@@ -102,7 +102,7 @@
       "scope": semantic.id.NominalId(u32)(4), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":7,"scope":8,"node":"identifier","identifier":"ptr_info","flags":["read"]}, 
+        {"symbol":7,"scope":8,"node":"identifier","identifier":"ptr_info","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -198,7 +198,7 @@
       "scope": semantic.id.NominalId(u32)(9), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":14,"scope":11,"node":"identifier","identifier":"self","flags":["read"]}, 
+        {"symbol":14,"scope":11,"node":"identifier","identifier":"self","flags":["call"]}, 
         {"symbol":14,"scope":11,"node":"identifier","identifier":"self","flags":["read"]}, 
         
       ], 

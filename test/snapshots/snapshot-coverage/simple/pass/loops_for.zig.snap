@@ -20,8 +20,8 @@
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["read"]}, 
-        {"symbol":1,"scope":11,"node":"identifier","identifier":"std","flags":["read"]}, 
+        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["call"]}, 
+        {"symbol":1,"scope":11,"node":"identifier","identifier":"std","flags":["call"]}, 
         
       ], 
       "members": [], 

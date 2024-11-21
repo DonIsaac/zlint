@@ -23,7 +23,7 @@
         {"symbol":1,"scope":0,"node":"identifier","identifier":"std","flags":["read"]}, 
         {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["read"]}, 
         {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["read"]}, 
-        {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["read"]}, 
+        {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -37,9 +37,9 @@
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":2,"scope":3,"node":"identifier","identifier":"Managed","flags":["read"]}, 
-        {"symbol":2,"scope":3,"node":"identifier","identifier":"Managed","flags":["read"]}, 
-        {"symbol":2,"scope":3,"node":"identifier","identifier":"Managed","flags":["read"]}, 
+        {"symbol":2,"scope":3,"node":"identifier","identifier":"Managed","flags":["call"]}, 
+        {"symbol":2,"scope":3,"node":"identifier","identifier":"Managed","flags":["call"]}, 
+        {"symbol":2,"scope":3,"node":"identifier","identifier":"Managed","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -70,7 +70,7 @@
         {"symbol":4,"scope":3,"node":"identifier","identifier":"allocator","flags":["read"]}, 
         {"symbol":4,"scope":3,"node":"identifier","identifier":"allocator","flags":["read"]}, 
         {"symbol":4,"scope":3,"node":"identifier","identifier":"allocator","flags":["read"]}, 
-        {"symbol":4,"scope":3,"node":"identifier","identifier":"allocator","flags":["read"]}, 
+        {"symbol":4,"scope":3,"node":"identifier","identifier":"allocator","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -84,10 +84,10 @@
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["variable"], 
       "references": [
-        {"symbol":5,"scope":3,"node":"identifier","identifier":"a","flags":["read"]}, 
-        {"symbol":5,"scope":4,"node":"identifier","identifier":"a","flags":["read"]}, 
-        {"symbol":5,"scope":4,"node":"identifier","identifier":"a","flags":["read"]}, 
-        {"symbol":5,"scope":3,"node":"identifier","identifier":"a","flags":["read"]}, 
+        {"symbol":5,"scope":3,"node":"identifier","identifier":"a","flags":["call"]}, 
+        {"symbol":5,"scope":4,"node":"identifier","identifier":"a","flags":["call"]}, 
+        {"symbol":5,"scope":4,"node":"identifier","identifier":"a","flags":["call"]}, 
+        {"symbol":5,"scope":3,"node":"identifier","identifier":"a","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -101,10 +101,10 @@
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["variable"], 
       "references": [
-        {"symbol":6,"scope":3,"node":"identifier","identifier":"b","flags":["read"]}, 
+        {"symbol":6,"scope":3,"node":"identifier","identifier":"b","flags":["call"]}, 
+        {"symbol":6,"scope":4,"node":"identifier","identifier":"b","flags":["call"]}, 
         {"symbol":6,"scope":4,"node":"identifier","identifier":"b","flags":["read"]}, 
-        {"symbol":6,"scope":4,"node":"identifier","identifier":"b","flags":["read"]}, 
-        {"symbol":6,"scope":4,"node":"identifier","identifier":"b","flags":["read"]}, 
+        {"symbol":6,"scope":4,"node":"identifier","identifier":"b","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -133,8 +133,8 @@
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["variable"], 
       "references": [
-        {"symbol":8,"scope":3,"node":"identifier","identifier":"c","flags":["read"]}, 
-        {"symbol":8,"scope":4,"node":"identifier","identifier":"c","flags":["read"]}, 
+        {"symbol":8,"scope":3,"node":"identifier","identifier":"c","flags":["call"]}, 
+        {"symbol":8,"scope":4,"node":"identifier","identifier":"c","flags":["call"]}, 
         {"symbol":8,"scope":4,"node":"identifier","identifier":"c","flags":["read"]}, 
         
       ], 

@@ -20,9 +20,9 @@
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["read"]}, 
-        {"symbol":1,"scope":8,"node":"identifier","identifier":"std","flags":["read"]}, 
-        {"symbol":1,"scope":13,"node":"identifier","identifier":"std","flags":["read"]}, 
+        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["call"]}, 
+        {"symbol":1,"scope":8,"node":"identifier","identifier":"std","flags":["call"]}, 
+        {"symbol":1,"scope":13,"node":"identifier","identifier":"std","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -93,9 +93,9 @@
       "scope": semantic.id.NominalId(u32)(7), 
       "flags": ["variable"], 
       "references": [
-        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":["read"]}, 
-        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":["read"]}, 
-        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":["read"]}, 
+        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":["call"]}, 
+        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":["call"]}, 
+        {"symbol":6,"scope":7,"node":"identifier","identifier":"map","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -109,7 +109,7 @@
       "scope": semantic.id.NominalId(u32)(7), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":7,"scope":7,"node":"identifier","identifier":"iter","flags":["read"]}, 
+        {"symbol":7,"scope":7,"node":"identifier","identifier":"iter","flags":["call"]}, 
         
       ], 
       "members": [], 

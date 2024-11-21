@@ -31,6 +31,10 @@
             .url = "git+https://github.com/tr1ckydev/chameleon#9724f89ca2e56b33609090a6c6c6c1097844d1ee",
             .hash = "12208314a762057bf5ed82b26b02cbfcf426066b9920bfdd1ddcb68d1d0c55c45ce3",
         },
+        .@"zig-recover" = .{
+            .url = "git+https://github.com/dimdin/zig-recover#2691d4a34f20832f0b577fb3b19e408f5622f87e",
+            .hash = "1220b896e5681ced97bf4e5283a99fb2ffde37837623ecd1d0714334707f14eea939",
+        },
     },
     .paths = .{
         "build.zig",
