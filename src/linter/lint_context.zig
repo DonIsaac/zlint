@@ -8,6 +8,8 @@ errors: ErrorList,
 curr_rule_name: string = "",
 source: *Source,
 
+pub const NULL_NODE = Semantic.NULL_NODE;
+
 pub fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context {
     return Context{
         .semantic = semantic,
