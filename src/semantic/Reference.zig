@@ -41,6 +41,8 @@ pub const Flags = packed struct(FLAGS_REPR) {
     // Padding.
     _: u3 = 0,
 
+    const Flag = std.meta.FieldEnum(Flags);
+
     pub fn eq(self: Flags, other: Flags) bool {
         const a: FLAGS_REPR = @bitCast(self);
         const b: FLAGS_REPR = @bitCast(other);
@@ -52,6 +54,35 @@ pub const Flags = packed struct(FLAGS_REPR) {
         const b: FLAGS_REPR = @bitCast(other);
 
         return @bitCast(a | b);
+    }
+
+    /// Enable or disable a flag, returning the modified set.
+    ///
+    /// ## Example
+    /// ```zig
+    /// const t = @import("std").testing;
+    /// const read = .{ .read = true };
+    /// const read_write = flags.with(.write, true);
+    /// t.expectEqual(
+    ///   Flags{ .read = true, .write = true },
+    ///   read_write,
+    /// );
+    /// // original is not modified
+    /// t.expectEqual(Flags{.read = true}, read);
+    /// ```
+    pub fn with(self: Flags, comptime flag: Flag, enabled: bool) Flags {
+        var copy = self;
+        @field(copy, @tagName(flag)) = enabled;
+        return copy;
+    }
+
+    /// Turn off all flags that are set in `other`. Returns the new flags
+    /// without mutating `self`.
+    pub fn disable(self: Flags, other: Flags) Flags {
+        const a: FLAGS_REPR = @bitCast(self);
+        const b: FLAGS_REPR = @bitCast(other);
+
+        return @bitCast(a & ~b);
     }
 
     pub fn contains(self: Flags, other: Flags) bool {
@@ -168,4 +199,10 @@ test "Flags.isMemberRead" {
     try t.expect(!Flags.isMemberRead(.{ .member = false, .read  = true  }));
     try t.expect(!Flags.isMemberRead(.{ .member = true,  .read  = false }));
     // zig fmt: on
+}
+
+test "Flags.with" {
+    const expected = Flags{ .read = true, .write = true };
+    const empty = Flags{};
+    try t.expectEqual(expected, empty.with(.read, true).with(.write, true));
 }
