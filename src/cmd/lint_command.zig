@@ -20,7 +20,15 @@ const Linter = _lint.Linter;
 const Options = @import("../cli/Options.zig");
 
 pub fn lint(alloc: Allocator, _: Options) !void {
-    var reporter = GraphicalReporter.init(std.io.getStdOut().writer(), .{ .alloc = alloc });
+    const stdout = std.io.getStdOut().writer();
+    const start = std.time.milliTimestamp();
+    var reporter = GraphicalReporter.init(stdout, .{ .alloc = alloc });
+
+    defer {
+        const stop = std.time.milliTimestamp();
+        const duration = stop - start;
+        reporter.printStats(duration);
+    }
 
     // TODO: use options to specify number of threads (if provided)
     var visitor = try LintVisitor.init(alloc, &reporter, null);
@@ -103,9 +111,16 @@ const LintVisitor = struct {
         var source = try Source.init(self.allocator, file, filepath);
         defer source.deinit();
         var errors: ?std.ArrayList(Error) = null;
-        defer if (errors) |e| self.reporter.reportErrors(e);
 
-        try self.linter.runOnSource(&source, &errors);
+        self.linter.runOnSource(&source, &errors) catch |err| {
+            if (errors) |e| {
+                self.reporter.reportErrors(e);
+            } else {
+                self.reporter.stats.recordErrors(1);
+            }
+            return err;
+        };
+        self.reporter.stats.recordSuccess();
     }
 
     fn deinit(self: *LintVisitor) void {
