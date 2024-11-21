@@ -25,7 +25,7 @@ pub const Name = "use-after-drop";
 // Runs on each node in the AST. Useful for syntax-based rules.
 pub fn runOnNode(_: *const UseAfterDrop, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const tags: []const Node.Tag = ctx.ast().nodes.items(.tag);
-    const datas: []const Node.Data = ctx.ast().nodes.items(.data);
+    const data: []const Node.Data = ctx.ast().nodes.items(.data);
     const node = wrapper.node;
 
     switch (node.tag) {
@@ -36,7 +36,7 @@ pub fn runOnNode(_: *const UseAfterDrop, wrapper: NodeWrapper, ctx: *LinterConte
             switch (tags[returned_expr]) {
                 // return &<expr>
                 .address_of => {
-                    const addr_target = datas[returned_expr].lhs;
+                    const addr_target = data[returned_expr].lhs;
                     if (addr_target == LinterContext.NULL_NODE) return;
                     return checkReturnedPointer(addr_target, ctx);
                 },
@@ -54,11 +54,11 @@ pub fn runOnNode(_: *const UseAfterDrop, wrapper: NodeWrapper, ctx: *LinterConte
 /// `.address_of` (e.g. `&`) node.
 fn checkReturnedPointer(addr_target: Node.Index, ctx: *LinterContext) void {
     const tags: []const Node.Tag = ctx.ast().nodes.items(.tag);
-    const datas: []const Node.Data = ctx.ast().nodes.items(.data);
+    const data: []const Node.Data = ctx.ast().nodes.items(.data);
     assert(addr_target != LinterContext.NULL_NODE);
     _ = tags;
-    _ = datas;
-    @panic("TODO: cehckReturnedPointer");
+    _ = data;
+    @panic("TODO: checkReturnedPointer");
 }
 
 pub fn runOnSymbol(_: *const UseAfterDrop, symbol: Symbol.Id, ctx: *LinterContext) void {
