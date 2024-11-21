@@ -68,13 +68,13 @@ const Stats = struct {
     }
 
     /// Get the number of linted files. Only call this after all files have been
-    /// processsed.
+    /// processed.
     pub fn numFilesSync(self: *const Stats) usize {
         return self.num_files.raw;
     }
 
     /// Get the number of lint errors. Only call this after all files have been
-    /// processsed.
+    /// processed.
     pub fn numErrorsSync(self: *const Stats) usize {
         return self.num_errors.raw;
     }
