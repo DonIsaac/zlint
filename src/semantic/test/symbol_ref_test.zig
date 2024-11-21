@@ -56,8 +56,7 @@ test "references record where and how a symbol is used" {
 }
 
 test "simple references where `x` is referenced a single time" {
-    // when flags are null, it means there's a bug that needs to be fixed.
-    const TestCase = meta.Tuple(&[_]type{ [:0]const u8, ?Reference.Flags });
+    const TestCase = meta.Tuple(&[_]type{ [:0]const u8, Reference.Flags });
 
     const cases = [_]TestCase{
         .{
@@ -65,6 +64,22 @@ test "simple references where `x` is referenced a single time" {
             \\const y = x;
             ,
             .{ .read = true },
+        },
+        .{
+            \\fn foo() void {
+            \\  var x = 1;
+            \\  x = 2;
+            \\}
+            ,
+            .{ .write = true },
+        },
+        .{
+            \\fn foo() void {
+            \\  var x = 1;
+            \\  x += 2;
+            \\}
+            ,
+            .{ .read = true, .write = true },
         },
         .{
             \\const x = 1;
@@ -101,9 +116,7 @@ test "simple references where `x` is referenced a single time" {
             \\  return x();
             \\}
             ,
-            // FIXME
-            null,
-            // .{ .call = true },
+            .{ .call = true },
         },
         .{
             \\const std = @import("std");
@@ -128,8 +141,10 @@ test "simple references where `x` is referenced a single time" {
 
     for (cases) |case| {
         const source = case[0];
+        const expected_flags = case[1];
         var sem = try build(source);
         defer sem.deinit();
+
         const x: Symbol.Id = brk: {
             if (sem.symbols.getSymbolNamed("x")) |_x| {
                 break :brk _x;
@@ -138,6 +153,7 @@ test "simple references where `x` is referenced a single time" {
             }
         };
 
+        // there should be exactly 1 reference on `x` with the expected flags.
         const refs = sem.symbols.getReferences(x);
         t.expectEqual(1, refs.len) catch |e| {
             print("Source:\n\n{s}\n\n", .{source});
@@ -145,13 +161,11 @@ test "simple references where `x` is referenced a single time" {
         };
 
         const flags = sem.symbols.references.items(.flags)[refs[0].int()];
-        if (case[1]) |expected_flags| {
-            t.expectEqual(expected_flags, flags) catch |e| {
-                print("Expected: {any}\nActual:   {any}\n\n", .{ expected_flags, flags });
-                print("Source:\n\n{s}\n\n", .{source});
-                return e;
-            };
-        }
+        t.expectEqual(expected_flags, flags) catch |e| {
+            print("Expected: {any}\nActual:   {any}\n\n", .{ expected_flags, flags });
+            print("Source:\n\n{s}\n\n", .{source});
+            return e;
+        };
     }
 }
 

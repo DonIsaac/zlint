@@ -841,7 +841,12 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
 /// Visit a function call. Does not visit calls to builtins
 inline fn visitCall(self: *SemanticBuilder, _: NodeIndex, call: full.Call) !void {
     // TODO: record reference
-    try self.visit(call.ast.fn_expr);
+    const prev = self._curr_reference_flags;
+    self._curr_reference_flags = prev.disable(.{ .read = true, .write = true }).with(.call, true);
+    {
+        defer self._curr_reference_flags = prev;
+        try self.visit(call.ast.fn_expr);
+    }
     for (call.ast.params) |arg| {
         try self.visit(arg);
     }
