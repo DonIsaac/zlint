@@ -1,4 +1,5 @@
 Passed: 97.63912% (2895/2965)
+Panics: 0.033726815% (1/2965)
 
 doc/langref/invalid_doc-comment.zig: error.AnalysisFailed
 doc/langref/test_switch_continue.zig: error.AnalysisFailed

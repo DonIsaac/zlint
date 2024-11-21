@@ -1,4 +1,5 @@
 Passed: 97.2973% (432/444)
+Panics: 1.3513514% (6/444)
 
 src/bun.js/api/BunObject.zig: error.Panic
 src/bun.js/webcore/request.zig: error.FullMismatch
