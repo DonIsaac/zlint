@@ -96,7 +96,7 @@ pub fn build(b: *std.Build) void {
         const check_test_exe = b.addTest(.{ .root_source_file = b.path("src/main.zig") });
         const check_e2e = b.addExecutable(.{ .name = "test-e2e", .root_source_file = b.path("test/test_e2e.zig"), .target = l.target });
         check_e2e.root_module.addImport("zlint", zlint);
-        check_e2e.root_module.addImport("zig-recover", zlint);
+        l.link(&check_e2e.root_module, true, .{"recover"});
 
         const check = b.step("check", "Check for semantic errors");
         const substeps = .{ check_exe, check_lib, check_test_lib, check_test_exe, check_e2e };
