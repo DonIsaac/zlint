@@ -17,6 +17,7 @@ pub fn build(b: *std.Build) void {
     // dependencies
     l.dependency("chameleon", .{});
     l.dependency("smart-pointers", .{});
+    l.devDependency("zig-recover", "recover", .{});
 
     // modules
     l.createModule("util", .{
@@ -29,7 +30,7 @@ pub fn build(b: *std.Build) void {
         .target = l.target,
         .optimize = l.optimize,
     });
-    l.link(zlint, .{});
+    l.link(zlint, false, .{});
 
     // artifacts
     const exe = b.addExecutable(.{
@@ -39,7 +40,7 @@ pub fn build(b: *std.Build) void {
         .target = l.target,
         .optimize = l.optimize,
     });
-    l.link(&exe.root_module, .{});
+    l.link(&exe.root_module, false, .{});
     b.installArtifact(exe);
 
     const e2e = b.addExecutable(.{
@@ -50,8 +51,9 @@ pub fn build(b: *std.Build) void {
         .optimize = l.optimize,
     });
     // util and chameleon omitted
-    l.link(&e2e.root_module, .{"smart-pointers"});
     e2e.root_module.addImport("zlint", zlint);
+    l.link(&e2e.root_module, true, .{ "smart-pointers", "recover" });
+
     b.installArtifact(e2e);
 
     const unit = b.addTest(.{
@@ -60,7 +62,7 @@ pub fn build(b: *std.Build) void {
         .target = l.target,
         .optimize = l.optimize,
     });
-    l.link(&unit.root_module, .{});
+    l.link(&unit.root_module, true, .{});
     b.installArtifact(unit);
 
     // steps
@@ -94,11 +96,12 @@ pub fn build(b: *std.Build) void {
         const check_test_exe = b.addTest(.{ .root_source_file = b.path("src/main.zig") });
         const check_e2e = b.addExecutable(.{ .name = "test-e2e", .root_source_file = b.path("test/test_e2e.zig"), .target = l.target });
         check_e2e.root_module.addImport("zlint", zlint);
+        check_e2e.root_module.addImport("zig-recover", zlint);
 
         const check = b.step("check", "Check for semantic errors");
         const substeps = .{ check_exe, check_lib, check_test_lib, check_test_exe, check_e2e };
         inline for (substeps) |c| {
-            l.link(&c.root_module, .{});
+            l.link(&c.root_module, false, .{});
             check.dependOn(&c.step);
         }
 
@@ -132,6 +135,7 @@ const Linker = struct {
     optimize: std.builtin.OptimizeMode,
     dependencies: std.StringHashMapUnmanaged(*Build.Dependency) = .{},
     modules: std.StringHashMapUnmanaged(*Module) = .{},
+    dev_modules: std.StringHashMapUnmanaged(*Module) = .{},
 
     fn init(b: *Build) Linker {
         return Linker{
@@ -145,6 +149,12 @@ const Linker = struct {
         const dep = self.b.dependency(name, options);
         self.dependencies.put(self.b.allocator, name, dep) catch @panic("OOM");
         self.modules.put(self.b.allocator, name, dep.module(name)) catch @panic("OOM");
+    }
+
+    fn devDependency(self: *Linker, comptime dep_name: []const u8, mod_name: []const u8, options: anytype) void {
+        const dep = self.b.dependency(dep_name, options);
+        self.dependencies.put(self.b.allocator, dep_name, dep) catch @panic("OOM");
+        self.dev_modules.put(self.b.allocator, mod_name, dep.module(mod_name)) catch @panic("OOM");
     }
 
     fn addModule(self: *Linker, comptime name: []const u8, options: Module.CreateOptions) void {
@@ -165,8 +175,16 @@ const Linker = struct {
 
     /// Link a set of modules as imports. When `imports` is empty, all modules
     /// are linked.
-    fn link(self: *Linker, mod: *Module, comptime imports: anytype) void {
-        if (imports.len == 0) {
+    fn link(self: *Linker, mod: *Module, dev: bool, comptime imports: anytype) void {
+        if (imports.len > 0) {
+            inline for (imports) |import| {
+                const dep = self.modules.get(import) orelse self.dev_modules.get(import) orelse @panic("Missing module: " ++ import);
+                mod.addImport(import, dep);
+            }
+            return;
+        }
+
+        {
             var it = self.modules.iterator();
             while (it.next()) |ent| {
                 const name = ent.key_ptr.*;
@@ -176,9 +194,15 @@ const Linker = struct {
             }
         }
 
-        inline for (imports) |import| {
-            const dep = self.modules.get(import) orelse @panic("Missing module: " ++ import);
-            mod.addImport(import, dep);
+        if (dev) {
+            var it = self.dev_modules.iterator();
+            while (it.next()) |ent| {
+                const name = ent.key_ptr.*;
+                const dep = ent.value_ptr.*;
+                if (mod == dep) continue;
+                std.debug.print("linking dev module: {s}\n", .{name});
+                mod.addImport(name, dep);
+            }
         }
     }
 

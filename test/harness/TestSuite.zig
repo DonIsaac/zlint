@@ -107,11 +107,15 @@ fn runInThread(self: *TestSuite, path: []const u8) void {
         return;
     };
     defer source.deinit();
-    @call(.never_inline, self.test_fn, .{ self.alloc, &source }) catch |e| {
+
+    recover.call(runImpl, .{ self, &source }) catch |e| {
         self.pushErr(path, e);
         return;
     };
     self.stats.incPass();
+}
+pub fn runImpl(self: *TestSuite, source: *const Source) anyerror!void {
+    return @call(.never_inline, self.test_fn, .{ self.alloc, source });
 }
 
 fn pushErr(self: *TestSuite, msg: string, err: anytype) void {
@@ -190,6 +194,8 @@ const fs = std.fs;
 const Allocator = std.mem.Allocator;
 const ThreadPool = std.Thread.Pool;
 const panic = std.debug.panic;
+
+const recover = @import("recover");
 
 const utils = @import("../utils.zig");
 const string = utils.string;

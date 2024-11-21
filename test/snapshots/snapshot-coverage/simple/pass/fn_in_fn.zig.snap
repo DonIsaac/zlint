@@ -47,7 +47,7 @@
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":3,"scope":3,"node":"identifier","identifier":"inner","flags":["read"]}, 
+        {"symbol":3,"scope":3,"node":"identifier","identifier":"inner","flags":["call"]}, 
         
       ], 
       "members": [4], 

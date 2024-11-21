@@ -1,9 +1,14 @@
-Passed: 98.42342% (437/444)
+Passed: 97.2973% (432/444)
 
+src/bun.js/api/BunObject.zig: error.Panic
 src/bun.js/webcore/request.zig: error.FullMismatch
 src/bun.js/webcore/streams.zig: error.FullMismatch
 src/cli/pack_command.zig: error.FullMismatch
+src/css/rules/supports.zig: error.Panic
+src/css/values/color.zig: error.Panic
+src/css/values/gradient.zig: error.Panic
+src/install/dependency.zig: error.Panic
 src/install/extract_tarball.zig: error.FullMismatch
-src/install/install.zig: error.FullMismatch
+src/install/install.zig: error.Panic
 src/install/npm.zig: error.FullMismatch
 src/string.zig: error.FullMismatch
