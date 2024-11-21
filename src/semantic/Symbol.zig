@@ -72,6 +72,7 @@ pub const Flags = packed struct {
     ///
     /// If it's declared with a `const` or `var` keyword, this is true. Note
     /// that this includes static and threadlocal variables.
+    ///
     /// ## References
     /// - [Container Level Variables](https://ziglang.org/documentation/master/#Container-Level-Variables)
     /// - [Local Variables](https://ziglang.org/documentation/master/#Local-Variables)
@@ -104,7 +105,6 @@ pub const Flags = packed struct {
     /// }
     /// ```
     s_member: bool = false,
-
     /// A function declaration. Never a builtin. Could be a method.
     s_fn: bool = false,
     /// A function parameter.
