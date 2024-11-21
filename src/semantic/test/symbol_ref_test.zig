@@ -1,5 +1,6 @@
 const std = @import("std");
 const mem = std.mem;
+const meta = std.meta;
 const util = @import("util");
 const test_util = @import("util.zig");
 
@@ -55,44 +56,78 @@ test "references record where and how a symbol is used" {
 }
 
 test "simple references where `x` is referenced a single time" {
-    const sources = [_][:0]const u8{
-        \\const x = 1;
-        \\const y = x;
-        ,
-        \\const x = 1;
-        \\const y = blk: {
-        \\  if (x > 0) break :blk 1 else break :blk 2;
-        \\};
-        ,
-        \\const std = @import("std");
-        \\fn foo() void {
-        \\  var x = 1;
-        \\  const y = 2;
-        \\  if (x > y) {
-        \\    std.debug.print("x is greater than y\n", .{});
-        \\  }
-        \\}
-        ,
-        \\fn foo(x: u32) u32 {
-        \\  return x;
-        \\}
-        ,
-        // FIXME: these are all failing
-        // \\const std = @import("std");
-        // \\fn main() u32 {
-        // \\  const arr = std.heap.page_allocator.alloc(u32, 8) catch |x| @panic(@errorName(x));
-        // \\}
-        // ,
-        \\const std = @import("std");
-        \\fn main() u32 {
-        \\  const y: ?u32 = null;
-        \\  if (y) |x| {
-        \\    std.debug.print("y is non-null: {d}\n", .{x});
-        \\  }
-        \\}
+    // when flags are null, it means there's a bug that needs to be fixed.
+    const TestCase = meta.Tuple(&[_]type{ [:0]const u8, ?Reference.Flags });
+
+    const cases = [_]TestCase{
+        .{
+            \\const x = 1;
+            \\const y = x;
+            ,
+            .{ .read = true },
+        },
+        .{
+            \\const x = 1;
+            \\const y = blk: {
+            \\  if (x > 0) break :blk 1 else break :blk 2;
+            \\};
+            ,
+            .{ .read = true },
+        },
+        .{
+            \\const std = @import("std");
+            \\fn foo() void {
+            \\  var x = 1;
+            \\  const y = 2;
+            \\  if (x > y) {
+            \\    std.debug.print("x is greater than y\n", .{});
+            \\  }
+            \\}
+            ,
+            .{ .read = true },
+        },
+        .{
+            \\fn foo(x: u32) u32 {
+            \\  return x;
+            \\}
+            ,
+            .{ .read = true },
+        },
+        .{
+            \\fn x() u32 {
+            \\  return 1;
+            \\}
+            \\fn foo() u32 {
+            \\  return x();
+            \\}
+            ,
+            // FIXME
+            null,
+            // .{ .call = true },
+        },
+        .{
+            \\const std = @import("std");
+            \\fn main() u32 {
+            \\  const arr = std.heap.page_allocator.alloc(u32, 8) catch |x| @panic(@errorName(x));
+            \\}
+            ,
+            .{ .read = true },
+        },
+        .{
+            \\const std = @import("std");
+            \\fn main() u32 {
+            \\  const y: ?u32 = null;
+            \\  if (y) |x| {
+            \\    std.debug.print("y is non-null: {d}\n", .{x});
+            \\  }
+            \\}
+            ,
+            .{ .read = true },
+        },
     };
 
-    for (sources) |source| {
+    for (cases) |case| {
+        const source = case[0];
         var sem = try build(source);
         defer sem.deinit();
         const x: Symbol.Id = brk: {
@@ -102,11 +137,21 @@ test "simple references where `x` is referenced a single time" {
                 panic("Symbol 'x' not found in source:\n\n{s}\n\n", .{source});
             }
         };
+
         const refs = sem.symbols.getReferences(x);
         t.expectEqual(1, refs.len) catch |e| {
             print("Source:\n\n{s}\n\n", .{source});
             return e;
         };
+
+        const flags = sem.symbols.references.items(.flags)[refs[0].int()];
+        if (case[1]) |expected_flags| {
+            t.expectEqual(expected_flags, flags) catch |e| {
+                print("Expected: {any}\nActual:   {any}\n\n", .{ expected_flags, flags });
+                print("Source:\n\n{s}\n\n", .{source});
+                return e;
+            };
+        }
     }
 }
 

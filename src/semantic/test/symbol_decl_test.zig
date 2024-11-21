@@ -9,6 +9,55 @@ const build = test_util.build;
 const panic = std.debug.panic;
 const print = std.debug.print;
 
+test "Symbol flags for various declarations of `x`" {
+    const TestCase = std.meta.Tuple(&[_]type{ [:0]const u8, Symbol.Flags });
+
+    const cases = [_]TestCase{
+        .{
+            "const x = 1;",
+            .{ .s_const = true, .s_variable = true },
+        },
+        .{
+            "fn foo() void { const x, const y = bar(); }",
+            .{ .s_const = true, .s_variable = true },
+        },
+        .{
+            "fn foo() void { var x, const y = bar(); }",
+            .{ .s_const = false, .s_variable = true },
+        },
+        .{
+            "fn foo(x: u32) u32 { return x; }",
+            .{ .s_fn_param = true, .s_const = true },
+        },
+        .{
+            "fn foo(comptime x: u32) u32 { return x; }",
+            .{ .s_fn_param = true, .s_const = true, .s_comptime = true },
+        },
+        .{
+            "fn foo() u32 { comptime var x = 1; return x; }",
+            .{ .s_variable = true, .s_comptime = true },
+        },
+        .{
+            "fn x() void {}",
+            .{ .s_fn = true },
+        },
+    };
+
+    for (cases) |case| {
+        const source = case[0];
+        const expected_flags = case[1];
+        var sem = try build(source);
+        defer sem.deinit();
+
+        const x: Symbol.Id = sem.symbols.getSymbolNamed("x") orelse {
+            panic("Symbol 'x' not found in source:\n\n{s}\n\n", .{source});
+        };
+
+        const flags: Symbol.Flags = sem.symbols.symbols.items(.flags)[x.int()];
+        try t.expectEqual(expected_flags, flags);
+    }
+}
+
 test "control flow payloads - value and error" {
     // all of these should have `x` and `err` bound.
     const sources = [_][:0]const u8{
