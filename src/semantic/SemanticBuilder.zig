@@ -1463,17 +1463,14 @@ const Type = std.builtin.Type;
 
 const assert = std.debug.assert;
 
-const Ast = std.zig.Ast;
+const _ast = @import("ast.zig");
+const Ast = _ast.Ast;
 const full = Ast.full;
-const Token = std.zig.Token;
-const Node = Ast.Node;
-const NodeIndex = Ast.Node.Index;
-/// The struct used in AST tokens SOA is not pub so we hack it in here.
-const RawToken = struct {
-    tag: std.zig.Token.Tag,
-    start: u32,
-};
-const TokenIndex = Ast.TokenIndex;
+const Token = _ast.Token;
+const Node = _ast.Node;
+const NodeIndex = _ast.NodeIndex;
+const RawToken = _ast.RawToken;
+const TokenIndex = _ast.TokenIndex;
 
 const Error = @import("../Error.zig");
 const Span = @import("../source.zig").Span;

@@ -172,9 +172,10 @@ const Scope = @This();
 
 const std = @import("std");
 const util = @import("util");
+const _ast = @import("ast.zig");
+
 const Allocator = std.mem.Allocator;
-const Ast = std.zig.Ast;
-const Type = std.builtin.Type;
+const Ast = _ast.Ast;
 const Symbol = @import("Symbol.zig");
 const NominalId = @import("id.zig").NominalId;
 
