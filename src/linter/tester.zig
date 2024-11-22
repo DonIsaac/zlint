@@ -83,7 +83,7 @@ pub fn run(self: *RuleTester) !void {
         try stderr.writeByte('\n');
 
         switch (e) {
-            TestError.FailPassed => {
+            TestError.PassFailed => {
                 for (self.errors.items) |err| {
                     try self.fmt.format(&stderr, err);
                     try stderr.writeByte('\n');
@@ -113,9 +113,13 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
             else => {
                 self.diagnostic.message = BooStr.fmt(
                     self.alloc,
-                    "Expected test case #{d} to pass:\n\n{s}\n\nError: {s}\n",
-                    .{ i + 1, self.rule.meta.name, @errorName(e) },
+                    "Pass test case #{d} failed: {s}\n\nSource:\n{s}\n",
+                    .{ i + 1, @errorName(e), src },
                 ) catch @panic("OOM");
+                if (pass_errors) |errors| {
+                    defer errors.deinit();
+                    try self.errors.appendSlice(self.alloc, errors.items);
+                }
                 return LintTesterError.PassFailed;
             },
         };
@@ -243,6 +247,7 @@ const MockRule = struct {
     };
     pub fn runOnNode(_: *const MockRule, _: NodeWrapper, _: *LinterContext) void {}
 };
+
 test RuleTester {
     const t = std.testing;
     var mock_rule = MockRule{};

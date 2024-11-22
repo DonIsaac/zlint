@@ -32,6 +32,18 @@ pub fn ast(self: *const Context) *const Ast {
     return &self.semantic.ast;
 }
 
+pub inline fn scopes(self: *const Context) *const Semantic.ScopeTree {
+    return &self.semantic.scopes;
+}
+
+pub inline fn symbols(self: *const Context) *const Semantic.SymbolTable {
+    return &self.semantic.symbols;
+}
+
+pub inline fn links(self: *const Context) *const Semantic.NodeLinks {
+    return &self.semantic.node_links;
+}
+
 // ============================ ERROR REPORTING ============================
 
 pub fn spanN(self: *const Context, node_id: Ast.Node.Index) LabeledSpan {

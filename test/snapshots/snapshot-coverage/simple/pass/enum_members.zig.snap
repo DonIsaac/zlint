@@ -128,7 +128,7 @@
     "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
-        "flags": ["block"], 
+        "flags": ["enum", "block"], 
         "bindings": {
           "a": 2, 
           "b": 3, 
