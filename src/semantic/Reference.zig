@@ -5,6 +5,12 @@ pub const Reference = @This();
 symbol: Symbol.Id.Optional,
 scope: Scope.Id,
 node: Node.Index,
+token: TokenIndex,
+/// The identifier being referenced.
+///
+/// ## Note
+/// This is deriveable from `token`, but `Ast.tokenSlice` is prohibitively
+/// expensive for identifiers since it re-tokenizes the source.
 identifier: []const u8,
 flags: Flags,
 
@@ -182,6 +188,7 @@ const _ast = @import("ast.zig");
 const NominalId = @import("id.zig").NominalId;
 
 const Node = _ast.Node;
+const TokenIndex = _ast.TokenIndex;
 const Scope = @import("Scope.zig");
 const Symbol = @import("Symbol.zig");
 

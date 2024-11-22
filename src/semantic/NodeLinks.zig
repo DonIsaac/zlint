@@ -18,7 +18,9 @@ parents: std.ArrayListUnmanaged(NodeIndex) = .{},
 ///
 /// This is _not_ a mapping for scopes that nodes create.
 scopes: std.ArrayListUnmanaged(Scope.Id) = .{},
-// references: std.AutoHashMapUnmanaged(Ast.TokenIndex, Reference.Id)
+/// Maps tokens (usually `.identifier`s) to the references they create. Since
+/// references are sparse in an AST, a hashmap is used to avoid wasting memory.
+references: std.AutoHashMapUnmanaged(Ast.TokenIndex, Reference.Id) = .{},
 
 pub fn init(alloc: Allocator, ast: *const Ast) Allocator.Error!NodeLinks {
     var links: NodeLinks = .{};
@@ -28,11 +30,13 @@ pub fn init(alloc: Allocator, ast: *const Ast) Allocator.Error!NodeLinks {
     try links.scopes.ensureTotalCapacityPrecise(alloc, ast.nodes.len);
     links.scopes.appendNTimesAssumeCapacity(ROOT_SCOPE_ID, ast.nodes.len);
 
+    try links.references.ensureTotalCapacity(alloc, 16);
+
     return links;
 }
 
 pub fn deinit(self: *NodeLinks, alloc: Allocator) void {
-    inline for (.{ "parents", "scopes" }) |name| {
+    inline for (.{ "parents", "scopes", "references" }) |name| {
         @field(self, name).deinit(alloc);
     }
 }
@@ -100,6 +104,7 @@ const ROOT_NODE_ID = Semantic.ROOT_NODE_ID;
 const NULL_NODE = Semantic.NULL_NODE;
 const ROOT_SCOPE_ID = Semantic.ROOT_SCOPE_ID;
 const Scope = Semantic.Scope;
+const Reference = Semantic.Reference;
 
 const Allocator = std.mem.Allocator;
 const assert = util.assert;
