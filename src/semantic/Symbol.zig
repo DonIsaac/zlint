@@ -13,30 +13,29 @@
 ///
 /// `&'a str`
 name: string,
-// token: ast.MaybeTokenId,
-
+/// The token that declared this symbol. This is usually an `.identifier`.
+///
+/// `null` for anonymous symbols (i.e. no `name`).
+///
+/// TODO: this is redundant information to `name`, but `name` requires this + the
+/// source text to extract. We could remove `name` at the cost of usability.
+token: ast.MaybeTokenId,
 /// Only populated for symbols not bound to an identifier. Otherwise, this is an
 /// empty string.
 debug_name: string,
-
 /// This symbol's type. Only present if statically determinable, since
 /// analysis doesn't currently do type checking.
 // ty: ?Type,
 /// Unique identifier for this symbol.
 id: Id,
-
 /// Scope this symbol is declared in.
 scope: Scope.Id,
-
 /// Index of the AST node declaring this symbol.
 ///
 /// Usually a `var`/`const` declaration, function statement, etc.
 decl: Node.Index,
-
 visibility: Visibility,
-
 flags: Flags,
-
 references: std.ArrayListUnmanaged(Reference.Id) = .{},
 
 /// Symbols on "instance objects" (e.g. field properties and instance
@@ -156,6 +155,7 @@ pub const SymbolTable = struct {
         declaration_node: Node.Index,
         name: ?string,
         debug_name: ?string,
+        token: ?ast.TokenIndex,
         scope_id: Scope.Id,
         visibility: Symbol.Visibility,
         flags: Symbol.Flags,
@@ -167,6 +167,7 @@ pub const SymbolTable = struct {
         const symbol = Symbol{
             .name = name orelse "",
             .debug_name = debug_name orelse "",
+            .token = ast.MaybeTokenId.new(token),
             // .ty = ty,
             .id = id,
             .scope = scope_id,
@@ -339,8 +340,8 @@ test "SymbolTable.iter()" {
     var table = SymbolTable{};
     defer table.deinit(a);
 
-    _ = try table.addSymbol(a, 1, "a", null, Scope.Id.new(0), .public, .{});
-    _ = try table.addSymbol(a, 1, "b", null, Scope.Id.new(1), .public, .{});
+    _ = try table.addSymbol(a, 1, "a", null, null, Scope.Id.new(0), .public, .{});
+    _ = try table.addSymbol(a, 1, "b", null, null, Scope.Id.new(1), .public, .{});
     try expectEqual(2, table.symbols.len);
 
     var iter = table.iter();

@@ -3,6 +3,7 @@
     {
       "name": "", 
       "debugName": "@This()", 
+      "token": null, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["const"], 
@@ -16,6 +17,7 @@
     {
       "name": "Foo", 
       "debugName": "", 
+      "token": 2, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
@@ -31,6 +33,7 @@
     {
       "name": "a", 
       "debugName": "", 
+      "token": 6, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
       "flags": ["member"], 
@@ -44,6 +47,7 @@
     {
       "name": "b", 
       "debugName": "", 
+      "token": 8, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
       "flags": ["member"], 
@@ -57,6 +61,7 @@
     {
       "name": "c", 
       "debugName": "", 
+      "token": 10, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
       "flags": ["member"], 
@@ -70,6 +75,7 @@
     {
       "name": "Bar", 
       "debugName": "", 
+      "token": 14, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(1), 
       "flags": ["variable", "const"], 
@@ -83,6 +89,7 @@
     {
       "name": "isNotA", 
       "debugName": "", 
+      "token": 22, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(1), 
       "flags": ["fn"], 
@@ -96,6 +103,7 @@
     {
       "name": "self", 
       "debugName": "", 
+      "token": 24, 
       "declNode": "identifier", 
       "scope": semantic.id.NominalId(u32)(2), 
       "flags": ["const", "fn_param"], 

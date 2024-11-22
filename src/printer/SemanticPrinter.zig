@@ -31,6 +31,7 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: 
 
     try self.printer.pPropStr("name", symbol.name);
     try self.printer.pPropStr("debugName", symbol.debug_name);
+    try self.printer.pProp("token", "{any}", if (symbol.token.unwrap()) |t| t.int() else null);
     const decl = self.semantic.ast.nodes.items(.tag)[symbol.decl];
     try self.printer.pPropWithNamespacedValue("declNode", decl);
     try self.printer.pProp("scope", "{d}", symbol.scope);

@@ -200,7 +200,6 @@ const Linker = struct {
                 const name = ent.key_ptr.*;
                 const dep = ent.value_ptr.*;
                 if (mod == dep) continue;
-                std.debug.print("linking dev module: {s}\n", .{name});
                 mod.addImport(name, dep);
             }
         }

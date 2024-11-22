@@ -3,6 +3,7 @@
     {
       "name": "", 
       "debugName": "@This()", 
+      "token": null, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["const"], 
@@ -16,6 +17,7 @@
     {
       "name": "Writer", 
       "debugName": "", 
+      "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
@@ -30,6 +32,7 @@
     {
       "name": "ptr", 
       "debugName": "", 
+      "token": 5, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
       "flags": ["member"], 
@@ -43,6 +46,7 @@
     {
       "name": "writeAllFn", 
       "debugName": "", 
+      "token": 10, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
       "flags": ["member"], 
@@ -56,6 +60,7 @@
     {
       "name": "init", 
       "debugName": "", 
+      "token": 33, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(1), 
       "flags": ["fn"], 
@@ -69,6 +74,7 @@
     {
       "name": "ptr", 
       "debugName": "", 
+      "token": 35, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(2), 
       "flags": ["const", "fn_param"], 
@@ -84,6 +90,7 @@
     {
       "name": "T", 
       "debugName": "", 
+      "token": 42, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(4), 
       "flags": ["variable", "const"], 
@@ -98,6 +105,7 @@
     {
       "name": "ptr_info", 
       "debugName": "", 
+      "token": 50, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(4), 
       "flags": ["variable", "const"], 
@@ -112,6 +120,7 @@
     {
       "name": "gen", 
       "debugName": "", 
+      "token": 58, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(4), 
       "flags": ["variable", "const"], 
@@ -126,6 +135,7 @@
     {
       "name": "writeAll", 
       "debugName": "", 
+      "token": 64, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(5), 
       "flags": ["fn"], 
@@ -139,6 +149,7 @@
     {
       "name": "pointer", 
       "debugName": "", 
+      "token": 66, 
       "declNode": "ptr_type_aligned", 
       "scope": semantic.id.NominalId(u32)(6), 
       "flags": ["const", "fn_param"], 
@@ -153,6 +164,7 @@
     {
       "name": "data", 
       "debugName": "", 
+      "token": 71, 
       "declNode": "ptr_type_aligned", 
       "scope": semantic.id.NominalId(u32)(6), 
       "flags": ["const", "fn_param"], 
@@ -167,6 +179,7 @@
     {
       "name": "self", 
       "debugName": "", 
+      "token": 83, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(8), 
       "flags": ["variable", "const"], 
@@ -181,6 +194,7 @@
     {
       "name": "writeAll", 
       "debugName": "", 
+      "token": 132, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(1), 
       "flags": ["fn"], 
@@ -194,6 +208,7 @@
     {
       "name": "self", 
       "debugName": "", 
+      "token": 134, 
       "declNode": "identifier", 
       "scope": semantic.id.NominalId(u32)(9), 
       "flags": ["const", "fn_param"], 
@@ -209,6 +224,7 @@
     {
       "name": "data", 
       "debugName": "", 
+      "token": 138, 
       "declNode": "ptr_type_aligned", 
       "scope": semantic.id.NominalId(u32)(9), 
       "flags": ["const", "fn_param"], 

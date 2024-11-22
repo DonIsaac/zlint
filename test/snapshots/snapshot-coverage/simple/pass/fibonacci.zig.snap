@@ -3,6 +3,7 @@
     {
       "name": "", 
       "debugName": "@This()", 
+      "token": null, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["const"], 
@@ -16,6 +17,7 @@
     {
       "name": "std", 
       "debugName": "", 
+      "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
@@ -33,6 +35,7 @@
     {
       "name": "Managed", 
       "debugName": "", 
+      "token": 9, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
@@ -49,6 +52,7 @@
     {
       "name": "main", 
       "debugName": "", 
+      "token": 23, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -62,6 +66,7 @@
     {
       "name": "allocator", 
       "debugName": "", 
+      "token": 31, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["variable", "const"], 
@@ -80,6 +85,7 @@
     {
       "name": "a", 
       "debugName": "", 
+      "token": 40, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["variable"], 
@@ -97,6 +103,7 @@
     {
       "name": "b", 
       "debugName": "", 
+      "token": 60, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["variable"], 
@@ -114,6 +121,7 @@
     {
       "name": "i", 
       "debugName": "", 
+      "token": 80, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["variable"], 
@@ -129,6 +137,7 @@
     {
       "name": "c", 
       "debugName": "", 
+      "token": 87, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["variable"], 
@@ -145,6 +154,7 @@
     {
       "name": "as", 
       "debugName": "", 
+      "token": 153, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["variable", "const"], 

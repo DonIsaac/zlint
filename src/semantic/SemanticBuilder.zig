@@ -498,8 +498,9 @@ fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.C
     // main_token points to the field name
     // NOTE: container fields are always public
     // TODO: record type annotations
+    const identifier = self.expectToken(main_token, .identifier);
     _ = try self.declareMemberSymbol(.{
-        .name = self.getIdentifier(main_token),
+        .identifier = identifier,
         .flags = .{
             .s_comptime = field.comptime_token != null,
         },
@@ -517,9 +518,13 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
     // main_token points to `var`, `const` keyword. `.identifier` comes immediately afterwards
     const ast = self.AST();
     const main_token: TokenIndex = ast.nodes.items(.main_token)[node_id];
+    // const tags = ast.tokens.items(.tag);
 
-    const identifier: ?string = self.getIdentifier(main_token + 1);
-    const debug_name: ?string = if (identifier == null) "<anonymous var decl>" else null;
+    const identifier = self.expectToken(main_token + 1, .identifier);
+    // TODO: find out if this could legally be another kind of token
+    // if (tags[identifier] != .identifier) return error.MissingIdentifier;
+    // const debug_name: ?string = if (identifier == null) "<anonymous var decl>" else null;
+    const debug_name = null;
     const visibility = if (var_decl.visib_token == null) Symbol.Visibility.private else Symbol.Visibility.public;
     const is_const: bool = blk: {
         const token_tags = ast.tokens.items(.tag);
@@ -528,7 +533,7 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
         break :blk main_tag == .keyword_const;
     };
     const symbol_id = try self.bindSymbol(.{
-        .name = identifier,
+        .identifier = identifier,
         .debug_name = debug_name,
         .visibility = visibility,
         .flags = .{
@@ -586,12 +591,14 @@ fn visitAssignDestructure(
         const decl: full.VarDecl = ast.fullVarDecl(var_id) orelse {
             return SemanticError.FullMismatch;
         };
-        const identifier: ?string = self.getIdentifier(main_token + 1);
-        util.assert(identifier != null, "assignment declarations are not valid when an identifier name is missing.", .{});
+        // const identifier: ?string = self.getIdentifier(main_token + 1);
+        const identifier = main_token + 1;
+        if (token_tags[identifier] != .identifier) return error.MissingIdentifier;
+
         // note: intentionally not using bindSymbol (for now, at least)
         _ = try self.declareSymbol(.{
             .declaration_node = var_id,
-            .name = identifier,
+            .identifier = identifier,
             .visibility = if (decl.visib_token != null) .public else .private,
             .flags = .{
                 .s_variable = true,
@@ -664,11 +671,11 @@ inline fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) !void 
         try self.enterScope(.{});
         defer self.exitScope();
         if (if_stmt.payload_token) |payload| {
-            const ident_tok = if (tags[payload] == .identifier) payload else payload + 1;
-            if (tags[ident_tok] != .identifier) return error.MissingIdentifier;
+            const identifier = if (tags[payload] == .identifier) payload else payload + 1;
+            if (tags[identifier] != .identifier) return error.MissingIdentifier;
             _ = try self.declareSymbol(.{
                 .declaration_node = if_stmt.ast.then_expr,
-                .name = ast.tokenSlice(ident_tok),
+                .identifier = identifier,
                 .flags = .{
                     .s_payload = true,
                     .s_const = true,
@@ -684,11 +691,11 @@ inline fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) !void 
         defer self.exitScope();
 
         if (if_stmt.error_token) |payload| {
-            const ident_tok = if (tags[payload] == .identifier) payload else payload + 1;
-            if (tags[ident_tok] != .identifier) return error.MissingIdentifier;
+            const identifier = if (tags[payload] == .identifier) payload else payload + 1;
+            if (tags[identifier] != .identifier) return error.MissingIdentifier;
             _ = try self.declareSymbol(.{
                 .declaration_node = if_stmt.ast.else_expr,
-                .name = ast.tokenSlice(ident_tok),
+                .identifier = identifier,
                 .flags = .{
                     .s_payload = true,
                     .s_const = true,
@@ -734,9 +741,10 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
     defer self.exitScope();
 
     if (token_tags[fallback_first - 1] == .pipe) {
-        const identifier = self.getIdentifier(main_token + 2) orelse return SemanticError.MissingIdentifier;
+        const identifier: TokenIndex = main_token + 2;
+        if (token_tags[identifier] != .identifier) return SemanticError.MissingIdentifier;
         _ = try self.declareSymbol(.{
-            .name = identifier,
+            .identifier = identifier,
             .visibility = .private,
             .flags = .{
                 .s_payload = true,
@@ -773,11 +781,12 @@ fn visitFnProtoParams(self: *SemanticBuilder, fn_proto: full.FnProto) !void {
 
         // bind parameter symbol
         if (param.name_token) |name_token| {
-            const identifier = ast.tokenSlice(name_token);
+            // const identifier = ast.tokenSlice(name_token);
             const prev_tag: Token.Tag = tags[name_token - 1];
             _ = try self.declareSymbol(.{
                 .declaration_node = node_id,
-                .name = identifier,
+                // .name = identifier,
+                .identifier = name_token,
                 .flags = .{
                     .s_comptime = prev_tag == .keyword_comptime,
                     .s_fn_param = true,
@@ -799,11 +808,10 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     const proto = ast.fullFnProto(&buf, data.lhs) orelse unreachable;
     const visibility = if (proto.visib_token == null) Symbol.Visibility.private else Symbol.Visibility.public;
     // TODO: bound name vs escaped name
-    const identifier: ?string = if (proto.name_token) |tok| self.getIdentifier(tok) else null;
-    const debug_name: ?string = if (identifier == null) "<anonymous fn>" else null;
+    const debug_name: ?string = if (proto.name_token == null) "<anonymous fn>" else null;
     // TODO: bind methods as members
     _ = try self.bindSymbol(.{
-        .name = identifier,
+        .identifier = proto.name_token,
         .debug_name = debug_name,
         .visibility = visibility,
         .flags = .{ .s_fn = true },
@@ -1023,7 +1031,8 @@ const DeclareSymbol = struct {
     declaration_node: ?NodeIndex = null,
     /// Name of the identifier bound to this symbol. May be missing for
     /// anonymous symbols. In these cases, provide a `debug_name`.
-    name: ?string = null,
+    identifier: ?TokenIndex = null,
+    // name: ?string = null,
     /// An optional debug name for anonymous symbols
     debug_name: ?string = null,
     /// Visibility to external code. Defaults to public.
@@ -1070,11 +1079,13 @@ inline fn declareSymbol(
     opts: DeclareSymbol,
 ) !Symbol.Id {
     const scope = opts.scope_id orelse self.currentScope();
+    const name = if (opts.identifier) |ident| self._semantic.ast.tokenSlice(ident) else null;
     const symbol_id = try self._semantic.symbols.addSymbol(
         self._gpa,
         opts.declaration_node orelse self.currentNode(),
-        opts.name,
+        name,
         opts.debug_name,
+        opts.identifier,
         scope,
         opts.visibility,
         opts.flags,
@@ -1297,8 +1308,9 @@ inline fn maybeGetNode(self: *const SemanticBuilder, node_id: NodeIndex) ?Node {
     return self.AST().nodes.get(node_id);
 }
 
-inline fn getTokenTag(self: *const SemanticBuilder, token_id: TokenIndex) Token.Tag {
-    return self._semantic.ast.tokens.items(.tag)[token_id];
+/// Returns `token` if it has the expected tag, or `null` if it doesn't.
+inline fn expectToken(self: *const SemanticBuilder, token: TokenIndex, tag: Token.Tag) ?TokenIndex {
+    return if (self.AST().tokens.items(.tag)[token] == tag) token else null;
 }
 
 inline fn getToken(self: *const SemanticBuilder, token_id: TokenIndex) RawToken {
@@ -1314,14 +1326,6 @@ inline fn getToken(self: *const SemanticBuilder, token_id: TokenIndex) RawToken 
         .tag = tok.tag,
         .start = tok.start,
     };
-}
-
-/// Get an identifier name from an `.identifier` token.
-fn getIdentifier(self: *SemanticBuilder, token_id: Ast.TokenIndex) ?string {
-    const ast = self.AST();
-
-    const tag = ast.tokens.items(.tag)[token_id];
-    return if (tag == .identifier) ast.tokenSlice(token_id) else null;
 }
 
 // =========================================================================
