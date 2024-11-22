@@ -10,13 +10,12 @@
 
 _gpa: Allocator,
 _arena: ArenaAllocator,
-_curr_scope_id: Semantic.Scope.Id = ROOT_SCOPE,
-_curr_symbol_id: ?Semantic.Symbol.Id = null,
+
+// states
 _curr_scope_flags: Scope.Flags = .{},
 _curr_reference_flags: Reference.Flags = .{ .read = true },
 
 // stacks
-
 _scope_stack: std.ArrayListUnmanaged(Semantic.Scope.Id) = .{},
 /// When entering an initialization container for a symbol, that symbol's ID
 /// is pushed here. This lets us record members and exports.
@@ -49,6 +48,7 @@ pub const SemanticError = error{
     FullMismatch,
     /// Expected an identifier name, but none was found.
     MissingIdentifier,
+    UnexpectedToken,
 } || Allocator.Error;
 
 pub fn init(gpa: Allocator) SemanticBuilder {
@@ -142,8 +142,10 @@ pub fn deinit(self: *SemanticBuilder) void {
     self._unresolved_references.deinit(self._gpa);
 }
 
-fn parse(self: *SemanticBuilder, source: stringSlice) !Ast {
-    const ast = try Ast.parse(self._arena.allocator(), source, .zig);
+fn parse(self: *SemanticBuilder, source: stringSlice) Allocator.Error!Ast {
+    const alloc = self._arena.allocator();
+    var ast = try Ast.parse(self._arena.allocator(), source, .zig);
+    errdefer ast.deinit(alloc);
 
     // Record parse errors
     if (ast.errors.len > 0) {
@@ -151,7 +153,7 @@ fn parse(self: *SemanticBuilder, source: stringSlice) !Ast {
         for (ast.errors) |ast_err| {
             // Not an error. TODO: verify this assumption
             if (ast_err.is_note) continue;
-            self.addAstError(&ast, ast_err) catch @panic("Out of memory");
+            try self.addAstError(&ast, ast_err);
         }
     }
 
@@ -743,8 +745,7 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
     defer self.exitScope();
 
     if (token_tags[fallback_first - 1] == .pipe) {
-        const identifier: TokenIndex = main_token + 2;
-        if (token_tags[identifier] != .identifier) return SemanticError.MissingIdentifier;
+        const identifier: TokenIndex = try self.assertToken(main_token + 2, .identifier);
         _ = try self.declareSymbol(.{
             .identifier = identifier,
             .visibility = .private,
@@ -1310,32 +1311,19 @@ inline fn maybeGetNode(self: *const SemanticBuilder, node_id: NodeIndex) ?Node {
 }
 
 /// Returns `token` if it has the expected tag, or `null` if it doesn't.
-inline fn expectToken(self: *const SemanticBuilder, token: TokenIndex, tag: Token.Tag) ?TokenIndex {
+inline fn expectToken(self: *const SemanticBuilder, token: TokenIndex, comptime tag: Token.Tag) ?TokenIndex {
     return if (self.AST().tokens.items(.tag)[token] == tag) token else null;
 }
 
 /// Like `expectToken`, but returns an error if the token doesn't have the expected tag.
 ///
 /// Token tag checks are treated like other runtime safety checks and are
-//disabled by `ReleaseFast`.
-inline fn assertToken(self: *const SemanticBuilder, token: TokenIndex, tag: Token.Tag) SemanticError!TokenIndex {
+/// disabled by `ReleaseFast`.
+inline fn assertToken(self: *const SemanticBuilder, token: TokenIndex, comptime tag: Token.Tag) SemanticError!TokenIndex {
     if (comptime !util.RUNTIME_SAFETY) return token;
-    // if (std)
-    return self.expectToken(token, tag) orelse SemanticError.MissingIdentifier;
-}
-
-inline fn getToken(self: *const SemanticBuilder, token_id: TokenIndex) RawToken {
-    const len = self.AST().tokens.len;
-    util.assert(
-        token_id < len,
-        "Cannot get token: id {d} is out of bounds ({d})",
-        .{ token_id, len },
-    );
-
-    const tok = self.AST().tokens.get(token_id);
-    return .{
-        .tag = tok.tag,
-        .start = tok.start,
+    return self.expectToken(token, tag) orelse switch (tag) {
+        .identifier => SemanticError.MissingIdentifier,
+        else => SemanticError.UnexpectedToken,
     };
 }
 
@@ -1343,7 +1331,7 @@ inline fn getToken(self: *const SemanticBuilder, token_id: TokenIndex) RawToken 
 // =========================== ERROR MANAGEMENT ============================
 // =========================================================================
 
-fn addAstError(self: *SemanticBuilder, ast: *const Ast, ast_err: Ast.Error) !void {
+fn addAstError(self: *SemanticBuilder, ast: *const Ast, ast_err: Ast.Error) Allocator.Error!void {
     var msg: std.ArrayListUnmanaged(u8) = .{};
     defer msg.deinit(self._gpa);
     try ast.renderError(ast_err, msg.writer(self._gpa));
@@ -1362,11 +1350,11 @@ fn addAstError(self: *SemanticBuilder, ast: *const Ast, ast_err: Ast.Error) !voi
 /// Record an error encountered during parsing or analysis.
 ///
 /// All parameters are borrowed. Errors own their data, so each parameter gets cloned onto the heap.
-fn addError(self: *SemanticBuilder, message: string, labels: []Span, help: ?string) !void {
+fn addError(self: *SemanticBuilder, message: string, labels: []Span, help: ?string) Allocator.Error!void {
     const alloc = self._errors.allocator;
     const heap_message = try alloc.dupeZ(u8, message);
     const heap_labels = try alloc.dupe(Span, labels);
-    const heap_help: ?string = if (help == null) null else try alloc.dupeZ(help.?);
+    const heap_help = if (help) |h| alloc.dupeZ(h) else null;
     const err = try Error{
         .message = .{ .str = heap_message, .static = false },
         .labels = heap_labels,
