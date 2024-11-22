@@ -31,8 +31,8 @@ test "references record where and how a symbol is used" {
     const symbols = semantic.symbols;
     const scopes = semantic.scopes;
 
-    // FIXME: should be 2 (maybe 3?) but is 4
-    try t.expectEqual(4, scopes.len());
+    // 0: root, 1: function signature (and params), 2: function body
+    try t.expectEqual(3, scopes.len());
     try t.expectEqual(0, symbols.unresolved_references.items.len);
 
     const x: Symbol.Id = symbols.getSymbolNamed("x") orelse {
