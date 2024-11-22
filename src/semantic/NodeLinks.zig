@@ -10,11 +10,15 @@
 /// Do not insert into this list directly; use `setParent` instead. This method
 /// upholds link invariants.
 ///
-/// Invariants:
+/// ### Invariants:
 /// - No node is its own parent
 /// - No node is the parent of the root node (0 in this case means `null`).
 parents: std.ArrayListUnmanaged(NodeIndex) = .{},
+/// Map AST nodes to the scope they are in. Index is the node id.
+///
+/// This is _not_ a mapping for scopes that nodes create.
 scopes: std.ArrayListUnmanaged(Scope.Id) = .{},
+// references: std.AutoHashMapUnmanaged(Ast.TokenIndex, Reference.Id)
 
 pub fn init(alloc: Allocator, ast: *const Ast) Allocator.Error!NodeLinks {
     var links: NodeLinks = .{};
@@ -22,7 +26,7 @@ pub fn init(alloc: Allocator, ast: *const Ast) Allocator.Error!NodeLinks {
     try links.parents.ensureTotalCapacityPrecise(alloc, ast.nodes.len);
     links.parents.appendNTimesAssumeCapacity(NULL_NODE, @intCast(ast.nodes.len));
     try links.scopes.ensureTotalCapacityPrecise(alloc, ast.nodes.len);
-    links.scopes.appendNTimesAssumeCapacity(Semantic.ROOT_SCOPE_ID, ast.nodes.len);
+    links.scopes.appendNTimesAssumeCapacity(ROOT_SCOPE_ID, ast.nodes.len);
 
     return links;
 }
@@ -85,14 +89,17 @@ const ParentIdsIterator = struct {
 
 const NodeLinks = @This();
 
-const Ast = std.zig.Ast;
-const NodeIndex = Ast.Node.Index;
+const std = @import("std");
+const _ast = @import("ast.zig");
+const util = @import("util");
+
+const Ast = _ast.Ast;
+const NodeIndex = _ast.NodeIndex;
 const Semantic = @import("./Semantic.zig");
 const ROOT_NODE_ID = Semantic.ROOT_NODE_ID;
 const NULL_NODE = Semantic.NULL_NODE;
+const ROOT_SCOPE_ID = Semantic.ROOT_SCOPE_ID;
 const Scope = Semantic.Scope;
 
-const std = @import("std");
 const Allocator = std.mem.Allocator;
-const util = @import("util");
 const assert = util.assert;

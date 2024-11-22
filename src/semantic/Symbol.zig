@@ -13,6 +13,7 @@
 ///
 /// `&'a str`
 name: string,
+// token: ast.MaybeTokenId,
 
 /// Only populated for symbols not bound to an identifier. Otherwise, this is an
 /// empty string.
@@ -318,11 +319,13 @@ pub const ReferenceIterator = struct {
 const Symbol = @This();
 
 const std = @import("std");
+const ast = @import("ast.zig");
+
 const Allocator = std.mem.Allocator;
 const Type = std.builtin.Type;
 const NominalId = @import("id.zig").NominalId;
 
-const Node = std.zig.Ast.Node;
+const Node = ast.Node;
 const Scope = @import("Scope.zig");
 const Reference = @import("Reference.zig");
 
