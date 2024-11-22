@@ -3,6 +3,7 @@
     {
       "name": "", 
       "debugName": "@This()", 
+      "token": null, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["const"], 
@@ -16,6 +17,7 @@
     {
       "name": "std", 
       "debugName": "", 
+      "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
@@ -32,6 +34,7 @@
     {
       "name": "builtin", 
       "debugName": "", 
+      "token": 9, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
@@ -47,6 +50,7 @@
     {
       "name": "msg", 
       "debugName": "", 
+      "token": 17, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
@@ -60,6 +64,7 @@
     {
       "name": "simpleIf", 
       "debugName": "", 
+      "token": 33, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -73,6 +78,7 @@
     {
       "name": "i", 
       "debugName": "", 
+      "token": 39, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(5), 
       "flags": ["variable"], 
@@ -92,6 +98,7 @@
     {
       "name": "pow", 
       "debugName": "", 
+      "token": 76, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(10), 
       "flags": ["variable", "const"], 
@@ -106,6 +113,7 @@
     {
       "name": "comptimeIf", 
       "debugName": "", 
+      "token": 96, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -119,6 +127,7 @@
     {
       "name": "ifWithPayload", 
       "debugName": "", 
+      "token": 123, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -132,6 +141,7 @@
     {
       "name": "res", 
       "debugName": "", 
+      "token": 129, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(21), 
       "flags": ["variable", "const"], 
@@ -146,6 +156,7 @@
     {
       "name": "x", 
       "debugName": "", 
+      "token": 142, 
       "declNode": "block_two_semicolon", 
       "scope": semantic.id.NominalId(u32)(22), 
       "flags": ["payload", "const"], 
@@ -160,6 +171,7 @@
     {
       "name": "err", 
       "debugName": "", 
+      "token": 162, 
       "declNode": "block_two_semicolon", 
       "scope": semantic.id.NominalId(u32)(24), 
       "flags": ["payload", "const"], 

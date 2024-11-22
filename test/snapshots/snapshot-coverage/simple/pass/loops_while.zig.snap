@@ -3,6 +3,7 @@
     {
       "name": "", 
       "debugName": "@This()", 
+      "token": null, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["const"], 
@@ -16,6 +17,7 @@
     {
       "name": "std", 
       "debugName": "", 
+      "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
@@ -32,6 +34,7 @@
     {
       "name": "simpleWhile", 
       "debugName": "", 
+      "token": 9, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -45,6 +48,7 @@
     {
       "name": "i", 
       "debugName": "", 
+      "token": 15, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["variable"], 
@@ -62,6 +66,7 @@
     {
       "name": "power_of_two", 
       "debugName": "", 
+      "token": 29, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(4), 
       "flags": ["variable", "const"], 
@@ -76,6 +81,7 @@
     {
       "name": "whileWithClosure", 
       "debugName": "", 
+      "token": 58, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -89,6 +95,7 @@
     {
       "name": "map", 
       "debugName": "", 
+      "token": 64, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(7), 
       "flags": ["variable"], 
@@ -105,6 +112,7 @@
     {
       "name": "iter", 
       "debugName": "", 
+      "token": 96, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(7), 
       "flags": ["variable", "const"], 
@@ -119,6 +127,7 @@
     {
       "name": "k", 
       "debugName": "", 
+      "token": 117, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(8), 
       "flags": ["variable", "const"], 
@@ -133,6 +142,7 @@
     {
       "name": "v", 
       "debugName": "", 
+      "token": 125, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(8), 
       "flags": ["variable", "const"], 
@@ -147,6 +157,7 @@
     {
       "name": "whileWithExpr", 
       "debugName": "", 
+      "token": 151, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -160,6 +171,7 @@
     {
       "name": "x", 
       "debugName": "", 
+      "token": 157, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(11), 
       "flags": ["variable"], 
@@ -176,6 +188,7 @@
     {
       "name": "y", 
       "debugName": "", 
+      "token": 164, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(11), 
       "flags": ["variable"], 
@@ -192,6 +205,7 @@
     {
       "name": "my_xy", 
       "debugName": "", 
+      "token": 193, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(13), 
       "flags": ["variable", "const"], 
@@ -206,6 +220,7 @@
     {
       "name": "rangeHasNumber", 
       "debugName": "", 
+      "token": 214, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -219,6 +234,7 @@
     {
       "name": "begin", 
       "debugName": "", 
+      "token": 216, 
       "declNode": "identifier", 
       "scope": semantic.id.NominalId(u32)(14), 
       "flags": ["const", "fn_param"], 
@@ -233,6 +249,7 @@
     {
       "name": "end", 
       "debugName": "", 
+      "token": 220, 
       "declNode": "identifier", 
       "scope": semantic.id.NominalId(u32)(14), 
       "flags": ["const", "fn_param"], 
@@ -247,6 +264,7 @@
     {
       "name": "number", 
       "debugName": "", 
+      "token": 224, 
       "declNode": "identifier", 
       "scope": semantic.id.NominalId(u32)(14), 
       "flags": ["const", "fn_param"], 
@@ -261,6 +279,7 @@
     {
       "name": "i", 
       "debugName": "", 
+      "token": 231, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(16), 
       "flags": ["variable"], 

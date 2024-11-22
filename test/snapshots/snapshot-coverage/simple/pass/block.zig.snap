@@ -3,6 +3,7 @@
     {
       "name": "", 
       "debugName": "@This()", 
+      "token": null, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["const"], 
@@ -16,6 +17,7 @@
     {
       "name": "empty", 
       "debugName": "", 
+      "token": 1, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -29,6 +31,7 @@
     {
       "name": "x", 
       "debugName": "", 
+      "token": 7, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["variable", "const"], 
@@ -43,6 +46,7 @@
     {
       "name": "one", 
       "debugName": "", 
+      "token": 17, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -56,6 +60,7 @@
     {
       "name": "y", 
       "debugName": "", 
+      "token": 23, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(7), 
       "flags": ["variable"], 
@@ -70,6 +75,7 @@
     {
       "name": "two", 
       "debugName": "", 
+      "token": 35, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -83,6 +89,7 @@
     {
       "name": "z", 
       "debugName": "", 
+      "token": 41, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(11), 
       "flags": ["variable"], 
@@ -97,6 +104,7 @@
     {
       "name": "a", 
       "debugName": "", 
+      "token": 47, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(12), 
       "flags": ["variable", "const"], 
@@ -111,6 +119,7 @@
     {
       "name": "many", 
       "debugName": "", 
+      "token": 58, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -124,6 +133,7 @@
     {
       "name": "a", 
       "debugName": "", 
+      "token": 64, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(15), 
       "flags": ["variable"], 
@@ -138,6 +148,7 @@
     {
       "name": "b", 
       "debugName": "", 
+      "token": 70, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(16), 
       "flags": ["variable", "const"], 
@@ -152,6 +163,7 @@
     {
       "name": "c", 
       "debugName": "", 
+      "token": 75, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(16), 
       "flags": ["variable", "const"], 
@@ -166,6 +178,7 @@
     {
       "name": "d", 
       "debugName": "", 
+      "token": 80, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(16), 
       "flags": ["variable", "const"], 
@@ -180,6 +193,7 @@
     {
       "name": "e", 
       "debugName": "", 
+      "token": 85, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(16), 
       "flags": ["variable", "const"], 
@@ -194,6 +208,7 @@
     {
       "name": "f", 
       "debugName": "", 
+      "token": 90, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(16), 
       "flags": ["variable", "const"], 

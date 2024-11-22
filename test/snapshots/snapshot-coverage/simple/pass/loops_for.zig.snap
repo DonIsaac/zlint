@@ -3,6 +3,7 @@
     {
       "name": "", 
       "debugName": "@This()", 
+      "token": null, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["const"], 
@@ -16,6 +17,7 @@
     {
       "name": "std", 
       "debugName": "", 
+      "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
@@ -31,6 +33,7 @@
     {
       "name": "forOverArr", 
       "debugName": "", 
+      "token": 9, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -44,6 +47,7 @@
     {
       "name": "arr", 
       "debugName": "", 
+      "token": 15, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["variable", "const"], 
@@ -58,6 +62,7 @@
     {
       "name": "power_of_two", 
       "debugName": "", 
+      "token": 42, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(4), 
       "flags": ["variable", "const"], 
@@ -72,6 +77,7 @@
     {
       "name": "forWithMultiBindingClosure", 
       "debugName": "", 
+      "token": 67, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -85,6 +91,7 @@
     {
       "name": "mat4x4", 
       "debugName": "", 
+      "token": 73, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(7), 
       "flags": ["variable", "const"], 
