@@ -3,6 +3,7 @@ id: Id,
 /// Scope hints.
 flags: Flags,
 parent: Id.Optional,
+node: NodeIndex,
 
 /// Uniquely identifies a scope within a source file.
 pub const Id = NominalId(u32);
@@ -30,6 +31,8 @@ pub const Flags = packed struct(FLAGS_REPR) {
     s_catch: bool = false,
     // Padding
     _: u8 = 0,
+
+    pub const Flag = std.meta.FieldEnum(Flags);
 
     /// Merge all `true`-valued flags in `self` and `other`. Neither argument is
     /// mutated.
@@ -93,13 +96,20 @@ pub const ScopeTree = struct {
     ///
     /// ## Errors
     /// If allocation fails. Usually due to OOM.
-    pub fn addScope(self: *ScopeTree, alloc: Allocator, parent: ?Scope.Id, flags: Scope.Flags) !Scope.Id {
+    pub fn addScope(
+        self: *ScopeTree,
+        alloc: Allocator,
+        parent: ?Scope.Id,
+        node: NodeIndex,
+        flags: Scope.Flags,
+    ) !Scope.Id {
         assert(self.scopes.len < Scope.MAX_ID);
         const id: Scope.Id = Id.from(self.scopes.len);
 
         // initialize the new scope
         try self.scopes.append(alloc, Scope{
             .id = id,
+            .node = node,
             .parent = Id.Optional.from(parent),
             .flags = flags,
         });
@@ -176,6 +186,7 @@ const _ast = @import("ast.zig");
 
 const Allocator = std.mem.Allocator;
 const Ast = _ast.Ast;
+const NodeIndex = _ast.NodeIndex;
 const Symbol = @import("Symbol.zig");
 const NominalId = @import("id.zig").NominalId;
 
@@ -202,7 +213,7 @@ test "ScopeTree.addScope" {
     var tree = ScopeTree{};
     defer tree.deinit(alloc);
 
-    const root_id = try tree.addScope(alloc, null, .{ .s_top = true });
+    const root_id = try tree.addScope(alloc, null, 0, .{ .s_top = true });
     const root = tree.getScope(root_id);
     try expectEqual(1, tree.scopes.len);
     try expectEqual(0, root_id.int());
@@ -210,7 +221,7 @@ test "ScopeTree.addScope" {
     try expectEqual(Scope.Flags{ .s_top = true }, root.flags);
     try expectEqual(root, tree.scopes.get(0));
 
-    const child_id = try tree.addScope(alloc, root.id, .{});
+    const child_id = try tree.addScope(alloc, root.id, 0, .{});
     const child = tree.getScope(child_id);
     try expectEqual(1, child.id.int());
     try expectEqual(Scope.Flags{}, child.flags);

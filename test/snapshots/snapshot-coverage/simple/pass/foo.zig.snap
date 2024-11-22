@@ -22,7 +22,7 @@
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["call"]}, 
+        {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -122,7 +122,7 @@
       "scope": semantic.id.NominalId(u32)(2), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":8,"scope":4,"node":"identifier","identifier":"self","flags":["read"]}, 
+        {"symbol":8,"scope":3,"node":"identifier","identifier":"self","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -160,7 +160,7 @@
         "children": [
           {
             "id": semantic.id.NominalId(u32)(2), 
-            "flags": [], 
+            "flags": ["function"], 
             "bindings": {
               "self": 8, 
               
@@ -168,21 +168,11 @@
             "children": [
               {
                 "id": semantic.id.NominalId(u32)(3), 
-                "flags": ["function"], 
+                "flags": ["function", "block"], 
                 "bindings": {
                   
                 }, 
-                "children": [
-                  {
-                    "id": semantic.id.NominalId(u32)(4), 
-                    "flags": ["block"], 
-                    "bindings": {
-                      
-                    }, 
-                    "children": [], 
-                    
-                  }, 
-                ], 
+                "children": [], 
                 
               }, 
             ], 

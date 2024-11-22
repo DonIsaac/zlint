@@ -113,6 +113,8 @@ pub const Flags = packed struct {
     /// declaration node. Zig does not appear to create an identifier node for parameters.
     s_fn_param: bool = false,
     s_catch_param: bool = false,
+
+    pub const Flag = std.meta.FieldEnum(Flags);
 };
 
 /// Stores symbols created and referenced within a Zig program.

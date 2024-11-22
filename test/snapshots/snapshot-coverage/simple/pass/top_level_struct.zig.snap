@@ -86,28 +86,18 @@
     "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
-        "flags": [], 
+        "flags": ["function"], 
         "bindings": {
           
         }, 
         "children": [
           {
             "id": semantic.id.NominalId(u32)(2), 
-            "flags": ["function"], 
+            "flags": ["function", "block"], 
             "bindings": {
               
             }, 
-            "children": [
-              {
-                "id": semantic.id.NominalId(u32)(3), 
-                "flags": ["block"], 
-                "bindings": {
-                  
-                }, 
-                "children": [], 
-                
-              }, 
-            ], 
+            "children": [], 
             
           }, 
         ], 

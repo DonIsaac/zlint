@@ -14,6 +14,12 @@ _arena: ArenaAllocator,
 // states
 _curr_scope_flags: Scope.Flags = .{},
 _curr_reference_flags: Reference.Flags = .{ .read = true },
+/// Flags added to the next block-created scope. Reset immediately after use.
+///
+/// Nodes whose children may or may not be a block scope must be careful to
+/// reset this themselves. Although `visitBlock` will reset these flags, if a
+/// non-block node is encountered, it will not be reset.
+_next_block_scope_flags: Scope.Flags = .{},
 
 // stacks
 _scope_stack: std.ArrayListUnmanaged(Semantic.Scope.Id) = .{},
@@ -398,8 +404,8 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         .@"asm", .asm_simple, .asm_output, .asm_input => return,
 
         .@"comptime" => {
-            const prev_comptime = self.setScopeFlag("s_comptime", true);
-            defer self.restoreScopeFlag("s_comptime", prev_comptime);
+            const prev_comptime = self.setScopeFlag(.s_comptime, true);
+            defer self.restoreScopeFlag(.s_comptime, prev_comptime);
 
             return self.visit(data[node_id].lhs);
         },
@@ -470,8 +476,10 @@ fn visitBlock(self: *SemanticBuilder, statements: []const NodeIndex) !void {
     defer if (is_root) {
         self._curr_scope_flags.s_comptime = was_comptime;
     };
+    const flags = self._next_block_scope_flags.merge(.{ .s_block = true });
+    self._next_block_scope_flags = .{};
 
-    try self.enterScope(.{ .s_block = true });
+    try self.enterScope(.{ .flags = flags });
     defer self.exitScope();
 
     for (statements) |stmt| {
@@ -480,7 +488,9 @@ fn visitBlock(self: *SemanticBuilder, statements: []const NodeIndex) !void {
 }
 
 fn visitContainer(self: *SemanticBuilder, _: NodeIndex, container: full.ContainerDecl) !void {
-    try self.enterScope(.{ .s_block = true, .s_enum = container.ast.enum_token != null });
+    try self.enterScope(.{
+        .flags = .{ .s_block = true, .s_enum = container.ast.enum_token != null },
+    });
     defer self.exitScope();
     for (container.ast.members) |member| {
         try self.visit(member);
@@ -674,6 +684,7 @@ inline fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) !void 
         // payload is only available in `then`, not `else`
         try self.enterScope(.{});
         defer self.exitScope();
+        defer self._next_block_scope_flags = .{};
         if (if_stmt.payload_token) |payload| {
             const identifier = if (tags[payload] == .identifier) payload else payload + 1;
             if (tags[identifier] != .identifier) return error.MissingIdentifier;
@@ -693,6 +704,7 @@ inline fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) !void 
         // same thing, but for else block
         try self.enterScope(.{});
         defer self.exitScope();
+        defer self._next_block_scope_flags = .{};
 
         if (if_stmt.error_token) |payload| {
             const identifier = if (tags[payload] == .identifier) payload else payload + 1;
@@ -722,6 +734,7 @@ fn visitSwitch(self: *SemanticBuilder, _: NodeIndex, condition: NodeIndex, cases
         const case = ast.fullSwitchCase(case_id) orelse unreachable;
         try self.enterNode(case_id);
         defer self.exitNode();
+        defer self._next_block_scope_flags = .{};
         try self.visitSwitchCase(case_id, case);
     }
 }
@@ -741,7 +754,7 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
     const fallback_first = ast.firstToken(data.rhs);
     const main_token = ast.nodes.items(.main_token)[node_id];
 
-    try self.enterScope(.{ .s_catch = true });
+    try self.enterScope(.{ .flags = .{ .s_catch = true } });
     defer self.exitScope();
 
     if (token_tags[fallback_first - 1] == .pipe) {
@@ -758,7 +771,8 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
     } else {
         assert(token_tags[fallback_first - 1] == .keyword_catch);
     }
-
+    self._next_block_scope_flags.s_catch = true;
+    defer self._next_block_scope_flags = .{};
     return self.visit(data.rhs);
 }
 
@@ -832,21 +846,32 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
 
     // parameters are in a new scope b/c other symbols in the same scope as
     // the declared fn cannot access them.
-    const was_comptime = self.setScopeFlag("s_comptime", fn_signature_implies_comptime);
-    defer self.restoreScopeFlag("s_comptime", was_comptime);
+    const was_comptime = self.setScopeFlag(.s_comptime, fn_signature_implies_comptime);
+    defer self.restoreScopeFlag(.s_comptime, was_comptime);
 
     // note: intentionally not calling visitFnProto b/c we don't want the scope
     // created for params to exit until _after_ we visit the function body.
-    try self.enterScope(.{});
+    try self.enterScope(.{
+        .flags = .{ .s_function = true },
+    });
     defer self.exitScope();
     try self.visitFnProtoParams(proto);
 
     // Function body is also in a new scope. Declaring a symbol with the
     // same name as a parameter is an illegal shadow, not a redeclaration
     // error.
-    try self.enterScope(.{ .s_function = true });
-    defer self.exitScope();
+    self._next_block_scope_flags.s_function = true;
+    // try self.enterScope(.{
+    //     .node = data.rhs,
+    //     .flags = .{ .s_function = true },
+    // });
+    // defer self.exitScope();
     try self.visit(data.rhs);
+    util.assert(
+        self._next_block_scope_flags.eq(.{}),
+        "Function body scope flags were not reset. This means the body was not a block node.",
+        .{},
+    );
 }
 
 /// Visit a function call. Does not visit calls to builtins
@@ -873,7 +898,12 @@ fn enterRoot(self: *SemanticBuilder) !void {
     // NOTE: root scope is entered differently to avoid unnecessary null checks
     // when getting parent scopes. Parent is only ever null for the root scope.
     util.assert(self._scope_stack.items.len == 0, "enterRoot called with non-empty scope stack", .{});
-    const root_scope_id = try self._semantic.scopes.addScope(self._gpa, null, .{ .s_top = true });
+    const root_scope_id = try self._semantic.scopes.addScope(
+        self._gpa,
+        null,
+        Semantic.ROOT_NODE_ID,
+        .{ .s_top = true },
+    );
     util.assert(root_scope_id == Semantic.ROOT_SCOPE_ID, "Creating root scope returned id {d} which is not the expected root id ({d})", .{ root_scope_id, Semantic.ROOT_SCOPE_ID });
 
     // SemanticBuilder.init() allocates enough space for 8 scopes.
@@ -927,7 +957,8 @@ inline fn assertRoot(self: *const SemanticBuilder) void {
 ///    try self.visit(children.lhs);
 /// }
 /// ```
-inline fn setScopeFlag(self: *SemanticBuilder, comptime flag_name: string, value: bool) bool {
+inline fn setScopeFlag(self: *SemanticBuilder, comptime flag: Scope.Flags.Flag, value: bool) bool {
+    const flag_name = @tagName(flag);
     const old_flag: bool = @field(self._curr_scope_flags, flag_name);
     @field(self._curr_scope_flags, flag_name) = value;
     return old_flag;
@@ -935,15 +966,29 @@ inline fn setScopeFlag(self: *SemanticBuilder, comptime flag_name: string, value
 
 /// Restore the builder's current scope flags to a checkpoint. Used in tandem
 /// with `resetScopeFlags`.
-inline fn restoreScopeFlag(self: *SemanticBuilder, comptime flag_name: string, prev_value: bool) void {
+inline fn restoreScopeFlag(self: *SemanticBuilder, comptime flag: Scope.Flags.Flag, prev_value: bool) void {
+    const flag_name = @tagName(flag);
     @field(self._curr_scope_flags, flag_name) = prev_value;
 }
 
+const CreateScope = struct {
+    flags: Scope.Flags = .{},
+    node: ?NodeIndex = null,
+};
+
 /// Enter a new scope, pushing it onto the stack.
-fn enterScope(self: *SemanticBuilder, flags: Scope.Flags) !void {
+fn enterScope(self: *SemanticBuilder, opts: CreateScope) !void {
     const parent_id = self._scope_stack.getLastOrNull();
-    const merged_flags = flags.merge(self._curr_scope_flags);
-    const scope = try self._semantic.scopes.addScope(self._gpa, parent_id, merged_flags);
+    const merged_flags = opts.flags.merge(self._curr_scope_flags);
+    const node = opts.node orelse self.currentNode();
+
+    const scope = try self._semantic.scopes.addScope(
+        self._gpa,
+        parent_id,
+        node,
+        merged_flags,
+    );
+
     try self._scope_stack.append(self._gpa, scope);
     try self._unresolved_references.enter(self._gpa);
 }

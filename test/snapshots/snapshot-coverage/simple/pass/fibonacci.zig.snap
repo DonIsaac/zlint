@@ -23,9 +23,9 @@
       "flags": ["variable", "const"], 
       "references": [
         {"symbol":1,"scope":0,"node":"identifier","identifier":"std","flags":["read"]}, 
-        {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["read"]}, 
-        {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["read"]}, 
-        {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["call"]}, 
+        {"symbol":1,"scope":2,"node":"identifier","identifier":"std","flags":["read"]}, 
+        {"symbol":1,"scope":2,"node":"identifier","identifier":"std","flags":["read"]}, 
+        {"symbol":1,"scope":2,"node":"identifier","identifier":"std","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -40,9 +40,9 @@
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":2,"scope":3,"node":"identifier","identifier":"Managed","flags":["call"]}, 
-        {"symbol":2,"scope":3,"node":"identifier","identifier":"Managed","flags":["call"]}, 
-        {"symbol":2,"scope":3,"node":"identifier","identifier":"Managed","flags":["call"]}, 
+        {"symbol":2,"scope":2,"node":"identifier","identifier":"Managed","flags":["call"]}, 
+        {"symbol":2,"scope":2,"node":"identifier","identifier":"Managed","flags":["call"]}, 
+        {"symbol":2,"scope":2,"node":"identifier","identifier":"Managed","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -68,14 +68,14 @@
       "debugName": "", 
       "token": 31, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(3), 
+      "scope": semantic.id.NominalId(u32)(2), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":4,"scope":3,"node":"identifier","identifier":"allocator","flags":["read"]}, 
-        {"symbol":4,"scope":3,"node":"identifier","identifier":"allocator","flags":["read"]}, 
-        {"symbol":4,"scope":3,"node":"identifier","identifier":"allocator","flags":["read"]}, 
-        {"symbol":4,"scope":3,"node":"identifier","identifier":"allocator","flags":["read"]}, 
-        {"symbol":4,"scope":3,"node":"identifier","identifier":"allocator","flags":["call"]}, 
+        {"symbol":4,"scope":2,"node":"identifier","identifier":"allocator","flags":["read"]}, 
+        {"symbol":4,"scope":2,"node":"identifier","identifier":"allocator","flags":["read"]}, 
+        {"symbol":4,"scope":2,"node":"identifier","identifier":"allocator","flags":["read"]}, 
+        {"symbol":4,"scope":2,"node":"identifier","identifier":"allocator","flags":["read"]}, 
+        {"symbol":4,"scope":2,"node":"identifier","identifier":"allocator","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -87,13 +87,13 @@
       "debugName": "", 
       "token": 40, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(3), 
+      "scope": semantic.id.NominalId(u32)(2), 
       "flags": ["variable"], 
       "references": [
+        {"symbol":5,"scope":2,"node":"identifier","identifier":"a","flags":["call"]}, 
         {"symbol":5,"scope":3,"node":"identifier","identifier":"a","flags":["call"]}, 
-        {"symbol":5,"scope":4,"node":"identifier","identifier":"a","flags":["call"]}, 
-        {"symbol":5,"scope":4,"node":"identifier","identifier":"a","flags":["call"]}, 
         {"symbol":5,"scope":3,"node":"identifier","identifier":"a","flags":["call"]}, 
+        {"symbol":5,"scope":2,"node":"identifier","identifier":"a","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -105,13 +105,13 @@
       "debugName": "", 
       "token": 60, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(3), 
+      "scope": semantic.id.NominalId(u32)(2), 
       "flags": ["variable"], 
       "references": [
+        {"symbol":6,"scope":2,"node":"identifier","identifier":"b","flags":["call"]}, 
         {"symbol":6,"scope":3,"node":"identifier","identifier":"b","flags":["call"]}, 
-        {"symbol":6,"scope":4,"node":"identifier","identifier":"b","flags":["call"]}, 
-        {"symbol":6,"scope":4,"node":"identifier","identifier":"b","flags":["read"]}, 
-        {"symbol":6,"scope":4,"node":"identifier","identifier":"b","flags":["call"]}, 
+        {"symbol":6,"scope":3,"node":"identifier","identifier":"b","flags":["read"]}, 
+        {"symbol":6,"scope":3,"node":"identifier","identifier":"b","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -123,11 +123,11 @@
       "debugName": "", 
       "token": 80, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(3), 
+      "scope": semantic.id.NominalId(u32)(2), 
       "flags": ["variable"], 
       "references": [
-        {"symbol":7,"scope":3,"node":"identifier","identifier":"i","flags":["read"]}, 
-        {"symbol":7,"scope":3,"node":"identifier","identifier":"i","flags":["read","write"]}, 
+        {"symbol":7,"scope":2,"node":"identifier","identifier":"i","flags":["read"]}, 
+        {"symbol":7,"scope":2,"node":"identifier","identifier":"i","flags":["read","write"]}, 
         
       ], 
       "members": [], 
@@ -139,12 +139,12 @@
       "debugName": "", 
       "token": 87, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(3), 
+      "scope": semantic.id.NominalId(u32)(2), 
       "flags": ["variable"], 
       "references": [
+        {"symbol":8,"scope":2,"node":"identifier","identifier":"c","flags":["call"]}, 
         {"symbol":8,"scope":3,"node":"identifier","identifier":"c","flags":["call"]}, 
-        {"symbol":8,"scope":4,"node":"identifier","identifier":"c","flags":["call"]}, 
-        {"symbol":8,"scope":4,"node":"identifier","identifier":"c","flags":["read"]}, 
+        {"symbol":8,"scope":3,"node":"identifier","identifier":"c","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -156,11 +156,11 @@
       "debugName": "", 
       "token": 153, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(3), 
+      "scope": semantic.id.NominalId(u32)(2), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":9,"scope":3,"node":"identifier","identifier":"as","flags":["read"]}, 
-        {"symbol":9,"scope":3,"node":"identifier","identifier":"as","flags":["read"]}, 
+        {"symbol":9,"scope":2,"node":"identifier","identifier":"as","flags":["read"]}, 
+        {"symbol":9,"scope":2,"node":"identifier","identifier":"as","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -182,15 +182,21 @@
     "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
-        "flags": [], 
+        "flags": ["function"], 
         "bindings": {
           
         }, 
         "children": [
           {
             "id": semantic.id.NominalId(u32)(2), 
-            "flags": ["function"], 
+            "flags": ["function", "block"], 
             "bindings": {
+              "allocator": 4, 
+              "a": 5, 
+              "b": 6, 
+              "i": 7, 
+              "c": 8, 
+              "as": 9, 
               
             }, 
             "children": [
@@ -198,25 +204,9 @@
                 "id": semantic.id.NominalId(u32)(3), 
                 "flags": ["block"], 
                 "bindings": {
-                  "allocator": 4, 
-                  "a": 5, 
-                  "b": 6, 
-                  "i": 7, 
-                  "c": 8, 
-                  "as": 9, 
                   
                 }, 
-                "children": [
-                  {
-                    "id": semantic.id.NominalId(u32)(4), 
-                    "flags": ["block"], 
-                    "bindings": {
-                      
-                    }, 
-                    "children": [], 
-                    
-                  }, 
-                ], 
+                "children": [], 
                 
               }, 
             ], 

@@ -36,7 +36,7 @@
       "scope": semantic.id.NominalId(u32)(1), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":2,"scope":3,"node":"identifier","identifier":"a","flags":["read"]}, 
+        {"symbol":2,"scope":2,"node":"identifier","identifier":"a","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -48,10 +48,10 @@
       "debugName": "", 
       "token": 11, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(3), 
+      "scope": semantic.id.NominalId(u32)(2), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":3,"scope":3,"node":"identifier","identifier":"inner","flags":["call"]}, 
+        {"symbol":3,"scope":2,"node":"identifier","identifier":"inner","flags":["call"]}, 
         
       ], 
       "members": [4], 
@@ -63,7 +63,7 @@
       "debugName": "", 
       "token": 16, 
       "declNode": "fn_decl", 
-      "scope": semantic.id.NominalId(u32)(4), 
+      "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["fn"], 
       "references": [
         
@@ -77,10 +77,10 @@
       "debugName": "", 
       "token": 18, 
       "declNode": "identifier", 
-      "scope": semantic.id.NominalId(u32)(5), 
+      "scope": semantic.id.NominalId(u32)(4), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":5,"scope":7,"node":"identifier","identifier":"b","flags":["read"]}, 
+        {"symbol":5,"scope":5,"node":"identifier","identifier":"b","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -90,7 +90,7 @@
   ], 
   "unresolvedReferences": [
     {"symbol":null,"scope":1,"node":"identifier","identifier":"u32","flags":["read"]}, 
-    {"symbol":null,"scope":5,"node":"identifier","identifier":"u32","flags":["read"]}, 
+    {"symbol":null,"scope":4,"node":"identifier","identifier":"u32","flags":["read"]}, 
     
   ], 
   "scopes": {
@@ -104,7 +104,7 @@
     "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
-        "flags": [], 
+        "flags": ["function"], 
         "bindings": {
           "a": 2, 
           
@@ -112,8 +112,9 @@
         "children": [
           {
             "id": semantic.id.NominalId(u32)(2), 
-            "flags": ["function"], 
+            "flags": ["function", "block"], 
             "bindings": {
+              "inner": 3, 
               
             }, 
             "children": [
@@ -121,46 +122,25 @@
                 "id": semantic.id.NominalId(u32)(3), 
                 "flags": ["block"], 
                 "bindings": {
-                  "inner": 3, 
+                  "bar": 4, 
                   
                 }, 
                 "children": [
                   {
                     "id": semantic.id.NominalId(u32)(4), 
-                    "flags": ["block"], 
+                    "flags": ["function"], 
                     "bindings": {
-                      "bar": 4, 
+                      "b": 5, 
                       
                     }, 
                     "children": [
                       {
                         "id": semantic.id.NominalId(u32)(5), 
-                        "flags": [], 
+                        "flags": ["function", "block"], 
                         "bindings": {
-                          "b": 5, 
                           
                         }, 
-                        "children": [
-                          {
-                            "id": semantic.id.NominalId(u32)(6), 
-                            "flags": ["function"], 
-                            "bindings": {
-                              
-                            }, 
-                            "children": [
-                              {
-                                "id": semantic.id.NominalId(u32)(7), 
-                                "flags": ["block"], 
-                                "bindings": {
-                                  
-                                }, 
-                                "children": [], 
-                                
-                              }, 
-                            ], 
-                            
-                          }, 
-                        ], 
+                        "children": [], 
                         
                       }, 
                     ], 
