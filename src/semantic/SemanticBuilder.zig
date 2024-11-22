@@ -613,13 +613,15 @@ fn visitAssignDestructure(
 // ========================= VARIABLE/FIELD REFERENCES  ========================
 
 fn visitIdentifier(self: *SemanticBuilder, node_id: NodeIndex) !void {
-    const ident = self.AST().getNodeSource(node_id);
-    const symbol = self._semantic.resolveBinding(self.currentScope(), ident);
+    const ast = self.AST();
+    const main_tokens = self.AST().nodes.items(.main_token);
+    const identifier = try self.assertToken(main_tokens[node_id], .identifier);
+    const symbol = self._semantic.resolveBinding(self.currentScope(), ast.tokenSlice(identifier));
 
     _ = try self.recordReference(.{
         .node = node_id,
         .symbol = symbol,
-        .identifier = ident,
+        .token = identifier,
     });
 }
 
@@ -949,7 +951,6 @@ fn enterScope(self: *SemanticBuilder, flags: Scope.Flags) !void {
 inline fn exitScope(self: *SemanticBuilder) void {
     self.assertCtx(self._scope_stack.items.len > 1, "Invariant violation: cannot pop the root scope", .{});
     self.resolveReferencesInCurrentScope() catch @panic("OOM");
-    // self._unresolved_references.exit(self._gpa);
     _ = self._scope_stack.pop();
 }
 
@@ -1098,34 +1099,33 @@ inline fn declareSymbol(
 
 const CreateReference = struct {
     node: ?NodeIndex = null,
+    token: ?TokenIndex = null,
     scope: ?Scope.Id = null,
     symbol: ?Symbol.Id = null,
     flags: Reference.Flags = .{},
-    identifier: ?[]const u8 = null,
+    // identifier: ?[]const u8 = null,
 };
 
-fn recordReference(self: *SemanticBuilder, opts: CreateReference) Allocator.Error!Reference.Id {
+fn recordReference(self: *SemanticBuilder, opts: CreateReference) SemanticError!Reference.Id {
+    const ast = self.AST();
     const node = opts.node orelse self.currentNode();
     const scope = opts.scope orelse self.currentScope();
     const flags = opts.flags.merge(self._curr_reference_flags);
-    const identifier = opts.identifier orelse brk: {
-        const ast = self.AST();
-        const mains = ast.nodes.items(.main_token);
-        const token_tags = ast.tokens.items(.tag);
+    const identifier_token: TokenIndex = opts.token orelse brk: {
+        const mains: []const TokenIndex = ast.nodes.items(.main_token);
+        // const token_tags = ast.tokens.items(.tag);
         const main_token: TokenIndex = mains[node];
-
-        if (token_tags[main_token] == .identifier) {
-            break :brk ast.tokenSlice(main_token);
-        }
-        break :brk ast.getNodeSource(node);
+        break :brk try self.assertToken(main_token, .identifier);
     };
+    const identifier = ast.tokenSlice(identifier_token);
 
     const reference = Reference{
+        .node = node,
+        .token = identifier_token,
         .symbol = Symbol.Id.Optional.from(opts.symbol),
         .identifier = identifier,
         .scope = scope,
         .flags = flags,
-        .node = node,
     };
 
     const ref_id = try self._semantic.symbols.addReference(self._gpa, reference);
@@ -1145,6 +1145,7 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
     const names = self.symbolTable().symbols.items(.name);
     const bindings: []const Symbol.Id = self.scopeTree().getBindings(self.currentScope());
     var references = self.symbolTable().references;
+    // const ref_tokens: []TokenIndex = references.items(.identifier);
     const ref_names: []const string = references.items(.identifier);
     const ref_symbols: []Symbol.Id.Optional = self.symbolTable().references.items(.symbol);
     const symbol_refs = self.symbolTable().symbols.items(.references);
@@ -1311,6 +1312,16 @@ inline fn maybeGetNode(self: *const SemanticBuilder, node_id: NodeIndex) ?Node {
 /// Returns `token` if it has the expected tag, or `null` if it doesn't.
 inline fn expectToken(self: *const SemanticBuilder, token: TokenIndex, tag: Token.Tag) ?TokenIndex {
     return if (self.AST().tokens.items(.tag)[token] == tag) token else null;
+}
+
+/// Like `expectToken`, but returns an error if the token doesn't have the expected tag.
+///
+/// Token tag checks are treated like other runtime safety checks and are
+//disabled by `ReleaseFast`.
+inline fn assertToken(self: *const SemanticBuilder, token: TokenIndex, tag: Token.Tag) SemanticError!TokenIndex {
+    if (comptime !util.RUNTIME_SAFETY) return token;
+    // if (std)
+    return self.expectToken(token, tag) orelse SemanticError.MissingIdentifier;
 }
 
 inline fn getToken(self: *const SemanticBuilder, token_id: TokenIndex) RawToken {

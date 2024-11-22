@@ -78,8 +78,9 @@ pub fn printUnresolvedReferences(self: *SemanticPrinter) !void {
 }
 
 fn printReference(self: *SemanticPrinter, ref_id: Reference.Id) !void {
+    const ast = &self.semantic.ast;
     const ref = self.semantic.symbols.getReference(ref_id);
-    const tags = self.semantic.ast.nodes.items(.tag);
+    const tags = ast.nodes.items(.tag);
 
     const flag_fields = std.meta.fields(Reference.Flags);
     var buf: [flag_fields.len * @sizeOf([]const u8)]u8 = undefined;
