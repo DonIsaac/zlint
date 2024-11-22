@@ -39,6 +39,8 @@ pub const Rule = struct {
     runOnNodeFn: RunOnNodeFn,
     runOnSymbolFn: RunOnSymbolFn,
 
+    /// Rules must have a constant with this name of type `Rule.Meta`.
+    const META_FIELD_NAME = "meta";
     pub const Meta = struct {
         name: string,
         category: Category,
@@ -62,8 +64,10 @@ pub const Rule = struct {
             };
         };
 
-        const meta: Meta = if (@hasDecl(ptr_info.child, "Meta")) ptr_info.child.Meta else {
-            @compileError("Rule must have a `pub const Meta: Rule.Meta` field");
+        const meta: Meta = if (@hasDecl(ptr_info.child, META_FIELD_NAME))
+            @field(ptr_info.child, META_FIELD_NAME)
+        else {
+            @compileError("Rule must have a `pub const " ++ META_FIELD_NAME ++ " Rule.Meta` field");
         };
 
         const gen = struct {

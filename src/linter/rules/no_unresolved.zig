@@ -12,7 +12,7 @@ const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
 
 const NoUnresolved = @This();
-pub const Meta: Rule.Meta = .{
+pub const meta: Rule.Meta = .{
     .name = "no-unresolved",
     .category = .correctness,
 };

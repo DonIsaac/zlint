@@ -237,7 +237,7 @@ const assert = std.debug.assert;
 const NodeWrapper = @import("rule.zig").NodeWrapper;
 const LinterContext = @import("lint_context.zig");
 const MockRule = struct {
-    pub const Meta: Rule.Meta = .{
+    pub const meta: Rule.Meta = .{
         .name = "my-rule",
         .category = .correctness,
     };
