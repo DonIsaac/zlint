@@ -94,7 +94,7 @@ pub const Linter = struct {
                     const err = try Error.fmt(
                         self.gpa,
                         "Rule '{s}' failed to run: {s}",
-                        .{ rule.name, @errorName(e) },
+                        .{ rule.meta.name, @errorName(e) },
                     );
                     try ctx.errors.append(err);
                 };
@@ -110,7 +110,7 @@ pub const Linter = struct {
                     const err = try Error.fmt(
                         self.gpa,
                         "Rule '{s}' failed to run: {s}",
-                        .{ rule.name, @errorName(e) },
+                        .{ rule.meta.name, @errorName(e) },
                     );
                     try ctx.errors.append(err);
                 };

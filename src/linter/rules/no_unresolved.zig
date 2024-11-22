@@ -12,7 +12,10 @@ const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
 
 const NoUnresolved = @This();
-pub const Name = "no-unresolved";
+pub const Meta: Rule.Meta = .{
+    .name = "no-unresolved",
+    .category = .correctness,
+};
 
 pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const node = wrapper.node;
