@@ -12,7 +12,10 @@ const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
 
 const NoUndefined = @This();
-pub const Name = "no-undefined";
+pub const Meta: Rule.Meta = .{
+    .name = "no-undefined",
+    .category = .restriction,
+};
 
 pub fn runOnNode(_: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const node = wrapper.node;

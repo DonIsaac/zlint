@@ -22,7 +22,7 @@ pub fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context 
 // invocations.
 
 pub inline fn updateForRule(self: *Context, rule: *const Rule) void {
-    self.curr_rule_name = rule.name;
+    self.curr_rule_name = rule.meta.name;
 }
 
 // ============================== SHORTHANDS ===============================

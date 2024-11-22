@@ -33,10 +33,24 @@ const RunOnSymbolFn = *const fn (ptr: *const anyopaque, symbol: Symbol.Id, ctx: 
 /// those methods and, if they exist, stores pointers to them. These then get
 /// used by the `Linter` to check for violations.
 pub const Rule = struct {
-    name: string,
+    // name: string,
+    meta: Meta,
     ptr: *anyopaque,
     runOnNodeFn: RunOnNodeFn,
     runOnSymbolFn: RunOnSymbolFn,
+
+    pub const Meta = struct {
+        name: string,
+        category: Category,
+        default: bool = false,
+    };
+
+    pub const Category = enum {
+        compiler,
+        correctness,
+        suspicious,
+        restriction,
+    };
 
     pub fn init(ptr: anytype) Rule {
         const T = @TypeOf(ptr);
@@ -47,8 +61,9 @@ pub const Rule = struct {
                 else => @compileLog("Rule.init takes a pointer to a rule implementation, found an " ++ @tagName(info)),
             };
         };
-        const name: []const u8 = if (@hasDecl(ptr_info.child, "Name")) ptr_info.child.Name else {
-            @compileError("Rule must have a `pub const Name: []const u8` field");
+
+        const meta: Meta = if (@hasDecl(ptr_info.child, "Meta")) ptr_info.child.Meta else {
+            @compileError("Rule must have a `pub const Meta: Rule.Meta` field");
         };
 
         const gen = struct {
@@ -67,7 +82,7 @@ pub const Rule = struct {
         };
 
         return .{
-            .name = name,
+            .meta = meta,
             .ptr = ptr,
             .runOnNodeFn = gen.runOnNode,
             .runOnSymbolFn = gen.runOnSymbol,

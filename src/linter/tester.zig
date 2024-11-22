@@ -28,7 +28,7 @@ const TestError = error{
 pub const LintTesterError = SnapshotError || TestError;
 
 pub fn init(alloc: Allocator, rule: Rule) RuleTester {
-    const filename = std.mem.concat(alloc, u8, &[_]string{ rule.name, ".zig" }) catch @panic("OOM");
+    const filename = std.mem.concat(alloc, u8, &[_]string{ rule.meta.name, ".zig" }) catch @panic("OOM");
     var linter = Linter.init(alloc);
     linter.rules.append(rule) catch @panic("OOM");
 
@@ -61,7 +61,7 @@ pub fn withPath(self: *RuleTester, source_dir: string) *RuleTester {
 
 pub fn withPass(self: *RuleTester, comptime pass: []const [:0]const u8) *RuleTester {
     self.passes.appendSlice(self.alloc, pass) catch |e| {
-        const name = self.rule.name;
+        const name = self.rule.meta.name;
         panic("Failed to add pass cases to RuleTester for {s}: {s}", .{ name, @errorName(e) });
     };
     return self;
@@ -69,7 +69,7 @@ pub fn withPass(self: *RuleTester, comptime pass: []const [:0]const u8) *RuleTes
 
 pub fn withFail(self: *RuleTester, comptime fail: []const [:0]const u8) *RuleTester {
     self.fails.appendSlice(self.alloc, fail) catch |e| {
-        const name = self.rule.name;
+        const name = self.rule.meta.name;
         panic("Failed to add fail cases to RuleTester for {s}: {s}", .{ name, @errorName(e) });
     };
     return self;
@@ -114,7 +114,7 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
                 self.diagnostic.message = BooStr.fmt(
                     self.alloc,
                     "Expected test case #{d} to pass:\n\n{s}\n\nError: {s}\n",
-                    .{ i + 1, self.rule.name, @errorName(e) },
+                    .{ i + 1, self.rule.meta.name, @errorName(e) },
                 ) catch @panic("OOM");
                 return LintTesterError.PassFailed;
             },
@@ -177,7 +177,7 @@ fn saveSnapshot(self: *RuleTester) SnapshotError!void {
             return e;
         };
         defer snapshot_dir.close();
-        const snapshot_filename = try std.mem.concat(self.alloc, u8, &[_]string{ self.rule.name, ".snap" });
+        const snapshot_filename = try std.mem.concat(self.alloc, u8, &[_]string{ self.rule.meta.name, ".snap" });
         defer self.alloc.free(snapshot_filename);
         const snapshot_file = snapshot_dir.createFile(snapshot_filename, .{ .truncate = true }) catch |e| {
             self.diagnostic.message = BooStr.fmt(
@@ -237,7 +237,10 @@ const assert = std.debug.assert;
 const NodeWrapper = @import("rule.zig").NodeWrapper;
 const LinterContext = @import("lint_context.zig");
 const MockRule = struct {
-    pub const Name = "my-rule";
+    pub const Meta: Rule.Meta = .{
+        .name = "my-rule",
+        .category = .correctness,
+    };
     pub fn runOnNode(_: *const MockRule, _: NodeWrapper, _: *LinterContext) void {}
 };
 test RuleTester {

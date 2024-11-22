@@ -57,7 +57,11 @@ const NodeWrapper = _rule.NodeWrapper;
 
 // Rule metadata
 const ${StructName} = @This();
-pub const Name = "${name}";
+pub const Meta: Rule.Meta = .{
+    .name = "${name}",
+    // TODO: set the category to an appropriate value
+    .category = .correctness,
+};
 
 // Runs on each node in the AST. Useful for syntax-based rules.
 pub fn runOnNode(_: *const ${StructName}, wrapper: NodeWrapper, ctx: *LinterContext) void {
