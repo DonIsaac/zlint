@@ -83,7 +83,7 @@
     "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
-        "flags": ["block"], 
+        "flags": ["struct", "block"], 
         "bindings": {
           "a": 2, 
           "B": 3, 

@@ -120,7 +120,7 @@
             "children": [
               {
                 "id": semantic.id.NominalId(u32)(3), 
-                "flags": ["block"], 
+                "flags": ["struct", "block"], 
                 "bindings": {
                   "bar": 4, 
                   

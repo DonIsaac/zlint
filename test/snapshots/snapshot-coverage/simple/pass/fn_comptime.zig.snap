@@ -269,7 +269,7 @@
             "children": [
               {
                 "id": semantic.id.NominalId(u32)(3), 
-                "flags": ["block", "comptime"], 
+                "flags": ["struct", "block", "comptime"], 
                 "bindings": {
                   "inner": 3, 
                   "Self": 4, 
@@ -349,7 +349,7 @@
                 
               }, {
                 "id": semantic.id.NominalId(u32)(11), 
-                "flags": ["block", "comptime"], 
+                "flags": ["struct", "block", "comptime"], 
                 "bindings": {
                   "inner": 10, 
                   

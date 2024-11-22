@@ -487,9 +487,19 @@ fn visitBlock(self: *SemanticBuilder, statements: []const NodeIndex) !void {
     }
 }
 
-fn visitContainer(self: *SemanticBuilder, _: NodeIndex, container: full.ContainerDecl) !void {
+fn visitContainer(self: *SemanticBuilder, node: NodeIndex, container: full.ContainerDecl) !void {
+    const main_tokens: []const TokenIndex = self.AST().nodes.items(.main_token);
+    const tags: []const Token.Tag = self.AST().tokens.items(.tag);
+
+    const flags: Scope.Flags = switch (tags[main_tokens[node]]) {
+        .keyword_enum => .{ .s_enum = true },
+        .keyword_struct => .{ .s_struct = true },
+        .keyword_union => .{ .s_union = true },
+        // e.g. opaque
+        else => .{},
+    };
     try self.enterScope(.{
-        .flags = .{ .s_block = true, .s_enum = container.ast.enum_token != null },
+        .flags = flags.merge(.{ .s_block = true }),
     });
     defer self.exitScope();
     for (container.ast.members) |member| {

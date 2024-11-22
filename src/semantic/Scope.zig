@@ -60,6 +60,13 @@ pub const Flags = packed struct(FLAGS_REPR) {
         const b: FLAGS_REPR = @bitCast(other);
         return a == b;
     }
+
+    /// Returns `true` if any flags in `other` are also enabled in `self`.
+    pub fn intersects(self: Flags, other: Flags) bool {
+        const a: FLAGS_REPR = @bitCast(self);
+        const b: FLAGS_REPR = @bitCast(other);
+        return a & b != 0;
+    }
 };
 
 /// Stores variable scopes created by a zig program.

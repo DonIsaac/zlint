@@ -254,7 +254,7 @@
     "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
-        "flags": ["block"], 
+        "flags": ["struct", "block"], 
         "bindings": {
           "ptr": 2, 
           "writeAllFn": 3, 
@@ -283,7 +283,7 @@
                 "children": [
                   {
                     "id": semantic.id.NominalId(u32)(4), 
-                    "flags": ["block"], 
+                    "flags": ["struct", "block"], 
                     "bindings": {
                       "writeAll": 9, 
                       
