@@ -1,0 +1,27 @@
+  𝙭 no-catch-return: Caught error is immediately returned
+   ╭─[no-catch-return.zig:3:19]
+ 2 │ fn foo() !void {
+ 3 │   bar() catch |e| return e;
+   ·                   ────────
+ 4 │ }
+   ╰────
+  help: Use a `try` statement to return unhandled errors.
+
+  𝙭 no-catch-return: Caught error is immediately returned
+   ╭─[no-catch-return.zig:4:5]
+ 3 │   bar() catch |e| {
+ 4 │     return e;
+   ·     ────────
+ 5 │   };
+   ╰────
+  help: Use a `try` statement to return unhandled errors.
+
+  𝙭 no-catch-return: Caught error is immediately returned
+   ╭─[no-catch-return.zig:5:5]
+ 4 │     // comments won't save you
+ 5 │     return e;
+   ·     ────────
+ 6 │   };
+   ╰────
+  help: Use a `try` statement to return unhandled errors.
+

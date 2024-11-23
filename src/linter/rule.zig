@@ -53,6 +53,7 @@ pub const Rule = struct {
         correctness,
         suspicious,
         restriction,
+        pedantic,
     };
 
     pub fn init(ptr: anytype) Rule {
