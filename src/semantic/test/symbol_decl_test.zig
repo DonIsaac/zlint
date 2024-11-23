@@ -39,20 +39,33 @@ test "Symbol flags for various declarations of `x`" {
             .{ .s_variable = true, .s_comptime = true },
         },
 
+        // containers
+        .{
+            "const x = struct { y: u32 };",
+            .{ .s_struct = true, .s_variable = true, .s_const = true },
+        },
+        .{
+            "const x = enum { y };",
+            .{ .s_enum = true, .s_variable = true, .s_const = true },
+        },
+        .{
+            "const x = union(enum) { y };",
+            .{ .s_union = true, .s_variable = true, .s_const = true },
+        },
+
         // members
         .{
             "const Foo = struct { x: u32 };",
-            .{ .s_member = true },
+            .{ .s_struct = true, .s_member = true },
         },
         .{
             "const Foo = enum { x };",
-            .{ .s_member = true },
+            .{ .s_enum = true, .s_member = true },
         },
         .{
             "const Foo = union(enum) { x };",
-            .{ .s_member = true },
+            .{ .s_union = true, .s_member = true },
         },
-
         .{
             "const Foo = error { x };",
             .{ .s_error = true, .s_member = true },
@@ -60,6 +73,16 @@ test "Symbol flags for various declarations of `x`" {
         .{
             "const Foo = error { z, y, x };",
             .{ .s_error = true, .s_member = true },
+        },
+
+        // variables inside containers
+        .{
+            "const Foo = struct { fn x() void {} };",
+            .{ .s_fn = true },
+        },
+        .{
+            "const Foo = struct { a, b, fn x() void {} };",
+            .{ .s_fn = true },
         },
 
         // functions

@@ -121,6 +121,7 @@ pub const Flags = packed struct(FLAGS_REPR) {
     _: u4 = 0,
 
     pub const Flag = std.meta.FieldEnum(Flags);
+    pub const s_container: Flags = .{ .s_struct = true, .s_enum = true, .s_union = true, .s_error = true };
 
     pub inline fn merge(self: Flags, other: Flags) Flags {
         const a: FLAGS_REPR = @bitCast(self);

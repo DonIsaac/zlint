@@ -593,6 +593,11 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
         if (util.IS_DEBUG) assert(main_tag == .keyword_var or main_tag == .keyword_const);
         break :blk main_tag == .keyword_const;
     };
+
+    const prev_symbol_flags = self._curr_symbol_flags;
+    self._curr_symbol_flags.set(Symbol.Flags.s_container, false);
+    defer self._curr_symbol_flags = prev_symbol_flags;
+
     const symbol_id = try self.bindSymbol(.{
         .identifier = identifier,
         .debug_name = debug_name,
@@ -902,6 +907,11 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     const visibility = if (proto.visib_token == null) Symbol.Visibility.private else Symbol.Visibility.public;
     // TODO: bound name vs escaped name
     const debug_name: ?string = if (proto.name_token == null) "<anonymous fn>" else null;
+
+    const prev_symbol_flags = self._curr_reference_flags;
+    self._curr_symbol_flags.set(Symbol.Flags.s_container, false);
+    defer self._curr_reference_flags = prev_symbol_flags;
+
     // TODO: bind methods as members
     _ = try self.bindSymbol(.{
         .identifier = proto.name_token,
@@ -1215,7 +1225,7 @@ inline fn declareSymbol(
         opts.identifier,
         scope,
         opts.visibility,
-        opts.flags,
+        opts.flags.merge(self._curr_symbol_flags),
     );
     try self._semantic.scopes.addBinding(self._gpa, scope, symbol_id);
     return symbol_id;
@@ -1229,7 +1239,6 @@ const CreateReference = struct {
     scope: ?Scope.Id = null,
     symbol: ?Symbol.Id = null,
     flags: Reference.Flags = .{},
-    // identifier: ?[]const u8 = null,
 };
 
 fn recordReference(self: *SemanticBuilder, opts: CreateReference) SemanticError!Reference.Id {

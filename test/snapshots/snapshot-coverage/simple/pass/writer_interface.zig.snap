@@ -35,7 +35,7 @@
       "token": 5, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": ["member"], 
+      "flags": ["member", "struct"], 
       "references": [
         
       ], 
@@ -49,7 +49,7 @@
       "token": 10, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": ["member"], 
+      "flags": ["member", "struct"], 
       "references": [
         
       ], 
