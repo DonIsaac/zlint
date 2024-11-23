@@ -37,6 +37,7 @@
 //!```
 
 const std = @import("std");
+const util = @import("util");
 const _source = @import("../../source.zig");
 const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
@@ -44,6 +45,7 @@ const _rule = @import("../rule.zig");
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const Token = std.zig.Token;
+const TokenIndex = Ast.TokenIndex;
 const Symbol = semantic.Symbol;
 const Loc = std.zig.Loc;
 const Span = _source.Span;
@@ -89,7 +91,7 @@ pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterCont
     }
 
     // only check catches that bind an error payload, e.g. `catch |e|`
-    var ident_tok: Ast.TokenIndex = node.main_token + 1;
+    var ident_tok: TokenIndex = node.main_token + 1;
     if (tok_tags[ident_tok] != .pipe) return else ident_tok += 1;
     if (tok_tags[ident_tok] == .asterisk) ident_tok += 1;
     if (tok_tags[ident_tok] != .identifier) return;
@@ -97,6 +99,7 @@ pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterCont
     const return_param = datas[return_node].lhs;
     if (return_param == NULL_NODE or tags[return_param] != .identifier) return;
 
+    // todo: add symbols to node links
     const error_param = ctx.ast().tokenSlice(ident_tok);
     const returned_ident = ctx.ast().getNodeSource(return_param);
     if (std.mem.eql(u8, error_param, returned_ident)) {
