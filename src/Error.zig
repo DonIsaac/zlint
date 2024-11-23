@@ -55,6 +55,9 @@ pub fn deinit(self: *Error, alloc: std.mem.Allocator) void {
     if (self.help != null) alloc.free(self.help.?);
     if (self.source_name != null) alloc.free(self.source_name.?);
     if (self.source != null) self.source.?.deinit();
+    for (self.labels.items) |*label| {
+        if (label.label) |*label_text| label_text.deinit();
+    }
     self.labels.deinit(alloc);
 }
 

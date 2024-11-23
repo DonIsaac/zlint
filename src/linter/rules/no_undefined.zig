@@ -34,7 +34,7 @@ pub fn runOnNode(_: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterContex
         }
     }
 
-    ctx.diagnostic("Do not use undefined.", .{ctx.spanT(node.main_token)});
+    _ = ctx.diagnostic("Do not use undefined.", .{ctx.spanT(node.main_token)});
 }
 
 pub fn rule(self: *NoUndefined) Rule {

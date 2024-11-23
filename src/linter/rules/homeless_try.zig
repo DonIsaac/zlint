@@ -75,14 +75,15 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
         if (flags.intersects(CONTAINER_FLAGS)) break;
     }
 
-    ctx.diagnostic(
+    _ = ctx.diagnostic(
         "`try` cannot be used outside of a function.",
         .{ctx.spanT(ctx.ast().firstToken(wrapper.idx))},
     );
 }
 fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void {
     const tags: []const Node.Tag = ctx.ast().nodes.items(.tag);
-    const decl_node = ctx.scopes().scopes.items(.node)[scope.int()];
+    const main_tokens: []const Ast.TokenIndex = ctx.ast().nodes.items(.main_token);
+    const decl_node: Node.Index = ctx.scopes().scopes.items(.node)[scope.int()];
 
     if (tags[decl_node] != .fn_decl) {
         if (comptime util.IS_DEBUG) {
@@ -92,11 +93,10 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
         }
     }
 
-    const return_type: Node.Index = blk: {
-        var buf: [1]Node.Index = undefined;
-        const proto: Ast.full.FnProto = ctx.ast().fullFnProto(&buf, decl_node) orelse @panic(".fn_decl nodes always have a full fn proto available.");
-        break :blk proto.ast.return_type;
-    };
+    var buf: [1]Node.Index = undefined;
+    const proto: Ast.full.FnProto = ctx.ast().fullFnProto(&buf, decl_node) orelse @panic(".fn_decl nodes always have a full fn proto available.");
+    const return_type = proto.ast.return_type;
+
     switch (tags[return_type]) {
         // valid
         .error_union => return,
@@ -107,10 +107,18 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
         },
     }
 
-    ctx.diagnostic(
+    const e = ctx.diagnostic(
         "`try` cannot be used in functions that do not return errors.",
-        .{ctx.spanT(ctx.ast().firstToken(try_node))},
+        .{
+            ctx.spanT(ctx.ast().firstToken(try_node)),
+            if (proto.name_token) |name_token|
+                ctx.labelT(name_token, "Function `{s}` is declared here.", .{ctx.ast().tokenSlice(name_token)})
+            else
+                ctx.labelT(main_tokens[decl_node], "Function is declared here.", .{}),
+        },
     );
+    const return_type_src = ctx.ast().getNodeSource(return_type);
+    e.help = std.fmt.allocPrint(ctx.gpa, "Change the return type to `!{s}`.", .{return_type_src}) catch @panic("OOM");
 }
 
 // Used by the Linter to register the rule so it can be run.
@@ -170,8 +178,8 @@ test HomelessTry {
     const fail = &[_][:0]const u8{
         \\const std = @import("std");
         \\fn foo() void {
-        \\  _ = try std.heap.page_allocator.alloc(u8, 8);
-        \\}",
+        \\  const x = try std.heap.page_allocator.alloc(u8, 8);
+        \\}
         ,
         \\const std = @import("std");
         \\const x = try std.heap.page_allocator.alloc(u8, 8);

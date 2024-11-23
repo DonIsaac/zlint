@@ -122,7 +122,7 @@ pub const Span = struct {
 
 pub const LabeledSpan = struct {
     span: Span,
-    label: ?string = null,
+    label: ?util.Boo([]u8) = null,
     primary: bool = false,
 
     pub inline fn unlabeled(start: u32, end: u32) LabeledSpan {

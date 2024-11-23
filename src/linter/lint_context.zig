@@ -66,10 +66,23 @@ pub inline fn labelN(
     args: anytype,
 ) LabeledSpan {
     const s = self.semantic.ast.nodeToSpan(node_id);
-    const label = std.fmt.allocPrint(self.gpa, fmt, args) catch @panic("OOM");
     return LabeledSpan{
         .span = .{ .start = s.start, .end = s.end },
-        .label = label,
+        .label = util.Boo([]u8).fmt(self.gpa, fmt, args) catch @panic("OOM"),
+        .primary = false,
+    };
+}
+
+pub inline fn labelT(
+    self: *const Context,
+    token_id: Ast.TokenIndex,
+    comptime fmt: []const u8,
+    args: anytype,
+) LabeledSpan {
+    const s = self.semantic.ast.tokenToSpan(token_id); //.tokenSlice(token_id);
+    return LabeledSpan{
+        .span = .{ .start = s.start, .end = s.end },
+        .label = util.Boo([]u8).fmt(self.gpa, fmt, args) catch @panic("OOM"),
         .primary = false,
     };
 }
@@ -79,7 +92,7 @@ pub fn diagnosticFmt(
     comptime message: string,
     args: anytype,
     spans: anytype,
-) void {
+) *Error {
     // TODO: inline
     return self._diagnostic(
         Error.fmt(self.gpa, message, args) catch @panic("Failed to create error message: Out of memory"),
@@ -109,12 +122,12 @@ pub fn diagnosticFmt(
 /// - `spans` should not be empty (they _can_ be, but
 ///   this is not user-friendly.).
 /// - `spans` is anytype for more flexible coercion into a `[]const Span`
-pub fn diagnostic(self: *Context, message: string, spans: anytype) void {
+pub fn diagnostic(self: *Context, message: string, spans: anytype) *Error {
     // TODO: inline
     return self._diagnostic(Error.newStatic(message), &spans);
 }
 
-fn _diagnostic(self: *Context, err: Error, spans: []const LabeledSpan) void {
+fn _diagnostic(self: *Context, err: Error, spans: []const LabeledSpan) *Error {
     var e = err;
     const a = self.gpa;
     e.code = self.curr_rule_name;
@@ -126,6 +139,7 @@ fn _diagnostic(self: *Context, err: Error, spans: []const LabeledSpan) void {
     }
     // TODO: handle errors better
     self.errors.append(e) catch @panic("Cannot add new error: Out of memory");
+    return &self.errors.items[self.errors.items.len - 1];
 }
 
 /// Find the comment block ending on the line before the given token.
