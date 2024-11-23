@@ -1215,10 +1215,18 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
     for (bindings) |binding| {
         const name: string = names[binding.int()];
         for (0..curr.items.len) |i| {
-            if (resolved_map[i]) continue;
+            if (resolved_map[i] or name.len == 0) continue;
             const ref_id: Reference.Id = curr.items[i];
             const ref = ref_id.int();
             const ref_name = ref_names[ref];
+            {
+                // hypothesis: we know identifiers always have a non-zero
+                // length. By communicating this to the compiler, the `a.len ==
+                // 0` check in `mem.eql` should be optimized out.
+                @setRuntimeSafety(util.IS_DEBUG);
+                assert(ref_name.len > 0);
+            }
+
             // we resolved the reference :)
             if (mem.eql(u8, name, ref_name)) {
                 num_resolved += 1;
