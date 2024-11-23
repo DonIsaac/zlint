@@ -44,7 +44,7 @@ build *ARGS:
 # Check for syntax and semantic errors
 check:
     @echo "Checking for AST errors..."
-    @for file in `git ls-files | grep '.zig$'`; do zig ast-check "$file"; done
+    @for file in `git ls-files | grep '.zig$' | grep --invert-match 'fail'`; do zig ast-check "$file"; done
     zig build check
 
 # Run a command in watch mode. Re-runs whenever a source file changes

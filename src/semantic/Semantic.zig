@@ -21,10 +21,17 @@ _gpa: Allocator,
 /// Used to allocate AST nodes
 _arena: ArenaAllocator,
 
-/// The scope created by a program/compilation unit.
+/// The scope where symbols built in to the language are declared.
 ///
 /// The root scope is eventually the parent of all other scopes. Its parent is
 /// always `null`.
+pub const BUILTIN_SCOPE_ID: Scope.Id = Scope.Id.from(1);
+/// The scope created by a program/compilation unit.
+///
+/// Its parent is always `BUILTIN_SCOPE_ID`.
+///
+/// > _note_: right now root/builtin scope ids are the same. This may change in
+/// the future.
 pub const ROOT_SCOPE_ID: Scope.Id = Scope.Id.from(0);
 /// The root node always has an index of 0. Since it is never referenced by other nodes,
 /// the Zig team uses it to represent `null` without wasting extra memory.

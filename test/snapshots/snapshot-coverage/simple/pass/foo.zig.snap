@@ -130,12 +130,7 @@
       
     }, 
   ], 
-  "unresolvedReferences": [
-    {"symbol":null,"scope":0,"node":"identifier","identifier":"undefined","flags":["read"]}, 
-    {"symbol":null,"scope":0,"node":"identifier","identifier":"null","flags":["read"]}, 
-    {"symbol":null,"scope":1,"node":"identifier","identifier":"undefined","flags":["read"]}, 
-    
-  ], 
+  "unresolvedReferences": [],
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
     "flags": ["top"], 

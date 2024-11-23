@@ -44,8 +44,13 @@ pub const Flags = packed struct(FLAGS_REPR) {
     /// Make sure this is `false` if you want to check that a symbol is, itself,
     /// being read/written/etc.
     member: bool = false,
+    /// Reference to a language primtive.
+    ///
+    /// Until primitives are added to the symbol table, these references will
+    /// never have a `symbol`.
+    primitive: bool = false,
     // Padding.
-    _: u3 = 0,
+    _: u2 = 0,
 
     const Flag = std.meta.FieldEnum(Flags);
 

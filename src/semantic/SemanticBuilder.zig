@@ -50,6 +50,7 @@ _errors: std.ArrayListUnmanaged(Error) = .{},
 /// the Zig team uses it to represent `null` without wasting extra memory.
 const NULL_NODE: NodeIndex = Semantic.NULL_NODE;
 const ROOT_SCOPE: Semantic.Scope.Id = Semantic.ROOT_SCOPE_ID;
+const BUILTIN_SCOPE: Semantic.Scope.Id = Semantic.BUILTIN_SCOPE_ID;
 
 pub const Result = Error.Result(Semantic);
 pub const SemanticError = error{
@@ -867,6 +868,8 @@ inline fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnPr
         defer self.exitScope();
         try self.visitFnProtoParams(fn_proto);
     }
+    // FIXME: return type is in param scope
+    // (e.g. `fn foo(T: type) T`)
     try self.visit(fn_proto.ast.return_type);
 }
 
@@ -946,6 +949,8 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     });
     defer self.exitScope();
     try self.visitFnProtoParams(proto);
+    // TODO: visit return type. Note that return type is within param scope
+    // (e.g. `fn foo(T: type) T`)
 
     // Function body is also in a new scope. Declaring a symbol with the
     // same name as a parameter is an illegal shadow, not a redeclaration
@@ -1258,7 +1263,7 @@ fn recordReference(self: *SemanticBuilder, opts: CreateReference) SemanticError!
     };
     const identifier = ast.tokenSlice(identifier_token);
 
-    const reference = Reference{
+    var reference = Reference{
         .node = node,
         .token = identifier_token,
         .symbol = Symbol.Id.Optional.from(opts.symbol),
@@ -1267,10 +1272,15 @@ fn recordReference(self: *SemanticBuilder, opts: CreateReference) SemanticError!
         .flags = flags,
     };
 
-    const ref_id = try self._semantic.symbols.addReference(self._gpa, reference);
+    var is_primitive = false;
     if (reference.symbol == .none) {
-        try self._unresolved_references.append(self._gpa, ref_id);
+        // TODO: add primitives to the symbol table and bind them here.
+        is_primitive = builtins.isPrimitiveType(identifier) or builtins.isPrimitiveValue(identifier);
+        reference.flags.primitive = is_primitive;
     }
+
+    const ref_id = try self._semantic.symbols.addReference(self._gpa, reference);
+    if (opts.symbol == null and !is_primitive) try self._unresolved_references.append(self._gpa, ref_id);
 
     return ref_id;
 }
@@ -1562,7 +1572,7 @@ fn debugNodeStack(self: *const SemanticBuilder) void {
         const main_token = ast.nodes.items(.main_token)[id];
         const token_offset = ast.tokens.get(main_token).start;
 
-        const source = if (id == 0) "" else ast.getNodeSource(id);
+        const source = if (id == Semantic.ROOT_NODE_ID) "" else ast.getNodeSource(id);
         const loc = ast.tokenLocation(token_offset, main_token);
         const snippet =
             if (source.len > 48) mem.concat(
@@ -1604,6 +1614,7 @@ fn printScopeStack(self: *const SemanticBuilder) void {
 
 const SemanticBuilder = @This();
 
+const builtins = @import("builtins.zig");
 const Semantic = @import("./Semantic.zig");
 const Scope = Semantic.Scope;
 const Symbol = Semantic.Symbol;
