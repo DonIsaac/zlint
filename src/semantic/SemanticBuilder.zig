@@ -517,7 +517,7 @@ fn visitContainer(self: *SemanticBuilder, node: NodeIndex, container: full.Conta
 }
 
 fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
-    util.assertUnsafe(self.AST().nodes.items(.tag)[node_id] == Node.Tag.error_set_decl);
+    // util.assertUnsafe(self.AST().nodes.items(.tag)[node_id] == Node.Tag.error_set_decl);
     const tags: []const Token.Tag = self.AST().tokens.items(.tag);
 
     var curr_tok = self.getNodeData(node_id).rhs;
@@ -529,7 +529,15 @@ fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     self.currentContainerSymbolFlags().s_error = true;
 
     while (true) : (curr_tok -= 1) {
-        util.assertUnsafe(curr_tok > 0); // should always encounter an l_brace.
+        // NOTE: causes an out-of-bounds access in release builds, but the
+        // assertion never fails in debug builds. TODO: investigate and report
+        // to Zig team.
+        // util.assertUnsafe(curr_tok > 0);
+        util.assert(
+            curr_tok > 0,
+            "an brace should always be encountered when walking an error declaration's members in a syntactically-valid program.",
+            .{},
+        );
         switch (tags[curr_tok]) {
             .identifier => {
                 _ = try self.declareMemberSymbol(.{
@@ -546,6 +554,7 @@ fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
                 // handling errors incorrectly. in release mode we can safely
                 // ignore it.
                 util.debugAssert(false, "unexpected token in error container: {any}", .{tags[curr_tok]});
+                break;
             },
         }
     }

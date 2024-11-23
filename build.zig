@@ -10,9 +10,13 @@ pub fn build(b: *std.Build) void {
 
     // cli options
     const single_threaded = b.option(bool, "single-threaded", "Build a single-threaded executable");
+    const debug_release = b.option(bool, "debug-release", "Build with debug info in release mode") orelse false;
 
     var l = Linker.init(b);
     defer l.deinit();
+    if (debug_release) {
+        l.optimize = .ReleaseSafe;
+    }
 
     // dependencies
     l.dependency("chameleon", .{});
@@ -29,6 +33,9 @@ pub fn build(b: *std.Build) void {
         .single_threaded = single_threaded,
         .target = l.target,
         .optimize = l.optimize,
+        .error_tracing = if (debug_release) true else null,
+        .unwind_tables = if (debug_release) true else null,
+        .strip = if (debug_release) false else null,
     });
     l.link(zlint, false, .{});
 
@@ -39,6 +46,9 @@ pub fn build(b: *std.Build) void {
         .single_threaded = single_threaded,
         .target = l.target,
         .optimize = l.optimize,
+        .error_tracing = if (debug_release) true else null,
+        .unwind_tables = if (debug_release) true else null,
+        .strip = if (debug_release) false else null,
     });
     l.link(&exe.root_module, false, .{});
     b.installArtifact(exe);
@@ -49,6 +59,9 @@ pub fn build(b: *std.Build) void {
         .single_threaded = single_threaded,
         .target = l.target,
         .optimize = l.optimize,
+        .error_tracing = if (debug_release) true else null,
+        .unwind_tables = if (debug_release) true else null,
+        .strip = if (debug_release) false else null,
     });
     // util and chameleon omitted
     e2e.root_module.addImport("zlint", zlint);
@@ -61,6 +74,8 @@ pub fn build(b: *std.Build) void {
         .single_threaded = single_threaded,
         .target = l.target,
         .optimize = l.optimize,
+        .error_tracing = if (debug_release) true else null,
+        .strip = if (debug_release) false else null,
     });
     l.link(&unit.root_module, true, .{});
     b.installArtifact(unit);
