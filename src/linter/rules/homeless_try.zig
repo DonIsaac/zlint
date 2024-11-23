@@ -118,7 +118,10 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
         },
     );
     const return_type_src = ctx.ast().getNodeSource(return_type);
-    e.help = std.fmt.allocPrint(ctx.gpa, "Change the return type to `!{s}`.", .{return_type_src}) catch @panic("OOM");
+    e.help = .{
+        .str = std.fmt.allocPrint(ctx.gpa, "Change the return type to `!{s}`.", .{return_type_src}) catch @panic("OOM"),
+        .static = false,
+    };
 }
 
 // Used by the Linter to register the rule so it can be run.

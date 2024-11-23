@@ -16,7 +16,7 @@ labels: std.ArrayListUnmanaged(LabeledSpan) = .{},
 source_name: ?string = null,
 source: ?ArcStr = null,
 /// Optional help text. This will go under the code snippet.
-help: ?string = null,
+help: ?PossiblyStaticStr = null,
 
 // Although this is not [:0]const u8, it should not be mutated. Needs to be mut
 // to indicate to Arc it's owned by the Error. Otherwise, arc.deinit() won't
@@ -52,7 +52,7 @@ pub fn newAtLocation(message: string, span: Span) Error {
 pub fn deinit(self: *Error, alloc: std.mem.Allocator) void {
     if (!self.message.static) alloc.free(self.message.str);
 
-    if (self.help != null) alloc.free(self.help.?);
+    if (self.help != null and !self.help.?.static) alloc.free(self.help.?.str);
     if (self.source_name != null) alloc.free(self.source_name.?);
     if (self.source != null) self.source.?.deinit();
     for (self.labels.items) |*label| {

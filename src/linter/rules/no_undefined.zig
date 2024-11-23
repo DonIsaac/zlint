@@ -34,7 +34,11 @@ pub fn runOnNode(_: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterContex
         }
     }
 
-    _ = ctx.diagnostic("Do not use undefined.", .{ctx.spanT(node.main_token)});
+    const e = ctx.diagnostic("`undefined` is missing a safety comment", .{ctx.spanT(node.main_token)});
+    e.help = .{
+        .str = "Add a `SAFETY: <reason>` before this line explaining why this code is safe.",
+        .static = true,
+    };
 }
 
 pub fn rule(self: *NoUndefined) Rule {

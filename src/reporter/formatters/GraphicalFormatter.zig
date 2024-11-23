@@ -64,7 +64,7 @@ fn renderHeader(self: *GraphicalFormatter, w: *Writer, e: *const Error) FormatEr
 }
 
 fn renderFooter(self: *GraphicalFormatter, w: *Writer, e: *const Error) FormatError!void {
-    const help = e.help orelse return;
+    const help = if (e.help) |h| h.str else return;
     const color = self.theme.styles.help;
     try w.writeByte('\n');
     try w.print("  {s}help:{s} {s}\n", .{ color.open, color.close, help });
