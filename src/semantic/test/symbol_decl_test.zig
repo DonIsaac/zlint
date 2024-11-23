@@ -53,11 +53,14 @@ test "Symbol flags for various declarations of `x`" {
             .{ .s_member = true },
         },
 
-        // FIXME
-        // .{
-        //     "const Foo = error { x };",
-        //     .{ .s_member = true },
-        // },
+        .{
+            "const Foo = error { x };",
+            .{ .s_error = true, .s_member = true },
+        },
+        .{
+            "const Foo = error { z, y, x };",
+            .{ .s_error = true, .s_member = true },
+        },
 
         // functions
         .{
@@ -100,6 +103,10 @@ test "Symbol flags for various declarations of `x`" {
         // },
         .{
             "fn foo() void { for(0..10) |x| { _ = x; } }",
+            .{ .s_payload = true, .s_const = true },
+        },
+        .{
+            "fn foo() void { for(arr, 0..) |y, x| { _ = y; _ = x; } }",
             .{ .s_payload = true, .s_const = true },
         },
         .{

@@ -40,6 +40,21 @@ pub inline fn assert(condition: bool, comptime fmt: string, args: anytype) void 
     }
 }
 
+pub inline fn debugAssert(condition: bool, comptime fmt: string, args: anytype) void {
+    if (comptime IS_DEBUG) {
+        if (!condition) std.debug.panic(fmt, args);
+    }
+}
+
+pub inline fn assertUnsafe(condition: bool) void {
+    if (comptime IS_DEBUG) {
+        if (!condition) @panic("assertion failed");
+    } else {
+        @setRuntimeSafety(IS_DEBUG);
+        unreachable;
+    }
+}
+
 pub fn Boo(T: type) type {
     const info = @typeInfo(T);
     return switch (info) {
