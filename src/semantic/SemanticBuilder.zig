@@ -310,7 +310,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         // function declarations
         .fn_decl,
         => return self.visitFnDecl(node_id),
-        .fn_proto, .fn_proto_one, .fn_proto_multi => {
+        .fn_proto, .fn_proto_one, .fn_proto_simple, .fn_proto_multi => {
             var buf: [1]NodeIndex = undefined;
             const fn_proto = ast.fullFnProto(&buf, node_id) orelse unreachable;
             return self.visitFnProto(node_id, fn_proto);
@@ -872,14 +872,16 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
 }
 
 inline fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnProto) !void {
+    try self.enterScope(.{ .flags = .{ .s_function = true } });
+    defer self.exitScope();
+
+    try self.visitFnProtoParams(fn_proto);
     {
-        try self.enterScope(.{});
-        defer self.exitScope();
-        try self.visitFnProtoParams(fn_proto);
+        const flags = self.takeReferenceFlags();
+        defer self._curr_reference_flags = flags;
+        self._curr_reference_flags.type = true;
+        try self.visit(fn_proto.ast.return_type);
     }
-    // FIXME: return type is in param scope
-    // (e.g. `fn foo(T: type) T`)
-    try self.visit(fn_proto.ast.return_type);
 }
 
 fn visitFnProtoParams(self: *SemanticBuilder, fn_proto: full.FnProto) !void {
@@ -958,6 +960,12 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     });
     defer self.exitScope();
     try self.visitFnProtoParams(proto);
+    {
+        const flags = self.takeReferenceFlags();
+        defer self._curr_reference_flags = flags;
+        self._curr_reference_flags.type = true;
+        try self.visit(proto.ast.return_type);
+    }
     // TODO: visit return type. Note that return type is within param scope
     // (e.g. `fn foo(T: type) T`)
 
@@ -1250,6 +1258,12 @@ inline fn declareSymbol(
 }
 
 // =========================== Subsection: References ==========================
+
+inline fn takeReferenceFlags(self: *SemanticBuilder) Reference.Flags {
+    const flags = self._curr_reference_flags;
+    self._curr_reference_flags = .{};
+    return flags;
+}
 
 const CreateReference = struct {
     node: ?NodeIndex = null,
