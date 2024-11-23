@@ -137,6 +137,18 @@ test "simple references where `x` is referenced a single time" {
             ,
             .{ .read = true },
         },
+        .{
+            \\fn foo() void {
+            \\  const a: []u32 = &[_]u32{1, 2, 3};
+            \\  var x = 0;
+            \\  var curr = a[0]
+            \\  while (true) : (x += 1) {
+            \\    // don't care
+            \\  }
+            \\}
+            ,
+            .{ .read = true, .write = true },
+        },
     };
 
     for (cases) |case| {
