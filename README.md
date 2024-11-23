@@ -14,7 +14,8 @@ An opinionated linter for the Zig programming language.
   the Zig compiler. This means that ZLint still checks and understands code that
   may otherwise be ignored by Zig due to dead code elimination.
 - Pretty, detailed, and easy-to-understand error messages.
-  <img width="925" alt="image" src="https://github.com/user-attachments/assets/59edb72f-cd11-4f32-9b35-734fddcaebd6">
+  ![image](https://github.com/user-attachments/assets/dbe0a38a-4906-42fe-a07e-9f7676e3973b)
+
 
 
 ## Contributing
