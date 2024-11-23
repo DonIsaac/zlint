@@ -13,6 +13,7 @@ _arena: ArenaAllocator,
 
 // states
 _curr_scope_flags: Scope.Flags = .{},
+_curr_symbol_flags: Symbol.Flags = .{},
 _curr_reference_flags: Reference.Flags = .{ .read = true },
 /// Flags added to the next block-created scope. Reset immediately after use.
 ///
@@ -489,15 +490,20 @@ fn visitContainer(self: *SemanticBuilder, node: NodeIndex, container: full.Conta
     const main_tokens: []const TokenIndex = self.AST().nodes.items(.main_token);
     const tags: []const Token.Tag = self.AST().tokens.items(.tag);
 
-    const flags: Scope.Flags = switch (tags[main_tokens[node]]) {
-        .keyword_enum => .{ .s_enum = true },
-        .keyword_struct => .{ .s_struct = true },
-        .keyword_union => .{ .s_union = true },
+    const scope_flags: Scope.Flags, const symbol_flags: Symbol.Flags = switch (tags[main_tokens[node]]) {
+        .keyword_enum => .{ .{ .s_enum = true }, .{ .s_enum = true } },
+        .keyword_struct => .{ .{ .s_struct = true }, .{ .s_struct = true } },
+        .keyword_union => .{ .{ .s_union = true }, .{ .s_union = true } },
         // e.g. opaque
-        else => .{},
+        else => .{ .{}, .{} },
     };
+
+    self.currentContainerSymbolFlags().set(symbol_flags, true);
+    self._curr_symbol_flags.set(symbol_flags, true);
+    defer self._curr_symbol_flags.set(symbol_flags, true);
+
     try self.enterScope(.{
-        .flags = flags.merge(.{ .s_block = true }),
+        .flags = scope_flags.merge(.{ .s_block = true }),
     });
     defer self.exitScope();
     for (container.ast.members) |member| {
@@ -515,8 +521,10 @@ fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
 
     try self.enterScope(.{ .flags = .{ .s_error = true } });
     defer self.exitScope();
+    self.currentContainerSymbolFlags().s_error = true;
 
     while (true) : (curr_tok -= 1) {
+        util.assertUnsafe(curr_tok > 0); // should always encounter an l_brace.
         switch (tags[curr_tok]) {
             .identifier => {
                 _ = try self.declareMemberSymbol(.{
@@ -1138,6 +1146,10 @@ inline fn currentContainerSymbolUnwrap(self: *const SemanticBuilder) Symbol.Id {
         .{},
     );
     return self._symbol_stack.getLast();
+}
+
+inline fn currentContainerSymbolFlags(self: *SemanticBuilder) *Symbol.Flags {
+    return &self._semantic.symbols.symbols.items(.flags)[self.currentContainerSymbolUnwrap().int()];
 }
 
 /// Data used to declare a new symbol

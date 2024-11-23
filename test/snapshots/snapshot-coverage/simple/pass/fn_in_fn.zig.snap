@@ -49,7 +49,7 @@
       "token": 11, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(2), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable", "const", "struct"], 
       "references": [
         {"symbol":3,"scope":2,"node":"identifier","identifier":"inner","flags":["call"]}, 
         

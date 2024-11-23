@@ -20,7 +20,7 @@
       "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable", "const", "struct"], 
       "references": [
         {"symbol":1,"scope":7,"node":"identifier","identifier":"Writer","flags":["read"]}, 
         
@@ -123,7 +123,7 @@
       "token": 58, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(3), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable", "const", "struct"], 
       "references": [
         {"symbol":8,"scope":3,"node":"identifier","identifier":"gen","flags":["read"]}, 
         

@@ -6,7 +6,7 @@
       "token": null, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["const"], 
+      "flags": ["const", "struct"], 
       "references": [
         
       ], 
