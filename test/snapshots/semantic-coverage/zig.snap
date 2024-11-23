@@ -1,5 +1,5 @@
-Passed: 97.63912% (2895/2965)
-Panics: 0.033726815% (1/2965)
+Passed: 97.67285% (2896/2965)
+Panics: 0% (0/2965)
 
 doc/langref/invalid_doc-comment.zig: error.AnalysisFailed
 doc/langref/test_switch_continue.zig: error.AnalysisFailed
@@ -14,7 +14,6 @@ lib/std/Progress.zig: error.FullMismatch
 lib/std/Target/Query.zig: error.FullMismatch
 lib/std/crypto/tls/Client.zig: error.AnalysisFailed
 lib/std/os/linux/IoUring.zig: error.FullMismatch
-lib/std/priority_dequeue.zig: error.Panic
 lib/std/zig/tokenizer.zig: error.AnalysisFailed
 src/Sema.zig: error.FullMismatch
 src/Zcu.zig: error.FullMismatch

@@ -579,16 +579,17 @@ fn visitAssignment(self: *SemanticBuilder, node_id: NodeIndex, tag: Node.Tag) Se
     const does_read_lhs = tag != .assign;
     const children = self.getNodeData(node_id);
     const flags = self._curr_reference_flags;
+    defer self._curr_reference_flags = flags;
 
     {
         self._curr_reference_flags.write = true;
         self._curr_reference_flags.read = does_read_lhs;
-        defer self._curr_reference_flags = flags;
         try self.visit(children.lhs);
     }
     {
-        assert(self._curr_reference_flags.read);
-        assert(!self._curr_reference_flags.write);
+        self._curr_reference_flags.read = true;
+        self._curr_reference_flags.write = false;
+        self._curr_reference_flags.call = false;
         try self.visit(children.rhs);
     }
 }

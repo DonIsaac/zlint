@@ -81,7 +81,6 @@ const LintVisitor = struct {
                 const filepath = self.allocator.dupe(u8, entry.path) catch {
                     return WalkState.Stop;
                 };
-
                 self.pool.spawn(LintVisitor.lintFile, .{ self, filepath }) catch |e| {
                     std.log.err("Failed to spawn lint job on file '{s}': {any}\n", .{ filepath, e });
                     self.allocator.free(filepath);
