@@ -63,7 +63,7 @@ pub const meta: Rule.Meta = .{
 pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const tags: []const Node.Tag = ctx.ast().nodes.items(.tag);
     const tok_tags: []const Token.Tag = ctx.ast().tokens.items(.tag);
-    const datas: []const Node.Data = ctx.ast().nodes.items(.data);
+    const data: []const Node.Data = ctx.ast().nodes.items(.data);
     const NULL_NODE = semantic.Semantic.NULL_NODE;
     const node = wrapper.node;
 
@@ -76,7 +76,7 @@ pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterCont
         switch (tags[return_node]) {
             .@"return" => break,
             .block_two, .block_two_semicolon => {
-                const data = datas[return_node];
+                const data = data[return_node];
                 // we're looking for only a single statement in the block.
                 if (data.lhs == NULL_NODE or data.rhs != NULL_NODE) return;
                 return_node = data.lhs;
@@ -94,7 +94,7 @@ pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterCont
     if (tok_tags[ident_tok] == .asterisk) ident_tok += 1;
     if (tok_tags[ident_tok] != .identifier) return;
 
-    const return_param = datas[return_node].lhs;
+    const return_param = data[return_node].lhs;
     if (return_param == NULL_NODE or tags[return_param] != .identifier) return;
 
     const error_param = ctx.ast().tokenSlice(ident_tok);
