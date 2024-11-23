@@ -27,7 +27,7 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
         return;
     }
     if (node.data.lhs == 0) {
-        ctx.diagnostic(
+        _ = ctx.diagnostic(
             "Call to `@import()` has no file path or module name.",
             .{ctx.spanN(wrapper.idx)},
         );
@@ -38,7 +38,7 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
 
     // Note: this will get caught by ast check
     if (tags[node.data.lhs] != .string_literal) {
-        ctx.diagnostic("@import operand must be a string literal", .{ctx.spanN(node.data.lhs)});
+        _ = ctx.diagnostic("@import operand must be a string literal", .{ctx.spanN(node.data.lhs)});
         return;
     }
     const pathname_str = ctx.ast().tokenSlice(main_tokens[node.data.lhs]);
@@ -63,7 +63,7 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
         // TODO: use absolute paths and cache stat results.
         // depends on: https://github.com/DonIsaac/zlint/issues/81
         const stat = dir.statFile(pathname) catch {
-            ctx.diagnosticFmt(
+            _ = ctx.diagnosticFmt(
                 "Unresolved import to '{s}'",
                 .{pathname},
                 .{ctx.spanN(node.data.lhs)},
@@ -71,7 +71,7 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
             return;
         };
         if (stat.kind == .directory) {
-            ctx.diagnosticFmt(
+            _ = ctx.diagnosticFmt(
                 "Unresolved import to directory '{s}'",
                 .{pathname},
                 .{ctx.spanN(node.data.lhs)},

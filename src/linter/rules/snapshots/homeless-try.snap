@@ -1,4 +1,13 @@
-× expected type expression, found 'invalid bytes'
+× homeless-try: `try` cannot be used in functions that do not return errors.
+   ╭─[homeless-try.zig:2:4]
+ 1 │ const std = @import("std");
+ 2 │ fn foo() void {
+   ·    ─┬─
+   ·     ╰── Function `foo` is declared here.
+ 3 │   const x = try std.heap.page_allocator.alloc(u8, 8);
+   ·             ───
+   ╰────
+  help: Change the return type to `!void`.
 
 
 × homeless-try: `try` cannot be used outside of a function.
