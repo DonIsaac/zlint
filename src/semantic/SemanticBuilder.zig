@@ -1425,7 +1425,7 @@ fn addErrorOwnedMessage(self: *SemanticBuilder, message: string, help: ?string) 
     // const heap_labels = try alloc.dupe(labels);
     const heap_help: ?string = if (help == null) null else try self._gpa.dupeZ(u8, help.?);
     var err = Error.new(message);
-    err.help = heap_help;
+    err.help = if (heap_help) |h| .{ .str = h, .static = false } else null;
     try self._errors.append(self._gpa, err);
 }
 
