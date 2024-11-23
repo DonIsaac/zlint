@@ -48,6 +48,7 @@ pub const Rule = struct {
     };
 
     pub const Category = enum {
+        /// Re-implements a check already performed by the Zig compiler.
         compiler,
         correctness,
         suspicious,
