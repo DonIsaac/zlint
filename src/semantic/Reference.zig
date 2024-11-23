@@ -44,7 +44,7 @@ pub const Flags = packed struct(FLAGS_REPR) {
     /// Make sure this is `false` if you want to check that a symbol is, itself,
     /// being read/written/etc.
     member: bool = false,
-    /// Reference to a language primtive.
+    /// Reference to a language primitive.
     ///
     /// Until primitives are added to the symbol table, these references will
     /// never have a `symbol`.
