@@ -25,12 +25,14 @@ pub const Flags = packed struct(FLAGS_REPR) {
     s_enum: bool = false,
     /// Created by an enum declaration.
     s_union: bool = false,
+    /// Created by an error declaration.
+    s_error: bool = false,
     /// Created by a block statement, loop, if statement, etc.
     s_block: bool = false,
     s_comptime: bool = false,
     s_catch: bool = false,
     // Padding
-    _: u8 = 0,
+    _: u7 = 0,
 
     pub const Flag = std.meta.FieldEnum(Flags);
 

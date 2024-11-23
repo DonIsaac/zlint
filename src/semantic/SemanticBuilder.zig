@@ -80,8 +80,6 @@ pub fn init(gpa: Allocator) SemanticBuilder {
 /// returning an error union. These assertions produce better release
 /// binaries and catch bugs earlier.
 pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Result {
-    // var builder = SemanticBuilder{ ._gpa = gpa, ._arena = ArenaAllocator.init(gpa) };
-    // defer builder.deinit();
     // NOTE: ast is moved
     const gpa = builder._gpa;
     const ast = try builder.parse(source);
@@ -413,7 +411,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         // lhs is undefined, rhs is a token index
         // see: Parse.zig, line 2934
         // TODO: visit block
-        .error_set_decl => return,
+        .error_set_decl => return self.visitErrorSetDecl(node_id),
 
         // lhs is a node, rhs is a token
         .grouped_expression,
@@ -504,6 +502,39 @@ fn visitContainer(self: *SemanticBuilder, node: NodeIndex, container: full.Conta
     defer self.exitScope();
     for (container.ast.members) |member| {
         try self.visit(member);
+    }
+}
+
+fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
+    util.assertUnsafe(self.AST().nodes.items(.tag)[node_id] == Node.Tag.error_set_decl);
+    const tags: []const Token.Tag = self.AST().tokens.items(.tag);
+
+    var curr_tok = self.getNodeData(node_id).rhs;
+    util.debugAssert(tags[curr_tok] == Token.Tag.r_brace, "error_set_decl rhs should be an rbrace token.", .{});
+    curr_tok -= 1;
+
+    try self.enterScope(.{ .flags = .{ .s_error = true } });
+    defer self.exitScope();
+
+    while (true) : (curr_tok -= 1) {
+        switch (tags[curr_tok]) {
+            .identifier => {
+                _ = try self.declareMemberSymbol(.{
+                    .declaration_node = node_id,
+                    .identifier = curr_tok,
+                    .visibility = Symbol.Visibility.public,
+                    .flags = .{ .s_error = true },
+                });
+            },
+            .comma, .doc_comment => {},
+            .l_brace => break,
+            else => {
+                // in debug builds we want to know if we're missing something or
+                // handling errors incorrectly. in release mode we can safely
+                // ignore it.
+                util.debugAssert(false, "unexpected token in error container: {any}", .{tags[curr_tok]});
+            },
+        }
     }
 }
 
