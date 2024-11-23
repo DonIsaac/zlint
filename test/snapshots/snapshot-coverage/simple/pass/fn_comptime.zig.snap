@@ -6,7 +6,7 @@
       "token": null, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["const"], 
+      "flags": ["const", "struct"], 
       "references": [
         
       ], 
@@ -48,7 +48,7 @@
       "token": 12, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(3), 
-      "flags": ["member"], 
+      "flags": ["member", "struct"], 
       "references": [
         
       ], 
@@ -150,7 +150,7 @@
       "token": 80, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(11), 
-      "flags": ["member"], 
+      "flags": ["member", "struct"], 
       "references": [
         
       ], 

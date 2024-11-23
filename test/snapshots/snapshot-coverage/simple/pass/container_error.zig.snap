@@ -20,7 +20,7 @@
       "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable", "const", "error"], 
       "references": [
         
       ], 

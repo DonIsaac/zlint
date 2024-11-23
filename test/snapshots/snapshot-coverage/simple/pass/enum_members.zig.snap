@@ -20,7 +20,7 @@
       "token": 2, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable", "const", "enum"], 
       "references": [
         {"symbol":1,"scope":2,"node":"identifier","identifier":"Foo","flags":["read"]}, 
         {"symbol":1,"scope":3,"node":"identifier","identifier":"Foo","flags":["read"]}, 
@@ -36,7 +36,7 @@
       "token": 6, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": ["member"], 
+      "flags": ["member", "enum"], 
       "references": [
         
       ], 
@@ -50,7 +50,7 @@
       "token": 8, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": ["member"], 
+      "flags": ["member", "enum"], 
       "references": [
         
       ], 
@@ -64,7 +64,7 @@
       "token": 10, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": ["member"], 
+      "flags": ["member", "enum"], 
       "references": [
         
       ], 

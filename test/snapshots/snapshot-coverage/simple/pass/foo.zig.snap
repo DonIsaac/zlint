@@ -63,7 +63,7 @@
       "token": 31, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable", "const", "struct"], 
       "references": [
         {"symbol":4,"scope":2,"node":"identifier","identifier":"Foo","flags":["read"]}, 
         
@@ -78,7 +78,7 @@
       "token": 35, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": ["member"], 
+      "flags": ["member", "struct"], 
       "references": [
         
       ], 

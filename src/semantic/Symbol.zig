@@ -67,7 +67,8 @@ pub const Visibility = enum {
     private,
 };
 
-pub const Flags = packed struct {
+const FLAGS_REPR = u16;
+pub const Flags = packed struct(FLAGS_REPR) {
     /// A container-level or local variable.
     ///
     /// If it's declared with a `const` or `var` keyword, this is true. Note
@@ -114,8 +115,30 @@ pub const Flags = packed struct {
     s_fn_param: bool = false,
     s_catch_param: bool = false,
     s_error: bool = false,
+    s_struct: bool = false,
+    s_enum: bool = false,
+    s_union: bool = false,
+    _: u4 = 0,
 
     pub const Flag = std.meta.FieldEnum(Flags);
+    pub const s_container: Flags = .{ .s_struct = true, .s_enum = true, .s_union = true, .s_error = true };
+
+    pub inline fn merge(self: Flags, other: Flags) Flags {
+        const a: FLAGS_REPR = @bitCast(self);
+        const b: FLAGS_REPR = @bitCast(other);
+        return @bitCast(a | b);
+    }
+
+    pub inline fn set(self: *Flags, flags: Flags, comptime enable: bool) void {
+        const a: FLAGS_REPR = @bitCast(self.*);
+        const b: FLAGS_REPR = @bitCast(flags);
+
+        if (enable) {
+            self.* = @bitCast(a | b);
+        } else {
+            self.* = @bitCast(a & ~b);
+        }
+    }
 };
 
 /// Stores symbols created and referenced within a Zig program.

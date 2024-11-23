@@ -55,6 +55,17 @@ pub const Flags = packed struct(FLAGS_REPR) {
         return @bitCast(a | b);
     }
 
+    pub inline fn set(self: *Flags, flags: Flags, comptime enable: bool) void {
+        const a: FLAGS_REPR = @bitCast(self.*);
+        const b: FLAGS_REPR = @bitCast(flags);
+
+        if (enable) {
+            self.* = @bitCast(a | b);
+        } else {
+            self.* = @bitCast(a & ~b);
+        }
+    }
+
     /// Returns `true` if two sets of flags have exactly the same flags
     /// enabled/diabled.
     pub fn eq(self: Flags, other: Flags) bool {
