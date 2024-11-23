@@ -5,6 +5,7 @@ pub const semantic = @import("semantic.zig");
 pub const Source = @import("source.zig").Source;
 
 pub const Linter = @import("linter.zig").Linter;
+pub const report = @import("reporter.zig");
 
 pub const printer = struct {
     pub const Printer = @import("printer/Printer.zig");

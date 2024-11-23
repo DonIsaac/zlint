@@ -7,25 +7,54 @@ const Allocator = std.mem.Allocator;
 const SemanticError = @import("ecosystem_coverage.zig").SemanticError; // TODO: move to shared file
 const string = utils.string;
 const TestFolders = utils.TestFolders;
+
 const Printer = zlint.printer.Printer;
 const AstPrinter = zlint.printer.AstPrinter;
 const SemanticPrinter = zlint.printer.SemanticPrinter;
 
+const SemanticBuilder = zlint.semantic.SemanticBuilder;
+
+const FailError = error{
+    ExpectedSemanticFailure,
+};
 const Error = error{
     // The walker produced a source without a filename.
     SourceMissingFilename,
-} || zlint.semantic.SemanticBuilder.SemanticError || Allocator.Error;
+} || FailError || SemanticBuilder.SemanticError || Allocator.Error;
 
 fn run(alloc: Allocator) !void {
-    var pass_fixtures = try std.fs.cwd().openDir("test/fixtures/simple/pass", .{ .iterate = true });
-    defer pass_fixtures.close();
-    var suite = try test_runner.TestSuite.init(alloc, pass_fixtures, "snapshot-coverage/simple", "pass", .{ .test_fn = &runPass });
-    return suite.run();
+    const Suite = std.meta.Tuple(&[_]type{ []const u8, *const test_runner.TestSuite.TestFn });
+    inline for (.{
+        Suite{ "pass", &runPass },
+        Suite{ "fail", &runFail },
+    }) |suite_inputs| {
+        const suite_name, const suite_run_fn = suite_inputs;
+
+        var fixtures = try std.fs.cwd().openDir(
+            "test/fixtures/simple/" ++ suite_name,
+            .{ .iterate = true },
+        );
+        defer fixtures.close();
+
+        var suite = try test_runner.TestSuite.init(
+            alloc,
+            fixtures,
+            "snapshot-coverage/simple",
+            suite_name,
+            .{ .test_fn = suite_run_fn },
+        );
+        try suite.run();
+    }
+    // var pass_fixtures = try std.fs.cwd().openDir("test/fixtures/simple/pass", .{ .iterate = true });
+    // defer pass_fixtures.close();
+
+    // var pass_suite = try test_runner.TestSuite.init(alloc, pass_fixtures, "snapshot-coverage/simple", "pass", .{ .test_fn = &runPass });
+    // return pass_suite.run();
 }
 
 fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     // run analysis
-    var builder = zlint.semantic.SemanticBuilder.init(alloc);
+    var builder = SemanticBuilder.init(alloc);
     defer builder.deinit();
     var semantic_result = try builder.build(source.text());
     defer semantic_result.deinit();
@@ -44,7 +73,7 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     const snapshot = try TestFolders.openSnapshotFile(alloc, "snapshot-coverage/simple/pass", utils.cleanStrSlice(source_name));
     defer snapshot.close();
 
-    var printer = zlint.printer.Printer.init(alloc, snapshot.writer());
+    var printer = Printer.init(alloc, snapshot.writer());
     var sem_printer = SemanticPrinter.new(&printer, &semantic);
     defer printer.deinit();
 
@@ -62,6 +91,39 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     printer.pop();
 
     return;
+}
+
+fn runFail(alloc: Allocator, source: *const zlint.Source) anyerror!void {
+    const formatter = zlint.report.GraphicalFormatter.unicode(alloc, false);
+
+    // open (and maybe create) source-local snapshot file
+    if (source.pathname == null) return Error.SourceMissingFilename;
+    const source_name = try alloc.allocSentinel(u8, source.pathname.?.len, 0);
+    defer alloc.free(source_name);
+    _ = std.mem.replace(u8, source.pathname.?, std.fs.path.sep_str, "-", source_name);
+
+    const snapshot = try TestFolders.openSnapshotFile(alloc, "snapshot-coverage/simple/fail", utils.cleanStrSlice(source_name));
+    defer snapshot.close();
+    var reporter = zlint.report.GraphicalReporter.init(snapshot.writer(), formatter);
+
+    // run analysis
+    var builder = SemanticBuilder.init(alloc);
+    builder.withSource(source);
+    defer builder.deinit();
+
+    var semantic_result: SemanticBuilder.Result = builder.build(source.text()) catch {
+        reporter.reportErrorSlice(alloc, builder._errors.items);
+        builder._errors.deinit(alloc);
+        return;
+    };
+    if (semantic_result.hasErrors()) {
+        reporter.reportErrorSlice(alloc, semantic_result.errors.items);
+        builder._errors.deinit(alloc);
+        semantic_result.value.deinit();
+        return;
+    }
+    defer semantic_result.deinit();
+    return FailError.ExpectedSemanticFailure;
 }
 
 pub const SUITE = test_runner.TestFile{

@@ -1,0 +1,6 @@
+  𝙭 syntax error: expected ';' after declaration
+   ╭─[syntax_missing_semi.zig:1:11]
+ 1 │ const x = 1
+   ·           ─
+   ╰────
+
