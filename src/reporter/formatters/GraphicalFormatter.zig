@@ -107,8 +107,6 @@ fn renderContext(self: *GraphicalFormatter, w: *Writer, e: *Error) FormatError!v
 
     for (locations.items) |loc| {
         if (loc.rendered) continue;
-        // const l = e.labels.items[i];
-        // const loc = locations.items[i];
         try self.renderContextLines(w, src, lineum_width, locations.items, loc);
     }
     try self.renderContextFinisher(w, lineum_width);
@@ -128,6 +126,7 @@ fn renderContextMasthead(
 
     // ╭─[
     try w.print("{s}{s}{s}", .{ chars.ltop, chars.hbar, chars.lbox });
+    // foo.zig:1:1
     try w.writeAll(color.open);
     try w.print("{s}:{d}:{d}", .{
         if (e.source_name) |s| s else "<anonymous>",
@@ -152,20 +151,14 @@ fn renderContextFinisher(self: *GraphicalFormatter, w: *Writer, lineum_col_width
 fn renderContextLines(
     self: *GraphicalFormatter,
     w: *Writer,
-    // e: *const Error,
     src: []const u8,
     lineum_width: u32,
-    // _: LabeledSpan,
     locations: []ContextInfo,
     loc: ContextInfo,
 ) !void {
     var LINEBUF: [MAX_CONTEXT_LINES * 2 + 1]Line = undefined;
     var linebuf = LINEBUF[0..(self.context_lines * 2 + 1)];
 
-    // const full_snippet = Span{
-    //     .start = locations[0].start(),
-    //     .end = locations[locations.len - 1].end(),
-    // };
     @memset(&LINEBUF, Line.EMPTY);
     _ = contextFor(self.context_lines, linebuf, src, loc);
 
@@ -234,15 +227,12 @@ fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: C
         const midway = loc.len() / 2;
         const odd = loc.len() % 2 == 0;
         const first_len_half = if (odd) midway + 1 else midway;
-        // const first_len_half = midway;
+
         try w.writeBytesNTimes(chars.underline, first_len_half);
         try w.writeAll(chars.underbar);
         try w.writeBytesNTimes(chars.underline, first_len_half);
-        // try w.writeBytesNTimes(chars.underline, loc.span.span.len());
         try w.writeAll(color.close);
         try w.writeAll("\n");
-        // try self.renderLabelPrefix(w, linum_col_len);
-        // try w.writeByteNTimes(' ', loc.column());
         {
             try self.renderLabelPrefix(w, linum_col_len);
             try w.writeByteNTimes(' ', loc.column());
@@ -300,7 +290,6 @@ fn iconFor(self: *GraphicalFormatter, severity: Error.Severity) util.string {
 }
 
 fn contextFor(
-    // self: *const GraphicalFormatter,
     context_lines: u32,
     /// Where resolved lines are stored.
     /// has length `2 * self.context_lines + 1`

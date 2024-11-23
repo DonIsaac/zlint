@@ -178,7 +178,7 @@ pub const ThemeCharacters = struct {
             .rcross = "┤",
             .underbar = "┬",
             .underline = "─",
-            .err = "×",
+            .err = "𝙭",
             .warning = "⚠",
             .advice = "☞",
         };
