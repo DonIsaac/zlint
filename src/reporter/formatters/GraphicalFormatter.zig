@@ -51,7 +51,7 @@ fn renderHeader(self: *GraphicalFormatter, w: *Writer, e: *const Error) FormatEr
     defer w.writeAll(emphasize.close) catch {};
     defer w.writeAll(color.close) catch {};
 
-    try w.print("{s} ", .{icon});
+    try w.print("  {s} ", .{icon});
 
     if (e.code.len > 0) {
         try w.writeAll(e.code);
@@ -67,7 +67,7 @@ fn renderFooter(self: *GraphicalFormatter, w: *Writer, e: *const Error) FormatEr
     const help = if (e.help) |h| h.str else return;
     const color = self.theme.styles.help;
     try w.writeByte('\n');
-    try w.print("  {s}help:{s} {s}\n", .{ color.open, color.close, help });
+    try w.print("  {s}help:{s} {s}", .{ color.open, color.close, help });
 }
 
 fn labelsLt(_: void, a: LabeledSpan, b: LabeledSpan) bool {
