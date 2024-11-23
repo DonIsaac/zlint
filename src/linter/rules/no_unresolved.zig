@@ -59,7 +59,8 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
         // FIXME: do not use fs.cwd(). this will break once users start
         // specifying paths to lint. We should be recording an absolute path
         // for each linted file.
-        const dir = fs.cwd().openDir(dirname, .{}) catch std.debug.panic("Failed to open dir: {s}", .{dirname});
+        var dir = fs.cwd().openDir(dirname, .{}) catch std.debug.panic("Failed to open dir: {s}", .{dirname});
+        defer dir.close();
         // TODO: use absolute paths and cache stat results.
         // depends on: https://github.com/DonIsaac/zlint/issues/81
         const stat = dir.statFile(pathname) catch {
