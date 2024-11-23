@@ -1,17 +1,15 @@
-× no-undefined: `undefined` is missing a safety comment
+  × no-undefined: `undefined` is missing a safety comment
    ╭─[no-undefined.zig:1:11]
  1 │ const x = undefined;
    ·           ─────────
    ╰────
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 
-
-× no-undefined: `undefined` is missing a safety comment
+  × no-undefined: `undefined` is missing a safety comment
    ╭─[no-undefined.zig:2:11]
  1 │ // This is not a safety comment
  2 │ const x = undefined;
    ·           ─────────
    ╰────
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
-
 
