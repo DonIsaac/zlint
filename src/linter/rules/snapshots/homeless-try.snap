@@ -1,4 +1,4 @@
-  × homeless-try: `try` cannot be used in functions that do not return errors.
+  𝙭 homeless-try: `try` cannot be used in functions that do not return errors.
    ╭─[homeless-try.zig:2:4]
  1 │ const std = @import("std");
  2 │ fn foo() void {
@@ -9,14 +9,14 @@
    ╰────
   help: Change the return type to `!void`.
 
-  × homeless-try: `try` cannot be used outside of a function.
+  𝙭 homeless-try: `try` cannot be used outside of a function.
    ╭─[homeless-try.zig:2:11]
  1 │ const std = @import("std");
  2 │ const x = try std.heap.page_allocator.alloc(u8, 8);
    ·           ───
    ╰────
 
-  × homeless-try: `try` cannot be used outside of a function.
+  𝙭 homeless-try: `try` cannot be used outside of a function.
    ╭─[homeless-try.zig:4:17]
  3 │   const Bar = struct {
  4 │     baz: []u8 = try std.heap.page_allocator.alloc(u8, 8),

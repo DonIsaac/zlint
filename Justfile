@@ -78,9 +78,9 @@ lint:
     typos
     bunx oxlint@latest --format github  -D correctness -D suspicious -D perf
 
-bench:
+bench mode="safe":
     @mkdir -p tmp
-    zig build --release=safe
+    zig build --release={{mode}}
     hyperfine --shell=none --warmup 2 --export-csv tmp/bench.csv 'zig-out/bin/zlint' 
 
 # Remove build and test artifacts

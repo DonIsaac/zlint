@@ -13,6 +13,7 @@ test "Symbol flags for various declarations of `x`" {
     const TestCase = std.meta.Tuple(&[_]type{ [:0]const u8, Symbol.Flags });
 
     const cases = [_]TestCase{
+        // variables
         .{
             "const x = 1;",
             .{ .s_const = true, .s_variable = true },
@@ -37,9 +38,73 @@ test "Symbol flags for various declarations of `x`" {
             "fn foo() u32 { comptime var x = 1; return x; }",
             .{ .s_variable = true, .s_comptime = true },
         },
+
+        // members
+        .{
+            "const Foo = struct { x: u32 };",
+            .{ .s_member = true },
+        },
+        .{
+            "const Foo = enum { x };",
+            .{ .s_member = true },
+        },
+        .{
+            "const Foo = union(enum) { x };",
+            .{ .s_member = true },
+        },
+
+        // FIXME
+        // .{
+        //     "const Foo = error { x };",
+        //     .{ .s_member = true },
+        // },
+
+        // functions
         .{
             "fn x() void {}",
             .{ .s_fn = true },
+        },
+
+        // payloads
+        .{
+            "fn foo() void { const a = try std.heap.page_allocator.alloc(u8, 8) catch |x| return; _ = a; }",
+            .{ .s_payload = true, .s_const = true, .s_catch_param = true },
+        },
+        .{
+            "fn foo() void { const a: ?u32 = null; if(a) |x| { _ = x; } }",
+            .{ .s_payload = true, .s_const = true },
+        },
+        .{
+            \\fn foo() void {
+            \\  const a: anyerror!u32 = 1;
+            \\  if (a) {
+            \\    // don't care
+            \\  } else |x| {
+            \\    _ = x;
+            \\  }
+            \\}
+            ,
+            .{ .s_payload = true, .s_const = true },
+        },
+        // FIXME: x not bound
+        // .{
+        //     \\const std = @import("std");
+        //     \\fn foo(map: std.StringHashMap(u32)) void {
+        //     \\  var it = map.entries();
+        //     \\  while(it.next()) |x| {
+        //     \\    std.debug.print("{d}\n", .{x.valuePtr.*});
+        //     \\  }
+        //     \\}
+        //     ,
+        //     .{ .s_payload = true, .s_const = true },
+        // },
+        .{
+            "fn foo() void { for(0..10) |x| { _ = x; } }",
+            .{ .s_payload = true, .s_const = true },
+        },
+        .{
+            "fn foo() void { for(0..10) |*x| { _ = x; } }",
+            .{ .s_payload = true, .s_const = true },
         },
     };
 
@@ -54,7 +119,11 @@ test "Symbol flags for various declarations of `x`" {
         };
 
         const flags: Symbol.Flags = sem.symbols.symbols.items(.flags)[x.int()];
-        try t.expectEqual(expected_flags, flags);
+        t.expectEqual(expected_flags, flags) catch |e| {
+            print("Expected: {any}\nActual:   {any}\n\n", .{ expected_flags, flags });
+            print("Source:\n\n{s}\n\n", .{source});
+            return e;
+        };
     }
 }
 

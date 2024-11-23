@@ -1,4 +1,4 @@
-  × no-unresolved: Unresolved import to 'does-not-exist.zig'
+  𝙭 no-unresolved: Unresolved import to 'does-not-exist.zig'
    ╭─[src/no-unresolved.zig:1:19]
  1 │ const x = @import("does-not-exist.zig");
    ·                   ────────────────────
