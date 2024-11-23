@@ -20,19 +20,35 @@ pub fn Reporter(
         }
 
         pub fn reportErrors(self: *Self, errors: std.ArrayList(Error)) void {
-            self.stats.recordErrors(errors.items.len);
+            // self.stats.recordErrors(errors.items.len);
             defer errors.deinit();
-            if (errors.items.len == 0) return;
+            self.reportErrorSlice(errors.allocator, errors.items);
+            // if (errors.items.len == 0) return;
+            // self.writer_lock.lock();
+            // defer self.writer_lock.unlock();
+
+            // for (errors.items) |err| {
+            //     var e = err;
+            //     FormatFn(&self.formatter, &self.writer, err) catch @panic("Failed to write error.");
+            //     self.writer.writeByte('\n') catch @panic("failed to write newline.");
+            //     e.deinit(errors.allocator);
+            // }
+        }
+
+        pub fn reportErrorSlice(self: *Self, alloc: std.mem.Allocator, errors: []Error) void {
+            self.stats.recordErrors(errors.len);
+            if (errors.len == 0) return;
             self.writer_lock.lock();
             defer self.writer_lock.unlock();
 
-            for (errors.items) |err| {
+            for (errors) |err| {
                 var e = err;
                 FormatFn(&self.formatter, &self.writer, err) catch @panic("Failed to write error.");
                 self.writer.writeByte('\n') catch @panic("failed to write newline.");
-                e.deinit(errors.allocator);
+                e.deinit(alloc);
             }
         }
+
         pub fn printStats(self: *Self, duration: i64) void {
             const yellow, const yd = comptime blk: {
                 var c = Chameleon.initComptime();

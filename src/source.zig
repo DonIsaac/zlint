@@ -9,7 +9,7 @@ const Arc = ptrs.Arc;
 const assert = std.debug.assert;
 const string = util.string;
 
-const ArcStr = Arc([:0]u8);
+pub const ArcStr = Arc([:0]u8);
 
 pub const Source = struct {
     // contents: Arc([]const u8),

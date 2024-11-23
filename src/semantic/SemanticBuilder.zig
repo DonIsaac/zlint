@@ -11,6 +11,9 @@
 _gpa: Allocator,
 _arena: ArenaAllocator,
 
+_source_code: ?_source.ArcStr = null,
+_source_path: ?string = null,
+
 // states
 _curr_scope_flags: Scope.Flags = .{},
 _curr_symbol_flags: Symbol.Flags = .{},
@@ -65,6 +68,11 @@ pub fn init(gpa: Allocator) SemanticBuilder {
     };
 }
 
+pub fn withSource(self: *SemanticBuilder, source: *const _source.Source) void {
+    self._source_code = source.contents.clone();
+    self._source_path = source.pathname;
+}
+
 /// Parse and analyze a Zig source file.
 ///
 /// Analysis consists of:
@@ -117,7 +125,8 @@ pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Resul
     try builder.resolveReferencesInCurrentScope();
     // Take whatever references still haven't been resolved and move them to
     // Semantic.
-    switch (builder._unresolved_references.len()) {
+    const unresolved_frame_count = builder._unresolved_references.len();
+    switch (unresolved_frame_count) {
         0 => builder._semantic.symbols.unresolved_references = .{},
         1 => {
             const unresolved = try builder._unresolved_references.curr().toOwnedSlice(builder._gpa);
@@ -126,13 +135,7 @@ pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Resul
                 .capacity = unresolved.len,
             };
         },
-        else => {
-            util.assert(
-                builder._unresolved_references.len() == 1,
-                "Expected 0 or 1, got {d}",
-                .{builder._unresolved_references.len()},
-            );
-        },
+        else => std.debug.panic("Expected 0 or 1 frame, got {d}", .{unresolved_frame_count}),
     }
 
     return Result.new(builder._gpa, builder._semantic, builder._errors);
@@ -145,6 +148,7 @@ pub fn deinit(self: *SemanticBuilder) void {
     self._symbol_stack.deinit(self._gpa);
     self._node_stack.deinit(self._gpa);
     self._unresolved_references.deinit(self._gpa);
+    if (self._source_code) |*src| src.deinit();
 }
 
 fn parse(self: *SemanticBuilder, source: stringSlice) Allocator.Error!Ast {
@@ -1474,19 +1478,35 @@ inline fn assertToken(self: *const SemanticBuilder, token: TokenIndex, comptime 
 // =========================================================================
 
 fn addAstError(self: *SemanticBuilder, ast: *const Ast, ast_err: Ast.Error) Allocator.Error!void {
-    var msg: std.ArrayListUnmanaged(u8) = .{};
-    defer msg.deinit(self._gpa);
-    try ast.renderError(ast_err, msg.writer(self._gpa));
-
-    // TODO: render `ast_err.extra.expected_tag`
-    const byte_offset: Ast.ByteOffset = ast.tokens.items(.start)[ast_err.token];
-    const loc = ast.tokenLocation(byte_offset, ast_err.token);
-    const labels = .{
-        Span{ .start = @intCast(loc.line_start), .end = @intCast(loc.line_end) },
+    // error message
+    const message: string = blk: {
+        var msg: std.ArrayListUnmanaged(u8) = .{};
+        defer msg.deinit(self._gpa);
+        try ast.renderError(ast_err, msg.writer(self._gpa));
+        break :blk try msg.toOwnedSlice(self._gpa);
     };
-    _ = labels;
+    errdefer self._gpa.free(message);
 
-    return self.addErrorOwnedMessage(try msg.toOwnedSlice(self._gpa), null);
+    var err = Error.new(message);
+    errdefer err.deinit(self._gpa);
+
+    // label where in the source the error occurred
+    // TODO: render `ast_err.extra.expected_tag`
+    {
+        const byte_offset: Ast.ByteOffset = ast.tokens.items(.start)[ast_err.token];
+        const loc = ast.tokenLocation(byte_offset, ast_err.token);
+        const span = LabeledSpan{
+            .span = .{ .start = @intCast(loc.line_start), .end = @intCast(loc.line_end) },
+        };
+        try err.labels.ensureTotalCapacityPrecise(self._gpa, 1);
+        err.labels.appendAssumeCapacity(span);
+    }
+
+    err.code = "syntax error";
+    if (self._source_code) |src| err.source = src.clone();
+    if (self._source_path) |path| err.source_name = try self._gpa.dupe(u8, path);
+
+    try self._errors.append(self._gpa, err);
 }
 
 /// Record an error encountered during parsing or analysis.
@@ -1503,16 +1523,6 @@ fn addError(self: *SemanticBuilder, message: string, labels: []Span, help: ?stri
         .help = heap_help,
     };
     try self._errors.append(err);
-}
-
-/// Create and record an error. `message` is an owned slice moved into the new Error.
-// fn addErrorOwnedMessage(self: *SemanticBuilder, message: string, labels: []Span, help: ?string) !void {
-fn addErrorOwnedMessage(self: *SemanticBuilder, message: string, help: ?string) !void {
-    // const heap_labels = try alloc.dupe(labels);
-    const heap_help: ?string = if (help == null) null else try self._gpa.dupeZ(u8, help.?);
-    var err = Error.new(message);
-    err.help = if (heap_help) |h| .{ .str = h, .static = false } else null;
-    try self._errors.append(self._gpa, err);
 }
 
 // =========================================================================
@@ -1618,7 +1628,9 @@ const RawToken = _ast.RawToken;
 const TokenIndex = _ast.TokenIndex;
 
 const Error = @import("../Error.zig");
-const Span = @import("../source.zig").Span;
+const _source = @import("../source.zig");
+const LabeledSpan = _source.LabeledSpan;
+const Span = _source.Span;
 
 const util = @import("util");
 const IS_DEBUG = util.IS_DEBUG;

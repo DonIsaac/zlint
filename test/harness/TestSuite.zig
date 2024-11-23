@@ -14,8 +14,8 @@ stats: Stats = .{},
 
 alloc: Allocator,
 
-const TestFn = fn (alloc: Allocator, source: *const Source) anyerror!void;
-const SetupFn = fn (suite: *TestSuite) anyerror!void;
+pub const TestFn = fn (alloc: Allocator, source: *const Source) anyerror!void;
+pub const SetupFn = fn (suite: *TestSuite) anyerror!void;
 
 pub const TestSuiteFns = struct {
     test_fn: *const TestFn,
