@@ -50,6 +50,7 @@
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
       "references": [
+        {"symbol":3,"scope":1,"node":"identifier","identifier":"Foo","flags":["type"]}, 
         
       ], 
       "members": [], 

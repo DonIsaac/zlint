@@ -22,6 +22,7 @@
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const", "struct"], 
       "references": [
+        {"symbol":1,"scope":2,"node":"identifier","identifier":"Writer","flags":["type"]}, 
         {"symbol":1,"scope":7,"node":"identifier","identifier":"Writer","flags":["read"]}, 
         
       ], 

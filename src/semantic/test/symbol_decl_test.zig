@@ -27,14 +27,6 @@ test "Symbol flags for various declarations of `x`" {
             .{ .s_const = false, .s_variable = true },
         },
         .{
-            "fn foo(x: u32) u32 { return x; }",
-            .{ .s_fn_param = true, .s_const = true },
-        },
-        .{
-            "fn foo(comptime x: u32) u32 { return x; }",
-            .{ .s_fn_param = true, .s_const = true, .s_comptime = true },
-        },
-        .{
             "fn foo() u32 { comptime var x = 1; return x; }",
             .{ .s_variable = true, .s_comptime = true },
         },
@@ -75,7 +67,7 @@ test "Symbol flags for various declarations of `x`" {
             .{ .s_error = true, .s_member = true },
         },
 
-        // variables inside containers
+        // non-member symbols inside containers
         .{
             "const Foo = struct { fn x() void {} };",
             .{ .s_fn = true },
@@ -89,6 +81,26 @@ test "Symbol flags for various declarations of `x`" {
         .{
             "fn x() void {}",
             .{ .s_fn = true },
+        },
+        .{
+            "const Foo = fn(x: u32) void;",
+            .{ .s_fn_param = true, .s_const = true },
+        },
+        .{
+            "const Foo = *const fn(x: u32) void;",
+            .{ .s_fn_param = true, .s_const = true },
+        },
+        .{
+            "fn foo(x: u32) u32 { return x; }",
+            .{ .s_fn_param = true, .s_const = true },
+        },
+        .{
+            "fn foo(comptime x: u32) u32 { return x; }",
+            .{ .s_fn_param = true, .s_const = true, .s_comptime = true },
+        },
+        .{
+            "fn foo(x: type) x { @panic(\"not implemented\"); }",
+            .{ .s_fn_param = true, .s_const = true },
         },
 
         // payloads

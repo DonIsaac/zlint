@@ -109,6 +109,13 @@ test "simple references where `x` is referenced a single time" {
             .{ .read = true },
         },
         .{
+            \\fn foo(x: type) x {
+            \\  @panic("unreachable");
+            \\}
+            ,
+            .{ .type = true },
+        },
+        .{
             \\fn x() u32 {
             \\  return 1;
             \\}
