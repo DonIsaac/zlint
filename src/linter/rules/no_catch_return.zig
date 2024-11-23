@@ -63,7 +63,7 @@ pub const meta: Rule.Meta = .{
 pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const tags: []const Node.Tag = ctx.ast().nodes.items(.tag);
     const tok_tags: []const Token.Tag = ctx.ast().tokens.items(.tag);
-    const data: []const Node.Data = ctx.ast().nodes.items(.data);
+    const datas: []const Node.Data = ctx.ast().nodes.items(.data);
     const NULL_NODE = semantic.Semantic.NULL_NODE;
     const node = wrapper.node;
 
