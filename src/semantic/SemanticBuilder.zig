@@ -675,11 +675,37 @@ inline fn visitWhile(self: *SemanticBuilder, _: NodeIndex, while_stmt: full.Whil
     try self.visit(while_stmt.ast.else_expr);
 }
 
-inline fn visitFor(self: *SemanticBuilder, _: NodeIndex, for_stmt: full.For) !void {
+inline fn visitFor(self: *SemanticBuilder, node: NodeIndex, for_stmt: full.For) !void {
     for (for_stmt.ast.inputs) |input| {
         try self.visit(input);
     }
-    try self.visit(for_stmt.ast.then_expr);
+
+    {
+        const tags = self.AST().tokens.items(.tag);
+        try self.enterScope(.{});
+        defer self.exitScope();
+
+        var curr = for_stmt.payload_token;
+        while (true) {
+            switch (tags[curr]) {
+                .pipe => break,
+                .asterisk, .comma => curr += 1,
+                .identifier => {
+                    _ = try self.declareSymbol(.{
+                        .declaration_node = node,
+                        .identifier = curr,
+                        .flags = .{
+                            .s_payload = true,
+                            .s_const = true,
+                        },
+                    });
+                    curr += 1;
+                },
+                else => return error.MissingIdentifier,
+            }
+        }
+        try self.visit(for_stmt.ast.then_expr);
+    }
     try self.visit(for_stmt.ast.else_expr);
 }
 
