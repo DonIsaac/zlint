@@ -234,13 +234,7 @@
       
     }, 
   ], 
-  "unresolvedReferences": [
-    {"symbol":null,"scope":1,"node":"identifier","identifier":"type","flags":["read"]}, 
-    {"symbol":null,"scope":6,"node":"identifier","identifier":"usize","flags":["read"]}, 
-    {"symbol":null,"scope":12,"node":"identifier","identifier":"isize","flags":["read"]}, 
-    {"symbol":null,"scope":12,"node":"identifier","identifier":"usize","flags":["read"]}, 
-    
-  ], 
+  "unresolvedReferences": [],
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
     "flags": ["top"], 

@@ -297,11 +297,6 @@
   "unresolvedReferences": [
     {"symbol":null,"scope":6,"node":"identifier","identifier":"ent","flags":["read"]}, 
     {"symbol":null,"scope":6,"node":"identifier","identifier":"ent","flags":["read"]}, 
-    {"symbol":null,"scope":11,"node":"identifier","identifier":"usize","flags":["read"]}, 
-    {"symbol":null,"scope":11,"node":"identifier","identifier":"usize","flags":["read"]}, 
-    {"symbol":null,"scope":11,"node":"identifier","identifier":"usize","flags":["read"]}, 
-    {"symbol":null,"scope":15,"node":"identifier","identifier":"true","flags":["read"]}, 
-    {"symbol":null,"scope":12,"node":"identifier","identifier":"false","flags":["read"]}, 
     
   ], 
   "scopes": {

@@ -237,12 +237,7 @@
       
     }, 
   ], 
-  "unresolvedReferences": [
-    {"symbol":null,"scope":5,"node":"identifier","identifier":"anyopaque","flags":["read"]}, 
-    {"symbol":null,"scope":5,"node":"identifier","identifier":"u8","flags":["read"]}, 
-    {"symbol":null,"scope":7,"node":"identifier","identifier":"u8","flags":["read"]}, 
-    
-  ], 
+  "unresolvedReferences": [],
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
     "flags": ["top"], 
