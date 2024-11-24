@@ -6,13 +6,14 @@
 //! have side effects such as printing the error or switching over it.
 //!
 //! ## Examples
+//!
 //! Examples of **incorrect** code for this rule:
 //! ```zig
 //! fn foo() !void {
 //!   riskyOp() catch |e| return e;
 //!   riskyOp() catch |e| { return e; };
 //! }
-//!```
+//! ```
 //!
 //! Examples of **correct** code for this rule:
 //! ```zig
@@ -34,7 +35,7 @@
 //! fn baz() !void {
 //!   riskyOp() catch |e| return error.OutOfMemory;
 //! }
-//!```
+//! ```
 
 const std = @import("std");
 const util = @import("util");
