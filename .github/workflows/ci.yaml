@@ -23,6 +23,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   ZIG_VERSION: 0.13.0
