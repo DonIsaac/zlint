@@ -101,6 +101,10 @@ pub fn build(b: *std.Build) void {
     test_all_step.dependOn(&run_tests.step);
     test_all_step.dependOn(&run_e2e.step);
 
+    const docs_step = b.step("docs", "Generate documentation");
+    const docs_rules_step = Tasks.generateRuleDocs(&l);
+    docs_step.dependOn(docs_rules_step);
+
     // check is down here because it's weird. We create mocks of each artifacts
     // that never get installed. This (allegedly) skips llvm emit.
     {
@@ -142,6 +146,30 @@ pub fn build(b: *std.Build) void {
         // }
     }
 }
+
+const Tasks = struct {
+    fn generateRuleDocs(l: *Linker) *Build.Step {
+        const docgen_exe = l.b.addExecutable(.{
+            .name = "docgen",
+            .root_source_file = l.b.path("tasks/docgen.zig"),
+            .target = l.target,
+            .optimize = l.optimize,
+        });
+        const zlint = l.b.modules.get("zlint") orelse @panic("Missing module: zlint");
+        docgen_exe.root_module.addImport("zlint", zlint);
+        const docgen_run = l.b.addRunArtifact(docgen_exe);
+        // return docgen_run;
+        const docgen = l.b.step("docs:rules", "Generate lint rule documentation");
+        docgen.dependOn(&docgen_run.step);
+        return docgen;
+    }
+    // fn generateLibDocs(l: *Linker) *Build.Step {
+    //     const b = l.b;
+    // }
+    // fn formatDocs(l: *Linker) *Build.Step {
+    //     const b = l.b;
+    // }
+};
 
 /// Stores modules and dependencies. Use `link` to register them as imports.
 const Linker = struct {

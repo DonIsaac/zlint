@@ -16,7 +16,8 @@ An opinionated linter for the Zig programming language.
 - Pretty, detailed, and easy-to-understand error messages.
   ![image](https://github.com/user-attachments/assets/dbe0a38a-4906-42fe-a07e-9f7676e3973b)
 
-
+## Lint Rules
+The list of available lints and how they behave can be found in the [docs folder](docs/rules/)
 
 ## Contributing
 

@@ -23,6 +23,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   ZIG_VERSION: 0.13.0
@@ -73,5 +74,22 @@ jobs:
       - run: zig build --fetch
       - run: just submodules
       - run: just e2e
+      - name: Check for changes
+        run: git diff --exit-code
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Install tooling
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: extractions/setup-just@v2
+      - uses: mlugg/setup-zig@v1
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - run: just docs
       - name: Check for changes
         run: git diff --exit-code
