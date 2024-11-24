@@ -67,6 +67,12 @@ coverage:
     kcov --include-path=src,test ./.coverage/test-zlint zig-out/bin/zlint
     kcov --merge ./.coverage/all ./.coverage/test ./.coverage/test-e2e ./.coverage/test-zlint
 
+bench mode="safe":
+    @mkdir -p tmp
+    zig build --release={{mode}}
+    hyperfine --shell=none --warmup 2 --export-csv tmp/bench.csv 'zig-out/bin/zlint' 
+
+
 # Format the codebase, writing changes to disk
 fmt:
     zig fmt src/**/*.zig test/**/*.zig build.zig build.zig.zon
@@ -78,10 +84,9 @@ lint:
     typos
     bunx oxlint@latest --format github  -D correctness -D suspicious -D perf
 
-bench mode="safe":
-    @mkdir -p tmp
-    zig build --release={{mode}}
-    hyperfine --shell=none --warmup 2 --export-csv tmp/bench.csv 'zig-out/bin/zlint' 
+docs:
+    zig build docs
+    bunx prettier --write docs/rules/*.md
 
 # Remove build and test artifacts
 clean:

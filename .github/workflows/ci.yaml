@@ -75,3 +75,17 @@ jobs:
       - run: just e2e
       - name: Check for changes
         run: git diff --exit-code
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Install tooling
+      - uses: extractions/setup-just@v2
+      - uses: mlugg/setup-zig@v1
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - run: just docs
+      - name: Check for changes
+        run: git diff --exit-code
