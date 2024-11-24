@@ -52,9 +52,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # Install tooling
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
       - uses: extractions/setup-just@v2
       - uses: mlugg/setup-zig@v1
         with:
@@ -85,6 +82,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # Install tooling
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
       - uses: extractions/setup-just@v2
       - uses: mlugg/setup-zig@v1
         with:
