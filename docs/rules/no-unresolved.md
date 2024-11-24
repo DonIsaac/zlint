@@ -1,7 +1,8 @@
 # `no-unresolved`
 
-Category: correctness
-Enabled by default?: No
+> Category: correctness
+>
+> Enabled by default?: No
 
 ## What This Rule Does
 

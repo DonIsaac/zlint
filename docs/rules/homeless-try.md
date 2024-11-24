@@ -1,7 +1,8 @@
 # `homeless-try`
 
-Category: compiler
-Enabled by default?: No
+> Category: compiler
+>
+> Enabled by default?: No
 
 ## What This Rule Does
 

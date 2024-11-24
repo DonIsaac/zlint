@@ -1,7 +1,8 @@
 # `no-undefined`
 
-Category: restriction
-Enabled by default?: No
+> Category: restriction
+>
+> Enabled by default?: No
 
 ## What This Rule Does
 

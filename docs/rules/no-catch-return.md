@@ -1,7 +1,8 @@
 # `no-catch-return`
 
-Category: pedantic
-Enabled by default?: No
+> Category: pedantic
+>
+> Enabled by default?: No
 
 ## What This Rule Does
 

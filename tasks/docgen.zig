@@ -104,8 +104,10 @@ fn generateDocFile(alloc: Allocator, rule: RuleInfo, docs: []const u8) !void {
 fn renderDocs(writer: fs.File.Writer, rule: RuleInfo, docs: []const u8) !void {
     try writer.print("# `{s}`\n\n", .{rule.meta.name});
     try writer.print(
-        \\Category: {s}
-        \\Enabled by default?: {s}
+        \\> Category: {s}
+        \\> 
+        \\> Enabled by default?: {s}
+        \\
     ,
         .{
             @tagName(rule.meta.category),
