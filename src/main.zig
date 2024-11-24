@@ -4,7 +4,6 @@ const lint = @import("linter.zig");
 const util = @import("util");
 const Source = @import("source.zig").Source;
 const semantic = @import("semantic.zig");
-const Options = @import("./cli/Options.zig");
 
 const fs = std.fs;
 const path = std.path;
@@ -14,8 +13,9 @@ const print = std.debug.print;
 const Ast = std.zig.Ast;
 const Linter = lint.Linter;
 
-const print_cmd = @import("cmd/print_command.zig");
-const lint_cmd = @import("cmd/lint_command.zig");
+const Options = @import("./cli/Options.zig");
+const print_cmd = @import("cli/print_command.zig");
+const lint_cmd = @import("cli/lint_command.zig");
 
 pub fn main() !void {
     // in debug builds, include more information for debugging memory leaks,
