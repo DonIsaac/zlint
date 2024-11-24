@@ -87,7 +87,6 @@ lint:
 
 docs:
     zig build docs
-    bunx prettier --write docs/rules/*.md
 
 # Remove build and test artifacts
 clean:

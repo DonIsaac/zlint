@@ -158,10 +158,17 @@ const Tasks = struct {
         const zlint = l.b.modules.get("zlint") orelse @panic("Missing module: zlint");
         docgen_exe.root_module.addImport("zlint", zlint);
         const docgen_run = l.b.addRunArtifact(docgen_exe);
-        // return docgen_run;
+
+        const bunx_prettier = Tasks.bunx(l, "prettier", &[_][]const u8{ "--write", "docs/rules/*.md" });
+        bunx_prettier.step.dependOn(&docgen_run.step);
+
         const docgen = l.b.step("docs:rules", "Generate lint rule documentation");
-        docgen.dependOn(&docgen_run.step);
+        docgen.dependOn(&bunx_prettier.step);
         return docgen;
+    }
+    fn bunx(l: *Linker, comptime cmd: []const u8, comptime args: []const []const u8) *Build.Step.Run {
+        const b = l.b;
+        return b.addSystemCommand(.{ "bunx", cmd } ++ args);
     }
     // fn generateLibDocs(l: *Linker) *Build.Step {
     //     const b = l.b;
