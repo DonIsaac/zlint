@@ -5,6 +5,7 @@
 //! Zig compiler.
 //!
 //! ## Examples
+//!
 //! Examples of **incorrect** code for this rule:
 //! ```zig
 //! const std = @import("std");
@@ -20,14 +21,14 @@
 //!     property: u32 = try std.heap.page_allocator.alloc(u8, 8),
 //!   };
 //! }
-//!```
+//! ```
 //!
 //! Examples of **correct** code for this rule:
 //! ```zig
 //! fn foo() !void {
 //!   var my_str = try std.heap.page_allocator.alloc(u8, 8);
 //! }
-//!```
+//! ```
 
 const std = @import("std");
 const util = @import("util");

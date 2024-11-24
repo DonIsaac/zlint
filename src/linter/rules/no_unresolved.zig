@@ -1,3 +1,37 @@
+//! ## What This Rule Does
+//!
+//! Checks for imports to files that do not exist.
+//!
+//! This rule only checks for file-based imports. Modules added by `build.zig`
+//! are not checked. More precisely, imports to paths ending in `.zig` will be
+//! resolved. This rule checks that a file exists at the imported path and is
+//! not a directory. Symlinks are allowed but are not followed.
+//!
+//! ## Examples
+//! Assume the following directory structure:
+//! ```plaintext
+//! .
+//! ├── foo.zig
+//! ├── mod
+//! │   └── bar.zig
+//! ├── not_a_file.zig
+//! │   └── baz.zig
+//! └── root.zig
+//! ```
+//!
+//! Examples of **incorrect** code for this rule:
+//! ```zig
+//! // root.zig
+//! const x = @import("mod/foo.zig");    // foo.zig is in the root directory.
+//! const y = @import("not_a_file.zig"); // directory, not a file
+//! ```
+//!
+//! Examples of **correct** code for this rule:
+//! ```zig
+//! // root.zig
+//! const x = @import("foo.zig");
+//! const y = @import("mod/bar.zig");
+//! ```
 const std = @import("std");
 const fs = std.fs;
 const path = std.fs.path;

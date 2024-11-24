@@ -33,13 +33,14 @@ const createRule = ({ name, StructName }) => {
 //! Explain what this rule checks for. Also explain why this is a problem.
 //!
 //! ## Examples
+//!
 //! Examples of **incorrect** code for this rule:
 //! \`\`\`zig
-//!\`\`\`
+//! \`\`\`
 //!
 //! Examples of **correct** code for this rule:
 //! \`\`\`zig
-//!\`\`\`
+//! \`\`\`
 
 const std = @import("std");
 const _source = @import("../../source.zig");
@@ -57,7 +58,7 @@ const NodeWrapper = _rule.NodeWrapper;
 
 // Rule metadata
 const ${StructName} = @This();
-pub const Meta: Rule.Meta = .{
+pub const meta: Rule.Meta = .{
     .name = "${name}",
     // TODO: set the category to an appropriate value
     .category = .correctness,
