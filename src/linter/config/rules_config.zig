@@ -52,6 +52,7 @@ pub const RulesConfig = struct {
 
 // =============================================================================
 
+// FIXME: rule_impl pointers are not equal and I'm not sure why.
 // const t = std.testing;
 // const print = std.debug.print;
 

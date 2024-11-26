@@ -31,6 +31,7 @@ pub fn RuleConfig(RuleImpl: type) type {
     };
 }
 
+// TODO: per-rule configuration objects.
 // pub fn RuleConfig(Rule: type) type {
 //     if (!@hasDecl(Rule, "Config") or Rule.Config == void) {
 //         return RuleConfigWithDefault(Rule, void, {});

@@ -43,8 +43,6 @@ pub const Linter = struct {
     pub fn init(gpa: Allocator, config: Config.Managed) !Linter {
         var ruleset = RuleSet{};
         var arena = config.arena;
-        // const arena = config.arena.allocator();
-        // ruleset.ensureTotalCapacityForAllRules(alloc);
         try ruleset.loadRulesFromConfig(arena.allocator(), &config.config.rules);
         const linter = Linter{
             .rules = ruleset,
@@ -54,14 +52,6 @@ pub const Linter = struct {
         return linter;
     }
 
-    // pub fn registerAllRules(self: *Linter) void {
-    //     var no_undef = rules.NoUndefined{};
-    //     var no_unresolved = rules.NoUnresolved{};
-    //     // TODO: handle OOM
-    //     self.rules.append(no_undef.rule()) catch @panic("Cannot add new lint rule: Out of memory");
-    //     self.rules.append(no_unresolved.rule()) catch @panic("Cannot add new lint rule: Out of memory");
-    // }
-
     pub fn registerRule(self: *Linter, severity: Severity, rule: Rule) !void {
         try self.rules.rules.append(
             self.arena.allocator(),
@@ -70,7 +60,8 @@ pub const Linter = struct {
     }
 
     pub fn deinit(self: *Linter) void {
-        // self.rules.deinit(self.arena.allocator());
+        // NOTE: rules are arena-allocated and do not need to be deinitialized
+        // directly.
         self.arena.deinit();
     }
 
@@ -157,6 +148,5 @@ pub const Linter = struct {
 test {
     std.testing.refAllDecls(@This());
     std.testing.refAllDecls(@import("linter/tester.zig"));
-    std.testing.refAllDecls(@import("linter/Config.zig"));
     std.testing.refAllDeclsRecursive(rules);
 }
