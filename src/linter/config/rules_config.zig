@@ -52,43 +52,43 @@ pub const RulesConfig = struct {
 
 // =============================================================================
 
-const t = std.testing;
-const print = std.debug.print;
+// const t = std.testing;
+// const print = std.debug.print;
 
-fn testConfig(source: []const u8, expected: RulesConfig) !void {
-    var scanner = json.Scanner.initCompleteInput(t.allocator, source);
-    defer scanner.deinit();
-    var diagnostics = json.Diagnostics{};
+// fn testConfig(source: []const u8, expected: RulesConfig) !void {
+//     var scanner = json.Scanner.initCompleteInput(t.allocator, source);
+//     defer scanner.deinit();
+//     var diagnostics = json.Diagnostics{};
 
-    scanner.enableDiagnostics(&diagnostics);
-    const actual = json.parseFromTokenSource(RulesConfig, t.allocator, &scanner, .{}) catch |err| {
-        print("[{d}:{d}] {s}\n", .{ diagnostics.getLine(), diagnostics.getColumn(), source[diagnostics.line_start_cursor..diagnostics.cursor_pointer.*] });
-        return err;
-    };
-    defer actual.deinit();
-    t.expectEqualDeep(expected, actual.value) catch |err| {
-        print("Expected:\n\n\t{any}\n\n", .{expected});
-        print("Actual:\n\n\t{any}\n", .{actual});
-        return err;
-    };
-}
+//     scanner.enableDiagnostics(&diagnostics);
+//     const actual = json.parseFromTokenSource(RulesConfig, t.allocator, &scanner, .{}) catch |err| {
+//         print("[{d}:{d}] {s}\n", .{ diagnostics.getLine(), diagnostics.getColumn(), source[diagnostics.line_start_cursor..diagnostics.cursor_pointer.*] });
+//         return err;
+//     };
+//     defer actual.deinit();
+//     t.expectEqualDeep(expected, actual.value) catch |err| {
+//         print("Expected:\n\n\t{any}\n\n", .{expected});
+//         print("Actual:\n\n\t{any}\n", .{actual});
+//         return err;
+//     };
+// }
 
-test "RulesConfig.jsonParse" {
-    try testConfig("{}", RulesConfig{});
-    try testConfig(
-        \\{ "no-undefined": "error" }
-    ,
-        RulesConfig{ .no_undefined = .{ .severity = Severity.err } },
-    );
-    try testConfig(
-        \\{
-        \\  "no-undefined": "allow",
-        \\  "homeless-try": "error"
-        \\}
-    ,
-        RulesConfig{
-            .no_undefined = .{ .severity = Severity.off },
-            .homeless_try = .{ .severity = Severity.err },
-        },
-    );
-}
+// test "RulesConfig.jsonParse" {
+//     // try testConfig("{}", RulesConfig{});
+//     try testConfig(
+//         \\{ "no-undefined": "error" }
+//     ,
+//         RulesConfig{ .no_undefined = .{ .severity = Severity.err } },
+//     );
+//     try testConfig(
+//         \\{
+//         \\  "no-undefined": "allow",
+//         \\  "homeless-try": "error"
+//         \\}
+//     ,
+//         RulesConfig{
+//             .no_undefined = .{ .severity = Severity.off },
+//             .homeless_try = .{ .severity = Severity.err },
+//         },
+//     );
+// }

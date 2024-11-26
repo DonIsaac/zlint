@@ -3,20 +3,30 @@ const json = std.json;
 const Severity = @import("../../Error.zig").Severity;
 const Tuple = std.meta.Tuple;
 const Allocator = std.mem.Allocator;
+const Rule = @import("../rule.zig").Rule;
 
 const ParseError = json.ParseError(json.Scanner);
 
 // TODO: per-rule configuration objects.
-pub fn RuleConfig(Rule: type) type {
+pub fn RuleConfig(RuleImpl: type) type {
+    const DEFAULT: RuleImpl = .{};
     return struct {
         severity: Severity = .off,
+        // FIXME: unsafe const cast
+        rule_impl: *anyopaque = @ptrCast(@constCast(&DEFAULT)),
 
-        pub const name = Rule.meta.name;
+        pub const name = RuleImpl.meta.name;
         const Self = @This();
 
         pub fn jsonParse(allocator: Allocator, source: *json.Scanner, options: json.ParseOptions) ParseError!Self {
             const severity = try Severity.jsonParse(allocator, source, options);
-            return Self{ .severity = severity };
+            const rule_impl = try allocator.create(RuleImpl);
+            rule_impl.* = .{};
+            return Self{ .severity = severity, .rule_impl = rule_impl };
+        }
+        pub fn rule(self: *Self) Rule {
+            const rule_impl: *RuleImpl = @ptrCast(@constCast(self.rule_impl));
+            return rule_impl.rule();
         }
     };
 }

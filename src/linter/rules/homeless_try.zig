@@ -51,6 +51,7 @@ const HomelessTry = @This();
 pub const meta: Rule.Meta = .{
     .name = "homeless-try",
     .category = .compiler,
+    .default = .err,
 };
 
 const CONTAINER_FLAGS: Scope.Flags = .{ .s_struct = true, .s_enum = true, .s_union = true };

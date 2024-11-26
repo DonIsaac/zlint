@@ -2,9 +2,21 @@ rules: RulesConfig = .{},
 
 const Config = @This();
 
+pub const Managed = struct {
+    config: Config,
+    arena: std.heap.ArenaAllocator,
+};
+
+pub fn intoManaged(self: Config, arena: std.heap.ArenaAllocator) Managed {
+    return Managed{ .config = self, .arena = arena };
+}
+
 pub const DEFAULT: Config = .{
     .rules = DEFAULT_RULES_CONFIG,
 };
+
+// default rules config lives here b/c I plan on generating rules_config.zig
+// later.
 
 const DEFAULT_RULES_CONFIG: RulesConfig = blk: {
     // var ruleset: [all_rule_decls.len]Rule = undefined;

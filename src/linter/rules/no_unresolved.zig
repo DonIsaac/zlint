@@ -49,6 +49,7 @@ const NoUnresolved = @This();
 pub const meta: Rule.Meta = .{
     .name = "no-unresolved",
     .category = .correctness,
+    .default = .err,
 };
 
 pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterContext) void {

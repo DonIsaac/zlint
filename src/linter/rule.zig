@@ -42,6 +42,7 @@ pub const Rule = struct {
 
     /// Rules must have a constant with this name of type `Rule.Meta`.
     const META_FIELD_NAME = "meta";
+    pub const MAX_SIZE: usize = 16;
     pub const Meta = struct {
         name: string,
         category: Category,
@@ -57,6 +58,11 @@ pub const Rule = struct {
         pedantic,
     };
 
+    pub const WithSeverity = struct {
+        rule: Rule,
+        severity: Severity,
+    };
+
     pub fn init(ptr: anytype) Rule {
         const T = @TypeOf(ptr);
         const ptr_info = comptime blk: {
@@ -66,7 +72,9 @@ pub const Rule = struct {
                 else => @compileLog("Rule.init takes a pointer to a rule implementation, found an " ++ @tagName(info)),
             };
         };
-
+        if (@sizeOf(ptr_info.child) > MAX_SIZE) {
+            @compileError("Rule " ++ @typeName(ptr_info.child) ++ " is too large. Maximum size is " ++ MAX_SIZE);
+        }
         const meta: Meta = if (@hasDecl(ptr_info.child, META_FIELD_NAME))
             @field(ptr_info.child, META_FIELD_NAME)
         else {

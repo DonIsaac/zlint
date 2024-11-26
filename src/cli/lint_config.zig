@@ -3,14 +3,18 @@ const fs = std.fs;
 const path = std.fs.path;
 const json = std.json;
 const Allocator = std.mem.Allocator;
+const ArenaAllocator = std.heap.ArenaAllocator;
 const Dir = std.fs.Dir;
 const lint = @import("../linter.zig");
 
 pub fn resolveLintConfig(
-    arena: Allocator,
+    arena: ArenaAllocator,
     cwd: Dir,
     config_filename: [:0]const u8,
-) !lint.Config {
+) !lint.Config.Managed {
+    var _arena = arena;
+    const alloc = _arena.allocator();
+
     var it = try ParentIterator(4096).fromDir(cwd, config_filename);
     while (it.next()) |maybe_path_to_config| {
         const file = fs.openFileAbsolute(maybe_path_to_config, .{ .mode = .read_only }) catch |err| {
@@ -20,13 +24,14 @@ pub fn resolveLintConfig(
             }
         };
         defer file.close();
-        const source = try file.readToEndAlloc(arena, std.math.maxInt(u32));
-        errdefer arena.free(source);
-        var scanner = json.Scanner{};
+        const source = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
+        errdefer alloc.free(source);
+        var scanner = json.Scanner.initCompleteInput(alloc, source);
         defer scanner.deinit();
-        return json.parseFromTokenSourceLeaky(lint.Config, arena, &scanner, .{});
+        const config = try json.parseFromTokenSourceLeaky(lint.Config, alloc, &scanner, .{});
+        return config.intoManaged(arena);
     }
-    return lint.Config.DEFAULT;
+    return lint.Config.DEFAULT.intoManaged(arena);
 }
 
 const ParentIterError = error{

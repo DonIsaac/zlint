@@ -60,6 +60,7 @@ pub const meta: Rule.Meta = .{
     .name = "no-catch-return",
     // TODO: set the category to an appropriate value
     .category = .pedantic,
+    .default = .warning,
 };
 
 // Runs on each node in the AST. Useful for syntax-based rules.
