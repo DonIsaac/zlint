@@ -6,6 +6,7 @@ const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const string = util.string;
 const Symbol = semantic.Symbol;
+const Severity = @import("../Error.zig").Severity;
 
 const LinterContext = @import("lint_context.zig");
 
@@ -44,7 +45,7 @@ pub const Rule = struct {
     pub const Meta = struct {
         name: string,
         category: Category,
-        default: bool = false,
+        default: Severity = .off,
     };
 
     pub const Category = enum {

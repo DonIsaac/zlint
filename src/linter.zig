@@ -25,14 +25,15 @@ const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
 const string = @import("util").string;
 
-// rules
 const rules = @import("./linter/rules.zig");
+pub const Config = @import("./linter/Config.zig");
 
 pub const Linter = struct {
     rules: std.ArrayList(Rule),
     gpa: Allocator,
 
-    pub fn init(gpa: Allocator) Linter {
+    pub fn init(gpa: Allocator, config: Config) Linter {
+        _ = config; // TODO: use config
         const linter = Linter{
             .rules = std.ArrayList(Rule).init(gpa),
             .gpa = gpa,
@@ -133,5 +134,6 @@ pub const Linter = struct {
 test {
     std.testing.refAllDecls(@This());
     std.testing.refAllDecls(@import("linter/tester.zig"));
+    std.testing.refAllDecls(@import("linter/Config.zig"));
     std.testing.refAllDeclsRecursive(rules);
 }

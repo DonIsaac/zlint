@@ -61,6 +61,15 @@ pub fn deinit(self: *Error, alloc: std.mem.Allocator) void {
     self.labels.deinit(alloc);
 }
 
+const ParseError = json.ParseError(json.Scanner);
+const severity_map = std.StaticStringMap(Severity).initComptime([_]struct { []const u8, Severity }{
+    .{ "error", Severity.err },
+    .{ "deny", Severity.err },
+    .{ "warn", Severity.warning },
+    .{ "off", Severity.off },
+    .{ "allow", Severity.off },
+});
+
 /// Severity level for issues found by lint rules.
 ///
 /// Each lint rule gets assigned a severity level.
@@ -72,6 +81,27 @@ pub const Severity = enum {
     warning,
     notice,
     off,
+
+    /// `std.json.parseFromSlice` looks for and calls methods called `jsonParse`
+    /// when they exist.
+    pub fn jsonParse(_: Allocator, source: *json.Scanner, options: json.ParseOptions) !Severity {
+        _ = options;
+        const tok = try source.next();
+        switch (tok) {
+            .string => {
+                return severity_map.get(tok.string) orelse return ParseError.InvalidEnumTag;
+            },
+            .number => {
+                switch (tok.number[0]) {
+                    '0' => return .off,
+                    '1' => return .warning,
+                    '2' => return .err,
+                    else => return ParseError.InvalidEnumTag,
+                }
+            },
+            else => return ParseError.UnexpectedToken,
+        }
+    }
 };
 
 /// Results hold a value and a list of errors. Useful for error-recoverable
@@ -156,6 +186,7 @@ pub fn Result(comptime T: type) type {
 const Error = @This();
 
 const std = @import("std");
+const json = std.json;
 const ptrs = @import("smart-pointers");
 const util = @import("util");
 const _src = @import("source.zig");
@@ -167,3 +198,24 @@ const string = util.string;
 const Source = _src.Source;
 const Span = _src.Span;
 const LabeledSpan = _src.LabeledSpan;
+
+const t = std.testing;
+
+fn expectParse(input: []const u8, expected: Severity) !void {
+    const actual = try json.parseFromSlice(Severity, t.allocator, input, .{});
+    defer actual.deinit();
+    try t.expectEqual(expected, actual.value);
+}
+
+test "Severity.jsonParse" {
+    try expectParse("\"error\"", Severity.err);
+    try expectParse("\"deny\"", Severity.err);
+    try expectParse("2", Severity.err);
+
+    try expectParse("\"warn\"", Severity.warning);
+    try expectParse("1", Severity.warning);
+
+    try expectParse("\"off\"", Severity.off);
+    try expectParse("\"allow\"", Severity.off);
+    try expectParse("0", Severity.off);
+}
