@@ -2,7 +2,7 @@
 
 > Category: correctness
 >
-> Enabled by default?: No
+> Enabled by default?: Yes (error)
 
 ## What This Rule Does
 

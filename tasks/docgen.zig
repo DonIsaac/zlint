@@ -103,6 +103,12 @@ fn generateDocFile(alloc: Allocator, rule: RuleInfo, docs: []const u8) !void {
 
 fn renderDocs(writer: fs.File.Writer, rule: RuleInfo, docs: []const u8) !void {
     try writer.print("# `{s}`\n\n", .{rule.meta.name});
+    const enabled_message = switch (rule.meta.default) {
+        .off => "No",
+        .err => "Yes (error)",
+        .warning => "Yes (warning)",
+        .notice => "Yes (notice)",
+    };
     try writer.print(
         \\> Category: {s}
         \\> 
@@ -111,7 +117,7 @@ fn renderDocs(writer: fs.File.Writer, rule: RuleInfo, docs: []const u8) !void {
     ,
         .{
             @tagName(rule.meta.category),
-            if (rule.meta.default) "Yes" else "No",
+            enabled_message,
         },
     );
     try writer.writeByteNTimes('\n', 2);
