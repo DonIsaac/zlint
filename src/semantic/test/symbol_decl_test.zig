@@ -9,11 +9,29 @@ const build = test_util.build;
 const panic = std.debug.panic;
 const print = std.debug.print;
 
-test "Symbol flags for various declarations of `x`" {
-    const TestCase = std.meta.Tuple(&[_]type{ [:0]const u8, Symbol.Flags });
+const TestCase = std.meta.Tuple(&[_]type{ [:0]const u8, Symbol.Flags });
+fn testFlags(cases: []const TestCase) !void {
+    for (cases) |case| {
+        const source = case[0];
+        const expected_flags = case[1];
+        var sem = try build(source);
+        defer sem.deinit();
 
-    const cases = [_]TestCase{
-        // variables
+        const x: Symbol.Id = sem.symbols.getSymbolNamed("x") orelse {
+            panic("Symbol 'x' not found in source:\n\n{s}\n\n", .{source});
+        };
+
+        const flags: Symbol.Flags = sem.symbols.symbols.items(.flags)[x.int()];
+        t.expectEqual(expected_flags, flags) catch |e| {
+            print("Expected: {any}\nActual:   {any}\n\n", .{ expected_flags, flags });
+            print("Source:\n\n{s}\n\n", .{source});
+            return e;
+        };
+    }
+}
+
+test "Symbol flags - variable declarations" {
+    try testFlags(&[_]TestCase{
         .{
             "const x = 1;",
             .{ .s_const = true, .s_variable = true },
@@ -30,8 +48,10 @@ test "Symbol flags for various declarations of `x`" {
             "fn foo() u32 { comptime var x = 1; return x; }",
             .{ .s_variable = true, .s_comptime = true },
         },
-
-        // containers
+    });
+}
+test "Symbol flags - container declarations" {
+    try testFlags(&[_]TestCase{
         .{
             "const x = struct { y: u32 };",
             .{ .s_struct = true, .s_variable = true, .s_const = true },
@@ -44,6 +64,11 @@ test "Symbol flags for various declarations of `x`" {
             "const x = union(enum) { y };",
             .{ .s_union = true, .s_variable = true, .s_const = true },
         },
+    });
+}
+
+test "Symbol flags - container fields" {
+    try testFlags(&[_]TestCase{
 
         // members
         .{
@@ -66,7 +91,10 @@ test "Symbol flags for various declarations of `x`" {
             "const Foo = error { z, y, x };",
             .{ .s_error = true, .s_member = true },
         },
-
+    });
+}
+test "Symbol flags - in-container declarations" {
+    try testFlags(&[_]TestCase{
         // non-member symbols inside containers
         .{
             "const Foo = struct { fn x() void {} };",
@@ -76,8 +104,11 @@ test "Symbol flags for various declarations of `x`" {
             "const Foo = struct { a, b, fn x() void {} };",
             .{ .s_fn = true },
         },
+    });
+}
 
-        // functions
+test "Symbol flags - functions and function parameters" {
+    try testFlags(&[_]TestCase{
         .{
             "fn x() void {}",
             .{ .s_fn = true },
@@ -102,8 +133,12 @@ test "Symbol flags for various declarations of `x`" {
             "fn foo(x: type) x { @panic(\"not implemented\"); }",
             .{ .s_fn_param = true, .s_const = true },
         },
+    });
+}
 
-        // payloads
+test "Symbol flags - control flow payloads" {
+    try testFlags(&[_]TestCase{
+        // if
         .{
             "fn foo() void { const a = try std.heap.page_allocator.alloc(u8, 8) catch |x| return; _ = a; }",
             .{ .s_payload = true, .s_const = true, .s_catch_param = true },
@@ -124,6 +159,7 @@ test "Symbol flags for various declarations of `x`" {
             ,
             .{ .s_payload = true, .s_const = true },
         },
+        // while
         // FIXME: x not bound
         // .{
         //     \\const std = @import("std");
@@ -136,6 +172,7 @@ test "Symbol flags for various declarations of `x`" {
         //     ,
         //     .{ .s_payload = true, .s_const = true },
         // },
+        // for
         .{
             "fn foo() void { for(0..10) |x| { _ = x; } }",
             .{ .s_payload = true, .s_const = true },
@@ -148,25 +185,9 @@ test "Symbol flags for various declarations of `x`" {
             "fn foo() void { for(0..10) |*x| { _ = x; } }",
             .{ .s_payload = true, .s_const = true },
         },
-    };
-
-    for (cases) |case| {
-        const source = case[0];
-        const expected_flags = case[1];
-        var sem = try build(source);
-        defer sem.deinit();
-
-        const x: Symbol.Id = sem.symbols.getSymbolNamed("x") orelse {
-            panic("Symbol 'x' not found in source:\n\n{s}\n\n", .{source});
-        };
-
-        const flags: Symbol.Flags = sem.symbols.symbols.items(.flags)[x.int()];
-        t.expectEqual(expected_flags, flags) catch |e| {
-            print("Expected: {any}\nActual:   {any}\n\n", .{ expected_flags, flags });
-            print("Source:\n\n{s}\n\n", .{source});
-            return e;
-        };
-    }
+        // switch
+        // TODO
+    });
 }
 
 test "control flow payloads - value and error" {
