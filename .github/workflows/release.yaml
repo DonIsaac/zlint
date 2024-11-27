@@ -46,7 +46,7 @@ jobs:
       - name: Upload zlint binary
         uses: actions/upload-artifact@v4
         with:
-          path: zig-out/bin/zlint
+          path: zig-out/bin/zlint-${{ runner.os }}-${{ runner.arch }}
           name: zlint-${{ runner.os }}-${{ runner.arch }}
           retention-days: 1
 
