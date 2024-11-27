@@ -20,7 +20,7 @@ const Error = @import("../Error.zig");
 const Linter = _lint.Linter;
 const Options = @import("../cli/Options.zig");
 
-pub fn lint(alloc: Allocator, _: Options) !void {
+pub fn lint(alloc: Allocator, options: Options) !void {
     const stdout = std.io.getStdOut().writer();
     var arena = std.heap.ArenaAllocator.init(alloc);
     const config = blk: {
@@ -28,6 +28,7 @@ pub fn lint(alloc: Allocator, _: Options) !void {
         break :blk try lint_config.resolveLintConfig(arena, fs.cwd(), "zlint.json");
     };
     var reporter = GraphicalReporter.init(stdout, .{ .alloc = alloc });
+    reporter.opts = .{ .quiet = options.quiet };
 
     const start = std.time.milliTimestamp();
 

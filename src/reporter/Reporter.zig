@@ -1,6 +1,10 @@
 pub const FormatError = Writer.Error || std.mem.Allocator.Error;
 const Chameleon = @import("chameleon");
 
+pub const Options = struct {
+    quiet: bool = false,
+};
+
 pub fn Reporter(
     Formatter: type,
     FormatFn: fn (ctx: *Formatter, writer: *Writer, e: Error) FormatError!void,
@@ -10,6 +14,7 @@ pub fn Reporter(
         writer_lock: Mutex = .{},
         formatter: Formatter,
         stats: Stats = .{},
+        opts: Options = .{},
 
         const Self = @This();
         pub fn init(writer: Writer, formatter: Formatter) Self {
@@ -32,9 +37,10 @@ pub fn Reporter(
 
             for (errors) |err| {
                 var e = err;
+                defer e.deinit(alloc);
+                if (self.opts.quiet and err.severity != .err) continue;
                 FormatFn(&self.formatter, &self.writer, err) catch @panic("Failed to write error.");
                 self.writer.writeByte('\n') catch @panic("failed to write newline.");
-                e.deinit(alloc);
             }
         }
 

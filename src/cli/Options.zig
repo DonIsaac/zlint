@@ -2,6 +2,8 @@
 
 /// Enable verbose logging.
 verbose: bool = false,
+/// Only display errors. Warnings are counted but not shown.
+quiet: bool = false,
 /// Instead of linting a file, print its AST as JSON to stdout.
 ///
 /// This is primarily for debugging purposes.
@@ -23,16 +25,16 @@ fn parse(alloc: Allocator, args_iter: anytype) ParseError!Options {
     var argv = args_iter;
 
     // skip binary name
-    _ = argv.next() orelse {
-        return opts;
-    };
+    _ = argv.next() orelse return opts;
     while (argv.next()) |arg| {
         if (arg.len == 0) continue;
         if (arg[0] != '-') {
             try opts.args.append(alloc, arg);
             continue;
         }
-        if (eq(arg, "-V") or eq(arg, "--verbose")) {
+        if (eq(arg, "-q") or eq(arg, "--quiet")) {
+            opts.quiet = true;
+        } else if (eq(arg, "-V") or eq(arg, "--verbose")) {
             opts.verbose = true;
         } else if (eq(arg, "--print-ast")) {
             opts.print_ast = true;
