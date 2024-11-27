@@ -11,6 +11,10 @@ const t = std.testing;
 const panic = std.debug.panic;
 const print = std.debug.print;
 
+const AnalysisError = error{
+    AnalysisFailed,
+};
+
 pub fn build(src: [:0]const u8) !Semantic {
     var r = report.GraphicalReporter.init(std.io.getStdErr().writer(), report.GraphicalFormatter.unicode(t.allocator, false));
     var builder = SemanticBuilder.init(t.allocator);
@@ -23,7 +27,8 @@ pub fn build(src: [:0]const u8) !Semantic {
     errdefer result.value.deinit();
     r.reportErrors(result.errors.toManaged(t.allocator));
     if (result.hasErrors()) {
-        panic("Analysis failed on source:\n\n{s}\n\n", .{src});
+        print("Analysis failed on source:\n\n{s}\n\n", .{src});
+        return error.AnalysisFailed;
     }
 
     return result.value;
