@@ -31,8 +31,10 @@ pub const Flags = packed struct(FLAGS_REPR) {
     s_block: bool = false,
     s_comptime: bool = false,
     s_catch: bool = false,
+    /// Created by a `test` block.
+    s_test: bool = false,
     // Padding
-    _: u7 = 0,
+    _: u6 = 0,
 
     pub const Flag = std.meta.FieldEnum(Flags);
 

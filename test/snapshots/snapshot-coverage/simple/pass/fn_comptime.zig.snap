@@ -257,14 +257,14 @@
         "children": [
           {
             "id": semantic.id.NominalId(u32)(2), 
-            "flags": ["function", "block", "comptime"], 
+            "flags": ["function", "block"], 
             "bindings": {
               
             }, 
             "children": [
               {
                 "id": semantic.id.NominalId(u32)(3), 
-                "flags": ["struct", "block", "comptime"], 
+                "flags": ["struct", "block"], 
                 "bindings": {
                   "inner": 3, 
                   "Self": 4, 
@@ -310,7 +310,7 @@
         "children": [
           {
             "id": semantic.id.NominalId(u32)(7), 
-            "flags": ["function", "block", "comptime"], 
+            "flags": ["function", "block"], 
             "bindings": {
               "l": 9, 
               
@@ -318,14 +318,14 @@
             "children": [
               {
                 "id": semantic.id.NominalId(u32)(8), 
-                "flags": ["comptime"], 
+                "flags": [], 
                 "bindings": {
                   
                 }, 
                 "children": [
                   {
                     "id": semantic.id.NominalId(u32)(9), 
-                    "flags": ["block", "comptime"], 
+                    "flags": ["block"], 
                     "bindings": {
                       
                     }, 
@@ -336,7 +336,7 @@
                 
               }, {
                 "id": semantic.id.NominalId(u32)(10), 
-                "flags": ["comptime"], 
+                "flags": [], 
                 "bindings": {
                   
                 }, 
@@ -344,7 +344,7 @@
                 
               }, {
                 "id": semantic.id.NominalId(u32)(11), 
-                "flags": ["struct", "block", "comptime"], 
+                "flags": ["struct", "block"], 
                 "bindings": {
                   "inner": 10, 
                   
@@ -376,7 +376,7 @@
             "children": [
               {
                 "id": semantic.id.NominalId(u32)(14), 
-                "flags": ["block", "comptime"], 
+                "flags": ["block"], 
                 "bindings": {
                   "c": 14, 
                   
@@ -384,14 +384,14 @@
                 "children": [
                   {
                     "id": semantic.id.NominalId(u32)(15), 
-                    "flags": ["comptime"], 
+                    "flags": [], 
                     "bindings": {
                       
                     }, 
                     "children": [
                       {
                         "id": semantic.id.NominalId(u32)(16), 
-                        "flags": ["block", "comptime"], 
+                        "flags": ["block"], 
                         "bindings": {
                           
                         }, 
@@ -402,7 +402,7 @@
                     
                   }, {
                     "id": semantic.id.NominalId(u32)(17), 
-                    "flags": ["comptime"], 
+                    "flags": [], 
                     "bindings": {
                       
                     }, 
