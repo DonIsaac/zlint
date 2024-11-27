@@ -1,4 +1,6 @@
-pub const Reporter = @import("./reporter/Reporter.zig").Reporter;
+const reporter = @import("./reporter/Reporter.zig");
+pub const Reporter = reporter.Reporter;
+pub const Options = reporter.Options;
 pub const GraphicalFormatter = @import("./reporter/formatters/GraphicalFormatter.zig");
 
 // shorthands
