@@ -29,9 +29,9 @@ ready:
     just fmt
     zig build check
     zig build
+    just docs
     zig build test
     zig build test-e2e
-    just docs
     git status
 
 # Build and run the linter

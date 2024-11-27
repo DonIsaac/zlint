@@ -82,6 +82,11 @@ pub const Flags = packed struct(FLAGS_REPR) {
         const b: FLAGS_REPR = @bitCast(other);
         return a & b != 0;
     }
+
+    /// Returns `true` if this scope can have fields (e.g. a struct).
+    pub inline fn isContainer(self: Flags) bool {
+        return self.s_struct or self.s_enum or self.s_union or self.s_error;
+    }
 };
 
 /// Stores variable scopes created by a zig program.

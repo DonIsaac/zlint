@@ -78,7 +78,7 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
             // test statements implicitly have !void signatures.
             return;
         }
-        if (flags.intersects(CONTAINER_FLAGS)) break;
+        if (flags.isContainer()) break;
     }
 
     _ = ctx.diagnostic(
