@@ -9,6 +9,7 @@
                 "kind": "build",
                 "isDefault": true
             },
+            "problemMatcher": ["$zig"],
             "presentation": {
                 "echo": true,
                 "reveal": "silent",
@@ -27,6 +28,25 @@
                 "kind": "build",
                 "isDefault": false
             },
+            "problemMatcher": ["$zig"],
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            }
+        },
+        {
+            "label": "test",
+            "command": "zig",
+            "args": ["build", "test"],
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            },
+            "problemMatcher": ["$zig"],
             "presentation": {
                 "echo": true,
                 "reveal": "silent",
