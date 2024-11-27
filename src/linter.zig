@@ -71,6 +71,7 @@ pub const Linter = struct {
         errors: *?ErrorList,
     ) (LintError || Allocator.Error)!void {
         var builder = SemanticBuilder.init(self.gpa);
+        builder.withSource(source);
         defer builder.deinit();
 
         var semantic_result = builder.build(source.text()) catch |e| {

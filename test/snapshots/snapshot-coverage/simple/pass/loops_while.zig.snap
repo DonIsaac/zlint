@@ -171,7 +171,7 @@
     {
       "name": "x", 
       "debugName": "", 
-      "token": 157, 
+      "token": 158, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(8), 
       "flags": ["variable"], 
@@ -188,7 +188,7 @@
     {
       "name": "y", 
       "debugName": "", 
-      "token": 164, 
+      "token": 165, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(8), 
       "flags": ["variable"], 
@@ -205,7 +205,7 @@
     {
       "name": "my_xy", 
       "debugName": "", 
-      "token": 193, 
+      "token": 194, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(10), 
       "flags": ["variable", "const"], 
@@ -220,7 +220,7 @@
     {
       "name": "rangeHasNumber", 
       "debugName": "", 
-      "token": 214, 
+      "token": 215, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["fn"], 
@@ -234,7 +234,7 @@
     {
       "name": "begin", 
       "debugName": "", 
-      "token": 216, 
+      "token": 217, 
       "declNode": "identifier", 
       "scope": semantic.id.NominalId(u32)(11), 
       "flags": ["const", "fn_param"], 
@@ -249,7 +249,7 @@
     {
       "name": "end", 
       "debugName": "", 
-      "token": 220, 
+      "token": 221, 
       "declNode": "identifier", 
       "scope": semantic.id.NominalId(u32)(11), 
       "flags": ["const", "fn_param"], 
@@ -264,7 +264,7 @@
     {
       "name": "number", 
       "debugName": "", 
-      "token": 224, 
+      "token": 225, 
       "declNode": "identifier", 
       "scope": semantic.id.NominalId(u32)(11), 
       "flags": ["const", "fn_param"], 
@@ -279,7 +279,7 @@
     {
       "name": "i", 
       "debugName": "", 
-      "token": 231, 
+      "token": 232, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(12), 
       "flags": ["variable"], 
