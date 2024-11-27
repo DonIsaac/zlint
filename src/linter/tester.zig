@@ -29,8 +29,10 @@ pub const LintTesterError = SnapshotError || TestError;
 
 pub fn init(alloc: Allocator, rule: Rule) RuleTester {
     const filename = std.mem.concat(alloc, u8, &[_]string{ rule.meta.name, ".zig" }) catch @panic("OOM");
-    var linter = Linter.init(alloc);
-    linter.rules.append(rule) catch @panic("OOM");
+    var linter = Linter.initEmpty(alloc);
+    linter.registerRule(.err, rule) catch |e| {
+        panic("Failed to register rule {s}: {s}", .{ rule.meta.name, @errorName(e) });
+    };
 
     const fmt = GraphicalFormatter.unicode(alloc, false);
     return .{

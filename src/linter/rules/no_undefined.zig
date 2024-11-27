@@ -70,6 +70,7 @@ const NoUndefined = @This();
 pub const meta: Rule.Meta = .{
     .name = "no-undefined",
     .category = .restriction,
+    .default = .warning,
 };
 
 pub fn runOnNode(_: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterContext) void {

@@ -20,23 +20,12 @@ pub fn Reporter(
         }
 
         pub fn reportErrors(self: *Self, errors: std.ArrayList(Error)) void {
-            // self.stats.recordErrors(errors.items.len);
             defer errors.deinit();
             self.reportErrorSlice(errors.allocator, errors.items);
-            // if (errors.items.len == 0) return;
-            // self.writer_lock.lock();
-            // defer self.writer_lock.unlock();
-
-            // for (errors.items) |err| {
-            //     var e = err;
-            //     FormatFn(&self.formatter, &self.writer, err) catch @panic("Failed to write error.");
-            //     self.writer.writeByte('\n') catch @panic("failed to write newline.");
-            //     e.deinit(errors.allocator);
-            // }
         }
 
         pub fn reportErrorSlice(self: *Self, alloc: std.mem.Allocator, errors: []Error) void {
-            self.stats.recordErrors(errors.len);
+            self.stats.recordErrors(errors);
             if (errors.len == 0) return;
             self.writer_lock.lock();
             defer self.writer_lock.unlock();
@@ -53,18 +42,17 @@ pub fn Reporter(
             const yellow, const yd = comptime blk: {
                 var c = Chameleon.initComptime();
                 const yellow = c.yellow().createPreset();
+                // Yellow {d} format string
                 const yd = yellow.open ++ "{d}" ++ yellow.close;
-                // const yk = yellow.open ++ "{d}" ++ yellow.close;
                 break :blk .{ yellow, yd };
             };
 
             const errors = self.stats.numErrorsSync();
+            const warnings = self.stats.numWarningsSync();
             const files = self.stats.numFilesSync();
-            // yellow.fmt()
             self.writer.print(
-                // "\tFound {s} errors across {s} files in {s}ms.\n",
-                "\tFound " ++ yd ++ " errors across " ++ yd ++ " files in " ++ yellow.open ++ "{d}ms" ++ yellow.close ++ ".\n",
-                .{ errors, files, duration },
+                "\tFound " ++ yd ++ " errors and " ++ yd ++ " warnings across " ++ yd ++ " files in " ++ yellow.open ++ "{d}ms" ++ yellow.close ++ ".\n",
+                .{ errors, warnings, files, duration },
             ) catch {};
         }
     };
@@ -73,10 +61,21 @@ pub fn Reporter(
 const Stats = struct {
     num_files: AtomicUsize = AtomicUsize.init(0),
     num_errors: AtomicUsize = AtomicUsize.init(0),
+    num_warnings: AtomicUsize = AtomicUsize.init(0),
 
-    pub fn recordErrors(self: *Stats, num_errors: usize) void {
+    pub fn recordErrors(self: *Stats, errors: []const Error) void {
+        var num_warnings: usize = 0;
+        var num_errors: usize = 0;
+        for (errors) |err| {
+            switch (err.severity) {
+                .warning => num_warnings += 1,
+                .err => num_errors += 1,
+                else => {},
+            }
+        }
         _ = self.num_files.fetchAdd(1, .acquire);
         _ = self.num_errors.fetchAdd(num_errors, .acquire);
+        _ = self.num_warnings.fetchAdd(num_warnings, .acquire);
     }
 
     pub fn recordSuccess(self: *Stats) void {
@@ -93,6 +92,12 @@ const Stats = struct {
     /// processed.
     pub fn numErrorsSync(self: *const Stats) usize {
         return self.num_errors.raw;
+    }
+
+    /// Get the number of lint warnings. Only call this after all files have been
+    /// processed.
+    pub fn numWarningsSync(self: *const Stats) usize {
+        return self.num_warnings.raw;
     }
 };
 

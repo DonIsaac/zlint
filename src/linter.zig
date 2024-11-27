@@ -9,6 +9,7 @@ const ErrorList = Context.ErrorList;
 
 const Arc = ptrs.Arc;
 const Error = @import("Error.zig");
+const Severity = Error.Severity;
 const Source = _source.Source;
 const Span = _source.Span;
 const LabeledSpan = _source.LabeledSpan;
@@ -16,40 +17,52 @@ const Semantic = _semantic.Semantic;
 const SemanticBuilder = _semantic.SemanticBuilder;
 
 const Allocator = std.mem.Allocator;
+const ArenaAllocator = std.heap.ArenaAllocator;
 const Ast = std.zig.Ast;
 const assert = std.debug.assert;
 const fs = std.fs;
 const print = std.debug.print;
 
 const Rule = _rule.Rule;
+const RuleSet = @import("linter/RuleSet.zig");
 const NodeWrapper = _rule.NodeWrapper;
 const string = @import("util").string;
 
-// rules
 const rules = @import("./linter/rules.zig");
+pub const Config = @import("./linter/Config.zig");
 
 pub const Linter = struct {
-    rules: std.ArrayList(Rule),
+    rules: RuleSet = .{},
     gpa: Allocator,
+    arena: ArenaAllocator,
 
-    pub fn init(gpa: Allocator) Linter {
+    pub fn initEmpty(gpa: Allocator) Linter {
+        return Linter{ .gpa = gpa, .arena = ArenaAllocator.init(gpa) };
+    }
+
+    pub fn init(gpa: Allocator, config: Config.Managed) !Linter {
+        var ruleset = RuleSet{};
+        var arena = config.arena;
+        try ruleset.loadRulesFromConfig(arena.allocator(), &config.config.rules);
         const linter = Linter{
-            .rules = std.ArrayList(Rule).init(gpa),
+            .rules = ruleset,
             .gpa = gpa,
+            .arena = arena,
         };
         return linter;
     }
 
-    pub fn registerAllRules(self: *Linter) void {
-        var no_undef = rules.NoUndefined{};
-        var no_unresolved = rules.NoUnresolved{};
-        // TODO: handle OOM
-        self.rules.append(no_undef.rule()) catch @panic("Cannot add new lint rule: Out of memory");
-        self.rules.append(no_unresolved.rule()) catch @panic("Cannot add new lint rule: Out of memory");
+    pub fn registerRule(self: *Linter, severity: Severity, rule: Rule) !void {
+        try self.rules.rules.append(
+            self.arena.allocator(),
+            .{ .severity = severity, .rule = rule },
+        );
     }
 
     pub fn deinit(self: *Linter) void {
-        self.rules.deinit();
+        // NOTE: rules are arena-allocated and do not need to be deinitialized
+        // directly.
+        self.arena.deinit();
     }
 
     pub fn runOnSource(
@@ -82,8 +95,9 @@ pub const Linter = struct {
         // Check each node in the AST
         // Note: rules are in outer loop for better cache locality. Nodes are
         // stored in an arena, so iterating has good cache-hit characteristics.
-        for (self.rules.items) |rule| {
-            ctx.updateForRule(&rule);
+        for (self.rules.rules.items) |rule_with_severity| {
+            const rule = rule_with_severity.rule;
+            ctx.updateForRule(&rule_with_severity);
             for (0..nodes.len) |i| {
                 const node = nodes.get(i);
                 const wrapper: NodeWrapper = .{
@@ -102,8 +116,9 @@ pub const Linter = struct {
         }
 
         // Check each declared symbol
-        for (self.rules.items) |rule| {
-            ctx.updateForRule(&rule);
+        for (self.rules.rules.items) |rule_with_severity| {
+            const rule = rule_with_severity.rule;
+            ctx.updateForRule(&rule_with_severity);
             var symbols = ctx.semantic.symbols.iter();
             while (symbols.next()) |symbol| {
                 rule.runOnSymbol(symbol, &ctx) catch |e| {

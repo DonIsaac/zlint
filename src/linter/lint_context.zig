@@ -6,6 +6,7 @@ gpa: Allocator,
 errors: ErrorList,
 /// this slice is 'static (in data segment) and should never be free'd
 curr_rule_name: string = "",
+curr_severity: Severity = Severity.err,
 source: *Source,
 
 pub fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context {
@@ -21,8 +22,9 @@ pub fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context 
 // These methods are used by Linter to adjust state between rule
 // invocations.
 
-pub inline fn updateForRule(self: *Context, rule: *const Rule) void {
-    self.curr_rule_name = rule.meta.name;
+pub inline fn updateForRule(self: *Context, rule: *const Rule.WithSeverity) void {
+    self.curr_rule_name = rule.rule.meta.name;
+    self.curr_severity = rule.severity;
 }
 
 // ============================== SHORTHANDS ===============================
@@ -133,6 +135,7 @@ fn _diagnostic(self: *Context, err: Error, spans: []const LabeledSpan) *Error {
     e.code = self.curr_rule_name;
     e.source_name = if (self.source.pathname) |p| a.dupe(u8, p) catch @panic("OOM") else null;
     e.source = self.source.contents.clone();
+    e.severity = self.curr_severity;
 
     if (spans.len > 0) {
         e.labels.appendSlice(a, spans) catch @panic("OOM");
@@ -188,6 +191,7 @@ const _semantic = @import("../semantic.zig");
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const Error = @import("../Error.zig");
+const Severity = Error.Severity;
 const LabeledSpan = _source.LabeledSpan;
 const Rule = _rule.Rule;
 const Semantic = _semantic.Semantic;

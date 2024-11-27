@@ -3,6 +3,7 @@ const walk = @import("../walk/Walker.zig");
 const _lint = @import("../linter.zig");
 const _source = @import("../source.zig");
 const _report = @import("../reporter.zig");
+const lint_config = @import("lint_config.zig");
 
 const fs = std.fs;
 const log = std.log;
@@ -21,8 +22,14 @@ const Options = @import("../cli/Options.zig");
 
 pub fn lint(alloc: Allocator, _: Options) !void {
     const stdout = std.io.getStdOut().writer();
-    const start = std.time.milliTimestamp();
+    var arena = std.heap.ArenaAllocator.init(alloc);
+    const config = blk: {
+        errdefer arena.deinit();
+        break :blk try lint_config.resolveLintConfig(arena, fs.cwd(), "zlint.json");
+    };
     var reporter = GraphicalReporter.init(stdout, .{ .alloc = alloc });
+
+    const start = std.time.milliTimestamp();
 
     defer {
         const stop = std.time.milliTimestamp();
@@ -31,7 +38,7 @@ pub fn lint(alloc: Allocator, _: Options) !void {
     }
 
     // TODO: use options to specify number of threads (if provided)
-    var visitor = try LintVisitor.init(alloc, &reporter, null);
+    var visitor = try LintVisitor.init(alloc, &reporter, config, null);
     defer visitor.deinit();
 
     var src = try fs.cwd().openDir(".", .{ .iterate = true });
@@ -49,9 +56,11 @@ const LintVisitor = struct {
     pool: *Thread.Pool,
     allocator: Allocator,
 
-    fn init(allocator: Allocator, reporter: *GraphicalReporter, n_threads: ?u32) !LintVisitor {
-        var linter = Linter.init(allocator);
-        linter.registerAllRules();
+    fn init(allocator: Allocator, reporter: *GraphicalReporter, config: _lint.Config.Managed, n_threads: ?u32) !LintVisitor {
+        errdefer config.arena.deinit();
+        var linter = try Linter.init(allocator, config);
+        errdefer linter.deinit();
+        // try linter.registerAllRules();
         const pool = try allocator.create(Thread.Pool);
         errdefer allocator.destroy(pool);
         try Thread.Pool.init(pool, Thread.Pool.Options{ .n_jobs = n_threads, .allocator = allocator });
@@ -115,7 +124,7 @@ const LintVisitor = struct {
             if (errors) |e| {
                 self.reporter.reportErrors(e);
             } else {
-                self.reporter.stats.recordErrors(1);
+                _ = self.reporter.stats.num_errors.fetchAdd(1, .acquire);
             }
             return err;
         };
