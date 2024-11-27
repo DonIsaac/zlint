@@ -20,7 +20,7 @@ const Error = @import("../Error.zig");
 const Linter = _lint.Linter;
 const Options = @import("../cli/Options.zig");
 
-pub fn lint(alloc: Allocator, options: Options) !void {
+pub fn lint(alloc: Allocator, options: Options) !u8 {
     const stdout = std.io.getStdOut().writer();
     var arena = std.heap.ArenaAllocator.init(alloc);
     const config = blk: {
@@ -32,21 +32,22 @@ pub fn lint(alloc: Allocator, options: Options) !void {
 
     const start = std.time.milliTimestamp();
 
-    defer {
-        const stop = std.time.milliTimestamp();
-        const duration = stop - start;
-        reporter.printStats(duration);
+    {
+        // TODO: use options to specify number of threads (if provided)
+        var visitor = try LintVisitor.init(alloc, &reporter, config, null);
+        defer visitor.deinit();
+
+        var src = try fs.cwd().openDir(".", .{ .iterate = true });
+        defer src.close();
+        var walker = try LintWalker.init(alloc, src, &visitor);
+        defer walker.deinit();
+        try walker.walk();
     }
 
-    // TODO: use options to specify number of threads (if provided)
-    var visitor = try LintVisitor.init(alloc, &reporter, config, null);
-    defer visitor.deinit();
-
-    var src = try fs.cwd().openDir(".", .{ .iterate = true });
-    defer src.close();
-    var walker = try LintWalker.init(alloc, src, &visitor);
-    defer walker.deinit();
-    try walker.walk();
+    const stop = std.time.milliTimestamp();
+    const duration = stop - start;
+    reporter.printStats(duration);
+    return if (reporter.stats.numErrorsSync() > 0) 1 else 0;
 }
 
 const LintWalker = walk.Walker(LintVisitor);
