@@ -387,7 +387,12 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         },
         .block, .block_semicolon => return self.visitBlock(ast.extra_data[data[node_id].lhs..data[node_id].rhs]),
 
-        .test_decl => return self.visit(data[node_id].rhs),
+        .test_decl => {
+            const prev = self.setScopeFlag(.s_comptime, false);
+            defer self.restoreScopeFlag(.s_comptime, prev);
+            self._next_block_scope_flags = .{ .s_test = true, .s_block = true };
+            return self.visit(data[node_id].rhs);
+        },
 
         // lhs/rhs for these nodes are always undefined
         .char_literal,
@@ -472,14 +477,14 @@ inline fn visitRecursiveSlice(self: *SemanticBuilder, node_id: NodeIndex) !void 
 
 // TODO: inline after we're done debugging
 fn visitBlock(self: *SemanticBuilder, statements: []const NodeIndex) !void {
+    const NON_COMPTIME_BLOCKS: Scope.Flags = .{ .s_test = true, .s_block = true, .s_function = true };
     const is_root = self.currentScope() == ROOT_SCOPE;
+    const is_comptime = is_root and !self._curr_scope_flags.intersects(NON_COMPTIME_BLOCKS);
     const was_comptime = self._curr_scope_flags.s_comptime;
-    if (is_root) {
-        self._curr_scope_flags.s_comptime = true;
-    }
-    defer if (is_root) {
-        self._curr_scope_flags.s_comptime = was_comptime;
-    };
+
+    self._curr_scope_flags.s_comptime = is_comptime;
+    defer self._curr_scope_flags.s_comptime = was_comptime;
+
     const flags = self._next_block_scope_flags.merge(.{ .s_block = true });
     self._next_block_scope_flags = .{};
 
@@ -1054,7 +1059,8 @@ inline fn assertRoot(self: *const SemanticBuilder) void {
 }
 
 /// Update a single flag on the set of current scope flags, returning its
-/// previous value.
+/// previous value. Use `restoreScopeFlag` afterwards to reset it to the
+/// original value.
 ///
 /// ## Example
 /// ```zig

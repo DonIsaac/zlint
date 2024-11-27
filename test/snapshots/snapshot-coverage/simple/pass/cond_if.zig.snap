@@ -322,7 +322,7 @@
                 "children": [
                   {
                     "id": semantic.id.NominalId(u32)(15), 
-                    "flags": ["block", "comptime"], 
+                    "flags": ["block"], 
                     "bindings": {
                       
                     }, 

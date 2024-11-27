@@ -1,0 +1,132 @@
+{
+  "symbols": [
+    {
+      "name": "", 
+      "debugName": "@This()", 
+      "token": null, 
+      "declNode": "root", 
+      "scope": semantic.id.NominalId(u32)(0), 
+      "flags": ["const"], 
+      "references": [
+        
+      ], 
+      "members": [1,2], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "std", 
+      "debugName": "", 
+      "token": 1, 
+      "declNode": "simple_var_decl", 
+      "scope": semantic.id.NominalId(u32)(0), 
+      "flags": ["variable", "const"], 
+      "references": [
+        {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["call"]}, 
+        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["call"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "add", 
+      "debugName": "", 
+      "token": 9, 
+      "declNode": "fn_decl", 
+      "scope": semantic.id.NominalId(u32)(0), 
+      "flags": ["fn"], 
+      "references": [
+        {"symbol":2,"scope":3,"node":"identifier","identifier":"add","flags":["call"]}, 
+        {"symbol":2,"scope":4,"node":"identifier","identifier":"add","flags":["call"]}, 
+        {"symbol":2,"scope":4,"node":"identifier","identifier":"add","flags":["call"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "a", 
+      "debugName": "", 
+      "token": 11, 
+      "declNode": "identifier", 
+      "scope": semantic.id.NominalId(u32)(1), 
+      "flags": ["const", "fn_param"], 
+      "references": [
+        {"symbol":3,"scope":2,"node":"identifier","identifier":"a","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "b", 
+      "debugName": "", 
+      "token": 15, 
+      "declNode": "identifier", 
+      "scope": semantic.id.NominalId(u32)(1), 
+      "flags": ["const", "fn_param"], 
+      "references": [
+        {"symbol":4,"scope":2,"node":"identifier","identifier":"b","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "unresolvedReferences": [],
+  "scopes": {
+    "id": semantic.id.NominalId(u32)(0), 
+    "flags": ["top"], 
+    "bindings": {
+      "@This()": 0, 
+      "std": 1, 
+      "add": 2, 
+      
+    }, 
+    "children": [
+      {
+        "id": semantic.id.NominalId(u32)(1), 
+        "flags": ["function"], 
+        "bindings": {
+          "a": 3, 
+          "b": 4, 
+          
+        }, 
+        "children": [
+          {
+            "id": semantic.id.NominalId(u32)(2), 
+            "flags": ["function", "block"], 
+            "bindings": {
+              
+            }, 
+            "children": [], 
+            
+          }, 
+        ], 
+        
+      }, {
+        "id": semantic.id.NominalId(u32)(3), 
+        "flags": ["block", "comptime", "test"], 
+        "bindings": {
+          
+        }, 
+        "children": [], 
+        
+      }, {
+        "id": semantic.id.NominalId(u32)(4), 
+        "flags": ["block", "comptime", "test"], 
+        "bindings": {
+          
+        }, 
+        "children": [], 
+        
+      }, 
+    ], 
+    
+  }, 
+}
