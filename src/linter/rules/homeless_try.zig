@@ -68,10 +68,14 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
 
     while (it.next()) |scope| {
         const flags = scope_flags[scope.int()];
-        const is_function = flags.s_function;
-        const is_block = flags.s_block;
-        if (is_function and !is_block) {
+        // functions create two scopes: one for the signature (binds params,
+        // return type references symbols here) and one for the function body.
+        // We want to check at the function signature level
+        if (flags.s_function and !flags.s_block) {
             checkFnDecl(ctx, scope, wrapper.idx);
+            return;
+        } else if (flags.s_test) {
+            // test statements implicitly have !void signatures.
             return;
         }
         if (flags.intersects(CONTAINER_FLAGS)) break;
@@ -178,6 +182,19 @@ test HomelessTry {
         \\    return "foo";
         \\  }
         \\}
+        ,
+        // test statements
+        \\const std = @import("std");
+        \\test "foo" {
+        \\  try std.testing.expectEqual(1, 1);
+        \\}
+        ,
+        \\const std = @import("std");
+        \\fn add(a: u32, b: u32) u32 { return a + b; }
+        \\test add {
+        \\  try std.testing.expectEqual(2, add(1, 1));
+        \\}
+        ,
     };
 
     const fail = &[_][:0]const u8{
