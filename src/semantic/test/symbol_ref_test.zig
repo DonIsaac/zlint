@@ -272,11 +272,10 @@ test "Reference flags - `x` - function calls and arguments" {
 
 test "Reference flags - `x` - type annotations" {
     try testRefsOnX(&[_]TestCase{
-        // FIXME: ref not bound
-        // .{
-        //     "const x = u32; const y: x = 1;",
-        //     .{ .type = true },
-        // },
+        .{
+            "const x = u32; const y: x = 1;",
+            .{ .type = true },
+        },
         // FIXME: ref has incorrect flags
         // .{
         //     \\const x = u32;
@@ -294,16 +293,26 @@ test "Reference flags - `x` - type annotations" {
             ,
             .{ .type = true },
         },
-        // TODO: "generics"
-        // .{
-        //     \\const x = u32;
-        //     \\fn Foo(T: type) type {
-        //     \\  return struct { foo: T };
-        //     \\}
-        //     \\const y: Foo(x) = .{ .foo = 1 };
-        //     ,
-        //     .{ .type = true, .read = true },
-        // }
+        .{
+            \\const x = u32;
+            \\fn Foo(T: type) type {
+            \\  return struct { foo: T };
+            \\}
+            \\const y: Foo(x) = .{ .foo = 1 };
+            ,
+            .{ .type = true, .read = true },
+        },
+        .{
+            \\fn x(T: type) type {
+            \\  return struct { foo: T };
+            \\}
+            \\fn Foo(T: type) type {
+            \\  return struct { bar: T };
+            \\}
+            \\const y: Foo(x(u32)) = .{ .foo = .{ .bar = 1 } };
+            ,
+            .{ .type = true, .call = true, },
+        },
     });
 }
 

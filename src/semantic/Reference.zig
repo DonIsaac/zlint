@@ -87,13 +87,15 @@ pub const Flags = packed struct(FLAGS_REPR) {
         return copy;
     }
 
-    /// Turn off all flags that are set in `other`. Returns the new flags
-    /// without mutating `self`.
-    pub fn disable(self: Flags, other: Flags) Flags {
-        const a: FLAGS_REPR = @bitCast(self);
+    pub fn set(self: *Flags, other: Flags, comptime enabled: bool) void {
+        const a: FLAGS_REPR = @bitCast(self.*);
         const b: FLAGS_REPR = @bitCast(other);
 
-        return @bitCast(a & ~b);
+        if (enabled) {
+            self.* = @bitCast(a | b);
+        } else {
+            self.* = @bitCast(a & ~b);
+        }
     }
 
     pub fn contains(self: Flags, other: Flags) bool {
