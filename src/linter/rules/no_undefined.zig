@@ -86,7 +86,7 @@ pub fn runOnNode(_: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterContex
         var lines = mem.splitScalar(u8, comment, '\n');
         while (lines.next()) |line| {
             const l = util.trimWhitespace(mem.trimLeft(u8, util.trimWhitespace(line), "//"));
-            if (mem.startsWith(u8, l, "SAFETY:")) return;
+            if (std.ascii.startsWithIgnoreCase(l, "SAFETY:")) return;
         }
     }
 
@@ -112,6 +112,9 @@ test NoUndefined {
     const pass = &[_][:0]const u8{
         "const x: ?u32 = null;",
         \\// SAFETY: this is safe because foo bar
+        \\var x: []u8 = undefined;
+        ,
+        \\// safety: this is safe because foo bar
         \\var x: []u8 = undefined;
     };
     const fail = &[_][:0]const u8{
