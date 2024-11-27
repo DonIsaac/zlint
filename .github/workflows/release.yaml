@@ -27,14 +27,21 @@ jobs:
         with:
           version: ${{ env.ZIG_VERSION }}
 
+      - name: Get binary name
+        id: binary_name
+        run: echo "binary_name=zlint-${{ runner.os }}-${{ runner.arch }}" >> "$GITHUB_OUTPUT" 
+        
       - name: zig build
+        env:
+          BINARY_NAME: ${{ steps.binary_name.outputs.binary_name }}
         run: |
           zig build --summary all --color on --release=safe
+          mv zig-out/bin/zlint zig-out/bin/${{ env.BINARY_NAME }}
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
         with:
-          subject-path: zig-out/bin/zlint
+          subject-path: zig-out/bin/${{ steps.binary_name.outputs.binary_name }}
 
       - name: Upload zlint binary
         uses: actions/upload-artifact@v4
