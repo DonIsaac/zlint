@@ -68,10 +68,11 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
 
     while (it.next()) |scope| {
         const flags = scope_flags[scope.int()];
+        const is_function_sig = flags.s_function and !flags.s_block;
         // functions create two scopes: one for the signature (binds params,
         // return type references symbols here) and one for the function body.
         // We want to check at the function signature level
-        if (flags.s_function and !flags.s_block) {
+        if (is_function_sig) {
             checkFnDecl(ctx, scope, wrapper.idx);
             return;
         } else if (flags.s_test) {
@@ -169,6 +170,16 @@ test HomelessTry {
         \\  pub fn foo() anyerror![]u8 {
         \\    const x = try std.heap.page_allocator.alloc(u8, 8);
         \\    return x;
+        \\  }
+        \\};
+        ,
+        // try within catch and fn call. Caused a wonky error before.
+        \\const std = @import("std");
+        \\const alloc = std.heap.page_allocator;
+        \\const Foo = struct {
+        \\  pub fn foo(thing: bool) !void {
+        \\    const ns = std.ArrayList(*u8).init(alloc) catch unreachable;
+        \\    ns.append(try alloc.create(u8)) catch unreachable;
         \\  }
         \\};
         ,

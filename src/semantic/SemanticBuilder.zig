@@ -179,7 +179,7 @@ fn parse(self: *SemanticBuilder, source: stringSlice) Allocator.Error!Ast {
 /// Null and bounds checks are performed here, while actual logic is
 /// handled by `visitNode`. This lets us inline checks within caller
 /// functions, reducing unnecessary branching and stack pointer pushes.
-inline fn visit(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
+fn visit(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
     // when lhs/rhs are 0 (root node), it means `null`
     if (node_id == NULL_NODE) return;
     // Seeing this happen a log, needs debugging.
@@ -851,6 +851,8 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
     const token_tags: []Token.Tag = ast.tokens.items(.tag);
     const data = self.getNodeData(node_id);
 
+    try self.visit(data.lhs);
+
     const fallback_first = ast.firstToken(data.rhs);
     const main_token = ast.nodes.items(.main_token)[node_id];
 
@@ -1131,13 +1133,12 @@ inline fn currentNode(self: *const SemanticBuilder) NodeIndex {
     return self._node_stack.getLast();
 }
 
-inline fn enterNode(self: *SemanticBuilder, node_id: NodeIndex) !void {
-    if (IS_DEBUG) {
-        self._checkForNodeLoop(node_id);
-    }
+fn enterNode(self: *SemanticBuilder, node_id: NodeIndex) !void {
+    if (IS_DEBUG) self._checkForNodeLoop(node_id);
     const curr_node = self.currentNode();
+    const curr_scope = self.currentScope();
     self._semantic.node_links.setParent(node_id, curr_node);
-    self._semantic.node_links.setScope(node_id, self.currentScope());
+    self._semantic.node_links.setScope(node_id, curr_scope);
     try self._node_stack.append(self._gpa, node_id);
 }
 

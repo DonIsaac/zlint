@@ -37,6 +37,7 @@ pub const Flags = packed struct(FLAGS_REPR) {
     _: u6 = 0,
 
     pub const Flag = std.meta.FieldEnum(Flags);
+    pub const s_container = Flags{ .s_struct = true, .s_enum = true, .s_union = true, .s_error = true };
 
     /// Merge all `true`-valued flags in `self` and `other`. Neither argument is
     /// mutated.
