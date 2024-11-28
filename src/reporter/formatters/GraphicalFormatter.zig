@@ -228,6 +228,7 @@ fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: C
         const odd = loc.len() % 2 == 0;
         const first_len_half = if (odd) midway + 1 else midway;
 
+        // ───┬───
         try w.writeBytesNTimes(chars.underline, first_len_half);
         try w.writeAll(chars.underbar);
         try w.writeBytesNTimes(chars.underline, first_len_half);
@@ -237,10 +238,11 @@ fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: C
             try self.renderLabelPrefix(w, linum_col_len);
             try w.writeByteNTimes(' ', loc.column());
             try w.writeByteNTimes(' ', first_len_half);
+            // ╰── label text
             try w.writeAll(color.open);
             try w.print("{s}{s}{s} ", .{ chars.lbot, chars.hbar, chars.hbar });
-            try w.writeAll(color.close);
             try w.writeAll(label);
+            try w.writeAll(color.close);
         }
     } else {
         try w.writeAll(color.open);
