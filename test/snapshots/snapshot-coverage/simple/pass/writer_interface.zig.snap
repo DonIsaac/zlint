@@ -97,6 +97,7 @@
       "flags": ["variable", "const"], 
       "references": [
         {"symbol":6,"scope":3,"node":"identifier","identifier":"T","flags":["read"]}, 
+        {"symbol":6,"scope":6,"node":"identifier","identifier":"T","flags":["type"]}, 
         
       ], 
       "members": [], 

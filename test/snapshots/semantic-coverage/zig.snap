@@ -1,5 +1,5 @@
-Passed: 97.67285% (2896/2965)
-Panics: 0% (0/2965)
+Passed: 97.60539% (2894/2965)
+Panics: 0.06745363% (2/2965)
 
 doc/langref/invalid_doc-comment.zig: error.AnalysisFailed
 doc/langref/test_switch_continue.zig: error.AnalysisFailed
@@ -25,6 +25,7 @@ test/behavior/switch.zig: error.AnalysisFailed
 test/behavior/switch_loop.zig: error.AnalysisFailed
 test/cases/compile_errors/Issue_6823_dont_allow_._to_be_followed_by_.zig: error.AnalysisFailed
 test/cases/compile_errors/assign_to_constant_destructure.zig: error.FullMismatch
+test/cases/compile_errors/async/prevent_bad_implicit_casting_of_anyframe_types.zig: error.Panic
 test/cases/compile_errors/attempted_double_ampersand.zig: error.AnalysisFailed
 test/cases/compile_errors/chained_comparison_operators.zig: error.AnalysisFailed
 test/cases/compile_errors/const_is_a_statement_not_an_expression.zig: error.AnalysisFailed
@@ -70,3 +71,4 @@ test/cases/compile_errors/normal_string_with_newline.zig: error.AnalysisFailed
 test/cases/compile_errors/reject_extern_function_definitions_with_body.zig: error.AnalysisFailed
 test/cases/compile_errors/runtime_condition_comptime_type_in_destructure.zig: error.FullMismatch
 test/cases/double_ampersand.0.zig: error.AnalysisFailed
+test/cases/spirv_mergable_pointers.zig: error.Panic

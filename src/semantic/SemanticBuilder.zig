@@ -629,6 +629,14 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
     });
     try self.enterContainerSymbol(symbol_id);
     defer self.exitContainerSymbol();
+    {
+        const prev = self.takeReferenceFlags();
+        defer self._curr_reference_flags = prev;
+        self._curr_reference_flags.type = true;
+        self._curr_reference_flags.read = false;
+
+        try self.visit(var_decl.ast.type_node);
+    }
 
     if (var_decl.ast.init_node != NULL_NODE) {
         assert(var_decl.ast.init_node < self.AST().nodes.len);
@@ -997,13 +1005,23 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
 inline fn visitCall(self: *SemanticBuilder, _: NodeIndex, call: full.Call) !void {
     // TODO: record reference
     const prev = self._curr_reference_flags;
-    self._curr_reference_flags = prev.disable(.{ .read = true, .write = true }).with(.call, true);
+    // visit callee
     {
+        self._curr_reference_flags.read = false;
+        self._curr_reference_flags.write = false;
+        self._curr_reference_flags.call = true;
         defer self._curr_reference_flags = prev;
+
         try self.visit(call.ast.fn_expr);
     }
-    for (call.ast.params) |arg| {
-        try self.visit(arg);
+    // visit each param
+    {
+        self._curr_reference_flags.read = true;
+        self._curr_reference_flags.call = false;
+        defer self._curr_reference_flags = prev;
+        for (call.ast.params) |arg| {
+            try self.visit(arg);
+        }
     }
 }
 // =========================================================================
