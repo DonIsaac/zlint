@@ -85,7 +85,7 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
     _ = ctx.diagnostic(
         "`try` cannot be used outside of a function.",
         .{
-            ctx.labelT(ctx.ast().firstToken(wrapper.idx), "there is nowhere to propegate errors to.", .{}),
+            ctx.labelT(ctx.ast().firstToken(wrapper.idx), "there is nowhere to propagate errors to.", .{}),
         },
     );
 }
@@ -123,7 +123,7 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
                 ctx.labelT(name_token, "function `{s}` is declared here.", .{ctx.ast().tokenSlice(name_token)})
             else
                 ctx.labelT(main_tokens[decl_node], "function is declared here.", .{}),
-            ctx.labelT(ctx.ast().firstToken(try_node), "it cannot propegate error unions.", .{}),
+            ctx.labelT(ctx.ast().firstToken(try_node), "it cannot propagate error unions.", .{}),
         },
     );
     const return_type_src = ctx.ast().getNodeSource(return_type);

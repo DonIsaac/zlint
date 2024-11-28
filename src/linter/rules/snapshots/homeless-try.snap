@@ -6,7 +6,7 @@
    ·     ╰── function `foo` is declared here.
  3 │   const x = try std.heap.page_allocator.alloc(u8, 8);
    ·             ─┬─
-   ·              ╰── it cannot propegate error unions.
+   ·              ╰── it cannot propagate error unions.
    ╰────
   help: Change the return type to `!void`.
 
@@ -16,7 +16,7 @@
  2 │ const x = try std.heap.page_allocator.alloc(u8, 8);
    ·           ───
    ·           ─┬─
-   ·            ╰── there is nowhere to propegate errors to.
+   ·            ╰── there is nowhere to propagate errors to.
    ╰────
 
   𝙭 homeless-try: `try` cannot be used outside of a function.
@@ -25,7 +25,7 @@
  4 │     baz: []u8 = try std.heap.page_allocator.alloc(u8, 8),
    ·                 ───
    ·                 ─┬─
-   ·                  ╰── there is nowhere to propegate errors to.
+   ·                  ╰── there is nowhere to propagate errors to.
  5 │   };
    ╰────
 
