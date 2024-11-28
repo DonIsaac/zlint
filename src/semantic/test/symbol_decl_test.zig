@@ -10,6 +10,8 @@ const panic = std.debug.panic;
 const print = std.debug.print;
 
 const TestCase = std.meta.Tuple(&[_]type{ [:0]const u8, Symbol.Flags });
+const TestFlagsError = error{IdentNotFound};
+
 fn testFlags(cases: []const TestCase) !void {
     for (cases) |case| {
         const source = case[0];
@@ -18,7 +20,8 @@ fn testFlags(cases: []const TestCase) !void {
         defer sem.deinit();
 
         const x: Symbol.Id = sem.symbols.getSymbolNamed("x") orelse {
-            panic("Symbol 'x' not found in source:\n\n{s}\n\n", .{source});
+            print("Symbol 'x' not found in source:\n\n{s}\n\n", .{source});
+            return error.IdentNotFound;
         };
 
         const flags: Symbol.Flags = sem.symbols.symbols.items(.flags)[x.int()];
@@ -185,8 +188,16 @@ test "Symbol flags - control flow payloads" {
             "fn foo() void { for(0..10) |*x| { _ = x; } }",
             .{ .s_payload = true, .s_const = true },
         },
-        // switch
-        // TODO
+        .{
+            \\fn foo() u32 {
+            \\  switch (1 + 1) {
+            \\    2 => |x| return x,
+            \\    else => unreachable,
+            \\  }
+            \\}
+            ,
+            .{ .s_payload = true, .s_const = true },
+        },
     });
 }
 
