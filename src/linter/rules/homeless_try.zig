@@ -89,6 +89,7 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
         },
     );
 }
+
 fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void {
     const tags: []const Node.Tag = ctx.ast().nodes.items(.tag);
     const main_tokens: []const Ast.TokenIndex = ctx.ast().nodes.items(.main_token);

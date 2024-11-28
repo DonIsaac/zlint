@@ -19,6 +19,7 @@ const RuleTester = @This();
 const SNAPSHOT_DIR = "src/linter/rules/snapshots";
 
 const SnapshotError = fs.Dir.OpenError || fs.Dir.MakeError || fs.Dir.StatFileError || Allocator.Error || fs.File.WriteError;
+
 const TestError = error{
     /// Expected no violations, but violations were found.
     PassFailed,
@@ -54,6 +55,7 @@ pub fn setFileName(self: *RuleTester, filename: string) void {
         panic("Failed to allocate for filename {s}: {s}", .{ filename, @errorName(e) });
     };
 }
+
 pub fn withPath(self: *RuleTester, source_dir: string) *RuleTester {
     const new_name = fs.path.join(self.alloc, &[_]string{ source_dir, self.filename }) catch @panic("OOM");
     self.alloc.free(self.filename);
@@ -61,6 +63,7 @@ pub fn withPath(self: *RuleTester, source_dir: string) *RuleTester {
     return self;
 }
 
+/// Add test cases that, when linted, should not produce any diagnostics.
 pub fn withPass(self: *RuleTester, comptime pass: []const [:0]const u8) *RuleTester {
     self.passes.appendSlice(self.alloc, pass) catch |e| {
         const name = self.rule.meta.name;
@@ -69,6 +72,7 @@ pub fn withPass(self: *RuleTester, comptime pass: []const [:0]const u8) *RuleTes
     return self;
 }
 
+/// Add test cases that, when linted, should produce diagnostics.
 pub fn withFail(self: *RuleTester, comptime fail: []const [:0]const u8) *RuleTester {
     self.fails.appendSlice(self.alloc, fail) catch |e| {
         const name = self.rule.meta.name;

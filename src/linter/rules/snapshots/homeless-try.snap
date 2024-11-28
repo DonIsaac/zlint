@@ -14,7 +14,6 @@
    ╭─[homeless-try.zig:2:11]
  1 │ const std = @import("std");
  2 │ const x = try std.heap.page_allocator.alloc(u8, 8);
-   ·           ───
    ·           ─┬─
    ·            ╰── there is nowhere to propagate errors to.
    ╰────
@@ -23,7 +22,6 @@
    ╭─[homeless-try.zig:4:17]
  3 │   const Bar = struct {
  4 │     baz: []u8 = try std.heap.page_allocator.alloc(u8, 8),
-   ·                 ───
    ·                 ─┬─
    ·                  ╰── there is nowhere to propagate errors to.
  5 │   };
