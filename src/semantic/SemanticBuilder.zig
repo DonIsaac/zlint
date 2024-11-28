@@ -591,7 +591,6 @@ fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
 /// ```
 fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.ContainerField) !void {
     const main_token = self.AST().nodes.items(.main_token)[node_id];
-    const flags: []const Symbol.Flags = self.symbolTable().symbols.items(.flags);
     // main_token points to the field name
     // NOTE: container fields are always public
     // TODO: record type annotations
@@ -605,6 +604,9 @@ fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.C
     const parent = self.currentContainerSymbolUnwrap().into(usize);
 
     try self.visit(field.ast.align_expr);
+    // NOTE: do not move this to the top of the function b/c for some reason it
+    // causes a segfault in release builds
+    const flags: []const Symbol.Flags = self.symbolTable().symbols.items(.flags);
     if (!flags[parent].s_enum) {
         const prev = self.takeReferenceFlags();
         defer self._curr_reference_flags = prev;
