@@ -430,7 +430,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         // lhs is a node, rhs is an index into Slice
         .slice,
         .slice_sentinel,
-        .slice_open
+        .slice_open,
         => return self.visitSlice(node_id),
         // lhs is a token, rhs is a node
         .@"break" => return self.visit(data[node_id].rhs),
