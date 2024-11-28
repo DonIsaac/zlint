@@ -64,6 +64,9 @@ jobs:
   e2e:
     name: Test E2E
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        optimize: ["Debug", "ReleaseSafe", "ReleaseFast"]
     steps:
       - uses: actions/checkout@v4
       # Install tooling
@@ -73,7 +76,7 @@ jobs:
           version: ${{ env.ZIG_VERSION }}
       - run: zig build --fetch
       - run: just submodules
-      - run: just e2e
+      - run: just e2e -Doptimize=${{ matrix.optimize }}
       - name: Check for changes
         run: git diff --exit-code
 
