@@ -6,7 +6,7 @@ const TestRunner = test_runner.TestRunner;
 
 // Allows recovery from panics in test cases. Errors get saved to that suite's
 // snapshot file, and testing continues.
-// pub const panic = @import("recover").panic;
+pub const panic = @import("recover").panic;
 
 // test suites
 const semantic_coverage = @import("semantic/ecosystem_coverage.zig");
