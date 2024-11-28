@@ -394,11 +394,30 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             return self.visit(data[node_id].rhs);
         },
 
+        // pointers
+
+        // lhs is a token, rhs is a node
+        .anyframe_type => return self.visit(data[node_id].rhs),
+        // lhs is a node, rhs is an index into Slice
+        .slice,
+        .slice_sentinel,
+        .slice_open,
+        => return self.visitSlice(node_id),
+        .ptr_type,
+        .ptr_type_sentinel,
+        .ptr_type_aligned,
+        .ptr_type_bit_range,
+        => {
+            const ptr = self.AST().fullPtrType(node_id) orelse @panic("expected node to be a ptr type");
+            return self.visitPtrType(ptr);
+        },
+
         // lhs/rhs for these nodes are always undefined
         .char_literal,
         .number_literal,
         .unreachable_literal,
         .string_literal,
+        .anyframe_literal,
         // for these, it's always a token index
         .multiline_string_literal,
         => return,
@@ -427,10 +446,8 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         // lhs is a node, rhs is a token
         .grouped_expression,
         .unwrap_optional,
-        // lhs is a node, rhs is an index into Slice
-        .slice,
-        .slice_sentinel,
         => return self.visit(data[node_id].lhs),
+
         // lhs is a token, rhs is a node
         .@"break" => return self.visit(data[node_id].rhs),
         // rhs for these nodes are always `undefined`.
@@ -722,6 +739,36 @@ fn visitIdentifier(self: *SemanticBuilder, node_id: NodeIndex) !void {
 fn visitFieldAccess(self: *SemanticBuilder, node_id: NodeIndex) !void {
     // TODO: record references
     return self.visit(self.getNodeData(node_id).lhs);
+}
+
+fn visitSlice(self: *SemanticBuilder, node_id: NodeIndex) !void {
+    const prev = self.takeReferenceFlags();
+    defer self._curr_reference_flags = prev;
+    self._curr_reference_flags.read = true;
+    self._curr_reference_flags.write = false;
+    self._curr_reference_flags.call = false;
+
+    const slice: full.Slice = self.AST().fullSlice(node_id) orelse {
+        const tags = self.AST().nodes.items(.tag);
+        std.debug.panic("visitSlice called on non-slice: {}", .{tags[node_id]});
+    };
+
+    // sliced[start..end, :sentinel]
+    // like field accesses, nodes are visit RTL
+    try self.visit(slice.ast.start);
+    try self.visit(slice.ast.end);
+    try self.visit(slice.ast.sentinel);
+    try self.visit(slice.ast.sliced);
+}
+
+fn visitPtrType(self: *SemanticBuilder, ptr: full.PtrType) !void {
+    // TODO: add .type to reference flags?
+    try self.visit(ptr.ast.align_node);
+    try self.visit(ptr.ast.addrspace_node);
+    try self.visit(ptr.ast.sentinel);
+    try self.visit(ptr.ast.bit_range_start);
+    try self.visit(ptr.ast.bit_range_end);
+    try self.visit(ptr.ast.child_type);
 }
 
 // =============================================================================
