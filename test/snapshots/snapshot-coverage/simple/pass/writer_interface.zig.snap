@@ -22,11 +22,11 @@
       "scope": semantic.id.NominalId(u32)(0), 
       "flags": ["variable", "const", "struct"], 
       "references": [
-        {"symbol":1,"scope":2,"node":"identifier","identifier":"Writer","flags":["type"]}, 
-        {"symbol":1,"scope":7,"node":"identifier","identifier":"Writer","flags":["read"]}, 
+        {"symbol":1,"scope":3,"node":"identifier","identifier":"Writer","flags":["type"]}, 
+        {"symbol":1,"scope":8,"node":"identifier","identifier":"Writer","flags":["read"]}, 
         
       ], 
-      "members": [2,3,4,6,7,8,13], 
+      "members": [2,3,6,8,9,10,15], 
       "exports": [], 
       
     }, 
@@ -59,6 +59,34 @@
       
     }, 
     {
+      "name": "ptr", 
+      "debugName": "", 
+      "token": 16, 
+      "declNode": "ptr_type_aligned", 
+      "scope": semantic.id.NominalId(u32)(2), 
+      "flags": ["const", "fn_param", "struct"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "data", 
+      "debugName": "", 
+      "token": 21, 
+      "declNode": "ptr_type_aligned", 
+      "scope": semantic.id.NominalId(u32)(2), 
+      "flags": ["const", "fn_param", "struct"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
       "name": "init", 
       "debugName": "", 
       "token": 33, 
@@ -77,11 +105,11 @@
       "debugName": "", 
       "token": 35, 
       "declNode": "root", 
-      "scope": semantic.id.NominalId(u32)(2), 
+      "scope": semantic.id.NominalId(u32)(3), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":5,"scope":3,"node":"identifier","identifier":"ptr","flags":["read"]}, 
-        {"symbol":5,"scope":3,"node":"identifier","identifier":"ptr","flags":["read"]}, 
+        {"symbol":7,"scope":4,"node":"identifier","identifier":"ptr","flags":["read"]}, 
+        {"symbol":7,"scope":4,"node":"identifier","identifier":"ptr","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -93,11 +121,11 @@
       "debugName": "", 
       "token": 42, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(3), 
+      "scope": semantic.id.NominalId(u32)(4), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":6,"scope":3,"node":"identifier","identifier":"T","flags":["read"]}, 
-        {"symbol":6,"scope":6,"node":"identifier","identifier":"T","flags":["type"]}, 
+        {"symbol":8,"scope":4,"node":"identifier","identifier":"T","flags":["read"]}, 
+        {"symbol":8,"scope":7,"node":"identifier","identifier":"T","flags":["type"]}, 
         
       ], 
       "members": [], 
@@ -109,10 +137,10 @@
       "debugName": "", 
       "token": 50, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(3), 
+      "scope": semantic.id.NominalId(u32)(4), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":7,"scope":6,"node":"identifier","identifier":"ptr_info","flags":["call"]}, 
+        {"symbol":9,"scope":7,"node":"identifier","identifier":"ptr_info","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -124,13 +152,13 @@
       "debugName": "", 
       "token": 58, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(3), 
+      "scope": semantic.id.NominalId(u32)(4), 
       "flags": ["variable", "const", "struct"], 
       "references": [
-        {"symbol":8,"scope":3,"node":"identifier","identifier":"gen","flags":["read"]}, 
+        {"symbol":10,"scope":4,"node":"identifier","identifier":"gen","flags":["read"]}, 
         
       ], 
-      "members": [9,12], 
+      "members": [11,14], 
       "exports": [], 
       
     }, 
@@ -139,7 +167,7 @@
       "debugName": "", 
       "token": 64, 
       "declNode": "fn_decl", 
-      "scope": semantic.id.NominalId(u32)(4), 
+      "scope": semantic.id.NominalId(u32)(5), 
       "flags": ["fn"], 
       "references": [
         
@@ -153,10 +181,10 @@
       "debugName": "", 
       "token": 66, 
       "declNode": "ptr_type_aligned", 
-      "scope": semantic.id.NominalId(u32)(5), 
+      "scope": semantic.id.NominalId(u32)(6), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":10,"scope":6,"node":"identifier","identifier":"pointer","flags":["read"]}, 
+        {"symbol":12,"scope":7,"node":"identifier","identifier":"pointer","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -168,10 +196,10 @@
       "debugName": "", 
       "token": 71, 
       "declNode": "ptr_type_aligned", 
-      "scope": semantic.id.NominalId(u32)(5), 
+      "scope": semantic.id.NominalId(u32)(6), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":11,"scope":6,"node":"identifier","identifier":"data","flags":["read"]}, 
+        {"symbol":13,"scope":7,"node":"identifier","identifier":"data","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -183,10 +211,10 @@
       "debugName": "", 
       "token": 83, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(6), 
+      "scope": semantic.id.NominalId(u32)(7), 
       "flags": ["variable", "const"], 
       "references": [
-        {"symbol":12,"scope":6,"node":"identifier","identifier":"self","flags":["read"]}, 
+        {"symbol":14,"scope":7,"node":"identifier","identifier":"self","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -212,11 +240,11 @@
       "debugName": "", 
       "token": 134, 
       "declNode": "identifier", 
-      "scope": semantic.id.NominalId(u32)(7), 
+      "scope": semantic.id.NominalId(u32)(8), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":14,"scope":8,"node":"identifier","identifier":"self","flags":["call"]}, 
-        {"symbol":14,"scope":8,"node":"identifier","identifier":"self","flags":["read"]}, 
+        {"symbol":16,"scope":9,"node":"identifier","identifier":"self","flags":["call"]}, 
+        {"symbol":16,"scope":9,"node":"identifier","identifier":"self","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -228,10 +256,10 @@
       "debugName": "", 
       "token": 138, 
       "declNode": "ptr_type_aligned", 
-      "scope": semantic.id.NominalId(u32)(7), 
+      "scope": semantic.id.NominalId(u32)(8), 
       "flags": ["const", "fn_param"], 
       "references": [
-        {"symbol":15,"scope":8,"node":"identifier","identifier":"data","flags":["read"]}, 
+        {"symbol":17,"scope":9,"node":"identifier","identifier":"data","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -255,8 +283,8 @@
         "bindings": {
           "ptr": 2, 
           "writeAllFn": 3, 
-          "init": 4, 
-          "writeAll": 13, 
+          "init": 6, 
+          "writeAll": 15, 
           
         }, 
         "children": [
@@ -264,42 +292,52 @@
             "id": semantic.id.NominalId(u32)(2), 
             "flags": ["function"], 
             "bindings": {
-              "ptr": 5, 
+              "ptr": 4, 
+              "data": 5, 
+              
+            }, 
+            "children": [], 
+            
+          }, {
+            "id": semantic.id.NominalId(u32)(3), 
+            "flags": ["function"], 
+            "bindings": {
+              "ptr": 7, 
               
             }, 
             "children": [
               {
-                "id": semantic.id.NominalId(u32)(3), 
+                "id": semantic.id.NominalId(u32)(4), 
                 "flags": ["function", "block"], 
                 "bindings": {
-                  "T": 6, 
-                  "ptr_info": 7, 
-                  "gen": 8, 
+                  "T": 8, 
+                  "ptr_info": 9, 
+                  "gen": 10, 
                   
                 }, 
                 "children": [
                   {
-                    "id": semantic.id.NominalId(u32)(4), 
+                    "id": semantic.id.NominalId(u32)(5), 
                     "flags": ["struct", "block"], 
                     "bindings": {
-                      "writeAll": 9, 
+                      "writeAll": 11, 
                       
                     }, 
                     "children": [
                       {
-                        "id": semantic.id.NominalId(u32)(5), 
+                        "id": semantic.id.NominalId(u32)(6), 
                         "flags": ["function"], 
                         "bindings": {
-                          "pointer": 10, 
-                          "data": 11, 
+                          "pointer": 12, 
+                          "data": 13, 
                           
                         }, 
                         "children": [
                           {
-                            "id": semantic.id.NominalId(u32)(6), 
+                            "id": semantic.id.NominalId(u32)(7), 
                             "flags": ["function", "block"], 
                             "bindings": {
-                              "self": 12, 
+                              "self": 14, 
                               
                             }, 
                             "children": [], 
@@ -317,16 +355,16 @@
             ], 
             
           }, {
-            "id": semantic.id.NominalId(u32)(7), 
+            "id": semantic.id.NominalId(u32)(8), 
             "flags": ["function"], 
             "bindings": {
-              "self": 14, 
-              "data": 15, 
+              "self": 16, 
+              "data": 17, 
               
             }, 
             "children": [
               {
-                "id": semantic.id.NominalId(u32)(8), 
+                "id": semantic.id.NominalId(u32)(9), 
                 "flags": ["function", "block"], 
                 "bindings": {
                   

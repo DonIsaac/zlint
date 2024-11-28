@@ -36,6 +36,7 @@
       "scope": semantic.id.NominalId(u32)(1), 
       "flags": ["const", "fn_param"], 
       "references": [
+        {"symbol":2,"scope":3,"node":"identifier","identifier":"T","flags":["type"]}, 
         {"symbol":2,"scope":4,"node":"identifier","identifier":"T","flags":["type"]}, 
         
       ], 
@@ -123,6 +124,7 @@
       "scope": semantic.id.NominalId(u32)(6), 
       "flags": ["comptime", "const", "fn_param"], 
       "references": [
+        {"symbol":8,"scope":11,"node":"identifier","identifier":"size","flags":["type"]}, 
         
       ], 
       "members": [], 

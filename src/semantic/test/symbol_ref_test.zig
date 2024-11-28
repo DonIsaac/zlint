@@ -55,8 +55,36 @@ test "references record where and how a symbol is used" {
     try t.expectEqual(ref.flags, Reference.Flags{ .read = true });
 }
 
-const TestCase = meta.Tuple(&[_]type{ [:0]const u8, Reference.Flags });
-fn testRefsOnX(cases: []const TestCase) !void {
+// No symbols declared in these snippets are referenced anywhere else in the
+// same snippet.
+test "symbols that are never referenced" {
+    const cases = [_][:0]const u8{
+        "const x = 1;",
+        "fn foo(x: u32) u32 { return 1; }",
+        "const Foo = enum { a, b, c };",
+        "const Foo = union(enum) { a: u32, b: i32, c: bool };",
+    };
+
+    for (cases) |case| {
+        var sema = try build(case);
+        defer sema.deinit();
+        const references = sema.symbols.symbols.items(.references);
+        const names = sema.symbols.symbols.items(.name);
+        var it = sema.symbols.iter();
+
+        while (it.next()) |symbol| {
+            const refs: []const Reference.Id = references[symbol.into(usize)].items;
+            t.expectEqual(0, refs.len) catch |e| {
+                print("Symbol: {s}\n", .{names[symbol.into(usize)]});
+                print("Source: {s}\n\n", .{case});
+                return e;
+            };
+        }
+    }
+}
+
+const RefTestCase = meta.Tuple(&[_]type{ [:0]const u8, Reference.Flags });
+fn testRefsOnX(cases: []const RefTestCase) !void {
     for (cases) |case| {
         const source = case[0];
         const expected_flags = case[1];
@@ -87,7 +115,7 @@ fn testRefsOnX(cases: []const TestCase) !void {
     }
 }
 test "Reference flags - `x` - simple references" {
-    try testRefsOnX(&[_]TestCase{
+    try testRefsOnX(&[_]RefTestCase{
         .{
             \\const x = 1;
             \\const y = x;
@@ -120,7 +148,7 @@ test "Reference flags - `x` - simple references" {
 }
 
 test "Reference flags - `x` - control flow" {
-    try testRefsOnX(&[_]TestCase{
+    try testRefsOnX(&[_]RefTestCase{
         // if
         .{
             \\const x = 1;
@@ -208,7 +236,7 @@ test "Reference flags - `x` - control flow" {
 }
 
 test "Reference flags - `x` - try/catch" {
-    try testRefsOnX(&[_]TestCase{
+    try testRefsOnX(&[_]RefTestCase{
         .{
             \\fn x() !u32 { return 1; }
             \\fn y() u32 {
@@ -239,7 +267,7 @@ test "Reference flags - `x` - try/catch" {
 }
 
 test "Reference flags - `x` - function calls and arguments" {
-    try testRefsOnX(&[_]TestCase{
+    try testRefsOnX(&[_]RefTestCase{
         .{
             "fn x() void {}\n fn y() void { x(); }",
             .{ .call = true },
@@ -271,7 +299,7 @@ test "Reference flags - `x` - function calls and arguments" {
 }
 
 test "Reference flags - `x` - type annotations" {
-    try testRefsOnX(&[_]TestCase{
+    try testRefsOnX(&[_]RefTestCase{
         .{
             "const x = u32; const y: x = 1;",
             .{ .type = true },
@@ -323,16 +351,30 @@ test "Reference flags - `x` - type annotations" {
             \\}
             \\const y: Foo(x(u32)) = .{ .foo = .{ .bar = 1 } };
             ,
-            .{
-                .type = true,
-                .call = true,
-            },
+            .{ .type = true, .call = true },
+        },
+        .{
+            \\const x = u32;
+            \\const Foo = struct {
+            \\  y: x = 1,
+            \\};
+            ,
+            .{ .type = true },
+        },
+        .{
+            \\const x = u32;
+            \\const Foo = union(enum) {
+            \\  a: i32,
+            \\  b: x,
+            \\};
+            ,
+            .{ .type = true },
         },
     });
 }
 
 test "Reference flags - `x` - indexes and slices" {
-    try testRefsOnX(&[_]TestCase{
+    try testRefsOnX(&[_]RefTestCase{
         .{
             \\fn foo() void {
             \\  const x = [_]u32{1, 2, 3};
@@ -385,6 +427,17 @@ test "Reference flags - `x` - indexes and slices" {
                 // .read = true,
                 .type = true,
             },
+        },
+    });
+}
+
+test "Reference flags - `x` - containers" {
+    try testRefsOnX(&[_]RefTestCase{
+        .{
+            \\const x = 1;
+            \\const Foo = struct { bar: u32 = x };
+            ,
+            .{ .read = true },
         },
     });
 }
