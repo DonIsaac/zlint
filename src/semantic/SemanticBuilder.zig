@@ -480,6 +480,14 @@ inline fn visitRecursive(self: *SemanticBuilder, node_id: NodeIndex) !void {
     try self.visit(data.rhs);
 }
 
+/// Like `visit`, but turns off `read`/`write` reference flags and turns on `type`.
+inline fn visitType(self: *SemanticBuilder, node_id: NodeIndex) !void {
+    const prev = self.takeReferenceFlags();
+    defer self._curr_reference_flags = prev;
+    self._curr_reference_flags.type = true;
+    try self.visit(node_id);
+}
+
 inline fn visitRecursiveSlice(self: *SemanticBuilder, node_id: NodeIndex) !void {
     const data = self.getNodeData(node_id);
     const ast = self.AST();
@@ -608,12 +616,7 @@ fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.C
     // causes a segfault in release builds
     const flags: []const Symbol.Flags = self.symbolTable().symbols.items(.flags);
     if (!flags[parent].s_enum) {
-        const prev = self.takeReferenceFlags();
-        defer self._curr_reference_flags = prev;
-        self._curr_reference_flags.read = false;
-        self._curr_reference_flags.write = false;
-        self._curr_reference_flags.type = true;
-        try self.visit(field.ast.type_expr);
+        try self.visitType(field.ast.type_expr);
     }
     try self.visit(field.ast.value_expr);
 }
@@ -622,11 +625,9 @@ fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.C
 /// separately, because their lhs/rhs nodes and main token mean different
 /// things.
 fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDecl) !void {
-    // const node = self.getNode(node_id);
     // main_token points to `var`, `const` keyword. `.identifier` comes immediately afterwards
     const ast = self.AST();
     const main_token: TokenIndex = ast.nodes.items(.main_token)[node_id];
-    // const tags = ast.tokens.items(.tag);
 
     const identifier = self.expectToken(main_token + 1, .identifier);
     // TODO: find out if this could legally be another kind of token
@@ -657,14 +658,7 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
     });
     try self.enterContainerSymbol(symbol_id);
     defer self.exitContainerSymbol();
-    {
-        const prev = self.takeReferenceFlags();
-        defer self._curr_reference_flags = prev;
-        self._curr_reference_flags.type = true;
-        self._curr_reference_flags.read = false;
-
-        try self.visit(var_decl.ast.type_node);
-    }
+    try self.visitType(var_decl.ast.type_node);
 
     if (var_decl.ast.init_node != NULL_NODE) {
         assert(var_decl.ast.init_node < self.AST().nodes.len);
