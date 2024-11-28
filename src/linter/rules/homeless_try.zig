@@ -84,7 +84,9 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
 
     _ = ctx.diagnostic(
         "`try` cannot be used outside of a function.",
-        .{ctx.spanT(ctx.ast().firstToken(wrapper.idx))},
+        .{
+            ctx.labelT(ctx.ast().firstToken(wrapper.idx), "there is nowhere to propagate errors to.", .{}),
+        },
     );
 }
 fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void {
@@ -117,11 +119,11 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
     const e = ctx.diagnostic(
         "`try` cannot be used in functions that do not return errors.",
         .{
-            ctx.spanT(ctx.ast().firstToken(try_node)),
             if (proto.name_token) |name_token|
-                ctx.labelT(name_token, "Function `{s}` is declared here.", .{ctx.ast().tokenSlice(name_token)})
+                ctx.labelT(name_token, "function `{s}` is declared here.", .{ctx.ast().tokenSlice(name_token)})
             else
-                ctx.labelT(main_tokens[decl_node], "Function is declared here.", .{}),
+                ctx.labelT(main_tokens[decl_node], "function is declared here.", .{}),
+            ctx.labelT(ctx.ast().firstToken(try_node), "it cannot propagate error unions.", .{}),
         },
     );
     const return_type_src = ctx.ast().getNodeSource(return_type);
@@ -204,6 +206,10 @@ test HomelessTry {
         \\fn add(a: u32, b: u32) u32 { return a + b; }
         \\test add {
         \\  try std.testing.expectEqual(2, add(1, 1));
+        \\}
+        ,
+        \\pub fn iterationCount(this: *const @This()) !u32 {
+        \\  return try std.fmt.parseInt(u32, this.i, 0);
         \\}
         ,
     };
