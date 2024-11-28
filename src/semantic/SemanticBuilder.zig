@@ -430,7 +430,8 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         // lhs is a node, rhs is an index into Slice
         .slice,
         .slice_sentinel,
-        => return self.visit(data[node_id].lhs),
+        .slice_open
+        => return self.visitSlice(node_id),
         // lhs is a token, rhs is a node
         .@"break" => return self.visit(data[node_id].rhs),
         // rhs for these nodes are always `undefined`.
@@ -722,6 +723,23 @@ fn visitIdentifier(self: *SemanticBuilder, node_id: NodeIndex) !void {
 fn visitFieldAccess(self: *SemanticBuilder, node_id: NodeIndex) !void {
     // TODO: record references
     return self.visit(self.getNodeData(node_id).lhs);
+}
+
+fn visitSlice(self: *SemanticBuilder, node_id: NodeIndex) !void {
+    const prev = self.takeReferenceFlags();
+    defer self._curr_reference_flags = prev;
+    self._curr_reference_flags.read = true;
+    self._curr_reference_flags.write = false;
+    self._curr_reference_flags.call = false;
+
+    const slice: full.Slice = self.AST().fullSlice(node_id) orelse @panic("visitSlice called on non-slice");
+
+    // sliced[start..end, :sentinel]
+    // like field accesses, nodes are visit RTL
+    try self.visit(slice.ast.start);
+    try self.visit(slice.ast.end);
+    try self.visit(slice.ast.sentinel);
+    try self.visit(slice.ast.sliced);
 }
 
 // =============================================================================

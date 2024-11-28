@@ -323,13 +323,16 @@ test "Reference flags - `x` - type annotations" {
             \\}
             \\const y: Foo(x(u32)) = .{ .foo = .{ .bar = 1 } };
             ,
-            .{ .type = true, .call = true, },
+            .{
+                .type = true,
+                .call = true,
+            },
         },
     });
 }
 
 test "Reference flags - `x` - indexes and slices" {
-    try testRefsOnX(&[_]TestCase {
+    try testRefsOnX(&[_]TestCase{
         .{
             \\fn foo() void {
             \\  const x = [_]u32{1, 2, 3};
@@ -363,6 +366,25 @@ test "Reference flags - `x` - indexes and slices" {
             \\}
             ,
             .{ .read = true },
+        },
+        .{
+            \\fn foo() void {
+            \\  const x = 1;
+            \\  const y = [_]u32{1, 2, 3};
+            \\  _ = y[0..x];
+            \\}
+            ,
+            .{ .read = true },
+        },
+        .{
+            \\const x = 0;
+            \\const y: [:x]u32 = .{1, 2, 3};
+            ,
+            .{
+                // FIXME: should be read
+                // .read = true,
+                .type = true,
+            },
         },
     });
 }
