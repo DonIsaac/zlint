@@ -23,6 +23,9 @@ _default:
 init:
     ./tasks/init.sh
 
+install:
+    cp zig-out/bin/zlint ~/.bin/zlint
+
 # Run CI checks locally. Run this before making a PR.
 ready:
     git diff --name-only --exit-code
