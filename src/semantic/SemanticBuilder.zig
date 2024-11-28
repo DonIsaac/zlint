@@ -847,10 +847,23 @@ fn visitSwitch(self: *SemanticBuilder, _: NodeIndex, condition: NodeIndex, cases
     }
 }
 
-fn visitSwitchCase(self: *SemanticBuilder, _: NodeIndex, case: full.SwitchCase) !void {
-    for (case.ast.values) |value| {
-        try self.visit(value);
+fn visitSwitchCase(self: *SemanticBuilder, node: NodeIndex, case: full.SwitchCase) !void {
+    for (case.ast.values) |value| try self.visit(value);
+
+    if (case.payload_token) |payload_token| {
+        const tags = self.AST().tokens.items(.tag);
+        try self.enterScope(.{});
+        var ident = payload_token;
+        if (tags[ident] == .asterisk) ident += 1;
+        if (tags[ident] != .identifier) return SemanticError.MissingIdentifier;
+        _ = try self.bindSymbol(.{
+            .declaration_node = node,
+            .identifier = ident,
+            .flags = .{ .s_payload = true, .s_const = true },
+        });
     }
+    defer if (case.payload_token != null) self.exitScope();
+
     try self.visit(case.ast.target_expr);
 }
 

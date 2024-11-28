@@ -276,6 +276,18 @@ test "Reference flags - `x` - type annotations" {
             "const x = u32; const y: x = 1;",
             .{ .type = true },
         },
+        .{
+            "const x = u32; const y: []x = &[_]u8{1, 2, 3};",
+            .{ .type = true },
+        },
+        .{
+            "const x = u32; const y: []const x = &[_]u8{1, 2, 3};",
+            .{ .type = true },
+        },
+        .{
+            "const x = u32; const y: *const x = &[_]u8{1, 2, 3};",
+            .{ .type = true },
+        },
         // FIXME: ref has incorrect flags
         // .{
         //     \\const x = u32;
