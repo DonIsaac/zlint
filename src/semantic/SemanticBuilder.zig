@@ -669,6 +669,7 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
         .identifier = identifier,
         .debug_name = debug_name,
         .visibility = visibility,
+        .flags = flags,
     });
     try self.enterContainerSymbol(symbol_id);
     defer self.exitContainerSymbol();
@@ -966,6 +967,32 @@ inline fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnPr
     try self.enterScope(.{ .flags = .{ .s_function = true } });
     defer self.exitScope();
 
+    if (fn_proto.name_token) |name_token| {
+        // const prev = self._curr_symbol_flags;
+        // defer self._curr_symbol_flags = prev;
+        var flags: Symbol.Flags = .{ .s_fn = true };
+        if (fn_proto.extern_export_inline_token) |tok| {
+            const ast = self.AST();
+            const start = ast.tokens.items(.start)[tok];
+
+            if (ast.source[start] == 'e') {
+                if (ast.source[start + 2] == 't') {
+                    // extern
+                    flags.s_extern = true;
+                } else {
+                    // export
+                    assert(ast.source[start + 2] == 'p');
+                    flags.s_export = true;
+                }
+            }
+        }
+        _ = try self.bindSymbol(.{
+            .identifier = name_token,
+            .flags = flags,
+            .visibility = if (fn_proto.visib_token) |_| .public else .private,
+        });
+    }
+
     try self.visitFnProtoParams(fn_proto);
     {
         const flags = self.takeReferenceFlags();
@@ -1021,12 +1048,26 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     self._curr_symbol_flags.set(Symbol.Flags.s_container, false);
     defer self._curr_reference_flags = prev_symbol_flags;
 
+    var flags: Symbol.Flags = .{ .s_fn = true };
+    if (proto.extern_export_inline_token) |tok| {
+        const start = ast.tokens.items(.start)[tok];
+        if (ast.source[start] == 'e') {
+            if (ast.source[start + 2] == 't') {
+                // extern
+                flags.s_extern = true;
+            } else {
+                // export
+                assert(ast.source[start + 2] == 'p');
+                flags.s_export = true;
+            }
+        }
+    }
     // TODO: bind methods as members
     _ = try self.bindSymbol(.{
         .identifier = proto.name_token,
         .debug_name = debug_name,
         .visibility = visibility,
-        .flags = .{ .s_fn = true },
+        .flags = flags,
     });
 
     var fn_signature_implies_comptime = false;
@@ -1052,8 +1093,8 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     defer self.exitScope();
     try self.visitFnProtoParams(proto);
     {
-        const flags = self.takeReferenceFlags();
-        defer self._curr_reference_flags = flags;
+        const ref_flags = self.takeReferenceFlags();
+        defer self._curr_reference_flags = ref_flags;
         self._curr_reference_flags.type = true;
         try self.visit(proto.ast.return_type);
     }

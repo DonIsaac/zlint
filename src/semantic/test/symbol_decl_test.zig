@@ -40,6 +40,10 @@ test "Symbol flags - variable declarations" {
             .{ .s_const = true, .s_variable = true },
         },
         .{
+            "export const x = 1;",
+            .{ .s_const = true, .s_variable = true, .s_export = true },
+        },
+        .{
             "fn foo() void { const x, const y = bar(); }",
             .{ .s_const = true, .s_variable = true },
         },
@@ -115,6 +119,14 @@ test "Symbol flags - functions and function parameters" {
         .{
             "fn x() void {}",
             .{ .s_fn = true },
+        },
+        .{
+            "export fn x() void {}",
+            .{ .s_fn = true, .s_export = true },
+        },
+        .{
+            "extern fn x() void;",
+            .{ .s_fn = true, .s_extern = true },
         },
         .{
             "const Foo = fn(x: u32) void;",
