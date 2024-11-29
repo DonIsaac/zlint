@@ -33,7 +33,7 @@
 //!
 //! Examples of **correct** code for this rule:
 //! ```zig
-//! // Discarded variables are not checked.
+//! // Discarded variables are considered "used".
 //! const x = 1;
 //! _ = x;
 //! 
