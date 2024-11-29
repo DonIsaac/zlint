@@ -9,6 +9,8 @@ curr_rule_name: string = "",
 curr_severity: Severity = Severity.err,
 source: *Source,
 
+pub const NULL_NODE = Semantic.NULL_NODE;
+
 pub fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context {
     return Context{
         .semantic = semantic,
