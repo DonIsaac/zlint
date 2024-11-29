@@ -17,6 +17,20 @@ An opinionated linter for the Zig programming language.
 - Pretty, detailed, and easy-to-understand error messages.
   ![image](https://github.com/user-attachments/assets/dbe0a38a-4906-42fe-a07e-9f7676e3973b)
 
+## Installation
+
+Pre-built binaries are available for each release. The latest release can be
+found [here](https://github.com/DonIsaac/zlint/releases/latest). Note that
+pre-built windows binaries are not yet available.
+
+### Building from Source
+
+Clone this repo and compile the project with Zig.
+
+```sh
+zig build --release=safe
+```
+
 ## Lint Rules
 
 All lints and what they do can be found [here](docs/rules/).
