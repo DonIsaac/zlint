@@ -646,24 +646,35 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
     self._curr_symbol_flags.set(Symbol.Flags.s_container, false);
     defer self._curr_symbol_flags = prev_symbol_flags;
 
+    var flags: Symbol.Flags = .{
+        .s_variable = true,
+        .s_comptime = var_decl.comptime_token != null,
+        .s_const = is_const,
+    };
+
+    if (var_decl.extern_export_token) |extern_export_token| {
+        const offset = self.AST().tokens.items(.start)[extern_export_token];
+        const source = self.AST().source;
+        assert(source[offset] == 'e');
+        assert(source[offset + 1] == 'x');
+        if (source[offset + 2] == 't') {
+            flags.s_extern = true;
+        } else {
+            assert(source[offset + 2] == 'p');
+            flags.s_export = true;
+        }
+    }
+
     const symbol_id = try self.bindSymbol(.{
         .identifier = identifier,
         .debug_name = debug_name,
         .visibility = visibility,
-        .flags = .{
-            .s_variable = true,
-            .s_comptime = var_decl.comptime_token != null,
-            .s_const = is_const,
-        },
     });
     try self.enterContainerSymbol(symbol_id);
     defer self.exitContainerSymbol();
     try self.visitType(var_decl.ast.type_node);
 
-    if (var_decl.ast.init_node != NULL_NODE) {
-        assert(var_decl.ast.init_node < self.AST().nodes.len);
-        try self.visit(var_decl.ast.init_node);
-    }
+    try self.visit(var_decl.ast.init_node);
 }
 
 // ================================ ASSIGNMENT =================================
