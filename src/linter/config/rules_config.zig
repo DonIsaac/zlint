@@ -15,6 +15,7 @@ const ParseError = json.ParseError(json.Scanner);
 
 pub const RulesConfig = struct {
     homeless_try: RuleConfig(rules.HomelessTry) = .{},
+    unused_decls: RuleConfig(rules.UnusedDecls) = .{},
     no_catch_return: RuleConfig(rules.NoCatchReturn) = .{},
     no_undefined: RuleConfig(rules.NoUndefined) = .{},
     no_unresolved: RuleConfig(rules.NoUnresolved) = .{},
