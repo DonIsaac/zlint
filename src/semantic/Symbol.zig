@@ -93,6 +93,8 @@ pub const Flags = packed struct(FLAGS_REPR) {
     /// Not `true` for inferred comptime parameters. That is, this is only
     /// `true` when the `comptime` modifier is present.
     s_comptime: bool = false,
+    s_extern: bool = false,
+    s_export: bool = false,
     /// Whether this symbol is a constant.
     ///
     /// Includes explicitly-defined constants (e.g. that use the `const`
@@ -118,7 +120,7 @@ pub const Flags = packed struct(FLAGS_REPR) {
     s_struct: bool = false,
     s_enum: bool = false,
     s_union: bool = false,
-    _: u4 = 0,
+    _: u2 = 0,
 
     pub const Flag = std.meta.FieldEnum(Flags);
     pub const s_container: Flags = .{ .s_struct = true, .s_enum = true, .s_union = true, .s_error = true };

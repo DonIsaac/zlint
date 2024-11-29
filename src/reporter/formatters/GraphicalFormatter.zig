@@ -310,6 +310,9 @@ fn contextFor(
     const expected_lines = (context_lines * 2) + 1;
     assert(linebuf.len == expected_lines);
 
+    // happens sometimes when reporting missing semicolon parse errors.
+    if (start == src.len) start -= 1;
+
     // expand start/end to cover the entire line
     while (start > 0) : (start -= 1) {
         if (src[start] == '\n') {
