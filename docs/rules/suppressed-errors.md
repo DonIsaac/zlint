@@ -1,8 +1,8 @@
 # `suppressed-errors`
 
-> Category: correctness
+> Category: suspicious
 >
-> Enabled by default?: No
+> Enabled by default?: Yes (warning)
 
 ## What This Rule Does
 
