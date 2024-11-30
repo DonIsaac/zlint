@@ -797,6 +797,7 @@ fn visitArrayInit(self: *SemanticBuilder, _: NodeIndex, arr: full.ArrayInit) !vo
 }
 
 fn visitStructInit(self: *SemanticBuilder, _: NodeIndex, @"struct": full.StructInit) !void {
+    try self.visit(@"struct".ast.type_expr);
     for (@"struct".ast.fields) |field| {
         try self.visit(field);
     }
