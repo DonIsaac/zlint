@@ -31,8 +31,8 @@ const NULL_NODE = semantic.Semantic.NULL_NODE;
 const SuppressedErrors = @This();
 pub const meta: Rule.Meta = .{
     .name = "suppressed-errors",
-    // TODO: set the category to an appropriate value
-    .category = .correctness,
+    .category = .suspicious,
+    .default = .warning,
 };
 
 // Runs on each node in the AST. Useful for syntax-based rules.
