@@ -23,6 +23,7 @@
       "flags": ["variable", "const"], 
       "references": [
         {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["call"]}, 
+        {"symbol":1,"scope":5,"node":"identifier","identifier":"std","flags":["call"]}, 
         {"symbol":1,"scope":6,"node":"identifier","identifier":"std","flags":["call"]}, 
         {"symbol":1,"scope":10,"node":"identifier","identifier":"std","flags":["call"]}, 
         

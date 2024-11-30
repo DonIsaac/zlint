@@ -439,6 +439,12 @@ test "Reference flags - `x` - containers" {
             ,
             .{ .read = true },
         },
+        .{
+            \\const x = struct {};
+            \\const y = x{};
+            ,
+            .{ .read = true },
+        },
     });
 }
 
