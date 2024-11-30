@@ -19,6 +19,7 @@ pub const RulesConfig = struct {
     no_catch_return: RuleConfig(rules.NoCatchReturn) = .{},
     no_undefined: RuleConfig(rules.NoUndefined) = .{},
     no_unresolved: RuleConfig(rules.NoUnresolved) = .{},
+    suppressed_errors: RuleConfig(rules.SuppressedErrors) = .{},
 
     pub fn jsonParse(allocator: Allocator, source: *json.Scanner, options: json.ParseOptions) !RulesConfig {
         var config = RulesConfig{};

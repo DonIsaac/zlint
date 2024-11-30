@@ -58,6 +58,7 @@ watch cmd="check":
 # Run unit tests
 test:
     zig build test --summary all
+
 # Run end-to-end tests
 e2e *ARGS:
     zig build test-e2e {{ARGS}}
@@ -71,6 +72,7 @@ coverage:
     kcov --include-path=src,test ./.coverage/test-zlint zig-out/bin/zlint || true
     kcov --merge ./.coverage/all ./.coverage/test ./.coverage/test-e2e ./.coverage/test-zlint
 
+# Run benchmarks. Optionally specify a `--release` mode.
 bench mode="safe":
     @mkdir -p tmp
     zig build --release={{mode}}
@@ -97,6 +99,7 @@ clean:
         zig-out/bin zig-out/lib \
         .coverage
 
+# Generate boilerplate code for a new rule
 new-rule name:
     @if which bun > /dev/null; then \
         bun tasks/new-rule.ts {{name}}; \
