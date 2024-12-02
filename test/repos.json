@@ -2,11 +2,11 @@
     {
         "name": "zig",
         "repo_url": "https://github.com/ziglang/zig.git",
-        "hash": "e5f5229fd6f9d0fe684ab32cce8f2b18e02c115b"
+        "hash": "5c6b25d9bb4d6fbee8f823ddc2c4ffcc7b4a9e35"
     },
     {
         "name": "bun",
         "repo_url": "https://github.com/oven-sh/bun.git",
-        "hash": "8f5eab3c842b7c59f6a70104e2b108465b208704"
+        "hash": "d2acb2eac07faa6a4ced1f212eeb7291b4d33ecd"
     }
 ]
