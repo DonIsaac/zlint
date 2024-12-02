@@ -4,6 +4,7 @@ const lint = @import("linter.zig");
 const util = @import("util");
 const Source = @import("source.zig").Source;
 const semantic = @import("semantic.zig");
+const config = @import("config");
 
 const fs = std.fs;
 const path = std.path;
@@ -33,7 +34,13 @@ pub fn main() !u8 {
     var opts = Options.parseArgv(stack_alloc) catch @panic("Failed to parse CLI arguments: Out of memory");
     defer opts.deinit(stack_alloc);
 
-    if (opts.print_ast) {
+    if (opts.version) {
+        const stdout = std.io.getStdOut().writer();
+        stdout.print("{s}\n", .{config.version}) catch |e| {
+            std.debug.panic("Failed to write version: {s}\n", .{@errorName(e)});
+        };
+        return 0;
+    } else if (opts.print_ast) {
         if (opts.args.items.len == 0) {
             print("No files to print\nUsage: zlint --print-ast [filename]", .{});
             std.process.exit(1);
