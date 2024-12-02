@@ -178,7 +178,7 @@ const Linker = struct {
     fn init(b: *Build) Linker {
         var opts = b.addOptions();
         opts.addOption([]const u8, "version", b.option([]const u8, "version", "ZLint version") orelse "v0.0.0");
-        var linker =  Linker{
+        var linker = Linker{
             .b = b,
             .options = opts,
             .target = b.standardTargetOptions(.{}),
