@@ -114,36 +114,22 @@ pub fn build(b: *std.Build) void {
         const check_test_lib = b.addTest(.{ .root_source_file = b.path("src/root.zig") });
         const check_test_exe = b.addTest(.{ .root_source_file = b.path("src/main.zig") });
         const check_e2e = b.addExecutable(.{ .name = "test-e2e", .root_source_file = b.path("test/test_e2e.zig"), .target = l.target });
-        check_e2e.root_module.addImport("zlint", zlint);
         l.link(&check_e2e.root_module, true, .{"recover"});
+        // tasks
+        const check_docgen = b.addExecutable(.{ .name = "docgen", .root_source_file = b.path("tasks/docgen.zig"), .target = l.target });
+
+        // these compilation targets depend on zlint as a module
+        const needs_zlint = .{ check_e2e, check_docgen };
+        inline for (needs_zlint) |exe_to_check| {
+            exe_to_check.root_module.addImport("zlint", zlint);
+        }
 
         const check = b.step("check", "Check for semantic errors");
-        const substeps = .{ check_exe, check_lib, check_test_lib, check_test_exe, check_e2e };
+        const substeps = .{ check_exe, check_lib, check_test_lib, check_test_exe, check_e2e, check_docgen };
         inline for (substeps) |c| {
             l.link(&c.root_module, false, .{});
             check.dependOn(&c.step);
         }
-
-        // const rules_path = "src/linter/rules";
-        // const rules_dir = b.path(rules_path);
-        // var rules = std.fs.openDirAbsolute(rules_dir.getPath(b), .{ .iterate = true }) catch |e| {
-        //     std.debug.panic("Failed to open rules directory: {any}", .{e});
-        // };
-        // defer rules.close();
-        // var rules_walker = rules.walk(b.allocator) catch @panic("Failed to create rules walker");
-        // var stack_fallback = std.heap.stackFallback(512, b.allocator);
-        // const stack_alloc = stack_fallback.get();
-        // while (true) {
-        //     const rule = rules_walker.next() catch continue orelse break;
-        //     const full_path = std.fs.path.join(stack_alloc, &[_][]const u8{ rules_path, rule.path }) catch @panic("OOM");
-        //     defer stack_alloc.free(full_path);
-        //     var fake_rule_tests = b.addTest(.{
-        //         .root_source_file = .{ .cwd_relative = full_path },
-        //         .optimize = optimize,
-        //         .target = target,
-        //     });
-        //     check.dependOn(&fake_rule_tests.step);
-        // }
     }
 }
 
