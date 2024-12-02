@@ -2,6 +2,8 @@
 
 /// Enable verbose logging.
 verbose: bool = false,
+/// Print version and exit.
+version: bool = false,
 /// Only display errors. Warnings are counted but not shown.
 quiet: bool = false,
 /// Instead of linting a file, print its AST as JSON to stdout.
@@ -36,6 +38,8 @@ fn parse(alloc: Allocator, args_iter: anytype) ParseError!Options {
             opts.quiet = true;
         } else if (eq(arg, "-V") or eq(arg, "--verbose")) {
             opts.verbose = true;
+        } else if (eq(arg, "-v") or eq(arg, "--version")) {
+            opts.version = true;
         } else if (eq(arg, "--print-ast")) {
             opts.print_ast = true;
         } else if (eq(arg, "--")) {

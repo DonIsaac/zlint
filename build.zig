@@ -11,6 +11,7 @@ pub fn build(b: *std.Build) void {
     // cli options
     const single_threaded = b.option(bool, "single-threaded", "Build a single-threaded executable");
     const debug_release = b.option(bool, "debug-release", "Build with debug info in release mode") orelse false;
+    // const version = b.option([]const u8, "version", "ZLint version") orelse "0.0.0";
 
     var l = Linker.init(b);
     defer l.deinit();
@@ -167,6 +168,7 @@ const Tasks = struct {
 /// Stores modules and dependencies. Use `link` to register them as imports.
 const Linker = struct {
     b: *Build,
+    options: *Build.Step.Options,
     target: Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     dependencies: std.StringHashMapUnmanaged(*Build.Dependency) = .{},
@@ -174,11 +176,18 @@ const Linker = struct {
     dev_modules: std.StringHashMapUnmanaged(*Module) = .{},
 
     fn init(b: *Build) Linker {
-        return Linker{
+        var opts = b.addOptions();
+        opts.addOption([]const u8, "version", b.option([]const u8, "version", "ZLint version") orelse "v0.0.0");
+        var linker =  Linker{
             .b = b,
+            .options = opts,
             .target = b.standardTargetOptions(.{}),
             .optimize = b.standardOptimizeOption(.{}),
         };
+        const opts_module = opts.createModule();
+        linker.modules.put(b.allocator, "config", opts_module) catch @panic("OOM");
+
+        return linker;
     }
 
     fn dependency(self: *Linker, comptime name: []const u8, options: anytype) void {
