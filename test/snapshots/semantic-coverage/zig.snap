@@ -1,5 +1,5 @@
-Passed: 97.67285% (2896/2965)
-Panics: 0% (0/2965)
+Passed: 97.56447% (2724/2792)
+Panics: 0% (0/2792)
 
 doc/langref/invalid_doc-comment.zig: error.AnalysisFailed
 doc/langref/test_switch_continue.zig: error.AnalysisFailed
@@ -69,4 +69,3 @@ test/cases/compile_errors/non-extern_function_with_var_args.zig: error.AnalysisF
 test/cases/compile_errors/normal_string_with_newline.zig: error.AnalysisFailed
 test/cases/compile_errors/reject_extern_function_definitions_with_body.zig: error.AnalysisFailed
 test/cases/compile_errors/runtime_condition_comptime_type_in_destructure.zig: error.FullMismatch
-test/cases/double_ampersand.0.zig: error.AnalysisFailed

@@ -1,5 +1,5 @@
-Passed: 98.42342% (437/444)
-Panics: 0% (0/444)
+Passed: 98.43049% (439/446)
+Panics: 0% (0/446)
 
 src/bun.js/webcore/request.zig: error.FullMismatch
 src/bun.js/webcore/streams.zig: error.FullMismatch
