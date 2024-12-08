@@ -42,6 +42,8 @@ fn ParentIterator(comptime N: usize) type {
         buf: [N]u8 = undefined,
         filename: []const u8,
         last_slash: isize,
+        const SLASH = if (util.IS_WINDOWS) '\\' else '/';
+        const SLASH_STR = if (util.IS_WINDOWS) "\\" else "/";
 
         const Self = @This();
         pub fn fromDir(starting_dir: Dir, filename: []const u8) ParentIterError!Self {
@@ -65,7 +67,7 @@ fn ParentIterator(comptime N: usize) type {
             @memcpy(self.buf[0..starting_dir.len], starting_dir);
 
             // strip trailing slash
-            const curr_path = if (starting_dir[starting_dir.len - 1] == '/')
+            const curr_path = if (starting_dir[starting_dir.len - 1] == SLASH)
                 starting_dir[0 .. starting_dir.len - 1]
             else
                 starting_dir;
@@ -75,11 +77,12 @@ fn ParentIterator(comptime N: usize) type {
         }
 
         fn prepare(self: *Self, curr_path: []const u8) ParentIterError!void {
-            if (curr_path[0] != '/') return ParentIterError.NotAbsolute;
+            // Windows paths start with C:\ or some other drive letter
+            if (comptime !util.IS_WINDOWS) if (curr_path[0] != SLASH) return ParentIterError.NotAbsolute;
             if (N - curr_path.len < 2 + self.filename.len) return ParentIterError.NameTooLong;
 
             // "/foo/bar" slice => "/foo/bar/" sentinel
-            self.buf[curr_path.len] = '/';
+            self.buf[curr_path.len] = SLASH;
             self.buf[curr_path.len + 1] = 0;
             self.last_slash = @intCast(curr_path.len);
         }
@@ -89,7 +92,7 @@ fn ParentIterator(comptime N: usize) type {
             const slash: usize = @intCast(self.last_slash);
             const filename_len = self.filename.len;
 
-            defer if (std.mem.lastIndexOf(u8, self.buf[0..slash], "/")) |prev_slash| {
+            defer if (std.mem.lastIndexOf(u8, self.buf[0..slash], SLASH_STR)) |prev_slash| {
                 self.last_slash = @intCast(prev_slash);
             } else {
                 self.last_slash = -1;
@@ -104,12 +107,37 @@ fn ParentIterator(comptime N: usize) type {
 
 const t = std.testing;
 test ParentIterator {
-    var it = try ParentIterator(4096).init("/foo/bar/baz", "zlint.json");
-    try t.expectEqualStrings("/foo/bar/baz/zlint.json", it.next().?);
-    try t.expectEqualStrings("/foo/bar/zlint.json", it.next().?);
-    try t.expectEqualStrings("/foo/zlint.json", it.next().?);
-    try t.expectEqualStrings("/zlint.json", it.next().?);
-    try t.expectEqual(null, it.next());
+    if (util.IS_WINDOWS) {
+        var it = try ParentIterator(4096).init("C:\\foo\\bar\\baz", "zlint.json");
+        try t.expectEqualStrings("C:\\foo\\bar\\baz\\zlint.json", it.next().?);
+        try t.expectEqualStrings("C:\\foo\\bar\\zlint.json", it.next().?);
+        try t.expectEqualStrings("C:\\foo\\zlint.json", it.next().?);
+        try t.expectEqualStrings("C:\\zlint.json", it.next().?);
+        try t.expectEqual(null, it.next());
+    } else {
+        var it = try ParentIterator(4096).init("/foo/bar/baz", "zlint.json");
+        try t.expectEqualStrings("/foo/bar/baz/zlint.json", it.next().?);
+        try t.expectEqualStrings("/foo/bar/zlint.json", it.next().?);
+        try t.expectEqualStrings("/foo/zlint.json", it.next().?);
+        try t.expectEqualStrings("/zlint.json", it.next().?);
+        try t.expectEqual(null, it.next());
+    }
+}
+
+const util = @import("util");
+test resolveLintConfig {
+    const cwd = fs.cwd();
+
+    const fixtures_dir = if (util.IS_WINDOWS)
+        try cwd.realpathAlloc(t.allocator, "test\\fixtures\\config")
+    else
+        try cwd.realpathAlloc(t.allocator, "test/fixtures/config");
+    defer t.allocator.free(fixtures_dir);
+
+    const arena = std.heap.ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+    const config = try resolveLintConfig(arena, cwd, "zlint.json");
+    try t.expectEqual(.warning, config.config.rules.no_undefined.severity);
 }
 
 // fn iterParents(comptime N: usize, buf: [N]u8, path: []const u8, filename: []const u8) {

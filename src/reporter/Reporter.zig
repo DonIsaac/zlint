@@ -17,6 +17,8 @@ pub fn Reporter(
         opts: Options = .{},
 
         const Self = @This();
+        /// Initialization does not allocate memory. The formatter may allocate,
+        /// but it always disposes of it after formatting each set of errors.
         pub fn init(writer: Writer, formatter: Formatter) Self {
             return .{
                 .writer = writer,

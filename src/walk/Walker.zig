@@ -22,6 +22,7 @@ pub fn Walker(comptime Visitor: type) type {
         pub fn init(allocator: Allocator, dir: fs.Dir, visitor: *Visitor) Allocator.Error!Self {
             var stack: std.ArrayListUnmanaged(StackItem) = .{};
             try stack.ensureTotalCapacity(allocator, INITIAL_STACK_CAPACITY);
+            errdefer stack.deinit(allocator);
 
             try stack.append(allocator, .{
                 .iter = dir.iterate(),
