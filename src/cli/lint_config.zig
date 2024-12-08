@@ -77,7 +77,8 @@ fn ParentIterator(comptime N: usize) type {
         }
 
         fn prepare(self: *Self, curr_path: []const u8) ParentIterError!void {
-            if (curr_path[0] != SLASH) return ParentIterError.NotAbsolute;
+            // Windows paths start with C:\ or some other drive letter
+            if (comptime !util.IS_WINDOWS) if (curr_path[0] != SLASH) return ParentIterError.NotAbsolute;
             if (N - curr_path.len < 2 + self.filename.len) return ParentIterError.NameTooLong;
 
             // "/foo/bar" slice => "/foo/bar/" sentinel
