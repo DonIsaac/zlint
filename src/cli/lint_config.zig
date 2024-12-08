@@ -108,7 +108,6 @@ fn ParentIterator(comptime N: usize) type {
 const t = std.testing;
 test ParentIterator {
     if (util.IS_WINDOWS) {
-
         var it = try ParentIterator(4096).init("C:\\foo\\bar\\baz", "zlint.json");
         try t.expectEqualStrings("C:\\foo\\bar\\baz\\zlint.json", it.next().?);
         try t.expectEqualStrings("C:\\foo\\bar\\zlint.json", it.next().?);
