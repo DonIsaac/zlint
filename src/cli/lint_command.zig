@@ -22,6 +22,10 @@ const Options = @import("../cli/Options.zig");
 
 pub fn lint(alloc: Allocator, options: Options) !u8 {
     const stdout = std.io.getStdOut().writer();
+    // NOTE: everything config related is stored in the same arena. This
+    // includes the config source string, the parsed Config object, and
+    // (eventually) whatever each rule needs to store. This lets all configs
+    // store slices to the config's source, avoiding allocations.
     var arena = std.heap.ArenaAllocator.init(alloc);
     const config = blk: {
         errdefer arena.deinit();

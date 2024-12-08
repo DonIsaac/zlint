@@ -112,6 +112,16 @@ test ParentIterator {
     try t.expectEqual(null, it.next());
 }
 
+test resolveLintConfig {
+    const cwd = fs.cwd();
+    const fixtures_dir = try cwd.realpathAlloc(t.allocator, "test/fixtures/config");
+    defer t.allocator.free(fixtures_dir);
+    const arena = std.heap.ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+    const config = try resolveLintConfig(arena, cwd, "zlint.json");
+    try t.expectEqual(.warning, config.config.rules.no_undefined.severity);
+}
+
 // fn iterParents(comptime N: usize, buf: [N]u8, path: []const u8, filename: []const u8) {
 
 //     var buf = buffer;
