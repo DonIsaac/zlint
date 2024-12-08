@@ -107,12 +107,22 @@ fn ParentIterator(comptime N: usize) type {
 
 const t = std.testing;
 test ParentIterator {
-    var it = try ParentIterator(4096).init("/foo/bar/baz", "zlint.json");
-    try t.expectEqualStrings("/foo/bar/baz/zlint.json", it.next().?);
-    try t.expectEqualStrings("/foo/bar/zlint.json", it.next().?);
-    try t.expectEqualStrings("/foo/zlint.json", it.next().?);
-    try t.expectEqualStrings("/zlint.json", it.next().?);
-    try t.expectEqual(null, it.next());
+    if (util.IS_WINDOWS) {
+
+        var it = try ParentIterator(4096).init("C:\\foo\\bar\\baz", "zlint.json");
+        try t.expectEqualStrings("C:\\foo\\bar\\baz\\zlint.json", it.next().?);
+        try t.expectEqualStrings("C:\\foo\\bar\\zlint.json", it.next().?);
+        try t.expectEqualStrings("C:\\foo\\zlint.json", it.next().?);
+        try t.expectEqualStrings("C:\\zlint.json", it.next().?);
+        try t.expectEqual(null, it.next());
+    } else {
+        var it = try ParentIterator(4096).init("/foo/bar/baz", "zlint.json");
+        try t.expectEqualStrings("/foo/bar/baz/zlint.json", it.next().?);
+        try t.expectEqualStrings("/foo/bar/zlint.json", it.next().?);
+        try t.expectEqualStrings("/foo/zlint.json", it.next().?);
+        try t.expectEqualStrings("/zlint.json", it.next().?);
+        try t.expectEqual(null, it.next());
+    }
 }
 
 const util = @import("util");
