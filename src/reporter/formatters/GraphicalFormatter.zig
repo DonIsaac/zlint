@@ -478,11 +478,11 @@ const Writer = std.fs.File.Writer; // TODO: use std.io.Writer?
 
 const GraphicalTheme = @import("GraphicalTheme.zig");
 
-const _source = @import("../../source.zig");
-const Span = _source.Span;
-const LabeledSpan = _source.LabeledSpan;
-const Location = _source.Location;
-const LocationSpan = _source.LocationSpan;
+const _span = @import("../../span.zig");
+const Span = _span.Span;
+const LabeledSpan = _span.LabeledSpan;
+const Location = _span.Location;
+const LocationSpan = _span.LocationSpan;
 
 const Error = @import("../../Error.zig");
 
@@ -501,7 +501,7 @@ test eatNewlineBefore {
 
     {
         // "foo\nbar"
-        //      ^
+        //     ^^
         var start: u32 = 3;
         eatNewlineBefore(src, &start);
         try t.expectEqual(2, start);

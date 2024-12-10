@@ -1806,8 +1806,9 @@ const TokenIndex = _ast.TokenIndex;
 
 const Error = @import("../Error.zig");
 const _source = @import("../source.zig");
-const LabeledSpan = _source.LabeledSpan;
-const Span = _source.Span;
+const _span = @import("../span.zig");
+const LabeledSpan = _span.LabeledSpan;
+const Span = _span.Span;
 
 const util = @import("util");
 const IS_DEBUG = util.IS_DEBUG;
