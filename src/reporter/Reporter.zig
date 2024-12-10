@@ -111,7 +111,7 @@ const Stats = struct {
 
 const std = @import("std");
 const Error = @import("../Error.zig");
-const Span = @import("../source.zig").Span;
+const Span = @import("../span.zig").Span;
 
 const AtomicUsize = std.atomic.Value(usize);
 const Mutex = std.Thread.Mutex;
