@@ -41,6 +41,7 @@ pub fn format(self: *GraphicalFormatter, w: *Writer, e: Error) FormatError!void 
     try w.writeByte('\n');
 }
 
+/// `𝙭  some-code: a message here`
 fn renderHeader(self: *GraphicalFormatter, w: *Writer, e: *const Error) FormatError!void {
     const icon = self.iconFor(e.severity);
     const color = self.styleFor(e.severity);

@@ -1,12 +1,31 @@
 const reporter = @import("./reporter/Reporter.zig");
 pub const Reporter = reporter.Reporter;
 pub const Options = reporter.Options;
-pub const GraphicalFormatter = @import("./reporter/formatters/GraphicalFormatter.zig");
+
+/// Formatters process diagnostics for a `Reporter`.
+pub const formatter = struct {
+    pub const Github = @import("./reporter/formatters/GithubFormatter.zig");
+    pub const Graphical = @import("./reporter/formatters/GraphicalFormatter.zig");
+
+    pub const Error = reporter.FormatError;
+};
 
 // shorthands
-pub const GraphicalReporter = Reporter(GraphicalFormatter, GraphicalFormatter.format);
+pub const GraphicalReporter = Reporter(formatter.Graphical, formatter.Graphical.format);
 
-const IS_WINDOWS = builtin.target.os.tag == .windows;
+/// Get a reporter by name. Names are case-insensitive.
+pub fn fromName(name: []const u8) ?type {
+    return reporters.get(name);
+}
+const reporters = std.StaticStringMapWithEql(
+    type,
+    std.static_string_map.eqlAsciiIgnoreCase,
+){
+    .{ "github", formatter.Github },
+    .{ "gh", formatter.Github },
+    .{ "graphical", formatter.Graphical },
+    .{ "default", formatter.Graphical },
+};
 
 const std = @import("std");
 const assert = std.debug.assert;

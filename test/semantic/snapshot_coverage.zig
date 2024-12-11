@@ -94,7 +94,7 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
 }
 
 fn runFail(alloc: Allocator, source: *const zlint.Source) anyerror!void {
-    const formatter = zlint.report.GraphicalFormatter.unicode(alloc, false);
+    const formatter = zlint.report.formatter.Graphical.unicode(alloc, false);
 
     // open (and maybe create) source-local snapshot file
     if (source.pathname == null) return Error.SourceMissingFilename;
