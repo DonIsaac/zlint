@@ -31,7 +31,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
         errdefer arena.deinit();
         break :blk try lint_config.resolveLintConfig(arena, fs.cwd(), "zlint.json");
     };
-    var reporter = try reporters._Reporter.initKind(options.format, stdout, alloc);
+    var reporter = try reporters.Reporter.initKind(options.format, stdout, alloc);
     defer reporter.deinit();
     reporter.opts = .{ .quiet = options.quiet };
 
@@ -59,11 +59,11 @@ const LintWalker = walk.Walker(LintVisitor);
 
 const LintVisitor = struct {
     linter: Linter,
-    reporter: *reporters._Reporter,
+    reporter: *reporters.Reporter,
     pool: *Thread.Pool,
     allocator: Allocator,
 
-    fn init(allocator: Allocator, reporter: *reporters._Reporter, config: _lint.Config.Managed, n_threads: ?u32) !LintVisitor {
+    fn init(allocator: Allocator, reporter: *reporters.Reporter, config: _lint.Config.Managed, n_threads: ?u32) !LintVisitor {
         errdefer config.arena.deinit();
         var linter = try Linter.init(allocator, config);
         errdefer linter.deinit();

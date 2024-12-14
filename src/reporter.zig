@@ -1,13 +1,8 @@
 const reporter = @import("./reporter/Reporter.zig");
 pub const Reporter = reporter.Reporter;
-pub const _Reporter = reporter._Reporter;
 pub const Options = reporter.Options;
 
 pub const formatter = @import("./reporter/formatter.zig");
-
-// shorthands
-pub const GraphicalReporter = Reporter(formatter.Graphical, formatter.Graphical.format);
-pub const GithubReporter = Reporter(formatter.Github, formatter.Github.format);
 
 const std = @import("std");
 const assert = std.debug.assert;

@@ -5,7 +5,7 @@ pub const Options = struct {
     quiet: bool = false,
 };
 
-pub const _Reporter = struct {
+pub const Reporter = struct {
     writer: Writer,
     writer_lock: Mutex = .{},
     stats: Stats = .{},
@@ -21,22 +21,18 @@ pub const _Reporter = struct {
 
     /// Shorthand for creating a `Reporter` with a `GraphicalFormtter`, since
     /// this is so common.
-    pub fn graphical(writer: Writer, allocator: Allocator) Allocator.Error!_Reporter {
-        const ptr = try allocator.create(formatters.Graphical);
-        ptr.* = formatters.Graphical{ .alloc = allocator };
-
-        return .{
-            .writer = writer,
-            .alloc = allocator,
-            .ptr = @ptrCast(ptr),
-            .vtable = .{
-                .format = formatters.Graphical.format,
-                .deinit = formatters.Graphical.deinit,
-            },
-        };
+    pub fn graphical(
+        writer: Writer,
+        allocator: Allocator,
+        // Optionally override the default theme
+        theme: ?formatters.Graphical.Theme,
+    ) Allocator.Error!Reporter {
+        var formatter = formatters.Graphical{ .alloc = allocator };
+        if (theme) |t| formatter.theme = t;
+        return init(formatters.Graphical, formatter, writer, allocator);
     }
 
-    pub fn initKind(kind: formatters.Kind, writer: Writer, allocator: Allocator) Allocator.Error!_Reporter {
+    pub fn initKind(kind: formatters.Kind, writer: Writer, allocator: Allocator) Allocator.Error!Reporter {
         switch (kind) {
             formatters.Kind.graphical => {
                 const f = formatters.Graphical{ .alloc = allocator };
@@ -55,7 +51,7 @@ pub const _Reporter = struct {
         formatter: Formatter,
         writer: Writer,
         allocator: Allocator,
-    ) Allocator.Error!_Reporter {
+    ) Allocator.Error!Reporter {
         const fmt = try allocator.create(Formatter);
         fmt.* = formatter;
 
@@ -92,12 +88,12 @@ pub const _Reporter = struct {
         };
     }
 
-    pub fn reportErrors(self: *_Reporter, errors: std.ArrayList(Error)) void {
+    pub fn reportErrors(self: *Reporter, errors: std.ArrayList(Error)) void {
         defer errors.deinit();
         self.reportErrorSlice(errors.allocator, errors.items);
     }
 
-    pub fn reportErrorSlice(self: *_Reporter, alloc: std.mem.Allocator, errors: []Error) void {
+    pub fn reportErrorSlice(self: *Reporter, alloc: std.mem.Allocator, errors: []Error) void {
         self.stats.recordErrors(errors);
         if (errors.len == 0) return;
         self.writer_lock.lock();
@@ -112,7 +108,7 @@ pub const _Reporter = struct {
         }
     }
 
-    pub fn printStats(self: *_Reporter, duration: i64) void {
+    pub fn printStats(self: *Reporter, duration: i64) void {
         const yellow, const yd = comptime blk: {
             var c = Chameleon.initComptime();
             const yellow = c.yellow().createPreset();
@@ -134,7 +130,7 @@ pub const _Reporter = struct {
     /// owns this formatter.
     /// 1. The formatter has a `deinit()` method
     /// 2. This reporter owns the formatter.
-    pub fn deinit(self: *_Reporter) void {
+    pub fn deinit(self: *Reporter) void {
         self.vtable.deinit(self.ptr, self.alloc);
         self.vtable.destroy(self.ptr, self.alloc);
 
@@ -145,8 +141,8 @@ pub const _Reporter = struct {
     }
 };
 
-/// Formater that always panics. Used to check for use-after-free bugs.
-/// 
+/// Formatter that always panics. Used to check for use-after-free bugs.
+///
 /// Only used in debug builds.
 const PanicForamtter = struct {
     fn format(_: *anyopaque, _: *Writer, _: Error) FormatError!void {
@@ -154,98 +150,6 @@ const PanicForamtter = struct {
     }
     fn deinit(_: *anyopaque, _: Allocator) void {
         std.debug.panic("Attempted to deinitialize the same Reporter twice. This is a bug.", .{});
-    }
-};
-
-pub fn Reporter(
-    Formatter: type,
-    FormatFn: fn (ctx: *Formatter, writer: *Writer, e: Error) FormatError!void,
-) type {
-    return struct {
-        writer: Writer,
-        writer_lock: Mutex = .{},
-        formatter: Formatter,
-        stats: Stats = .{},
-        opts: Options = .{},
-
-        const Self = @This();
-        /// Initialization does not allocate memory. The formatter may allocate,
-        /// but it always disposes of it after formatting each set of errors.
-        pub fn init(writer: Writer, formatter: Formatter) Self {
-            return .{
-                .writer = writer,
-                .formatter = formatter,
-            };
-        }
-
-        pub fn reportErrors(self: *Self, errors: std.ArrayList(Error)) void {
-            defer errors.deinit();
-            self.reportErrorSlice(errors.allocator, errors.items);
-        }
-
-        fn reportErrorSlice(self: *Self, alloc: std.mem.Allocator, errors: []Error) void {
-            self.stats.recordErrors(errors);
-            if (errors.len == 0) return;
-            self.writer_lock.lock();
-            defer self.writer_lock.unlock();
-
-            for (errors) |err| {
-                var e = err;
-                defer e.deinit(alloc);
-                if (self.opts.quiet and err.severity != .err) continue;
-                FormatFn(&self.formatter, &self.writer, err) catch @panic("Failed to write error.");
-                self.writer.writeByte('\n') catch @panic("failed to write newline.");
-            }
-        }
-
-        pub fn printStats(self: *Self, duration: i64) void {
-            const yellow, const yd = comptime blk: {
-                var c = Chameleon.initComptime();
-                const yellow = c.yellow().createPreset();
-                // Yellow {d} format string
-                const yd = yellow.open ++ "{d}" ++ yellow.close;
-                break :blk .{ yellow, yd };
-            };
-
-            const errors = self.stats.numErrorsSync();
-            const warnings = self.stats.numWarningsSync();
-            const files = self.stats.numFilesSync();
-            self.writer.print(
-                "\tFound " ++ yd ++ " errors and " ++ yd ++ " warnings across " ++ yd ++ " files in " ++ yellow.open ++ "{d}ms" ++ yellow.close ++ ".\n",
-                .{ errors, warnings, files, duration },
-            ) catch {};
-        }
-    };
-}
-
-pub const AnyReporter = struct {
-    ptr: *anyopaque,
-    reportErrorsFn: *const fn (ptr: *anyopaque, errors: std.ArrayList(Error)) void,
-    printStatsFn: *const fn (ptr: *anyopaque, duration: i64) void,
-
-    pub fn from(comptime R: type, reporter: *R) AnyReporter {
-        const gen = struct {
-            fn reportErrors(ptr: *anyopaque, errors: std.ArrayList(Error)) void {
-                const this: *R = @ptrCast(ptr);
-                @call(.auto, R.reportErrors, .{ this, errors });
-            }
-            fn printStats(ptr: *anyopaque, duration: i64) void {
-                const this: *R = @ptrCast(ptr);
-                @call(.auto, R.printStats, .{ this, duration });
-            }
-        };
-
-        return .{
-            .ptr = @ptrCast(reporter),
-            .reportErrorsFn = &gen.reportErrors,
-            .printStatsFn = &gen.printStats,
-        };
-    }
-    pub fn reportErrors(self: *AnyReporter, errors: std.ArrayList(Error)) void {
-        return self.reportErrorsFn(self.ptr, errors);
-    }
-    pub fn printStats(self: *AnyReporter, duration: i64) void {
-        return self.printStatsFn(self.ptr, duration);
     }
 };
 
@@ -305,5 +209,4 @@ const Writer = std.fs.File.Writer; // TODO: use std.io.Writer?
 
 test {
     std.testing.refAllDecls(@This());
-    std.testing.refAllDecls(AnyReporter);
 }

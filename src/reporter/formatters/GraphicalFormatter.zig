@@ -5,6 +5,7 @@ alloc: std.mem.Allocator,
 const MAX_CONTEXT_LINES: u32 = 3;
 
 pub const FormatError = Writer.Error || std.mem.Allocator.Error;
+pub const Theme = GraphicalTheme;
 
 pub fn unicode(alloc: std.mem.Allocator, comptime color: bool) GraphicalFormatter {
     // NOTE: must be comptime, otherwise none() returns a reference to a stack

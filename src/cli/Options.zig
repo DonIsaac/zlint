@@ -46,7 +46,7 @@ fn parse(alloc: Allocator, args_iter: anytype) ParseError!Options {
             // TODO: comptime string concat on format names
             const fmt = argv.next() orelse std.debug.panic("Missing format name. Valid names are {s}.", .{FORMAT_NAMES});
             opts.format = formatter.Kind.fromString(fmt) orelse {
-                std.debug.panic("Invalid format name: {s}. Valid names are {s}.", .{arg, FORMAT_NAMES});
+                std.debug.panic("Invalid format name: {s}. Valid names are {s}.", .{ arg, FORMAT_NAMES });
             };
         } else if (eq(arg, "--print-ast")) {
             opts.print_ast = true;
