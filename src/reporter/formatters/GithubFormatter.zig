@@ -11,7 +11,7 @@ pub fn format(_: *GithubFormatter, w: *Writer, e: Error) FormatError!void {
     const level: []const u8 = switch (e.severity) {
         .err => "error",
         .warning => "warning",
-        .note => "notice",
+        .notice => "notice",
         .off => @panic("disabled error passed to formatter"),
     };
 
@@ -26,7 +26,7 @@ pub fn format(_: *GithubFormatter, w: *Writer, e: Error) FormatError!void {
     const line, const col = blk: {
         if (primary) |p| {
             if (e.source) |source| {
-                const loc = Location.fromSpan(source.deref(), p.span);
+                const loc = Location.fromSpan(source.deref().*, p.span);
                 break :blk .{ loc.line, loc.column };
             }
         }
@@ -34,7 +34,7 @@ pub fn format(_: *GithubFormatter, w: *Writer, e: Error) FormatError!void {
     };
 
     // TODO: endLine, endCol
-    w.print("::{s} file={s},line={d},col={d},title={s}::{s}\n", .{
+    try w.print("::{s} file={s},line={d},col={d},title={s}::{s}\n", .{
         level,
         e.source_name orelse "<unknown>",
         line,

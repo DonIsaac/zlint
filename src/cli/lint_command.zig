@@ -2,7 +2,7 @@ const std = @import("std");
 const walk = @import("../walk/Walker.zig");
 const _lint = @import("../linter.zig");
 const _source = @import("../source.zig");
-const _report = @import("../reporter.zig");
+const reporters = @import("../reporter.zig");
 const lint_config = @import("lint_config.zig");
 
 const fs = std.fs;
@@ -11,7 +11,7 @@ const mem = std.mem;
 const path = std.fs.path;
 
 const Allocator = std.mem.Allocator;
-const GraphicalReporter = _report.GraphicalReporter;
+const GraphicalReporter = reporters.GraphicalReporter;
 const Source = _source.Source;
 const Thread = std.Thread;
 const WalkState = walk.WalkState;
@@ -31,7 +31,8 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
         errdefer arena.deinit();
         break :blk try lint_config.resolveLintConfig(arena, fs.cwd(), "zlint.json");
     };
-    var reporter = GraphicalReporter.init(stdout, .{ .alloc = alloc });
+    var reporter = try reporters._Reporter.initKind(options.format, stdout, alloc);
+    defer reporter.deinit();
     reporter.opts = .{ .quiet = options.quiet };
 
     const start = std.time.milliTimestamp();
@@ -58,11 +59,11 @@ const LintWalker = walk.Walker(LintVisitor);
 
 const LintVisitor = struct {
     linter: Linter,
-    reporter: *GraphicalReporter,
+    reporter: *reporters._Reporter,
     pool: *Thread.Pool,
     allocator: Allocator,
 
-    fn init(allocator: Allocator, reporter: *GraphicalReporter, config: _lint.Config.Managed, n_threads: ?u32) !LintVisitor {
+    fn init(allocator: Allocator, reporter: *reporters._Reporter, config: _lint.Config.Managed, n_threads: ?u32) !LintVisitor {
         errdefer config.arena.deinit();
         var linter = try Linter.init(allocator, config);
         errdefer linter.deinit();

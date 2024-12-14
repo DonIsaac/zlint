@@ -94,7 +94,6 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
 }
 
 fn runFail(alloc: Allocator, source: *const zlint.Source) anyerror!void {
-    const formatter = zlint.report.formatter.Graphical.unicode(alloc, false);
 
     // open (and maybe create) source-local snapshot file
     if (source.pathname == null) return Error.SourceMissingFilename;
@@ -104,7 +103,10 @@ fn runFail(alloc: Allocator, source: *const zlint.Source) anyerror!void {
 
     const snapshot = try TestFolders.openSnapshotFile(alloc, "snapshot-coverage/simple/fail", utils.cleanStrSlice(source_name));
     defer snapshot.close();
-    var reporter = zlint.report.GraphicalReporter.init(snapshot.writer(), formatter);
+
+    const formatter = zlint.report.formatter.Graphical.unicode(alloc, false);
+    var reporter = try zlint.report._Reporter.init(@TypeOf(formatter), formatter, snapshot.writer(), alloc);
+    defer reporter.deinit();
 
     // run analysis
     var builder = SemanticBuilder.init(alloc);

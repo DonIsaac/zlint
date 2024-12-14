@@ -10,6 +10,8 @@ quiet: bool = false,
 ///
 /// This is primarily for debugging purposes.
 print_ast: bool = false,
+/// How diagnostics are formatted.
+format: formatter.Kind = .graphical,
 /// Positional arguments
 args: std.ArrayListUnmanaged(util.string) = .{},
 
@@ -40,6 +42,12 @@ fn parse(alloc: Allocator, args_iter: anytype) ParseError!Options {
             opts.verbose = true;
         } else if (eq(arg, "-v") or eq(arg, "--version")) {
             opts.version = true;
+        } else if (eq(arg, "-f") or eq(arg, "--format")) {
+            // TODO: comptime string concat on format names
+            const fmt = argv.next() orelse std.debug.panic("Missing format name. Valid names are {s}.", .{FORMAT_NAMES});
+            opts.format = formatter.Kind.fromString(fmt) orelse {
+                std.debug.panic("Invalid format name: {s}. Valid names are {s}.", .{arg, FORMAT_NAMES});
+            };
         } else if (eq(arg, "--print-ast")) {
             opts.print_ast = true;
         } else if (eq(arg, "--")) {
@@ -59,11 +67,14 @@ pub fn deinit(self: *Options, alloc: std.mem.Allocator) void {
 inline fn eq(arg: anytype, name: @TypeOf(arg)) bool {
     return std.mem.eql(u8, arg, name);
 }
+// TODO: comptime string concat on format names
+const FORMAT_NAMES: []const u8 = "default, graphical, github, gh";
 
 const Options = @This();
 const std = @import("std");
 const util = @import("util");
 const Allocator = std.mem.Allocator;
+const formatter = @import("../reporter.zig").formatter;
 
 test parse {
     const t = std.testing;
