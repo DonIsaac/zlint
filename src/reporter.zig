@@ -1,12 +1,8 @@
 const reporter = @import("./reporter/Reporter.zig");
 pub const Reporter = reporter.Reporter;
 pub const Options = reporter.Options;
-pub const GraphicalFormatter = @import("./reporter/formatters/GraphicalFormatter.zig");
 
-// shorthands
-pub const GraphicalReporter = Reporter(GraphicalFormatter, GraphicalFormatter.format);
-
-const IS_WINDOWS = builtin.target.os.tag == .windows;
+pub const formatter = @import("./reporter/formatter.zig");
 
 const std = @import("std");
 const assert = std.debug.assert;

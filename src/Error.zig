@@ -25,6 +25,10 @@ const ArcStr = Arc([:0]u8);
 pub const PossiblyStaticStr = struct {
     static: bool = true,
     str: string,
+
+    pub fn format(this: PossiblyStaticStr, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+        return writer.writeAll(this.str);
+    }
 };
 
 pub fn new(message: string) Error {

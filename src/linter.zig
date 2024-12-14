@@ -60,8 +60,7 @@ pub const Linter = struct {
     }
 
     pub fn deinit(self: *Linter) void {
-        // NOTE: rules are arena-allocated and do not need to be deinitialized
-        // directly.
+        self.rules.deinit(self.arena.allocator());
         self.arena.deinit();
     }
 

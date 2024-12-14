@@ -5,6 +5,7 @@ alloc: std.mem.Allocator,
 const MAX_CONTEXT_LINES: u32 = 3;
 
 pub const FormatError = Writer.Error || std.mem.Allocator.Error;
+pub const Theme = GraphicalTheme;
 
 pub fn unicode(alloc: std.mem.Allocator, comptime color: bool) GraphicalFormatter {
     // NOTE: must be comptime, otherwise none() returns a reference to a stack
@@ -41,6 +42,7 @@ pub fn format(self: *GraphicalFormatter, w: *Writer, e: Error) FormatError!void 
     try w.writeByte('\n');
 }
 
+/// `𝙭  some-code: a message here`
 fn renderHeader(self: *GraphicalFormatter, w: *Writer, e: *const Error) FormatError!void {
     const icon = self.iconFor(e.severity);
     const color = self.styleFor(e.severity);

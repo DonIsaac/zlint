@@ -17,7 +17,13 @@ const AnalysisError = error{
 };
 
 pub fn build(src: [:0]const u8) !Semantic {
-    var r = report.GraphicalReporter.init(std.io.getStdErr().writer(), report.GraphicalFormatter.unicode(t.allocator, false));
+
+    var r = try report.Reporter.graphical(
+        std.io.getStdErr().writer(),
+        t.allocator,
+        report.formatter.Graphical.Theme.unicodeNoColor(),
+    );
+    defer r.deinit();
     var builder = SemanticBuilder.init(t.allocator);
     var source = try _source.Source.fromString(
         t.allocator,

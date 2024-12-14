@@ -237,7 +237,7 @@ const Error = @import("../Error.zig");
 const Linter = @import("../linter.zig").Linter;
 const Rule = @import("rule.zig").Rule;
 const Source = @import("../source.zig").Source;
-const GraphicalFormatter = @import("../reporter.zig").GraphicalFormatter;
+const GraphicalFormatter = @import("../reporter.zig").formatter.Graphical;
 
 const BooStr = util.Boo(string);
 const string = util.string;
