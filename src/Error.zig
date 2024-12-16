@@ -16,7 +16,7 @@ labels: std.ArrayListUnmanaged(LabeledSpan) = .{},
 source_name: ?string = null,
 source: ?ArcStr = null,
 /// Optional help text. This will go under the code snippet.
-help: ?string = null,
+help: ?PossiblyStaticStr = null,
 
 // Although this is not [:0]const u8, it should not be mutated. Needs to be mut
 // to indicate to Arc it's owned by the Error. Otherwise, arc.deinit() won't
@@ -25,6 +25,10 @@ const ArcStr = Arc([:0]u8);
 pub const PossiblyStaticStr = struct {
     static: bool = true,
     str: string,
+
+    pub fn format(this: PossiblyStaticStr, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+        return writer.writeAll(this.str);
+    }
 };
 
 pub fn new(message: string) Error {
@@ -52,11 +56,23 @@ pub fn newAtLocation(message: string, span: Span) Error {
 pub fn deinit(self: *Error, alloc: std.mem.Allocator) void {
     if (!self.message.static) alloc.free(self.message.str);
 
-    if (self.help != null) alloc.free(self.help.?);
+    if (self.help != null and !self.help.?.static) alloc.free(self.help.?.str);
     if (self.source_name != null) alloc.free(self.source_name.?);
     if (self.source != null) self.source.?.deinit();
+    for (self.labels.items) |*label| {
+        if (label.label) |*label_text| label_text.deinit();
+    }
     self.labels.deinit(alloc);
 }
+
+const ParseError = json.ParseError(json.Scanner);
+const severity_map = std.StaticStringMap(Severity).initComptime([_]struct { []const u8, Severity }{
+    .{ "error", Severity.err },
+    .{ "deny", Severity.err },
+    .{ "warn", Severity.warning },
+    .{ "off", Severity.off },
+    .{ "allow", Severity.off },
+});
 
 /// Severity level for issues found by lint rules.
 ///
@@ -69,6 +85,27 @@ pub const Severity = enum {
     warning,
     notice,
     off,
+
+    /// `std.json.parseFromSlice` looks for and calls methods called `jsonParse`
+    /// when they exist.
+    pub fn jsonParse(_: Allocator, source: *json.Scanner, options: json.ParseOptions) !Severity {
+        _ = options;
+        const tok = try source.next();
+        switch (tok) {
+            .string => {
+                return severity_map.get(tok.string) orelse return ParseError.InvalidEnumTag;
+            },
+            .number => {
+                switch (tok.number[0]) {
+                    '0' => return .off,
+                    '1' => return .warning,
+                    '2' => return .err,
+                    else => return ParseError.InvalidEnumTag,
+                }
+            },
+            else => return ParseError.UnexpectedToken,
+        }
+    }
 };
 
 /// Results hold a value and a list of errors. Useful for error-recoverable
@@ -153,14 +190,37 @@ pub fn Result(comptime T: type) type {
 const Error = @This();
 
 const std = @import("std");
+const json = std.json;
 const ptrs = @import("smart-pointers");
 const util = @import("util");
 const _src = @import("source.zig");
+const _span = @import("span.zig");
 
 const Allocator = std.mem.Allocator;
 const Arc = ptrs.Arc;
 const string = util.string;
 
 const Source = _src.Source;
-const Span = _src.Span;
-const LabeledSpan = _src.LabeledSpan;
+const Span = _span.Span;
+const LabeledSpan = _span.LabeledSpan;
+
+const t = std.testing;
+
+fn expectParse(input: []const u8, expected: Severity) !void {
+    const actual = try json.parseFromSlice(Severity, t.allocator, input, .{});
+    defer actual.deinit();
+    try t.expectEqual(expected, actual.value);
+}
+
+test "Severity.jsonParse" {
+    try expectParse("\"error\"", Severity.err);
+    try expectParse("\"deny\"", Severity.err);
+    try expectParse("2", Severity.err);
+
+    try expectParse("\"warn\"", Severity.warning);
+    try expectParse("1", Severity.warning);
+
+    try expectParse("\"off\"", Severity.off);
+    try expectParse("\"allow\"", Severity.off);
+    try expectParse("0", Severity.off);
+}

@@ -3,56 +3,80 @@
     {
       "name": "", 
       "debugName": "@This()", 
+      "token": null, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["const"], 
+      "references": [
+        
+      ], 
       "members": [1,2,3,4], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "a", 
       "debugName": "", 
+      "token": 0, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["member"], 
+      "references": [
+        
+      ], 
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "b", 
       "debugName": "", 
+      "token": 4, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["member"], 
+      "references": [
+        
+      ], 
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Foo", 
       "debugName": "", 
+      "token": 14, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["variable", "const"], 
+      "references": [
+        {"symbol":3,"scope":1,"node":"identifier","identifier":"Foo","flags":["type"]}, 
+        {"symbol":3,"scope":2,"node":"identifier","identifier":"Foo","flags":["read"]}, 
+        
+      ], 
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "new", 
       "debugName": "", 
+      "token": 22, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true,"s_catch_param":false}, 
+      "flags": ["fn"], 
+      "references": [
+        
+      ], 
       "members": [], 
       "exports": [], 
       
     }, 
   ], 
+  "unresolvedReferences": [],
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
-    "flags": [
-      "top", 
-      
-    ], 
+    "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
       "a": 1, 
@@ -60,39 +84,28 @@
       "Foo": 3, 
       "new": 4, 
       
-    }, "children": [
+    }, 
+    "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
-        "flags": [
-          
-        ], 
+        "flags": ["function"], 
         "bindings": {
           
-        }, "children": [
+        }, 
+        "children": [
           {
             "id": semantic.id.NominalId(u32)(2), 
-            "flags": [
-              "function", 
-              
-            ], 
+            "flags": ["function", "block"], 
             "bindings": {
               
-            }, "children": [
-              {
-                "id": semantic.id.NominalId(u32)(3), 
-                "flags": [
-                  "block", 
-                  
-                ], 
-                "bindings": {
-                  
-                }, "children": [], 
-                
-              }, 
-            ], 
+            }, 
+            "children": [], 
+            
           }, 
         ], 
+        
       }, 
     ], 
+    
   }, 
 }

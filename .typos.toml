@@ -1,0 +1,10 @@
+[default.extend-identifiers]
+# used to store multi-array slice to Node.Data.
+datas = "datas"
+
+[type.zig]
+extend-glob = ["*.zig", "*.zog"]
+check-file = true
+
+[type.zig.extend-words]
+"hlep" = "hlep" # "--hlep" is checked for in options parsing, used as --help alias.

@@ -3,85 +3,132 @@
     {
       "name": "", 
       "debugName": "@This()", 
+      "token": null, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["const"], 
+      "references": [
+        
+      ], 
       "members": [1], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Foo", 
       "debugName": "", 
+      "token": 2, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["variable", "const", "enum"], 
+      "references": [
+        {"symbol":1,"scope":2,"node":"identifier","identifier":"Foo","flags":["read"]}, 
+        {"symbol":1,"scope":3,"node":"identifier","identifier":"Foo","flags":["read"]}, 
+        
+      ], 
       "members": [2,3,4,5,6], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "a", 
       "debugName": "", 
+      "token": 6, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["member", "enum"], 
+      "references": [
+        
+      ], 
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "b", 
       "debugName": "", 
+      "token": 8, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["member", "enum"], 
+      "references": [
+        
+      ], 
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "c", 
       "debugName": "", 
+      "token": 10, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["member", "enum"], 
+      "references": [
+        
+      ], 
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Bar", 
       "debugName": "", 
+      "token": 14, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["variable", "const"], 
+      "references": [
+        
+      ], 
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "isNotA", 
       "debugName": "", 
+      "token": 22, 
       "declNode": "fn_decl", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":true,"s_catch_param":false}, 
+      "flags": ["fn"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "self", 
+      "debugName": "", 
+      "token": 24, 
+      "declNode": "identifier", 
+      "scope": semantic.id.NominalId(u32)(2), 
+      "flags": ["const", "fn_param"], 
+      "references": [
+        {"symbol":7,"scope":3,"node":"identifier","identifier":"self","flags":["read"]}, 
+        
+      ], 
       "members": [], 
       "exports": [], 
       
     }, 
   ], 
+  "unresolvedReferences": [],
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
-    "flags": [
-      "top", 
-      
-    ], 
+    "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
       "Foo": 1, 
       
-    }, "children": [
+    }, 
+    "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
-        "flags": [
-          "block", 
-          
-        ], 
+        "flags": ["enum", "block"], 
         "bindings": {
           "a": 2, 
           "b": 3, 
@@ -89,41 +136,32 @@
           "Bar": 5, 
           "isNotA": 6, 
           
-        }, "children": [
+        }, 
+        "children": [
           {
             "id": semantic.id.NominalId(u32)(2), 
-            "flags": [
-              
-            ], 
+            "flags": ["function"], 
             "bindings": {
+              "self": 7, 
               
-            }, "children": [
+            }, 
+            "children": [
               {
                 "id": semantic.id.NominalId(u32)(3), 
-                "flags": [
-                  "function", 
-                  
-                ], 
+                "flags": ["function", "block"], 
                 "bindings": {
                   
-                }, "children": [
-                  {
-                    "id": semantic.id.NominalId(u32)(4), 
-                    "flags": [
-                      "block", 
-                      
-                    ], 
-                    "bindings": {
-                      
-                    }, "children": [], 
-                    
-                  }, 
-                ], 
+                }, 
+                "children": [], 
+                
               }, 
             ], 
+            
           }, 
         ], 
+        
       }, 
     ], 
+    
   }, 
 }

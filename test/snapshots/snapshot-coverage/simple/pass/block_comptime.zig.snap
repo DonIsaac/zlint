@@ -3,56 +3,69 @@
     {
       "name": "", 
       "debugName": "@This()", 
+      "token": null, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["const"], 
+      "references": [
+        
+      ], 
       "members": [1], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "x", 
       "debugName": "", 
+      "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["variable", "const"], 
+      "references": [
+        
+      ], 
       "members": [2], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "y", 
       "debugName": "", 
+      "token": 7, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["variable"], 
+      "references": [
+        {"symbol":2,"scope":1,"node":"identifier","identifier":"y","flags":["read","write"]}, 
+        {"symbol":2,"scope":1,"node":"identifier","identifier":"y","flags":["read"]}, 
+        
+      ], 
       "members": [], 
       "exports": [], 
       
     }, 
   ], 
+  "unresolvedReferences": [],
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
-    "flags": [
-      "top", 
-      
-    ], 
+    "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
       "x": 1, 
       
-    }, "children": [
+    }, 
+    "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
-        "flags": [
-          "block", 
-          "comptime", 
-          
-        ], 
+        "flags": ["block", "comptime"], 
         "bindings": {
           "y": 2, 
           
-        }, "children": [], 
+        }, 
+        "children": [], 
         
       }, 
     ], 
+    
   }, 
 }

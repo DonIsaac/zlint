@@ -27,7 +27,7 @@ jobs:
         uses: crate-ci/typos@v1.26.8
         with:
           write_changes: true
-      - run: zig fmt src/**/*.zig
+      - run: zig fmt src test/harness tasks build.zig build.zig.zon
 
       - run: rm -f ./typos
 

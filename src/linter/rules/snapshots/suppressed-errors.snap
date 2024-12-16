@@ -1,0 +1,27 @@
+  𝙭 suppressed-errors: `catch` statement suppresses errors
+   ╭─[suppressed-errors.zig:2:9]
+ 1 │ fn foo() void {
+ 2 │   bar() catch {};
+   ·         ────────
+ 3 │ }
+   ╰────
+  help: Handle this error or propagate it to the caller with `try`.
+
+  𝙭 suppressed-errors: `catch` statement suppresses errors
+   ╭─[suppressed-errors.zig:2:9]
+ 1 │ fn foo() void {
+ 2 │   bar() catch |_| {};
+   ·         ────────────
+ 3 │ }
+   ╰────
+  help: Handle this error or propagate it to the caller with `try`.
+
+  𝙭 suppressed-errors: `catch` statement suppresses errors
+   ╭─[suppressed-errors.zig:2:9]
+ 1 │ fn foo() void {
+ 2 │   bar() catch {
+   ·         ───────
+ 3 │     // ignore
+   ╰────
+  help: Handle this error or propagate it to the caller with `try`.
+

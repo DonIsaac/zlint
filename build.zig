@@ -10,13 +10,19 @@ pub fn build(b: *std.Build) void {
 
     // cli options
     const single_threaded = b.option(bool, "single-threaded", "Build a single-threaded executable");
+    const debug_release = b.option(bool, "debug-release", "Build with debug info in release mode") orelse false;
+    // const version = b.option([]const u8, "version", "ZLint version") orelse "0.0.0";
 
     var l = Linker.init(b);
     defer l.deinit();
+    if (debug_release) {
+        l.optimize = .ReleaseSafe;
+    }
 
     // dependencies
     l.dependency("chameleon", .{});
     l.dependency("smart-pointers", .{});
+    l.devDependency("zig-recover", "recover", .{});
 
     // modules
     l.createModule("util", .{
@@ -28,8 +34,11 @@ pub fn build(b: *std.Build) void {
         .single_threaded = single_threaded,
         .target = l.target,
         .optimize = l.optimize,
+        .error_tracing = if (debug_release) true else null,
+        .unwind_tables = if (debug_release) true else null,
+        .strip = if (debug_release) false else null,
     });
-    l.link(zlint, .{});
+    l.link(zlint, false, .{});
 
     // artifacts
     const exe = b.addExecutable(.{
@@ -38,8 +47,11 @@ pub fn build(b: *std.Build) void {
         .single_threaded = single_threaded,
         .target = l.target,
         .optimize = l.optimize,
+        .error_tracing = if (debug_release) true else null,
+        .unwind_tables = if (debug_release) true else null,
+        .strip = if (debug_release) false else null,
     });
-    l.link(&exe.root_module, .{});
+    l.link(&exe.root_module, false, .{});
     b.installArtifact(exe);
 
     const e2e = b.addExecutable(.{
@@ -48,10 +60,14 @@ pub fn build(b: *std.Build) void {
         .single_threaded = single_threaded,
         .target = l.target,
         .optimize = l.optimize,
+        .error_tracing = if (debug_release) true else null,
+        .unwind_tables = if (debug_release) true else null,
+        .strip = if (debug_release) false else null,
     });
     // util and chameleon omitted
-    l.link(&e2e.root_module, .{"smart-pointers"});
     e2e.root_module.addImport("zlint", zlint);
+    l.link(&e2e.root_module, true, .{ "smart-pointers", "recover" });
+
     b.installArtifact(e2e);
 
     const unit = b.addTest(.{
@@ -59,8 +75,10 @@ pub fn build(b: *std.Build) void {
         .single_threaded = single_threaded,
         .target = l.target,
         .optimize = l.optimize,
+        .error_tracing = if (debug_release) true else null,
+        .strip = if (debug_release) false else null,
     });
-    l.link(&unit.root_module, .{});
+    l.link(&unit.root_module, true, .{});
     b.installArtifact(unit);
 
     // steps
@@ -84,6 +102,10 @@ pub fn build(b: *std.Build) void {
     test_all_step.dependOn(&run_tests.step);
     test_all_step.dependOn(&run_e2e.step);
 
+    const docs_step = b.step("docs", "Generate documentation");
+    const docs_rules_step = Tasks.generateRuleDocs(&l);
+    docs_step.dependOn(docs_rules_step);
+
     // check is down here because it's weird. We create mocks of each artifacts
     // that never get installed. This (allegedly) skips llvm emit.
     {
@@ -93,58 +115,91 @@ pub fn build(b: *std.Build) void {
         const check_test_lib = b.addTest(.{ .root_source_file = b.path("src/root.zig") });
         const check_test_exe = b.addTest(.{ .root_source_file = b.path("src/main.zig") });
         const check_e2e = b.addExecutable(.{ .name = "test-e2e", .root_source_file = b.path("test/test_e2e.zig"), .target = l.target });
-        check_e2e.root_module.addImport("zlint", zlint);
+        l.link(&check_e2e.root_module, true, .{"recover"});
+        // tasks
+        const check_docgen = b.addExecutable(.{ .name = "docgen", .root_source_file = b.path("tasks/docgen.zig"), .target = l.target });
 
-        const check = b.step("check", "Check for semantic errors");
-        const substeps = .{ check_exe, check_lib, check_test_lib, check_test_exe, check_e2e };
-        inline for (substeps) |c| {
-            l.link(&c.root_module, .{});
-            check.dependOn(&c.step);
+        // these compilation targets depend on zlint as a module
+        const needs_zlint = .{ check_e2e, check_docgen };
+        inline for (needs_zlint) |exe_to_check| {
+            exe_to_check.root_module.addImport("zlint", zlint);
         }
 
-        // const rules_path = "src/linter/rules";
-        // const rules_dir = b.path(rules_path);
-        // var rules = std.fs.openDirAbsolute(rules_dir.getPath(b), .{ .iterate = true }) catch |e| {
-        //     std.debug.panic("Failed to open rules directory: {any}", .{e});
-        // };
-        // defer rules.close();
-        // var rules_walker = rules.walk(b.allocator) catch @panic("Failed to create rules walker");
-        // var stack_fallback = std.heap.stackFallback(512, b.allocator);
-        // const stack_alloc = stack_fallback.get();
-        // while (true) {
-        //     const rule = rules_walker.next() catch continue orelse break;
-        //     const full_path = std.fs.path.join(stack_alloc, &[_][]const u8{ rules_path, rule.path }) catch @panic("OOM");
-        //     defer stack_alloc.free(full_path);
-        //     var fake_rule_tests = b.addTest(.{
-        //         .root_source_file = .{ .cwd_relative = full_path },
-        //         .optimize = optimize,
-        //         .target = target,
-        //     });
-        //     check.dependOn(&fake_rule_tests.step);
-        // }
+        const check = b.step("check", "Check for semantic errors");
+        const substeps = .{ check_exe, check_lib, check_test_lib, check_test_exe, check_e2e, check_docgen };
+        inline for (substeps) |c| {
+            l.link(&c.root_module, false, .{});
+            check.dependOn(&c.step);
+        }
     }
 }
+
+const Tasks = struct {
+    fn generateRuleDocs(l: *Linker) *Build.Step {
+        const docgen_exe = l.b.addExecutable(.{
+            .name = "docgen",
+            .root_source_file = l.b.path("tasks/docgen.zig"),
+            .target = l.target,
+            .optimize = l.optimize,
+        });
+        const zlint = l.b.modules.get("zlint") orelse @panic("Missing module: zlint");
+        docgen_exe.root_module.addImport("zlint", zlint);
+        const docgen_run = l.b.addRunArtifact(docgen_exe);
+
+        const bunx_prettier = Tasks.bunx(l, "prettier", &[_][]const u8{ "--write", "docs/rules/*.md" });
+        bunx_prettier.step.dependOn(&docgen_run.step);
+
+        const docgen = l.b.step("docs:rules", "Generate lint rule documentation");
+        docgen.dependOn(&bunx_prettier.step);
+        return docgen;
+    }
+    fn bunx(l: *Linker, comptime cmd: []const u8, comptime args: []const []const u8) *Build.Step.Run {
+        const b = l.b;
+        return b.addSystemCommand(.{ "bunx", cmd } ++ args);
+    }
+    // fn generateLibDocs(l: *Linker) *Build.Step {
+    //     const b = l.b;
+    // }
+    // fn formatDocs(l: *Linker) *Build.Step {
+    //     const b = l.b;
+    // }
+};
 
 /// Stores modules and dependencies. Use `link` to register them as imports.
 const Linker = struct {
     b: *Build,
+    options: *Build.Step.Options,
     target: Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     dependencies: std.StringHashMapUnmanaged(*Build.Dependency) = .{},
     modules: std.StringHashMapUnmanaged(*Module) = .{},
+    dev_modules: std.StringHashMapUnmanaged(*Module) = .{},
 
     fn init(b: *Build) Linker {
-        return Linker{
+        var opts = b.addOptions();
+        opts.addOption([]const u8, "version", b.option([]const u8, "version", "ZLint version") orelse "v0.0.0");
+        var linker = Linker{
             .b = b,
+            .options = opts,
             .target = b.standardTargetOptions(.{}),
             .optimize = b.standardOptimizeOption(.{}),
         };
+        const opts_module = opts.createModule();
+        linker.modules.put(b.allocator, "config", opts_module) catch @panic("OOM");
+
+        return linker;
     }
 
     fn dependency(self: *Linker, comptime name: []const u8, options: anytype) void {
         const dep = self.b.dependency(name, options);
         self.dependencies.put(self.b.allocator, name, dep) catch @panic("OOM");
         self.modules.put(self.b.allocator, name, dep.module(name)) catch @panic("OOM");
+    }
+
+    fn devDependency(self: *Linker, comptime dep_name: []const u8, mod_name: []const u8, options: anytype) void {
+        const dep = self.b.dependency(dep_name, options);
+        self.dependencies.put(self.b.allocator, dep_name, dep) catch @panic("OOM");
+        self.dev_modules.put(self.b.allocator, mod_name, dep.module(mod_name)) catch @panic("OOM");
     }
 
     fn addModule(self: *Linker, comptime name: []const u8, options: Module.CreateOptions) void {
@@ -165,8 +220,16 @@ const Linker = struct {
 
     /// Link a set of modules as imports. When `imports` is empty, all modules
     /// are linked.
-    fn link(self: *Linker, mod: *Module, comptime imports: anytype) void {
-        if (imports.len == 0) {
+    fn link(self: *Linker, mod: *Module, dev: bool, comptime imports: anytype) void {
+        if (imports.len > 0) {
+            inline for (imports) |import| {
+                const dep = self.modules.get(import) orelse self.dev_modules.get(import) orelse @panic("Missing module: " ++ import);
+                mod.addImport(import, dep);
+            }
+            return;
+        }
+
+        {
             var it = self.modules.iterator();
             while (it.next()) |ent| {
                 const name = ent.key_ptr.*;
@@ -176,9 +239,14 @@ const Linker = struct {
             }
         }
 
-        inline for (imports) |import| {
-            const dep = self.modules.get(import) orelse @panic("Missing module: " ++ import);
-            mod.addImport(import, dep);
+        if (dev) {
+            var it = self.dev_modules.iterator();
+            while (it.next()) |ent| {
+                const name = ent.key_ptr.*;
+                const dep = ent.value_ptr.*;
+                if (mod == dep) continue;
+                mod.addImport(name, dep);
+            }
         }
     }
 

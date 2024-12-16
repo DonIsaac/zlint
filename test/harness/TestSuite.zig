@@ -14,8 +14,8 @@ stats: Stats = .{},
 
 alloc: Allocator,
 
-const TestFn = fn (alloc: Allocator, source: *const Source) anyerror!void;
-const SetupFn = fn (suite: *TestSuite) anyerror!void;
+pub const TestFn = fn (alloc: Allocator, source: *const Source) anyerror!void;
+pub const SetupFn = fn (suite: *TestSuite) anyerror!void;
 
 pub const TestSuiteFns = struct {
     test_fn: *const TestFn,
@@ -107,16 +107,24 @@ fn runInThread(self: *TestSuite, path: []const u8) void {
         return;
     };
     defer source.deinit();
-    @call(.never_inline, self.test_fn, .{ self.alloc, &source }) catch |e| {
+
+    recover.call(runImpl, .{ self, &source }) catch |e| {
         self.pushErr(path, e);
         return;
     };
     self.stats.incPass();
 }
+pub fn runImpl(self: *TestSuite, source: *const Source) anyerror!void {
+    return @call(.never_inline, self.test_fn, .{ self.alloc, source });
+}
 
 fn pushErr(self: *TestSuite, msg: string, err: anytype) void {
     const err_msg = std.fmt.allocPrint(self.alloc, "{s}: {any}", .{ msg, err }) catch @panic("Failed to allocate error message: OOM");
-    self.stats.incFail();
+    if (err == error.Panic) {
+        self.stats.incPanic();
+    } else {
+        self.stats.incFail();
+    }
     self.errors_mutex.lock();
     defer self.errors_mutex.unlock();
     self.errors.append(self.alloc, err_msg) catch @panic("Failed to push error into error list.");
@@ -128,10 +136,17 @@ fn writeSnapshot(self: *TestSuite) !void {
     const writer = snapshot.writer();
 
     const pass = self.stats.pass.load(.monotonic);
+    const panics = self.stats.panic.load(.monotonic);
     const total = self.stats.total();
-    const pct = self.stats.passPct();
 
-    try writer.print("Passed: {d}% ({d}/{d})\n\n", .{ pct, pass, total });
+    {
+        const pct = self.stats.passPct();
+        try writer.print("Passed: {d}% ({d}/{d})\n", .{ pct, pass, total });
+    }
+    {
+        const pct = 100.0 * (@as(f32, @floatFromInt(panics)) / @as(f32, @floatFromInt(total)));
+        try writer.print("Panics: {d}% ({d}/{d})\n\n", .{ pct, panics, total });
+    }
     self.errors_mutex.lock();
     defer self.errors_mutex.unlock();
     // errors must be sorted for stable `git diff` output
@@ -160,6 +175,7 @@ fn stringsLessThan(_: void, a: []const u8, b: []const u8) bool {
 const Stats = struct {
     pass: AtomicUsize = AtomicUsize.init(0),
     fail: AtomicUsize = AtomicUsize.init(0),
+    panic: AtomicUsize = AtomicUsize.init(0),
 
     const AtomicUsize = std.atomic.Value(usize);
 
@@ -171,14 +187,26 @@ const Stats = struct {
         _ = self.fail.fetchAdd(1, .monotonic);
     }
 
+    inline fn incPanic(self: *Stats) void {
+        _ = self.panic.fetchAdd(1, .monotonic);
+    }
+
     inline fn total(self: *const Stats) usize {
-        return self.pass.load(.monotonic) + self.fail.load(.monotonic);
+        // zig fmt: off
+        return self.pass.load(.monotonic)
+             + self.fail.load(.monotonic)
+             + self.panic.load(.monotonic);
+        // zig fmt: on
     }
 
     inline fn passPct(self: *const Stats) f32 {
-        const pass: f32 = @floatFromInt(self.pass.load(.monotonic));
-        const fail: f32 = @floatFromInt(self.fail.load(.monotonic));
-        return 100.0 * (pass / (pass + fail));
+        // zig fmt: off
+        const pass: f32   = @floatFromInt(self.pass.load(.monotonic));
+        const fail: f32   = @floatFromInt(self.fail.load(.monotonic));
+        const panics: f32 = @floatFromInt(self.panic.load(.monotonic));
+        // zig fmt: on
+
+        return 100.0 * (pass / (pass + fail + panics));
     }
 };
 
@@ -190,6 +218,8 @@ const fs = std.fs;
 const Allocator = std.mem.Allocator;
 const ThreadPool = std.Thread.Pool;
 const panic = std.debug.panic;
+
+const recover = @import("recover");
 
 const utils = @import("../utils.zig");
 const string = utils.string;

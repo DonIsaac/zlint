@@ -5,6 +5,7 @@ alloc: std.mem.Allocator,
 const MAX_CONTEXT_LINES: u32 = 3;
 
 pub const FormatError = Writer.Error || std.mem.Allocator.Error;
+pub const Theme = GraphicalTheme;
 
 pub fn unicode(alloc: std.mem.Allocator, comptime color: bool) GraphicalFormatter {
     // NOTE: must be comptime, otherwise none() returns a reference to a stack
@@ -37,9 +38,11 @@ pub fn format(self: *GraphicalFormatter, w: *Writer, e: Error) FormatError!void 
     if (e.severity == .off) return;
     try self.renderHeader(w, &err);
     try self.renderContext(w, &err);
+    try self.renderFooter(w, &err);
     try w.writeByte('\n');
 }
 
+/// `𝙭  some-code: a message here`
 fn renderHeader(self: *GraphicalFormatter, w: *Writer, e: *const Error) FormatError!void {
     const icon = self.iconFor(e.severity);
     const color = self.styleFor(e.severity);
@@ -50,7 +53,7 @@ fn renderHeader(self: *GraphicalFormatter, w: *Writer, e: *const Error) FormatEr
     defer w.writeAll(emphasize.close) catch {};
     defer w.writeAll(color.close) catch {};
 
-    try w.print("{s} ", .{icon});
+    try w.print("  {s} ", .{icon});
 
     if (e.code.len > 0) {
         try w.writeAll(e.code);
@@ -60,6 +63,13 @@ fn renderHeader(self: *GraphicalFormatter, w: *Writer, e: *const Error) FormatEr
     }
 
     try w.print("{s}\n", .{e.message.str});
+}
+
+fn renderFooter(self: *GraphicalFormatter, w: *Writer, e: *const Error) FormatError!void {
+    const help = if (e.help) |h| h.str else return;
+    const color = self.theme.styles.help;
+    try w.writeByte('\n');
+    try w.print("  {s}help:{s} {s}", .{ color.open, color.close, help });
 }
 
 fn labelsLt(_: void, a: LabeledSpan, b: LabeledSpan) bool {
@@ -73,19 +83,19 @@ fn renderContext(self: *GraphicalFormatter, w: *Writer, e: *Error) FormatError!v
 
     std.sort.insertion(LabeledSpan, e.labels.items, {}, labelsLt);
 
-    var alloc = std.heap.stackFallback(@sizeOf(LocationSpan) * 8, self.alloc);
-    var locations = std.ArrayList(LocationSpan).init(alloc.get());
+    var alloc = std.heap.stackFallback(@sizeOf(ContextInfo) * 8, self.alloc);
+    var locations = std.ArrayList(ContextInfo).init(alloc.get());
     defer locations.deinit();
 
     var largest_line_num: u32 = 0;
     for (e.labels.items) |l| {
-        const loc = LocationSpan.fromSpan(src, l);
+        const loc = ContextInfo.fromSpan(src, l);
         locations.append(loc) catch @panic("OOM");
         largest_line_num = @max(largest_line_num, loc.line() + self.context_lines);
     }
     const lineum_width = std.math.log10(largest_line_num);
 
-    const primary: LocationSpan = blk: {
+    const primary: ContextInfo = blk: {
         for (locations.items) |loc| {
             if (loc.span.primary) {
                 break :blk loc;
@@ -98,8 +108,7 @@ fn renderContext(self: *GraphicalFormatter, w: *Writer, e: *Error) FormatError!v
     try self.renderContextMasthead(w, e, lineum_width, primary);
 
     for (locations.items) |loc| {
-        // const l = e.labels.items[i];
-        // const loc = locations.items[i];
+        if (loc.rendered) continue;
         try self.renderContextLines(w, src, lineum_width, locations.items, loc);
     }
     try self.renderContextFinisher(w, lineum_width);
@@ -109,9 +118,8 @@ fn renderContextMasthead(
     self: *GraphicalFormatter,
     w: *Writer,
     e: *const Error,
-    // locations: []const LocationSpan,
     lineum_width: u32,
-    primary_span: LocationSpan,
+    primary_span: ContextInfo,
 ) FormatError!void {
     const chars = self.theme.characters;
     const color = self.theme.styles.help;
@@ -120,6 +128,7 @@ fn renderContextMasthead(
 
     // ╭─[
     try w.print("{s}{s}{s}", .{ chars.ltop, chars.hbar, chars.lbox });
+    // foo.zig:1:1
     try w.writeAll(color.open);
     try w.print("{s}:{d}:{d}", .{
         if (e.source_name) |s| s else "<anonymous>",
@@ -144,15 +153,14 @@ fn renderContextFinisher(self: *GraphicalFormatter, w: *Writer, lineum_col_width
 fn renderContextLines(
     self: *GraphicalFormatter,
     w: *Writer,
-    // e: *const Error,
     src: []const u8,
     lineum_width: u32,
-    // _: LabeledSpan,
-    locations: []const LocationSpan,
-    loc: LocationSpan,
+    locations: []ContextInfo,
+    loc: ContextInfo,
 ) !void {
     var LINEBUF: [MAX_CONTEXT_LINES * 2 + 1]Line = undefined;
     var linebuf = LINEBUF[0..(self.context_lines * 2 + 1)];
+
     @memset(&LINEBUF, Line.EMPTY);
     _ = contextFor(self.context_lines, linebuf, src, loc);
 
@@ -180,9 +188,10 @@ fn renderContextLines(
         } else {
             try w.writeByte('\n');
         }
-        for (locations) |l| {
+        for (locations) |*l| {
             if (l.line() == line.num) {
-                try self.renderLabel(w, lineum_width, l);
+                try self.renderLabel(w, lineum_width, l.*);
+                l.rendered = true;
             }
         }
     }
@@ -206,7 +215,7 @@ fn renderCodeLinePrefix(self: *GraphicalFormatter, w: *Writer, lineum: u32, line
 
 // TODO: render label text
 // TODO: handle multi-line labels
-fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: LocationSpan) FormatError!void {
+fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: ContextInfo) FormatError!void {
     const chars = self.theme.characters;
     const h = self.theme.styles.highlights;
     const idx: usize = @min(@intFromBool(!loc.span.primary), h.len - 1);
@@ -214,7 +223,30 @@ fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: L
 
     try self.renderLabelPrefix(w, linum_col_len);
     try w.writeByteNTimes(' ', loc.column());
-    {
+
+    if (loc.label()) |label| {
+        try w.writeAll(color.open);
+        const midway = loc.len() / 2;
+        const odd = loc.len() % 2 == 0;
+        const first_len_half = if (odd) midway + 1 else midway;
+
+        // ───┬───
+        try w.writeBytesNTimes(chars.underline, first_len_half);
+        try w.writeAll(chars.underbar);
+        try w.writeBytesNTimes(chars.underline, first_len_half);
+        try w.writeAll(color.close);
+        try w.writeAll("\n");
+        {
+            try self.renderLabelPrefix(w, linum_col_len);
+            try w.writeByteNTimes(' ', loc.column());
+            try w.writeByteNTimes(' ', first_len_half);
+            // ╰── label text
+            try w.writeAll(color.open);
+            try w.print("{s}{s}{s} ", .{ chars.lbot, chars.hbar, chars.hbar });
+            try w.writeAll(label);
+            try w.writeAll(color.close);
+        }
+    } else {
         try w.writeAll(color.open);
         try w.writeBytesNTimes(chars.underline, loc.span.span.len());
         try w.writeAll(color.close);
@@ -262,14 +294,13 @@ fn iconFor(self: *GraphicalFormatter, severity: Error.Severity) util.string {
 }
 
 fn contextFor(
-    // self: *const GraphicalFormatter,
     context_lines: u32,
     /// Where resolved lines are stored.
     /// has length `2 * self.context_lines + 1`
     linebuf: []Line,
     /// Source text
     src: []const u8,
-    span: LocationSpan,
+    span: ContextInfo,
 ) u32 {
     var start = span.start();
     var end = span.end();
@@ -280,6 +311,9 @@ fn contextFor(
     assert(context_lines <= MAX_CONTEXT_LINES);
     const expected_lines = (context_lines * 2) + 1;
     assert(linebuf.len == expected_lines);
+
+    // happens sometimes when reporting missing semicolon parse errors.
+    if (start == src.len) start -= 1;
 
     // expand start/end to cover the entire line
     while (start > 0) : (start -= 1) {
@@ -387,6 +421,54 @@ const Line = struct {
     }
 };
 
+const ContextInfo = struct {
+    span: LabeledSpan,
+    location: Location,
+    rendered: bool = false,
+
+    pub fn fromSpan(contents: util.string, span: anytype) ContextInfo {
+        const labeled_span: LabeledSpan, const loc: Location = brk: {
+            switch (@TypeOf(span)) {
+                Span => {
+                    const labeled = .{ .span = span };
+                    break :brk .{ labeled, Location.fromSpan(contents, span) };
+                },
+                LabeledSpan => {
+                    break :brk .{ span, Location.fromSpan(contents, span.span) };
+                },
+                else => @panic("`span` must be a Span or LabeledSpan"),
+            }
+        };
+        return .{ .span = labeled_span, .location = loc };
+    }
+
+    pub inline fn len(self: ContextInfo) u32 {
+        return self.span.span.len();
+    }
+    pub inline fn start(self: ContextInfo) u32 {
+        return self.span.span.start;
+    }
+    pub inline fn end(self: ContextInfo) u32 {
+        return self.span.span.end;
+    }
+    pub inline fn line(self: ContextInfo) u32 {
+        return self.location.line;
+    }
+    pub inline fn column(self: ContextInfo) u32 {
+        return self.location.column;
+    }
+    pub inline fn source(self: ContextInfo) util.string {
+        return self.location.source_line;
+    }
+    pub inline fn label(self: ContextInfo) ?util.string {
+        if (self.span.label) |l| {
+            const label_text = l.borrow();
+            return if (label_text.len == 0) null else label_text;
+        }
+        return null;
+    }
+};
+
 const GraphicalFormatter = @This();
 
 const std = @import("std");
@@ -398,11 +480,11 @@ const Writer = std.fs.File.Writer; // TODO: use std.io.Writer?
 
 const GraphicalTheme = @import("GraphicalTheme.zig");
 
-const _source = @import("../../source.zig");
-const Span = _source.Span;
-const LabeledSpan = _source.LabeledSpan;
-const Location = _source.Location;
-const LocationSpan = _source.LocationSpan;
+const _span = @import("../../span.zig");
+const Span = _span.Span;
+const LabeledSpan = _span.LabeledSpan;
+const Location = _span.Location;
+const LocationSpan = _span.LocationSpan;
 
 const Error = @import("../../Error.zig");
 
@@ -421,7 +503,7 @@ test eatNewlineBefore {
 
     {
         // "foo\nbar"
-        //      ^
+        //     ^^
         var start: u32 = 3;
         eatNewlineBefore(src, &start);
         try t.expectEqual(2, start);
@@ -448,14 +530,14 @@ test contextFor {
     // span over "Bar" in "const Bar: u32 = 1;"
     const bar_span: Span = Span.new(157, 160);
     try t.expectEqualStrings("Bar", bar_span.snippet(src));
-    var bar_loc = LocationSpan.fromSpan(src, bar_span);
+    var bar_loc = ContextInfo.fromSpan(src, bar_span);
     try t.expectEqual(9, bar_loc.line());
     try t.expectEqual(11, bar_loc.column());
 
     // span over "bad"
     const bad_span: Span = Span.new(33, 36);
     try t.expectEqualStrings("bad", bad_span.snippet(src));
-    const bad_loc = LocationSpan.fromSpan(src, bad_span);
+    const bad_loc = ContextInfo.fromSpan(src, bad_span);
     try t.expectEqual(3, bad_loc.line());
     try t.expectEqual(5, bad_loc.column());
 

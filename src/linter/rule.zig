@@ -6,6 +6,7 @@ const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const string = util.string;
 const Symbol = semantic.Symbol;
+const Severity = @import("../Error.zig").Severity;
 
 const LinterContext = @import("lint_context.zig");
 
@@ -33,10 +34,34 @@ const RunOnSymbolFn = *const fn (ptr: *const anyopaque, symbol: Symbol.Id, ctx: 
 /// those methods and, if they exist, stores pointers to them. These then get
 /// used by the `Linter` to check for violations.
 pub const Rule = struct {
-    name: string,
+    // name: string,
+    meta: Meta,
     ptr: *anyopaque,
     runOnNodeFn: RunOnNodeFn,
     runOnSymbolFn: RunOnSymbolFn,
+
+    /// Rules must have a constant with this name of type `Rule.Meta`.
+    const META_FIELD_NAME = "meta";
+    pub const MAX_SIZE: usize = 16;
+    pub const Meta = struct {
+        name: string,
+        category: Category,
+        default: Severity = .off,
+    };
+
+    pub const Category = enum {
+        /// Re-implements a check already performed by the Zig compiler.
+        compiler,
+        correctness,
+        suspicious,
+        restriction,
+        pedantic,
+    };
+
+    pub const WithSeverity = struct {
+        rule: Rule,
+        severity: Severity,
+    };
 
     pub fn init(ptr: anytype) Rule {
         const T = @TypeOf(ptr);
@@ -47,8 +72,13 @@ pub const Rule = struct {
                 else => @compileLog("Rule.init takes a pointer to a rule implementation, found an " ++ @tagName(info)),
             };
         };
-        const name: []const u8 = if (@hasDecl(ptr_info.child, "Name")) ptr_info.child.Name else {
-            @compileError("Rule must have a `pub const Name: []const u8` field");
+        if (@sizeOf(ptr_info.child) > MAX_SIZE) {
+            @compileError("Rule " ++ @typeName(ptr_info.child) ++ " is too large. Maximum size is " ++ MAX_SIZE);
+        }
+        const meta: Meta = if (@hasDecl(ptr_info.child, META_FIELD_NAME))
+            @field(ptr_info.child, META_FIELD_NAME)
+        else {
+            @compileError("Rule must have a `pub const " ++ META_FIELD_NAME ++ " Rule.Meta` field");
         };
 
         const gen = struct {
@@ -67,7 +97,7 @@ pub const Rule = struct {
         };
 
         return .{
-            .name = name,
+            .meta = meta,
             .ptr = ptr,
             .runOnNodeFn = gen.runOnNode,
             .runOnSymbolFn = gen.runOnSymbol,

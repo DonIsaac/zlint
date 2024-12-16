@@ -1,0 +1,84 @@
+{
+  "symbols": [
+    {
+      "name": "", 
+      "debugName": "@This()", 
+      "token": null, 
+      "declNode": "root", 
+      "scope": semantic.id.NominalId(u32)(0), 
+      "flags": ["const"], 
+      "references": [
+        
+      ], 
+      "members": [1], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "Error", 
+      "debugName": "", 
+      "token": 1, 
+      "declNode": "simple_var_decl", 
+      "scope": semantic.id.NominalId(u32)(0), 
+      "flags": ["variable", "const", "error"], 
+      "references": [
+        
+      ], 
+      "members": [2,3], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "Bar", 
+      "debugName": "", 
+      "token": 7, 
+      "declNode": "error_set_decl", 
+      "scope": semantic.id.NominalId(u32)(1), 
+      "flags": ["member", "error"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "Foo", 
+      "debugName": "", 
+      "token": 5, 
+      "declNode": "error_set_decl", 
+      "scope": semantic.id.NominalId(u32)(1), 
+      "flags": ["member", "error"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "unresolvedReferences": [],
+  "scopes": {
+    "id": semantic.id.NominalId(u32)(0), 
+    "flags": ["top"], 
+    "bindings": {
+      "@This()": 0, 
+      "Error": 1, 
+      
+    }, 
+    "children": [
+      {
+        "id": semantic.id.NominalId(u32)(1), 
+        "flags": ["error"], 
+        "bindings": {
+          "Bar": 2, 
+          "Foo": 3, 
+          
+        }, 
+        "children": [], 
+        
+      }, 
+    ], 
+    
+  }, 
+}

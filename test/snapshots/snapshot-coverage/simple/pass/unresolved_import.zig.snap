@@ -3,34 +3,42 @@
     {
       "name": "", 
       "debugName": "@This()", 
+      "token": null, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["const"], 
+      "references": [
+        
+      ], 
       "members": [1], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "foo", 
       "debugName": "", 
+      "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["variable", "const"], 
+      "references": [
+        
+      ], 
       "members": [], 
       "exports": [], 
       
     }, 
   ], 
+  "unresolvedReferences": [],
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
-    "flags": [
-      "top", 
-      
-    ], 
+    "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
       "foo": 1, 
       
-    }, "children": [], 
+    }, 
+    "children": [], 
     
   }, 
 }

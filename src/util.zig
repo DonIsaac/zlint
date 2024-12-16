@@ -6,6 +6,7 @@ pub const string = []const u8;
 pub const stringSlice = [:0]const u8;
 pub const stringMut = []u8;
 
+pub const RUNTIME_SAFETY = builtin.mode != .ReleaseFast;
 pub const IS_DEBUG = builtin.mode == .Debug;
 pub const IS_WINDOWS = builtin.target.os.tag == .windows;
 pub const NEWLINE = if (IS_WINDOWS) "\r\n" else "\n";
@@ -36,6 +37,21 @@ pub inline fn assert(condition: bool, comptime fmt: string, args: anytype) void 
         }
     } else {
         std.debug.assert(condition);
+    }
+}
+
+pub inline fn debugAssert(condition: bool, comptime fmt: string, args: anytype) void {
+    if (comptime IS_DEBUG) {
+        if (!condition) std.debug.panic(fmt, args);
+    }
+}
+
+pub inline fn assertUnsafe(condition: bool) void {
+    if (comptime IS_DEBUG) {
+        if (!condition) @panic("assertion failed");
+    } else {
+        @setRuntimeSafety(IS_DEBUG);
+        unreachable;
     }
 }
 

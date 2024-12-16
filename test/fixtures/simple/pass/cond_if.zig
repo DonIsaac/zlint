@@ -24,8 +24,16 @@ fn simpleIf() void {
 }
 
 fn comptimeIf() void {
-
     comptime if (builtin.os.tag == .windows) {
-         @compileError("Windows is not supported");
+        @compileError("Windows is not supported");
     };
+}
+
+fn ifWithPayload() void {
+    const res: anyerror!u32 = 1;
+    if (res) |x| {
+        std.debug.print("value: {d}\n", .{x});
+    } else |err| {
+        std.debug.print("error: {s}\n", .{err});
+    }
 }

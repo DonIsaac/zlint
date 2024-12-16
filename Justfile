@@ -23,12 +23,16 @@ _default:
 init:
     ./tasks/init.sh
 
+install:
+    cp zig-out/bin/zlint ~/.bin/zlint
+
 # Run CI checks locally. Run this before making a PR.
 ready:
     git diff --name-only --exit-code
     just fmt
     zig build check
     zig build
+    just docs
     zig build test
     zig build test-e2e
     git status
@@ -43,9 +47,9 @@ build *ARGS:
 
 # Check for syntax and semantic errors
 check:
-    @echo "Checking for AST errors..."
-    @for file in `git ls-files | grep '.zig$'`; do zig ast-check "$file"; done
     zig build check
+check-ast:
+    @for file in `git ls-files | grep '.zig$' | grep --invert-match 'fail'`; do zig ast-check "$file"; done
 
 # Run a command in watch mode. Re-runs whenever a source file changes
 watch cmd="check":
@@ -54,6 +58,7 @@ watch cmd="check":
 # Run unit tests
 test:
     zig build test --summary all
+
 # Run end-to-end tests
 e2e *ARGS:
     zig build test-e2e {{ARGS}}
@@ -64,19 +69,29 @@ coverage:
     mkdir -p ./.coverage
     kcov --include-path=src,test ./.coverage/test zig-out/bin/test
     kcov --include-path=src,test ./.coverage/test-e2e zig-out/bin/test-e2e
-    kcov --include-path=src,test ./.coverage/test-zlint zig-out/bin/zlint
+    kcov --include-path=src,test ./.coverage/test-zlint zig-out/bin/zlint || true
     kcov --merge ./.coverage/all ./.coverage/test ./.coverage/test-e2e ./.coverage/test-zlint
+
+# Run benchmarks. Optionally specify a `--release` mode.
+bench mode="safe":
+    @mkdir -p tmp
+    zig build --release={{mode}}
+    hyperfine --shell=none --warmup 2 --export-csv tmp/bench.csv 'zig-out/bin/zlint' 
+
 
 # Format the codebase, writing changes to disk
 fmt:
-    zig fmt src/**/*.zig test/**/*.zig build.zig build.zig.zon
+    zig fmt src test/harness build.zig build.zig.zon
     typos -w
 
 # Like `fmt`, but exits when problems are found without modifying files
 lint:
-    zig fmt --check src/**/*.zig test/**/*.zig build.zig build.zig.zon
+    zig fmt --check src test/harness build.zig build.zig.zon
     typos
     bunx oxlint@latest --format github  -D correctness -D suspicious -D perf
+
+docs:
+    zig build docs
 
 # Remove build and test artifacts
 clean:
@@ -84,6 +99,7 @@ clean:
         zig-out/bin zig-out/lib \
         .coverage
 
+# Generate boilerplate code for a new rule
 new-rule name:
     @if which bun > /dev/null; then \
         bun tasks/new-rule.ts {{name}}; \

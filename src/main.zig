@@ -4,7 +4,8 @@ const lint = @import("linter.zig");
 const util = @import("util");
 const Source = @import("source.zig").Source;
 const semantic = @import("semantic.zig");
-const Options = @import("./cli/Options.zig");
+const config = @import("config");
+const Error = @import("./Error.zig");
 
 const fs = std.fs;
 const path = std.path;
@@ -14,10 +15,11 @@ const print = std.debug.print;
 const Ast = std.zig.Ast;
 const Linter = lint.Linter;
 
-const print_cmd = @import("cmd/print_command.zig");
-const lint_cmd = @import("cmd/lint_command.zig");
+const Options = @import("./cli/Options.zig");
+const print_cmd = @import("cli/print_command.zig");
+const lint_cmd = @import("cli/lint_command.zig");
 
-pub fn main() !void {
+pub fn main() !u8 {
     // in debug builds, include more information for debugging memory leaks,
     // double-frees, etc.
     var gpa = std.heap.GeneralPurposeAllocator(.{
@@ -30,10 +32,21 @@ pub fn main() !void {
     var stack = std.heap.stackFallback(16, alloc);
     const stack_alloc = stack.get();
 
-    var opts = Options.parseArgv(stack_alloc) catch @panic("Failed to parse CLI arguments: Out of memory");
+    var err: Error = undefined;
+    var opts = Options.parseArgv(stack_alloc, &err) catch {
+        std.debug.print("{s}\n{s}\n", .{ err.message, Options.usage });
+        err.deinit(stack_alloc);
+        return 1;
+    };
     defer opts.deinit(stack_alloc);
 
-    if (opts.print_ast) {
+    if (opts.version) {
+        const stdout = std.io.getStdOut().writer();
+        stdout.print("{s}\n", .{config.version}) catch |e| {
+            std.debug.panic("Failed to write version: {s}\n", .{@errorName(e)});
+        };
+        return 0;
+    } else if (opts.print_ast) {
         if (opts.args.items.len == 0) {
             print("No files to print\nUsage: zlint --print-ast [filename]", .{});
             std.process.exit(1);
@@ -45,10 +58,11 @@ pub fn main() !void {
         errdefer file.close();
         var source = try Source.init(alloc, file, null);
         defer source.deinit();
-        return print_cmd.parseAndPrint(alloc, opts, source);
+        try print_cmd.parseAndPrint(alloc, opts, source);
+        return 0;
     }
 
-    try lint_cmd.lint(alloc, opts);
+    return lint_cmd.lint(alloc, opts);
 }
 
 test {

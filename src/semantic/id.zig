@@ -1,5 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
+const Allocator = std.mem.Allocator;
 
 /// Create a nominal identifier type with the same memory layout as `TRepr` (an
 /// unsigned integer type).
@@ -119,8 +120,8 @@ pub fn NominalId(TRepr: type) type {
 
             pub const MAX = max - 1;
 
-            pub fn new(value: Repr) ?Optional {
-                return if (value == max) null else @enumFromInt(value);
+            pub inline fn new(value: ?Repr) Optional {
+                return if (value == null or value.? == max) Optional.none else @enumFromInt(value.?);
             }
 
             /// Get this id in its integer representation.
@@ -143,9 +144,47 @@ pub fn NominalId(TRepr: type) type {
                     @enumFromInt(@intFromEnum(self));
             }
 
+            pub inline fn from(id: ?Id) Optional {
+                return if (id) |i|
+                    @enumFromInt(@intFromEnum(i))
+                else
+                    Optional.none;
+            }
+
             pub inline fn tryFrom(value: anytype) ?Optional {
                 return Id.from(value).optional();
             }
         };
+    };
+}
+
+pub fn IndexVecUnmanaged(Id: type, T: type) type {
+    const List = std.ArrayListUnmanaged(T);
+
+    return struct {
+        items: List = .{},
+        const Self = @This();
+
+        pub inline fn insert(self: *Self, value: T) Allocator.Error!Id {
+            const id = Id.new(self.items.len);
+            try self.items.append(value);
+            return id;
+        }
+
+        pub inline fn get(self: *const Self, id: Id) *const T {
+            return &self.items.items[id.int()];
+        }
+
+        pub inline fn getMut(self: *Self, id: Id) *T {
+            return &self.items.items[id.int()];
+        }
+
+        pub inline fn len(self: *const Self) usize {
+            return self.items.items.len;
+        }
+
+        pub inline fn deinit(self: *Self, alloc: Allocator) void {
+            self.items.deinit(alloc);
+        }
     };
 }

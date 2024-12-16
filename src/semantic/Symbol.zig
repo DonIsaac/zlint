@@ -13,28 +13,30 @@
 ///
 /// `&'a str`
 name: string,
-
+/// The token that declared this symbol. This is usually an `.identifier`.
+///
+/// `null` for anonymous symbols (i.e. no `name`).
+///
+/// TODO: this is redundant information to `name`, but `name` requires this + the
+/// source text to extract. We could remove `name` at the cost of usability.
+token: ast.MaybeTokenId,
 /// Only populated for symbols not bound to an identifier. Otherwise, this is an
 /// empty string.
 debug_name: string,
-
 /// This symbol's type. Only present if statically determinable, since
 /// analysis doesn't currently do type checking.
 // ty: ?Type,
 /// Unique identifier for this symbol.
 id: Id,
-
 /// Scope this symbol is declared in.
 scope: Scope.Id,
-
 /// Index of the AST node declaring this symbol.
 ///
 /// Usually a `var`/`const` declaration, function statement, etc.
-decl: Ast.Node.Index,
-
+decl: Node.Index,
 visibility: Visibility,
-
 flags: Flags,
+references: std.ArrayListUnmanaged(Reference.Id) = .{},
 
 /// Symbols on "instance objects" (e.g. field properties and instance
 /// methods).
@@ -65,13 +67,38 @@ pub const Visibility = enum {
     private,
 };
 
-pub const Flags = packed struct {
+const FLAGS_REPR = u16;
+pub const Flags = packed struct(FLAGS_REPR) {
+    /// A container-level or local variable.
+    ///
+    /// If it's declared with a `const` or `var` keyword, this is true. Note
+    /// that this includes static and threadlocal variables.
+    ///
+    /// ## References
+    /// - [Container Level Variables](https://ziglang.org/documentation/master/#Container-Level-Variables)
+    /// - [Local Variables](https://ziglang.org/documentation/master/#Local-Variables)
+    s_variable: bool = false,
+    /// A symbol bound by a control flow statement. e.g. `x` in `if (foo) |x| {}`
+    ///
+    /// Note that no identifier node is parsed for payload symbols, so symbols
+    /// of this type will have their `declaration_node` set to the control flow
+    /// block itself.
+    ///
+    /// `while`, `for`, `if`, `else`, and `catch` may all bind payloads.  Like
+    /// function parameters, these are implicitly `const` and always have
+    /// `s_const` set.
+    s_payload: bool = false,
     /// Comptime symbol.
     ///
     /// Not `true` for inferred comptime parameters. That is, this is only
     /// `true` when the `comptime` modifier is present.
     s_comptime: bool = false,
-    /// TODO: not recorded yet
+    s_extern: bool = false,
+    s_export: bool = false,
+    /// Whether this symbol is a constant.
+    ///
+    /// Includes explicitly-defined constants (e.g. that use the `const`
+    /// keyword) and implicit constants (e.g. function parameters).
     s_const: bool = false,
     /// Indicates a container field.
     ///
@@ -81,10 +108,46 @@ pub const Flags = packed struct {
     /// }
     /// ```
     s_member: bool = false,
-
     /// A function declaration. Never a builtin. Could be a method.
     s_fn: bool = false,
+    /// A function parameter.
+    ///
+    /// NOTE: Function parameter symbols use their type annotation as their
+    /// declaration node. Zig does not appear to create an identifier node for parameters.
+    s_fn_param: bool = false,
     s_catch_param: bool = false,
+    s_error: bool = false,
+    s_struct: bool = false,
+    s_enum: bool = false,
+    s_union: bool = false,
+    _: u2 = 0,
+
+    pub const Flag = std.meta.FieldEnum(Flags);
+    pub const s_container: Flags = .{ .s_struct = true, .s_enum = true, .s_union = true, .s_error = true };
+
+    pub inline fn merge(self: Flags, other: Flags) Flags {
+        const a: FLAGS_REPR = @bitCast(self);
+        const b: FLAGS_REPR = @bitCast(other);
+        return @bitCast(a | b);
+    }
+
+    pub inline fn set(self: *Flags, flags: Flags, comptime enable: bool) void {
+        const a: FLAGS_REPR = @bitCast(self.*);
+        const b: FLAGS_REPR = @bitCast(flags);
+
+        if (enable) {
+            self.* = @bitCast(a | b);
+        } else {
+            self.* = @bitCast(a & ~b);
+        }
+    }
+
+    /// Returns `true` if any flags in `other` are also enabled in `self`.
+    pub fn intersects(self: Flags, other: Flags) bool {
+        const a: FLAGS_REPR = @bitCast(self);
+        const b: FLAGS_REPR = @bitCast(other);
+        return a & b != 0;
+    }
 };
 
 /// Stores symbols created and referenced within a Zig program.
@@ -113,6 +176,8 @@ pub const SymbolTable = struct {
     ///
     /// Do not write to this list directly.
     symbols: std.MultiArrayList(Symbol) = .{},
+    references: std.MultiArrayList(Reference) = .{},
+    unresolved_references: std.ArrayListUnmanaged(Reference.Id) = .{},
 
     /// Get a symbol from the table.
     pub inline fn get(self: *const SymbolTable, id: Symbol.Id) *const Symbol {
@@ -122,9 +187,10 @@ pub const SymbolTable = struct {
     pub fn addSymbol(
         self: *SymbolTable,
         alloc: Allocator,
-        declaration_node: Ast.Node.Index,
+        declaration_node: Node.Index,
         name: ?string,
         debug_name: ?string,
+        token: ?ast.TokenIndex,
         scope_id: Scope.Id,
         visibility: Symbol.Visibility,
         flags: Symbol.Flags,
@@ -136,6 +202,7 @@ pub const SymbolTable = struct {
         const symbol = Symbol{
             .name = name orelse "",
             .debug_name = debug_name orelse "",
+            .token = ast.MaybeTokenId.new(token),
             // .ty = ty,
             .id = id,
             .scope = scope_id,
@@ -147,6 +214,40 @@ pub const SymbolTable = struct {
         try self.symbols.append(alloc, symbol);
 
         return id;
+    }
+
+    pub fn addReference(
+        self: *SymbolTable,
+        alloc: Allocator,
+        reference: Reference,
+    ) Allocator.Error!Reference.Id {
+        const ref_id = Reference.Id.from(self.references.len);
+        try self.references.append(alloc, reference);
+        if (reference.symbol.unwrap()) |symbol_id| {
+            try self.symbols.items(.references)[symbol_id.into(usize)].append(alloc, ref_id);
+        }
+
+        return ref_id;
+    }
+
+    pub fn getReference(
+        self: *const SymbolTable,
+        reference_id: Reference.Id,
+    ) Reference {
+        return self.references.get(reference_id.into(usize));
+    }
+
+    pub fn getReferences(
+        self: *const SymbolTable,
+        symbol_id: Symbol.Id,
+    ) []const Reference.Id {
+        return self.symbols.items(.references)[symbol_id.int()].items;
+    }
+    pub fn getReferencesMut(
+        self: *SymbolTable,
+        symbol_id: Symbol.Id,
+    ) *std.ArrayListUnmanaged(Reference.Id) {
+        return &self.symbols.items(.references)[symbol_id.int()];
     }
 
     pub inline fn getMembers(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
@@ -173,8 +274,32 @@ pub const SymbolTable = struct {
         try self.getExportsMut(container).append(alloc, member);
     }
 
+    /// Look for a symbol bound to the given identifier. Mostly used for
+    /// testing.
+    ///
+    /// Returns the first found
+    /// symbol. Since symbols are bound in the order they're declared, this will
+    /// be the first declaration.
+    pub fn getSymbolNamed(self: *const SymbolTable, name: []const u8) ?Symbol.Id {
+        const names = self.symbols.items(.name);
+
+        for (0..names.len) |symbol_id| {
+            if (std.mem.eql(u8, names[symbol_id], name)) {
+                return Symbol.Id.from(symbol_id);
+            }
+        }
+
+        return null;
+    }
+
     pub inline fn iter(self: *const SymbolTable) Iterator {
         return Iterator{ .table = self };
+    }
+
+    /// Iterate over a symbol's references.
+    pub inline fn iterReferences(self: *const SymbolTable, id: Symbol.Id) ReferenceIterator {
+        const refs = self.symbols.items(.references)[id.int()].items;
+        return ReferenceIterator{ .table = self, .refs = refs };
     }
 
     pub fn deinit(self: *SymbolTable, alloc: Allocator) void {
@@ -182,12 +307,16 @@ pub const SymbolTable = struct {
             var i: Id.Repr = 0;
             const len: Id.Repr = @intCast(self.symbols.len);
             while (i < len) {
-                self.getMembersMut(Id.from(i)).deinit(alloc);
-                self.getExportsMut(Id.from(i)).deinit(alloc);
+                const id = Id.from(i);
+                self.getMembersMut(id).deinit(alloc);
+                self.getExportsMut(id).deinit(alloc);
+                self.getReferencesMut(id).deinit(alloc);
                 i += 1;
             }
         }
         self.symbols.deinit(alloc);
+        self.references.deinit(alloc);
+        self.unresolved_references.deinit(alloc);
     }
 };
 
@@ -205,15 +334,36 @@ pub const Iterator = struct {
     }
 };
 
+pub const ReferenceIterator = struct {
+    curr: usize = 0,
+    table: *const SymbolTable,
+    refs: []Reference.Id,
+
+    pub inline fn len(self: ReferenceIterator) usize {
+        return self.refs.len;
+    }
+
+    pub fn next(self: *ReferenceIterator) ?Reference {
+        if (self.curr >= self.refs.len) return null;
+
+        defer self.curr += 1;
+        const ref_id = self.refs[self.curr];
+        return self.table.getReference(ref_id);
+    }
+};
+
 const Symbol = @This();
 
 const std = @import("std");
+const ast = @import("ast.zig");
 
 const Allocator = std.mem.Allocator;
-const Ast = std.zig.Ast;
-const Scope = @import("Scope.zig");
 const Type = std.builtin.Type;
 const NominalId = @import("id.zig").NominalId;
+
+const Node = ast.Node;
+const Scope = @import("Scope.zig");
+const Reference = @import("Reference.zig");
 
 const assert = std.debug.assert;
 const string = @import("util").string;
@@ -225,8 +375,8 @@ test "SymbolTable.iter()" {
     var table = SymbolTable{};
     defer table.deinit(a);
 
-    _ = try table.addSymbol(a, 1, "a", null, Scope.Id.new(0), .public, .{});
-    _ = try table.addSymbol(a, 1, "b", null, Scope.Id.new(1), .public, .{});
+    _ = try table.addSymbol(a, 1, "a", null, null, Scope.Id.new(0), .public, .{});
+    _ = try table.addSymbol(a, 1, "b", null, null, Scope.Id.new(1), .public, .{});
     try expectEqual(2, table.symbols.len);
 
     var iter = table.iter();

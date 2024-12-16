@@ -3,75 +3,97 @@
     {
       "name": "", 
       "debugName": "@This()", 
+      "token": null, 
       "declNode": "root", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":true,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["const"], 
+      "references": [
+        
+      ], 
       "members": [1], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "Foo", 
       "debugName": "", 
+      "token": 2, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(0), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["variable", "const", "struct"], 
+      "references": [
+        
+      ], 
       "members": [2,3,4], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "a", 
       "debugName": "", 
+      "token": 6, 
       "declNode": "container_field_init", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":true,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["member", "struct"], 
+      "references": [
+        
+      ], 
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "B", 
       "debugName": "", 
+      "token": 11, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["variable", "const"], 
+      "references": [
+        
+      ], 
       "members": [], 
       "exports": [], 
       
-    }, {
+    }, 
+    {
       "name": "C", 
       "debugName": "", 
+      "token": 19, 
       "declNode": "simple_var_decl", 
       "scope": semantic.id.NominalId(u32)(1), 
-      "flags": {"s_comptime":false,"s_const":false,"s_member":false,"s_fn":false,"s_catch_param":false}, 
+      "flags": ["variable", "const"], 
+      "references": [
+        
+      ], 
       "members": [], 
       "exports": [], 
       
     }, 
   ], 
+  "unresolvedReferences": [],
   "scopes": {
     "id": semantic.id.NominalId(u32)(0), 
-    "flags": [
-      "top", 
-      
-    ], 
+    "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
       "Foo": 1, 
       
-    }, "children": [
+    }, 
+    "children": [
       {
         "id": semantic.id.NominalId(u32)(1), 
-        "flags": [
-          "block", 
-          
-        ], 
+        "flags": ["struct", "block"], 
         "bindings": {
           "a": 2, 
           "B": 3, 
           "C": 4, 
           
-        }, "children": [], 
+        }, 
+        "children": [], 
         
       }, 
     ], 
+    
   }, 
 }

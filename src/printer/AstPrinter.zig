@@ -177,7 +177,7 @@ fn printPropNode(self: *AstPrinter, key: []const u8, node: NodeId) !void {
 
 fn printPropNodeArray(self: *AstPrinter, key: []const u8, nodes: []const NodeId) !void {
     try self.printer.pPropName(key);
-    try self.printer.pushArray();
+    try self.printer.pushArray(true);
     defer self.printer.pop();
 
     // try self.printer.pPropName(key);

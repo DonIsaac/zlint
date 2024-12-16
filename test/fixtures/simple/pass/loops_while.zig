@@ -23,7 +23,7 @@ fn whileWithClosure() void {
 }
 
 // copied from https://ziglang.org/documentation/master/#while
-fn whileWithExpr() void {
+fn whileWithExpr() !void {
     var x: usize = 1;
     var y: usize = 1;
     while (x * y < 2000) : ({

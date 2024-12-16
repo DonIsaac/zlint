@@ -2,44 +2,91 @@
 
 /// Enable verbose logging.
 verbose: bool = false,
+/// Print version and exit.
+version: bool = false,
+/// Only display errors. Warnings are counted but not shown.
+quiet: bool = false,
 /// Instead of linting a file, print its AST as JSON to stdout.
 ///
 /// This is primarily for debugging purposes.
 print_ast: bool = false,
+/// How diagnostics are formatted.
+format: formatter.Kind = .graphical,
 /// Positional arguments
 args: std.ArrayListUnmanaged(util.string) = .{},
 
-const ParseError = error{OutOfMemory};
-pub fn parseArgv(alloc: Allocator) ParseError!Options {
+pub const usage =
+    \\Usage: zlint [options] [<dirs>]
+;
+const help =
+    \\--print-ast <file>  Parse a file and print its AST as JSON
+    \\-f, --format <fmt>  Choose an output format (default, graphical, github, gh)
+    \\-q, --quiet         Only display error diagnostics
+    \\-V, --verbose       Enable verbose logging   
+    \\-v, --version       Print version and exit
+    \\-h, --help          Show this help message
+;
+const ParseError = error{
+    OutOfMemory,
+    InvalidArg,
+    InvalidArgValue,
+} || @TypeOf(std.io.getStdOut().writer()).Error;
+pub fn parseArgv(alloc: Allocator, err: ?*Error) ParseError!Options {
     // NOTE: args() is not supported on WASM and windows. When targeting another
     // platform, argsWithAllocator does not actually allocate memory.
     var argv = try std.process.argsWithAllocator(alloc);
     defer argv.deinit();
-    return parse(alloc, argv);
+    return parse(alloc, argv, err);
 }
 
-fn parse(alloc: Allocator, args_iter: anytype) ParseError!Options {
+fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options {
     var opts = Options{};
     var argv = args_iter;
 
     // skip binary name
-    _ = argv.next() orelse {
-        return opts;
-    };
+    _ = argv.next() orelse return opts;
     while (argv.next()) |arg| {
         if (arg.len == 0) continue;
         if (arg[0] != '-') {
             try opts.args.append(alloc, arg);
             continue;
         }
-        if (eq(arg, "-V") or eq(arg, "--verbose")) {
+        if (eq(arg, "-q") or eq(arg, "--quiet")) {
+            opts.quiet = true;
+        } else if (eq(arg, "-V") or eq(arg, "--verbose")) {
             opts.verbose = true;
+        } else if (eq(arg, "-v") or eq(arg, "--version")) {
+            opts.version = true;
+        } else if (eq(arg, "-f") or eq(arg, "--format")) {
+            // TODO: comptime string concat on format names
+            const fmt = argv.next() orelse {
+                if (err) |e| {
+                    e.* = Error.fmt(alloc, "Invalid format name: {s}. Valid names are {s}.", .{ arg, FORMAT_NAMES }) catch @panic("OOM");
+                }
+                return error.InvalidArg;
+            };
+            opts.format = formatter.Kind.fromString(fmt) orelse {
+                if (err) |e| {
+                    e.* = Error.fmt(alloc, "Invalid format name: {s}. Valid names are {s}.", .{ arg, FORMAT_NAMES }) catch @panic("OOM");
+                }
+                return error.InvalidArgValue;
+            };
         } else if (eq(arg, "--print-ast")) {
             opts.print_ast = true;
+        } else if (eq(arg, "-h") or eq(arg, "--help") or eq(arg, "--hlep") or eq(arg, "-help")) {
+            const stdout = std.io.getStdOut().writer();
+            try stdout.writeAll(usage);
+            try stdout.writeBytesNTimes(util.NEWLINE, 2);
+            try stdout.writeAll(help);
+            try stdout.writeAll(util.NEWLINE);
+            std.process.exit(0);
         } else if (eq(arg, "--")) {
             continue;
         } else {
-            std.debug.panic("unknown option: {s}\n", .{arg});
+            if (err) |e| {
+                e.* = Error.fmt(alloc, "unknown option: {s}\n", .{arg}) catch @panic("OOM");
+            }
+            return error.InvalidArg;
         }
     }
 
@@ -53,11 +100,15 @@ pub fn deinit(self: *Options, alloc: std.mem.Allocator) void {
 inline fn eq(arg: anytype, name: @TypeOf(arg)) bool {
     return std.mem.eql(u8, arg, name);
 }
+// TODO: comptime string concat on format names
+const FORMAT_NAMES: []const u8 = "default, graphical, github, gh";
 
 const Options = @This();
 const std = @import("std");
 const util = @import("util");
 const Allocator = std.mem.Allocator;
+const formatter = @import("../reporter.zig").formatter;
+const Error = @import("../Error.zig");
 
 test parse {
     const t = std.testing;
@@ -92,7 +143,7 @@ test parse {
     for (test_cases) |test_case| {
         const argv = std.mem.splitScalar(u8, test_case[0], ' ');
         const expected: Options = test_case[1];
-        const opts = try parse(std.heap.page_allocator, argv);
+        const opts = try parse(std.heap.page_allocator, argv, null);
 
         try t.expectEqual(expected.verbose, opts.verbose);
         try t.expectEqual(expected.print_ast, opts.print_ast);

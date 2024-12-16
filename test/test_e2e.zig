@@ -1,11 +1,12 @@
 const std = @import("std");
 const utils = @import("utils.zig");
 
-const print = std.debug.print;
-const panic = std.debug.panic;
-
 const test_runner = @import("harness/runner.zig");
 const TestRunner = test_runner.TestRunner;
+
+// Allows recovery from panics in test cases. Errors get saved to that suite's
+// snapshot file, and testing continues.
+pub const panic = @import("recover").panic;
 
 // test suites
 const semantic_coverage = @import("semantic/ecosystem_coverage.zig");

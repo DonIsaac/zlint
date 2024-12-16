@@ -1,3 +1,37 @@
+//! ## What This Rule Does
+//!
+//! Checks for imports to files that do not exist.
+//!
+//! This rule only checks for file-based imports. Modules added by `build.zig`
+//! are not checked. More precisely, imports to paths ending in `.zig` will be
+//! resolved. This rule checks that a file exists at the imported path and is
+//! not a directory. Symlinks are allowed but are not followed.
+//!
+//! ## Examples
+//! Assume the following directory structure:
+//! ```plaintext
+//! .
+//! ├── foo.zig
+//! ├── mod
+//! │   └── bar.zig
+//! ├── not_a_file.zig
+//! │   └── baz.zig
+//! └── root.zig
+//! ```
+//!
+//! Examples of **incorrect** code for this rule:
+//! ```zig
+//! // root.zig
+//! const x = @import("mod/foo.zig");    // foo.zig is in the root directory.
+//! const y = @import("not_a_file.zig"); // directory, not a file
+//! ```
+//!
+//! Examples of **correct** code for this rule:
+//! ```zig
+//! // root.zig
+//! const x = @import("foo.zig");
+//! const y = @import("mod/bar.zig");
+//! ```
 const std = @import("std");
 const fs = std.fs;
 const path = std.fs.path;
@@ -12,19 +46,23 @@ const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
 
 const NoUnresolved = @This();
-pub const Name = "no-unresolved";
+pub const meta: Rule.Meta = .{
+    .name = "no-unresolved",
+    .category = .correctness,
+    .default = .err,
+};
 
 pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const node = wrapper.node;
     if (ctx.source.pathname == null) return; //   anonymous source file
     if (node.tag != .builtin_call_two) return; // not a node we care about
 
-    const builtin_name = ctx.ast().tokenSlice(node.main_token);
+    const builtin_name = ctx.semantic.tokenSlice(node.main_token);
     if (!std.mem.eql(u8, builtin_name, "@import")) {
         return;
     }
     if (node.data.lhs == 0) {
-        ctx.diagnostic(
+        _ = ctx.diagnostic(
             "Call to `@import()` has no file path or module name.",
             .{ctx.spanN(wrapper.idx)},
         );
@@ -35,10 +73,10 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
 
     // Note: this will get caught by ast check
     if (tags[node.data.lhs] != .string_literal) {
-        ctx.diagnostic("@import operand must be a string literal", .{ctx.spanN(node.data.lhs)});
+        _ = ctx.diagnostic("@import operand must be a string literal", .{ctx.spanN(node.data.lhs)});
         return;
     }
-    const pathname_str = ctx.ast().tokenSlice(main_tokens[node.data.lhs]);
+    const pathname_str = ctx.semantic.tokenSlice(main_tokens[node.data.lhs]);
     var pathname = std.mem.trim(u8, pathname_str, "\"");
 
     // if it's not a .zig import, ignore it
@@ -56,11 +94,12 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
         // FIXME: do not use fs.cwd(). this will break once users start
         // specifying paths to lint. We should be recording an absolute path
         // for each linted file.
-        const dir = fs.cwd().openDir(dirname, .{}) catch std.debug.panic("Failed to open dir: {s}", .{dirname});
+        var dir = fs.cwd().openDir(dirname, .{}) catch std.debug.panic("Failed to open dir: {s}", .{dirname});
+        defer dir.close();
         // TODO: use absolute paths and cache stat results.
         // depends on: https://github.com/DonIsaac/zlint/issues/81
         const stat = dir.statFile(pathname) catch {
-            ctx.diagnosticFmt(
+            _ = ctx.diagnosticFmt(
                 "Unresolved import to '{s}'",
                 .{pathname},
                 .{ctx.spanN(node.data.lhs)},
@@ -68,7 +107,7 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
             return;
         };
         if (stat.kind == .directory) {
-            ctx.diagnosticFmt(
+            _ = ctx.diagnosticFmt(
                 "Unresolved import to directory '{s}'",
                 .{pathname},
                 .{ctx.spanN(node.data.lhs)},

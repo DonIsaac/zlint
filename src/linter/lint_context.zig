@@ -6,6 +6,7 @@ gpa: Allocator,
 errors: ErrorList,
 /// this slice is 'static (in data segment) and should never be free'd
 curr_rule_name: string = "",
+curr_severity: Severity = Severity.err,
 source: *Source,
 
 pub fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context {
@@ -21,8 +22,9 @@ pub fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context 
 // These methods are used by Linter to adjust state between rule
 // invocations.
 
-pub inline fn updateForRule(self: *Context, rule: *const Rule) void {
-    self.curr_rule_name = rule.name;
+pub inline fn updateForRule(self: *Context, rule: *const Rule.WithSeverity) void {
+    self.curr_rule_name = rule.rule.meta.name;
+    self.curr_severity = rule.severity;
 }
 
 // ============================== SHORTHANDS ===============================
@@ -30,6 +32,18 @@ pub inline fn updateForRule(self: *Context, rule: *const Rule) void {
 
 pub fn ast(self: *const Context) *const Ast {
     return &self.semantic.ast;
+}
+
+pub inline fn scopes(self: *const Context) *const Semantic.ScopeTree {
+    return &self.semantic.scopes;
+}
+
+pub inline fn symbols(self: *const Context) *const Semantic.SymbolTable {
+    return &self.semantic.symbols;
+}
+
+pub inline fn links(self: *const Context) *const Semantic.NodeLinks {
+    return &self.semantic.node_links;
 }
 
 // ============================ ERROR REPORTING ============================
@@ -54,10 +68,23 @@ pub inline fn labelN(
     args: anytype,
 ) LabeledSpan {
     const s = self.semantic.ast.nodeToSpan(node_id);
-    const label = std.fmt.allocPrint(self.gpa, fmt, args) catch @panic("OOM");
     return LabeledSpan{
         .span = .{ .start = s.start, .end = s.end },
-        .label = label,
+        .label = util.Boo([]u8).fmt(self.gpa, fmt, args) catch @panic("OOM"),
+        .primary = false,
+    };
+}
+
+pub inline fn labelT(
+    self: *const Context,
+    token_id: Ast.TokenIndex,
+    comptime fmt: []const u8,
+    args: anytype,
+) LabeledSpan {
+    const s = self.semantic.ast.tokenToSpan(token_id);
+    return LabeledSpan{
+        .span = .{ .start = s.start, .end = s.end },
+        .label = util.Boo([]u8).fmt(self.gpa, fmt, args) catch @panic("OOM"),
         .primary = false,
     };
 }
@@ -67,7 +94,7 @@ pub fn diagnosticFmt(
     comptime message: string,
     args: anytype,
     spans: anytype,
-) void {
+) *Error {
     // TODO: inline
     return self._diagnostic(
         Error.fmt(self.gpa, message, args) catch @panic("Failed to create error message: Out of memory"),
@@ -97,23 +124,25 @@ pub fn diagnosticFmt(
 /// - `spans` should not be empty (they _can_ be, but
 ///   this is not user-friendly.).
 /// - `spans` is anytype for more flexible coercion into a `[]const Span`
-pub fn diagnostic(self: *Context, message: string, spans: anytype) void {
+pub fn diagnostic(self: *Context, message: string, spans: anytype) *Error {
     // TODO: inline
     return self._diagnostic(Error.newStatic(message), &spans);
 }
 
-fn _diagnostic(self: *Context, err: Error, spans: []const LabeledSpan) void {
+fn _diagnostic(self: *Context, err: Error, spans: []const LabeledSpan) *Error {
     var e = err;
     const a = self.gpa;
     e.code = self.curr_rule_name;
     e.source_name = if (self.source.pathname) |p| a.dupe(u8, p) catch @panic("OOM") else null;
     e.source = self.source.contents.clone();
+    e.severity = self.curr_severity;
 
     if (spans.len > 0) {
         e.labels.appendSlice(a, spans) catch @panic("OOM");
     }
     // TODO: handle errors better
     self.errors.append(e) catch @panic("Cannot add new error: Out of memory");
+    return &self.errors.items[self.errors.items.len - 1];
 }
 
 /// Find the comment block ending on the line before the given token.
@@ -162,7 +191,8 @@ const _semantic = @import("../semantic.zig");
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const Error = @import("../Error.zig");
-const LabeledSpan = _source.LabeledSpan;
+const Severity = Error.Severity;
+const LabeledSpan = @import("../span.zig").LabeledSpan;
 const Rule = _rule.Rule;
 const Semantic = _semantic.Semantic;
 const Source = _source.Source;
