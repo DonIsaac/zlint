@@ -15,11 +15,12 @@ const ParseError = json.ParseError(json.Scanner);
 
 pub const RulesConfig = struct {
     homeless_try: RuleConfig(rules.HomelessTry) = .{},
-    unused_decls: RuleConfig(rules.UnusedDecls) = .{},
     no_catch_return: RuleConfig(rules.NoCatchReturn) = .{},
+    no_return_try: RuleConfig(rules.NoReturnTry) = .{},
     no_undefined: RuleConfig(rules.NoUndefined) = .{},
     no_unresolved: RuleConfig(rules.NoUnresolved) = .{},
     suppressed_errors: RuleConfig(rules.SuppressedErrors) = .{},
+    unused_decls: RuleConfig(rules.UnusedDecls) = .{},
 
     pub fn jsonParse(allocator: Allocator, source: *json.Scanner, options: json.ParseOptions) !RulesConfig {
         var config = RulesConfig{};
