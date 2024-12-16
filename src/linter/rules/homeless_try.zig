@@ -121,7 +121,7 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
         "`try` cannot be used in functions that do not return errors.",
         .{
             if (proto.name_token) |name_token|
-                ctx.labelT(name_token, "function `{s}` is declared here.", .{ctx.ast().tokenSlice(name_token)})
+                ctx.labelT(name_token, "function `{s}` is declared here.", .{ctx.semantic.tokenSlice(name_token)})
             else
                 ctx.labelT(main_tokens[decl_node], "function is declared here.", .{}),
             ctx.labelT(ctx.ast().firstToken(try_node), "it cannot propagate error unions.", .{}),

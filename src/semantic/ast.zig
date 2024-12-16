@@ -15,6 +15,8 @@ pub const RawToken = struct {
     pub const Tag = std.zig.Token.Tag;
 };
 
+pub const TokenList = std.MultiArrayList(Token).Slice;
+
 pub const TokenIndex = Ast.TokenIndex;
 pub const NodeIndex = Node.Index;
 pub const MaybeTokenId = NominalId(Ast.TokenIndex).Optional;

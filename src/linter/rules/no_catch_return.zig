@@ -102,7 +102,7 @@ pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterCont
     if (return_param == NULL_NODE or tags[return_param] != .identifier) return;
 
     // todo: add symbols to node links
-    const error_param = ctx.ast().tokenSlice(ident_tok);
+    const error_param = ctx.semantic.tokenSlice(ident_tok);
     const returned_ident = ctx.ast().getNodeSource(return_param);
     if (std.mem.eql(u8, error_param, returned_ident)) {
         // ctx.error(span, "returning the same error as caught");

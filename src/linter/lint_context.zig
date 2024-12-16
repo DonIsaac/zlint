@@ -81,7 +81,7 @@ pub inline fn labelT(
     comptime fmt: []const u8,
     args: anytype,
 ) LabeledSpan {
-    const s = self.semantic.ast.tokenToSpan(token_id); //.tokenSlice(token_id);
+    const s = self.semantic.ast.tokenToSpan(token_id);
     return LabeledSpan{
         .span = .{ .start = s.start, .end = s.end },
         .label = util.Boo([]u8).fmt(self.gpa, fmt, args) catch @panic("OOM"),
