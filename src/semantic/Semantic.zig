@@ -16,6 +16,12 @@
 symbols: SymbolTable = .{},
 scopes: ScopeTree = .{},
 ast: Ast, // NOTE: allocated in _arena
+// NOTE: We re-tokenize and store our own tokens b/c AST throws away the end
+// position of each token. B/c of this, `ast.stokenSlice` re-tokenizes each
+// time. So we do it once, eat the memory overhead, and help the linter avoid
+// constant re-tokenization.
+// NOTE: allocated in _arena
+tokens: TokenList,
 node_links: NodeLinks,
 _gpa: Allocator,
 /// Used to allocate AST nodes
@@ -38,6 +44,11 @@ pub const ROOT_SCOPE_ID: Scope.Id = Scope.Id.from(0);
 pub const ROOT_NODE_ID: Ast.Node.Index = 0;
 /// Alias for `ROOT_NODE_ID`. Used in null-node check contexts for code clarity.
 pub const NULL_NODE: Ast.Node.Index = ROOT_NODE_ID;
+
+pub fn tokenSlice(self: *const Semantic, token: TokenIndex) []const u8 {
+    const loc: Token.Loc = self.tokens.items(.loc)[token];
+    return self.ast.source[loc.start..loc.end];
+}
 
 /// Find the symbol bound to an identifier name that was declared in some scope.
 ///
@@ -66,8 +77,8 @@ pub fn resolveBinding(self: *const Semantic, scope_id: Scope.Id, name: []const u
 }
 
 pub fn deinit(self: *Semantic) void {
-    // NOTE: ast is arena allocated, so no need to deinit it. freeing the arena
-    // is sufficient.
+    // NOTE: ast and tokens are arena allocated, so no need to deinit it.
+    // freeing the arena is sufficient.
     self._arena.deinit();
     self.node_links.deinit(self._gpa);
     self.symbols.deinit(self._gpa);
@@ -82,8 +93,13 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Ast = std.zig.Ast;
+const Token = std.zig.Token;
 const Type = std.builtin.Type;
 const assert = std.debug.assert;
+
+const _ast = @import("./ast.zig");
+const TokenList = _ast.TokenList;
+const TokenIndex = _ast.TokenIndex;
 
 pub const NodeLinks = @import("NodeLinks.zig");
 pub const Scope = @import("Scope.zig");

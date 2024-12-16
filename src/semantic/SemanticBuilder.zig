@@ -92,6 +92,7 @@ pub fn withSource(self: *SemanticBuilder, source: *const _source.Source) void {
 pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Result {
     // NOTE: ast is moved
     const gpa = builder._gpa;
+    const tokens = try builder.tokenize(source);
     const ast = try builder.parse(source);
     const node_links = try NodeLinks.init(gpa, &ast);
     assert(ast.nodes.len == node_links.parents.items.len);
@@ -105,6 +106,7 @@ pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Resul
     try builder._node_stack.ensureTotalCapacity(gpa, @max(ast.nodes.len, 32) >> 2);
 
     builder._semantic = Semantic{
+        .tokens = tokens,
         .ast = ast,
         .node_links = node_links,
         ._arena = builder._arena,
@@ -154,6 +156,7 @@ pub fn deinit(self: *SemanticBuilder) void {
 
 fn parse(self: *SemanticBuilder, source: stringSlice) Allocator.Error!Ast {
     const alloc = self._arena.allocator();
+
     var ast = try Ast.parse(self._arena.allocator(), source, .zig);
     errdefer ast.deinit(alloc);
 
@@ -168,6 +171,26 @@ fn parse(self: *SemanticBuilder, source: stringSlice) Allocator.Error!Ast {
     }
 
     return ast;
+}
+
+fn tokenize(self: *SemanticBuilder, source: stringSlice) Allocator.Error!TokenList {
+    const alloc = self._arena.allocator();
+
+    var tokens = std.MultiArrayList(Token){};
+    errdefer tokens.deinit(alloc);
+
+    // Empirically, the zig std lib has an 8:1 ratio of source bytes to token count.
+    const estimated_token_count = source.len / 8;
+    try tokens.ensureTotalCapacity(alloc, estimated_token_count);
+
+    var tokenizer = std.zig.Tokenizer.init(source);
+
+    while (true) {
+        const token = tokenizer.next();
+        try tokens.append(alloc, token);
+        if (token.tag == .eof) break;
+    }
+    return tokens.slice();
 }
 
 // =========================================================================
@@ -741,10 +764,9 @@ fn visitAssignDestructure(
 // ========================= VARIABLE/FIELD REFERENCES  ========================
 
 fn visitIdentifier(self: *SemanticBuilder, node_id: NodeIndex) !void {
-    const ast = self.AST();
     const main_tokens = self.AST().nodes.items(.main_token);
     const identifier = try self.assertToken(main_tokens[node_id], .identifier);
-    const symbol = self._semantic.resolveBinding(self.currentScope(), ast.tokenSlice(identifier));
+    const symbol = self._semantic.resolveBinding(self.currentScope(), self.tokenSlice(identifier));
 
     _ = try self.recordReference(.{
         .node = node_id,
@@ -1016,11 +1038,9 @@ fn visitFnProtoParams(self: *SemanticBuilder, fn_proto: full.FnProto) !void {
 
         // bind parameter symbol
         if (param.name_token) |name_token| {
-            // const identifier = ast.tokenSlice(name_token);
             const prev_tag: Token.Tag = tags[name_token - 1];
             _ = try self.declareSymbol(.{
                 .declaration_node = node_id,
-                // .name = identifier,
                 .identifier = name_token,
                 .flags = .{
                     .s_comptime = prev_tag == .keyword_comptime,
@@ -1385,7 +1405,7 @@ inline fn declareSymbol(
     opts: DeclareSymbol,
 ) !Symbol.Id {
     const scope = opts.scope_id orelse self.currentScope();
-    const name = if (opts.identifier) |ident| self._semantic.ast.tokenSlice(ident) else null;
+    const name = if (opts.identifier) |ident| self.tokenSlice(ident) else null;
     const symbol_id = try self._semantic.symbols.addSymbol(
         self._gpa,
         opts.declaration_node orelse self.currentNode(),
@@ -1427,7 +1447,7 @@ fn recordReference(self: *SemanticBuilder, opts: CreateReference) SemanticError!
         const main_token: TokenIndex = mains[node];
         break :brk try self.assertToken(main_token, .identifier);
     };
-    const identifier = ast.tokenSlice(identifier_token);
+    const identifier = self.tokenSlice(identifier_token);
 
     var reference = Reference{
         .node = node,
@@ -1593,6 +1613,10 @@ inline fn symbolTable(self: *SemanticBuilder) *Semantic.SymbolTable {
 /// Shorthand for getting the scope tree.
 inline fn scopeTree(self: *SemanticBuilder) *Semantic.ScopeTree {
     return &self._semantic.scopes;
+}
+
+fn tokenSlice(self: *const SemanticBuilder, token: TokenIndex) []const u8 {
+    return self._semantic.tokenSlice(token);
 }
 
 inline fn getNodeData(self: *const SemanticBuilder, node_id: NodeIndex) Node.Data {
@@ -1799,6 +1823,7 @@ const _ast = @import("ast.zig");
 const Ast = _ast.Ast;
 const full = Ast.full;
 const Token = _ast.Token;
+const TokenList = _ast.TokenList;
 const Node = _ast.Node;
 const NodeIndex = _ast.NodeIndex;
 const RawToken = _ast.RawToken;

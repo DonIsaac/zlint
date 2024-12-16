@@ -57,7 +57,7 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
     if (ctx.source.pathname == null) return; //   anonymous source file
     if (node.tag != .builtin_call_two) return; // not a node we care about
 
-    const builtin_name = ctx.ast().tokenSlice(node.main_token);
+    const builtin_name = ctx.semantic.tokenSlice(node.main_token);
     if (!std.mem.eql(u8, builtin_name, "@import")) {
         return;
     }
@@ -76,7 +76,7 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
         _ = ctx.diagnostic("@import operand must be a string literal", .{ctx.spanN(node.data.lhs)});
         return;
     }
-    const pathname_str = ctx.ast().tokenSlice(main_tokens[node.data.lhs]);
+    const pathname_str = ctx.semantic.tokenSlice(main_tokens[node.data.lhs]);
     var pathname = std.mem.trim(u8, pathname_str, "\"");
 
     // if it's not a .zig import, ignore it
