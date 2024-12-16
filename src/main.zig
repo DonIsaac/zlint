@@ -5,6 +5,7 @@ const util = @import("util");
 const Source = @import("source.zig").Source;
 const semantic = @import("semantic.zig");
 const config = @import("config");
+const Error = @import("./Error.zig");
 
 const fs = std.fs;
 const path = std.path;
@@ -31,7 +32,12 @@ pub fn main() !u8 {
     var stack = std.heap.stackFallback(16, alloc);
     const stack_alloc = stack.get();
 
-    var opts = Options.parseArgv(stack_alloc) catch @panic("Failed to parse CLI arguments: Out of memory");
+    var err: Error = undefined;
+    var opts = Options.parseArgv(stack_alloc, &err) catch {
+        std.debug.print("{s}\n{s}\n", .{err.message, Options.usage});
+        err.deinit(stack_alloc);
+        return 1;
+    };
     defer opts.deinit(stack_alloc);
 
     if (opts.version) {
