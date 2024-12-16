@@ -2,7 +2,7 @@
 
 > Category: pedantic
 >
-> Enabled by default?: No
+> Enabled by default?: Yes (warning)
 
 ## What This Rule Does
 

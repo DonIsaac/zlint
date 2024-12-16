@@ -58,7 +58,7 @@ const NoReturnTry = @This();
 pub const meta: Rule.Meta = .{
     .name = "no-return-try",
     .category = .pedantic,
-    .default = .off,
+    .default = .warning,
 };
 
 // Runs on each node in the AST. Useful for syntax-based rules.
