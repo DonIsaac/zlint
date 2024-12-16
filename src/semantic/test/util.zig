@@ -17,7 +17,6 @@ const AnalysisError = error{
 };
 
 pub fn build(src: [:0]const u8) !Semantic {
-
     var r = try report.Reporter.graphical(
         std.io.getStdErr().writer(),
         t.allocator,

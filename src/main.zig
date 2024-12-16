@@ -34,7 +34,7 @@ pub fn main() !u8 {
 
     var err: Error = undefined;
     var opts = Options.parseArgv(stack_alloc, &err) catch {
-        std.debug.print("{s}\n{s}\n", .{err.message, Options.usage});
+        std.debug.print("{s}\n{s}\n", .{ err.message, Options.usage });
         err.deinit(stack_alloc);
         return 1;
     };

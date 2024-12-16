@@ -59,4 +59,3 @@ pub const Source = struct {
         self.* = undefined;
     }
 };
-

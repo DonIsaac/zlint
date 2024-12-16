@@ -1,8 +1,8 @@
 //! ## What This Rule Does
 //! Disallows `catch`ing and swallowing errors.
-//! 
-//! More specifically, this rule bans empty `catch` statements. As of now, 
-//! `catch`es that do nothing with the caught error, but do _something_ are not 
+//!
+//! More specifically, this rule bans empty `catch` statements. As of now,
+//! `catch`es that do nothing with the caught error, but do _something_ are not
 //! considered violations.
 //!
 //! ## Examples
