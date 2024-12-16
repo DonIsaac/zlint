@@ -81,12 +81,12 @@ bench mode="safe":
 
 # Format the codebase, writing changes to disk
 fmt:
-    zig fmt src/**/*.zig test/**/*.zig build.zig build.zig.zon
+    zig fmt src test/harness build.zig build.zig.zon
     typos -w
 
 # Like `fmt`, but exits when problems are found without modifying files
 lint:
-    zig fmt --check src/**/*.zig test/**/*.zig build.zig build.zig.zon
+    zig fmt --check src test/harness build.zig build.zig.zon
     typos
     bunx oxlint@latest --format github  -D correctness -D suspicious -D perf
 
