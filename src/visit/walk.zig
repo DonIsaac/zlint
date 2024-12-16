@@ -52,30 +52,37 @@ pub fn Walker(Visitor: type, Error: type) type {
     }
 
     return struct {
-        ast: *Ast,
+        ast: *const Ast,
         visitor: *Visitor,
-        stack: std.ArrayListUnmanaged(Node.Index) = .{},
+        stack: std.ArrayListUnmanaged(StackEntry) = .{},
         alloc: Allocator,
         // visit_vtable: [tag_info.fields.len]?*VisitFn,
 
         const Self = @This();
 
-        pub fn init(allocator: Allocator, ast: *Ast, visitor: *Visitor) Allocator.Error!Self {
+        /// Initialize this walker's stack in preparation for a walk. It is
+        /// recommended to use an arena for `allocator`.
+        pub fn init(allocator: Allocator, ast: *const Ast, visitor: *Visitor) Allocator.Error!Self {
             var self = Self{ .alloc = allocator, .ast = ast, .visitor = visitor };
-            var stackfb = std.heap.stackFallback(64, allocator);
-            const stack = stackfb.get();
+            // var stackfb = std.heap.stackFallback(64, allocator);
+            // const stack = stackfb.get();
             const root_decls = ast.rootDecls();
-            try self.stack.ensureTotalCapacity(allocator, @max(ast.nodes.len >> 4, 8 + root_decls.len));
+            try self.stack.ensureTotalCapacity(
+                allocator,
+                // 2x b/c each root decl gets an enter & exit node
+                @max(ast.nodes.len >> 4, 8 + (2 * root_decls.len)),
+            );
 
-            // push root declarations onto stack in reverse order so that nodes
-            // are visited in a left-to-right depth first fashion
-            // const root_decls_rev: [root_decls.len]Node.Index = undefined;
-            const root_decls_rev: []Node.Index = try stack.alloc(Node.Index, root_decls.len);
-            defer stack.free(root_decls_rev);
-
-            @memcpy(root_decls_rev, root_decls);
-            std.mem.reverse(Node.Index, root_decls_rev);
-            self.stack.appendSliceAssumeCapacity(root_decls);
+            // // push root declarations onto stack in reverse order so that nodes
+            // // are visited in a left-to-right depth first fashion
+            // const root_decls_rev: []StackEntry = try stack.alloc(StackEntry, root_decls.len);
+            // defer stack.free(root_decls_rev);
+            for (0..root_decls.len) |i| {
+                const node = root_decls[root_decls.len - i - 1];
+                // entries are popped off end so exit nodes must be pushed first
+                self.stack.appendAssumeCapacity(.{ .id = node, .kind = .exit });
+                self.stack.appendAssumeCapacity(.{ .id = node, .kind = .enter });
+            }
 
             return self;
         }
@@ -91,11 +98,15 @@ pub fn Walker(Visitor: type, Error: type) type {
         pub fn walk(self: *Self) Error!void {
             const tags: []const Node.Tag = self.ast.nodes.items(.tag);
 
-            while (self.stack.popOrNull()) |node| {
+            while (self.stack.popOrNull()) |entry| {
+                if (entry.kind == .exit) {
+                    self.exitNode(entry.id);
+                    continue;
+                }
+                const node = entry.id;
                 const tag = tags[node];
 
                 try self.enterNode(node);
-                defer self.exitNode(node);
 
                 const state = if (vtable[@intFromEnum(tag)]) |visit_fn|
                     try @call(.auto, visit_fn, .{ self.visitor, node })
@@ -112,15 +123,15 @@ pub fn Walker(Visitor: type, Error: type) type {
 
         fn pushChildren(self: *Self, node: Node.Index, tag: Node.Tag) Allocator.Error!void {
             const datas: []const Node.Data = self.ast.nodes.items(.data);
-
             const data = datas[node];
+
             switch (NodeDataKind.from(tag)) {
                 // lhs/rhs are nodes. either may be omitted
                 .node => {
                     try self.push(data.rhs);
                     try self.push(data.lhs);
                 },
-                // lhs/rhs are definitly-present nodes
+                // lhs/rhs are definitely-present nodes
                 .node_unconditional => {
                     try self.pushUnconditional(data.rhs);
                     try self.pushUnconditional(data.lhs);
@@ -167,31 +178,29 @@ pub fn Walker(Visitor: type, Error: type) type {
                 .{ node, self.ast.nodes.len },
             );
 
-            return self.stack.append(self.alloc, node);
+            try self.stack.append(self.alloc, .{ .id = node, .kind = .exit });
+            return self.stack.append(self.alloc, .{ .id = node, .kind = .enter });
         }
-
+        /// Push this node, assuming it is non-null
         inline fn pushUnconditional(self: *Self, node: Node.Index) Allocator.Error!void {
             self.assertInRange(node);
-            return self.stack.append(self.alloc, node);
+            try self.stack.append(self.alloc, .{ .id = node, .kind = .exit });
+            return self.stack.append(self.alloc, .{ .id = node, .kind = .enter });
         }
 
         inline fn pushN(self: *Self, nodes: []const Node.Index) Allocator.Error!void {
-            try self.stack.ensureUnusedCapacity(self.alloc, nodes.len);
+            try self.stack.ensureUnusedCapacity(self.alloc, 2 * nodes.len);
             var it = std.mem.reverseIterator(nodes);
             while (it.next()) |node| {
                 self.assertInRange(node);
-                self.stack.appendAssumeCapacity(node);
+                self.stack.appendAssumeCapacity(.{ .id = node, .kind = .exit });
+                self.stack.appendAssumeCapacity(.{ .id = node, .kind = .enter });
             }
         }
         inline fn assertInRange(self: *Self, node: Node.Index) void {
             const len = self.ast.nodes.len;
 
-            // Always keep non-null checks, but discard non-node index checks in
-            // any kind of release build.
-            {
-                @setRuntimeSafety(true);
-                util.assert(node != Semantic.NULL_NODE, "Tried to push null node onto stack", .{});
-            }
+            util.assert(node != Semantic.NULL_NODE, "Tried to push null node onto stack", .{});
             {
                 @setRuntimeSafety(!util.IS_DEBUG);
                 util.assert(node < len, "Tried to push out-of-bounds node (id: {d}, nodes.len: {d}). It's likely a token or extra_data index.", .{ node, len });
@@ -203,6 +212,12 @@ pub fn Walker(Visitor: type, Error: type) type {
         }
     };
 }
+
+const StackEntry = struct {
+    id: Node.Index,
+    kind: Kind = .enter,
+    pub const Kind = enum { enter, exit };
+};
 
 const NodeDataKind = enum {
     /// lhs and rhs are always unset
@@ -744,13 +759,11 @@ test Walker {
         depth: u32 = 0,
         nodes_visited: u32 = 0,
         const Self = @This();
-        fn enterNode(self: *Self, n: Node.Index) !void {
-            std.debug.print("entering node {d}\n", .{n});
+        fn enterNode(self: *Self, _: Node.Index) !void {
             self.depth += 1;
             self.nodes_visited += 1;
         }
-        fn exitNode(self: *Self, n: Node.Index) void {
-            std.debug.print("exiting node {d}\n", .{n});
+        fn exitNode(self: *Self, _: Node.Index) void {
             t.expect(self.depth > 0) catch @panic("expect failed");
             self.depth -= 1;
         }
