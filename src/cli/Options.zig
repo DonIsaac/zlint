@@ -84,7 +84,7 @@ fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options 
             continue;
         } else {
             if (err) |e| {
-                e.* = Error.fmt(alloc, "unknown option: {s}\n", .{ arg }) catch @panic("OOM");
+                e.* = Error.fmt(alloc, "unknown option: {s}\n", .{arg}) catch @panic("OOM");
             }
             return error.InvalidArg;
         }
