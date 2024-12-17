@@ -92,7 +92,14 @@ pub fn withSource(self: *SemanticBuilder, source: *const _source.Source) void {
 pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Result {
     // NOTE: ast is moved
     const gpa = builder._gpa;
-    const tokens = try builder.tokenize(source);
+    var comments: std.ArrayListUnmanaged(Span) = .{};
+    try comments.ensureTotalCapacity(builder._arena.allocator(), 16);
+    const tokens = try tokenizer.tokenize(
+        builder._arena.allocator(),
+        source,
+        &comments,
+    );
+
     const ast = try builder.parse(source);
     const node_links = try NodeLinks.init(gpa, &ast);
     assert(ast.nodes.len == node_links.parents.items.len);
@@ -173,25 +180,25 @@ fn parse(self: *SemanticBuilder, source: stringSlice) Allocator.Error!Ast {
     return ast;
 }
 
-fn tokenize(self: *SemanticBuilder, source: stringSlice) Allocator.Error!TokenList {
-    const alloc = self._arena.allocator();
+// fn tokenize(self: *SemanticBuilder, source: stringSlice) Allocator.Error!TokenList {
+//     const alloc = self._arena.allocator();
 
-    var tokens = std.MultiArrayList(Token){};
-    errdefer tokens.deinit(alloc);
+//     var tokens = std.MultiArrayList(Token){};
+//     errdefer tokens.deinit(alloc);
 
-    // Empirically, the zig std lib has an 8:1 ratio of source bytes to token count.
-    const estimated_token_count = source.len / 8;
-    try tokens.ensureTotalCapacity(alloc, estimated_token_count);
+//     // Empirically, the zig std lib has an 8:1 ratio of source bytes to token count.
+//     const estimated_token_count = source.len / 8;
+//     try tokens.ensureTotalCapacity(alloc, estimated_token_count);
 
-    var tokenizer = std.zig.Tokenizer.init(source);
+//     var tokenizer = std.zig.Tokenizer.init(source);
 
-    while (true) {
-        const token = tokenizer.next();
-        try tokens.append(alloc, token);
-        if (token.tag == .eof) break;
-    }
-    return tokens.slice();
-}
+//     while (true) {
+//         const token = tokenizer.next();
+//         try tokens.append(alloc, token);
+//         if (token.tag == .eof) break;
+//     }
+//     return tokens.slice();
+// }
 
 // =========================================================================
 // ================================= VISIT =================================
@@ -1819,6 +1826,7 @@ const Type = std.builtin.Type;
 
 const assert = std.debug.assert;
 
+const tokenizer = @import("tokenizer.zig");
 const _ast = @import("ast.zig");
 const Ast = _ast.Ast;
 const full = Ast.full;

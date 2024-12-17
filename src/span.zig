@@ -64,6 +64,10 @@ pub const Span = struct {
         assert(self.end >= self.start);
         return contents[self.start..self.end];
     }
+
+    pub fn eql(self: Span, other: Span) bool {
+        return self.start == other.start and self.end == other.end;
+    }
 };
 
 pub const LabeledSpan = struct {
