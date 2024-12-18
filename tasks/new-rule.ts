@@ -2,32 +2,71 @@
 
 import path from 'path'
 import fs from 'fs'
+import assert from 'assert'
 
 const RULES_DIR = 'src/linter/rules'
 const RULES_MODULE = 'src/linter/rules.zig'
+const CONFIG_PATH = 'src/linter/config/rules_config.zig'
 const p = (...segs: string[]) => path.join(__dirname, '..', ...segs)
+
+class RuleData {
+    /** rule-name */
+    name: string
+    /** rule_name */
+    underscored: string
+    /** RuleName */
+    StructName: string
+
+    constructor(name: string) {
+        this.name = name.replaceAll(' ', '-').replaceAll('_', '-').toLowerCase()
+        this.StructName = kebabToPascal(this.name)
+        this.underscored = this.name.replaceAll('-', '_')
+    }
+
+    get path(): string {
+        return p(RULES_DIR, this.filename)
+    }
+
+    get filename(): string {
+        return `${this.underscored}.zig`
+    }
+}
 
 async function main(argv: string[]) {
     let ruleName = argv[2]
     // lower-kebab-case
-    ruleName = ruleName.replaceAll(' ', '-').replaceAll('_', '-').toLowerCase()
-    const StructName = kebabToPascal(ruleName);
+    const rule = new RuleData(ruleName)
 
-    // snake_case filenames
-    const filename = `${ruleName.replaceAll('-', '_')}.zig`
-    const rulepath = p(RULES_DIR, filename)
-    if (fs.existsSync(rulepath)) {
+    // const rulepath = p(RULES_DIR, filename)
+    if (fs.existsSync(rule.path)) {
         throw new Error(`Rule ${ruleName} already exists`)
     }
-    const reExport = `pub const ${StructName} = @import("./rules/${filename}");`
+    const reExport = `pub const ${rule.StructName} = @import("./rules/${rule.filename}");`
     await Promise.all([
-        fs.promises.writeFile(rulepath, createRule({ name: ruleName, StructName })),
-        fs.promises.appendFile(p(RULES_MODULE), reExport)
+        fs.promises.writeFile(rule.path, createRule(rule)),
+        fs.promises.appendFile(p(RULES_MODULE), reExport),
+        updateConfig(rule),
     ])
 }
 
-const createRule = ({ name, StructName }) => {
-    const underscored = name.replaceAll('-', '_');
+
+const updateConfig = async (rule: RuleData) => {
+    let ruleConfig = await fs.promises.readFile(p(CONFIG_PATH), 'utf-8');
+    const pattern = "pub const RulesConfig = struct {"
+    let insertAt = ruleConfig.indexOf(pattern)
+    assert(insertAt > 0)
+    insertAt += pattern.length
+    do {
+        insertAt++
+    } while (ruleConfig[insertAt] !== '\n')
+    ruleConfig = ruleConfig.slice(0, insertAt) +
+        `    ${rule.underscored}: RuleConfig(rules.${rule.StructName}) = .{},` +
+        ruleConfig.slice(insertAt)
+
+    await fs.promises.writeFile(p(CONFIG_PATH), ruleConfig)
+}
+
+const createRule = ({ name, StructName, underscored }: RuleData) => {
     return /* zig */ `
 //! ## What This Rule Does
 //! Explain what this rule checks for. Also explain why this is a problem.
@@ -93,13 +132,13 @@ test ${StructName} {
     // Code your rule should pass on
     const pass = &[_][:0]const u8{
         // TODO: add test cases
-        "const x = 1",
+        "const x = 1;",
     };
 
     // Code your rule should fail on
     const fail = &[_][:0]const u8{
         // TODO: add test cases
-        "const x = 1",
+        "const x = 1;",
     };
 
     try runner
