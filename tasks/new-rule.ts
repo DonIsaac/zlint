@@ -50,6 +50,15 @@ async function main(argv: string[]) {
 }
 
 
+/**
+ * Insert a `RuleConfig` field into `RulesConfig` for the new rule.
+ * 
+ * ```zig
+ *    // ...
+ *    rule_name: RuleConfig(rules.RuleName) = .{},
+ *    // ...
+ * ```
+ */
 const updateConfig = async (rule: RuleData) => {
     let ruleConfig = await fs.promises.readFile(p(CONFIG_PATH), 'utf-8');
     const pattern = "pub const RulesConfig = struct {"
