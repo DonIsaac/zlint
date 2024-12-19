@@ -55,6 +55,10 @@ pub const Span = struct {
         return .{ .start = start, .end = end };
     }
 
+    pub inline fn sized(start: u32, size: u32) Span {
+        return .{ .start = start, .end = start + size };
+    }
+
     pub inline fn len(self: Span) u32 {
         assert(self.end >= self.start);
         return self.end - self.start;
