@@ -3,13 +3,32 @@ const util = @import("util");
 const _ast = @import("./ast.zig");
 const span = @import("../span.zig");
 
-const Token = _ast.Token;
-const TokenList = _ast.TokenList;
 const Allocator = std.mem.Allocator;
 const Span = span.Span;
 
+pub const Token = std.zig.Token;
+pub const TokenList = std.MultiArrayList(Token);
+pub const CommentList = std.MultiArrayList(Span);
+
+pub const TokenBundle = struct {
+    tokens: TokenList.Slice,
+    /// Doc and "normal" comments found in the tokenized source.
+    ///
+    /// Comments are always sorted by their position within the source. That is,
+    /// ```
+    /// \forall i \st i < comments.len-1 | comments[i] < comments[i+1]
+    /// ```
+    comments: CommentList.Slice,
+    stats: Stats,
+
+    const Stats = struct {
+        /// Number of identifier tokens encountered.
+        identifiers: u32 = 0,
+    };
+};
+
 /// Tokenize Zig source code.
-/// 
+///
 /// Copied + modified from `Ast.parse`. We tokenize and keep our own copy of the
 /// token list because Ast discards token end positions. Lacking this,
 /// `ast.tokenSlice` requires re-tokenization on each call for (e.g.) identifier
@@ -21,15 +40,20 @@ pub fn tokenize(
     // Should be an arena
     allocator: Allocator,
     source: [:0]const u8,
-    comments: *std.ArrayListUnmanaged(Span),
-) !TokenList {
-    util.debugAssert(comments.items.len == 0, "non-empty comment buffer passed to tokenize", .{});
-    var tokens = std.MultiArrayList(Token){};
-    errdefer tokens.deinit(allocator);
+) Allocator.Error!TokenBundle {
+    var tokens = TokenList{};
+    var comments = CommentList{};
+    var stats: TokenBundle.Stats = .{};
+    errdefer {
+        tokens.deinit(allocator);
+        comments.deinit(allocator);
+    }
 
     // Empirically, the zig std lib has an 8:1 ratio of source bytes to token count.
     const estimated_token_count = source.len / 8;
     try tokens.ensureTotalCapacity(allocator, estimated_token_count);
+    // TODO: collect data and find the best starting capacity
+    try comments.ensureTotalCapacity(allocator, 16);
 
     var tokenizer = std.zig.Tokenizer.init(source);
 
@@ -37,13 +61,22 @@ pub fn tokenize(
     while (true) {
         @setRuntimeSafety(true);
         const token = tokenizer.next();
-        try scanForComments(allocator, source[prev_end..token.loc.start], prev_end, comments);
+        try scanForComments(allocator, source[prev_end..token.loc.start], prev_end, &comments);
         try tokens.append(allocator, token);
         util.assert(token.loc.end < std.math.maxInt(u32), "token exceeds u32 limit", .{});
         prev_end = @truncate(token.loc.end);
-        if (token.tag == .eof) break;
+        switch (token.tag) {
+            .identifier => stats.identifiers += 1,
+            .eof => break,
+            else => {},
+        }
     }
-    return tokens.slice();
+
+    return .{
+        .tokens = tokens.slice(),
+        .comments = comments.slice(),
+        .stats = stats,
+    };
 }
 
 /// Scan the gap between two tokens for a comment.
@@ -53,7 +86,7 @@ fn scanForComments(
     // source slice between two tokens
     source_between: []const u8,
     offset: u32,
-    comments: *std.ArrayListUnmanaged(Span),
+    comments: *CommentList,
 ) Allocator.Error!void {
     var cursor: u32 = 0;
     // consecutive slashes seen
@@ -94,17 +127,81 @@ fn scanForComments(
 
 const t = std.testing;
 test scanForComments {
-    var comments: std.ArrayListUnmanaged(Span) = .{};
+    var comments: CommentList = .{};
     defer comments.deinit(t.allocator);
 
-    const simple = "// foo";
-    try scanForComments(t.allocator, simple, 0, &comments);
-    try t.expectEqual(1, comments.items.len);
-    try t.expectEqual(comments.items[0], Span{ .start = 0, .end = 6 });
+    {
+        defer comments.len = 0;
+        const simple = "// foo";
+        try scanForComments(t.allocator, simple, 0, &comments);
+        try t.expectEqual(1, comments.len);
+        try t.expectEqual(comments.get(0), Span{ .start = 0, .end = simple.len });
+    }
 
-    const multi_slash = "//////////foo//";
-    try scanForComments(t.allocator, multi_slash, 0, &comments);
-    try t.expectEqual(1, comments.items.len);
-    try t.expectEqual(comments.items[0], Span{ .start = 0, .end = multi_slash.len });
+    // doc comments
+    {
+        defer comments.len = 0;
+        const source = "/// foo";
+        try scanForComments(t.allocator, source, 0, &comments);
+        try t.expectEqual(1, comments.len);
+        try t.expectEqual(comments.get(0), Span{ .start = 0, .end = source.len });
+    }
+    {
+        defer comments.len = 0;
+        const source = "//! foo";
+        try scanForComments(t.allocator, source, 0, &comments);
+        try t.expectEqual(1, comments.len);
+        try t.expectEqual(comments.get(0), Span{ .start = 0, .end = source.len });
+    }
 
+    // weird comments
+    {
+        defer comments.len = 0;
+        const multi_slash = "//////////foo//";
+        try scanForComments(t.allocator, multi_slash, 0, &comments);
+        try t.expectEqual(1, comments.len);
+        try t.expectEqual(comments.get(0), Span{ .start = 0, .end = multi_slash.len });
+    }
+
+    // multiple comments
+    {
+        defer comments.len = 0;
+        const source =
+            \\// foo
+            \\// bar
+        ;
+        try scanForComments(t.allocator, source, 0, &comments);
+        try t.expectEqual(2, comments.len);
+        try t.expectEqual(comments.get(0), Span{ .start = 0, .end = 6 });
+        try t.expectEqual(comments.get(1), Span{ .start = 7, .end = source.len });
+        try t.expectEqual(source[6], '\n');
+        try t.expectEqual(source[7], '/');
+    }
+}
+
+test "Comments are always sorted by their position within source code" {
+    const src =
+        \\//! foo
+        \\//! bar
+        \\pub fn foo() u32 { // a thing
+        \\  const x = 1;
+        \\  // another thing
+        \\  return x;
+        \\}
+        \\
+        \\// a comment
+        \\const x = 1;
+    ;
+    var arena = std.heap.ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+    const bundle = try tokenize(arena.allocator(), src);
+
+    var prev = bundle.comments.get(0);
+    try t.expect(prev.start <= prev.end);
+
+    for (1..bundle.comments.len) |i| {
+        const curr = bundle.comments.get(i);
+        try t.expect(prev.end < curr.start);
+        prev = curr;
+    }
 }

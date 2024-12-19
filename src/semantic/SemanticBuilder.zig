@@ -92,12 +92,9 @@ pub fn withSource(self: *SemanticBuilder, source: *const _source.Source) void {
 pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Result {
     // NOTE: ast is moved
     const gpa = builder._gpa;
-    var comments: std.ArrayListUnmanaged(Span) = .{};
-    try comments.ensureTotalCapacity(builder._arena.allocator(), 16);
-    const tokens = try tokenizer.tokenize(
+    const token_bundle = try tokenizer.tokenize(
         builder._arena.allocator(),
         source,
-        &comments,
     );
 
     const ast = try builder.parse(source);
@@ -113,13 +110,21 @@ pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Resul
     try builder._node_stack.ensureTotalCapacity(gpa, @max(ast.nodes.len, 32) >> 2);
 
     builder._semantic = Semantic{
-        .tokens = tokens,
+        .tokens = token_bundle.tokens,
         .ast = ast,
         .node_links = node_links,
+        .comments = token_bundle.comments,
         ._arena = builder._arena,
         ._gpa = gpa,
     };
     errdefer builder._semantic.deinit();
+
+    // TODO: collect data and approximate #symbols declared vs. #identifiers encountered
+    // TODO: benchmark analysis with and without this
+    try builder._semantic.symbols.symbols.ensureTotalCapacity(
+        builder._gpa,
+        token_bundle.stats.identifiers >> 1,
+    );
 
     // Create root scope & symbol and push them onto their stacks. Also
     // pushes the root node. None of these are ever popped.
@@ -1827,11 +1832,12 @@ const Type = std.builtin.Type;
 const assert = std.debug.assert;
 
 const tokenizer = @import("tokenizer.zig");
+const Token = tokenizer.Token;
+const TokenList = tokenizer.TokenList;
+
 const _ast = @import("ast.zig");
 const Ast = _ast.Ast;
 const full = Ast.full;
-const Token = _ast.Token;
-const TokenList = _ast.TokenList;
 const Node = _ast.Node;
 const NodeIndex = _ast.NodeIndex;
 const RawToken = _ast.RawToken;
