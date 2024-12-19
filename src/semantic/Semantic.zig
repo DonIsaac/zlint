@@ -21,8 +21,9 @@ ast: Ast, // NOTE: allocated in _arena
 // time. So we do it once, eat the memory overhead, and help the linter avoid
 // constant re-tokenization.
 // NOTE: allocated in _arena
-tokens: TokenList,
+tokens: TokenList.Slice,
 node_links: NodeLinks,
+comments: CommentList.Slice,
 _gpa: Allocator,
 /// Used to allocate AST nodes
 _arena: ArenaAllocator,
@@ -98,7 +99,9 @@ const Type = std.builtin.Type;
 const assert = std.debug.assert;
 
 const _ast = @import("./ast.zig");
-const TokenList = _ast.TokenList;
+const _tokenizer = @import("./tokenizer.zig");
+const TokenList = _tokenizer.TokenList;
+const CommentList = _tokenizer.CommentList;
 const TokenIndex = _ast.TokenIndex;
 
 pub const NodeLinks = @import("NodeLinks.zig");
