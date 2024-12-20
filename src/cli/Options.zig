@@ -1,5 +1,8 @@
 //! CLI options. Not necessarily linting-specific.
 
+/// Any number of warnings should cause zlint to exit with a non-zero status
+/// code.
+deny_warnings: bool = false,
 /// Enable verbose logging.
 verbose: bool = false,
 /// Print version and exit.
@@ -21,6 +24,7 @@ pub const usage =
 const help =
     \\--print-ast <file>  Parse a file and print its AST as JSON
     \\-f, --format <fmt>  Choose an output format (default, graphical, github, gh)
+    \\--deny-warnings     Warnings produce a non-zero exit code
     \\-q, --quiet         Only display error diagnostics
     \\-V, --verbose       Enable verbose logging   
     \\-v, --version       Print version and exit
@@ -57,6 +61,8 @@ fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options 
             opts.verbose = true;
         } else if (eq(arg, "-v") or eq(arg, "--version")) {
             opts.version = true;
+        } else if (eq(arg, "--deny-warnings")) {
+            opts.deny_warnings = true;
         } else if (eq(arg, "-f") or eq(arg, "--format")) {
             // TODO: comptime string concat on format names
             const fmt = argv.next() orelse {
