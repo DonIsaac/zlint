@@ -1,26 +1,50 @@
 //! ## What This Rule Does
-//! Disallows `catch`ing and swallowing errors.
+//! Disallows suppressing or otherwise mishandling caught errors.
 //!
-//! More specifically, this rule bans empty `catch` statements. As of now,
-//! `catch`es that do nothing with the caught error, but do _something_ are not
-//! considered violations.
+//! Functions that return error unions could error during "normal" execution.
+//! If they didn't, they would not return an error or would panic instead.
+//!
+//! This rule enforces that errors are
+//! 1. Propagated up to callers either implicitly or by returning a new error,
+//!    ```zig
+//!    const a = try foo();
+//!    const b = foo catch |e| {
+//!        switch (e) {
+//!            FooError.OutOfMemory => error.OutOfMemory,
+//!            // ...
+//!        }
+//!    }
+//!    ```
+//! 2. Are inspected and handled to continue normal execution
+//!    ```zig
+//!    /// It's fine if users are missing a config file, and open() + err
+//!    // handling is faster than stat() then open()
+//!    var config?: Config = openConfig() catch null;
+//!    ```
+//! 3. Caught and `panic`ed on to provide better crash diagnostics
+//!    ```zig
+//!    const str = try allocator.alloc(u8, size) catch @panic("Out of memory");
+//!    ```
 //!
 //! ## Examples
 //!
 //! Examples of **incorrect** code for this rule:
 //! ```zig
 //! const x = foo() catch {};
-//! const x = foo() catch {
-//!   // comments within empty catch blocks have no effect.
+//! const y = foo() catch {
+//!   // comments within empty catch blocks are still considered violations.
 //! };
+//! // `unreachable` is for code that will never be reached due to invariants.
+//! const y = foo() catch unreachable
 //! ```
 //!
 //! Examples of **correct** code for this rule:
 //! ```zig
 //! const x = foo() catch @panic("foo failed.");
-//! const x = foo() catch {
+//! const y = foo() catch {
 //!   std.debug.print("Foo failed.\n", .{});
 //! };
+//! const z = foo() catch null;
 //! ```
 
 const std = @import("std");
@@ -48,29 +72,62 @@ pub const meta: Rule.Meta = .{
     .default = .warning,
 };
 
+fn swallowedDiagnostic(ctx: *LinterContext, span: Span) void {
+    const e = ctx.diagnostic(
+        "`catch` statement suppresses errors",
+        .{LabeledSpan{ .span = span }},
+    );
+    e.help = .{ .str = "Handle this error or propagate it to the caller with `try`." };
+}
+
+fn unreachableDiagnostic(ctx: *LinterContext, span: Span) void {
+    const e = ctx.diagnostic(
+        "Caught error is mishandled with `unreachable`",
+        .{LabeledSpan{ .span = span }},
+    );
+    e.help = .{ .str = "Use `try` to propagate this error. If this branch shouldn't happen, use `@panic` or `std.debug.panic` instead." };
+}
+
 // Runs on each node in the AST. Useful for syntax-based rules.
 pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const node = wrapper.node;
     if (node.tag != .@"catch") return;
 
     // const slice = ctx.ast().nodes.slice
-    const nodes = ctx.ast().nodes;
-    const tags = nodes.items(.tag);
-    const catch_body = node.data.rhs;
-    // .block is only ever constructed for blocks with > 2 statements.
-    switch (tags[catch_body]) {
-        .block_two, .block_two_semicolon => {},
-        else => return,
-    }
+    const ast = ctx.ast();
+    const nodes = ast.nodes;
+    const tags: []Node.Tag = nodes.items(.tag);
 
-    const stmts: Node.Data = nodes.items(.data)[catch_body];
-    if (stmts.lhs == NULL_NODE and stmts.rhs == NULL_NODE) {
-        const body_span = ctx.ast().nodeToSpan(catch_body);
-        const catch_keyword_start: u32 = ctx.ast().tokens.items(.start)[node.main_token];
-        const e = ctx.diagnostic("`catch` statement suppresses errors", .{
-            LabeledSpan.unlabeled(catch_keyword_start, body_span.end),
-        });
-        e.help = .{ .str = "Handle this error or propagate it to the caller with `try`." };
+    const catch_body = node.data.rhs;
+    switch (tags[catch_body]) {
+        // .block is only ever constructed for blocks with > 2 statements.
+        .block_two, .block_two_semicolon => {
+            const stmts: Node.Data = nodes.items(.data)[catch_body];
+            if (stmts.rhs != NULL_NODE) return;
+
+            // `catch {}`
+            if (stmts.lhs == NULL_NODE) {
+                const body_span = ast.nodeToSpan(catch_body);
+                const catch_keyword_start: u32 = ast.tokens.items(.start)[node.main_token];
+                const span = Span.new(catch_keyword_start, body_span.end);
+                swallowedDiagnostic(ctx, span);
+                return;
+            }
+            switch (tags[stmts.lhs]) {
+                .unreachable_literal => {
+                    const span = ast.nodeToSpan(stmts.lhs);
+                    unreachableDiagnostic(ctx, .{ .start = span.start, .end = span.end });
+                },
+                else => return,
+            }
+        },
+        .unreachable_literal => {
+            // lexeme() exists
+            const unreachable_token = ast.nodes.items(.main_token)[catch_body];
+            const start: u32 = ast.tokens.items(.start)[unreachable_token];
+            unreachableDiagnostic(ctx, Span.sized(start, "unreachable".len));
+        },
+        else => return,
     }
 }
 
@@ -96,7 +153,12 @@ test SuppressedErrors {
         \\}
         ,
         \\fn foo() void {
-        \\  bar() catch unreachable;
+        \\  bar() catch @panic("OOM");
+        \\}
+        ,
+        \\ const std = @import("std");
+        \\fn foo() void {
+        \\  bar() catch std.debug.panic("OOM", .{});
         \\}
         ,
         \\fn foo() void {
@@ -107,6 +169,7 @@ test SuppressedErrors {
 
     // Code your rule should fail on
     const fail = &[_][:0]const u8{
+        // swallowed
         \\fn foo() void {
         \\  bar() catch {};
         \\}
@@ -119,6 +182,15 @@ test SuppressedErrors {
         \\  bar() catch {
         \\    // ignore
         \\  };
+        \\}
+        ,
+        // unreachable
+        \\fn foo() void {
+        \\  bar() catch unreachable;
+        \\}
+        ,
+        \\fn foo() void {
+        \\  bar() catch { unreachable; };
         \\}
         ,
     };
