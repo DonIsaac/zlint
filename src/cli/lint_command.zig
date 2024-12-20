@@ -52,7 +52,13 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
     const stop = std.time.milliTimestamp();
     const duration = stop - start;
     reporter.printStats(duration);
-    return if (reporter.stats.numErrorsSync() > 0) 1 else 0;
+    if (reporter.stats.numErrorsSync() > 0) {
+        return 1;
+    } else if (options.deny_warnings and reporter.stats.numWarningsSync() > 0) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 const LintWalker = walk.Walker(LintVisitor);
