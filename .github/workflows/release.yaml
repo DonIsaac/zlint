@@ -26,6 +26,8 @@ jobs:
         os: [linux, windows, macos]
         arch: [aarch64, x86_64]
     runs-on: ubuntu-latest
+    env:
+      BINARY_NAME: zlint-${{ matrix.os }}-${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v1
@@ -45,13 +47,13 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
         with:
-          subject-path: zig-out/bin/${{ steps.binary_name.outputs.binary_name }}
+          subject-path: zig-out/bin/${{ env.BINARY_NAME }}
 
       - name: Upload zlint binary
         uses: actions/upload-artifact@v4
         with:
-          path: zig-out/bin/zlint-${{ runner.os }}-${{ runner.arch }}
-          name: zlint-${{ runner.os }}-${{ runner.arch }}
+          path: zig-out/bin/${{ env.BINARY_NAME}}
+          name: ${{ env.BINARY_NAME }}
           retention-days: 1
 
 
