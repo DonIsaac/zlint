@@ -7,6 +7,11 @@
 //! ```
 
 const GithubFormatter = @This();
+
+pub const meta: Meta = .{
+    .report_statistics = false,
+};
+
 pub fn format(_: *GithubFormatter, w: *Writer, e: Error) FormatError!void {
     const level: []const u8 = switch (e.severity) {
         .err => "error",
@@ -45,7 +50,9 @@ pub fn format(_: *GithubFormatter, w: *Writer, e: Error) FormatError!void {
 }
 
 const std = @import("std");
-const FormatError = @import("../Reporter.zig").FormatError;
+const formatter = @import("../formatter.zig");
+const Meta = formatter.Meta;
+const FormatError = formatter.FormatError;
 const Writer = std.fs.File.Writer;
 const Error = @import("../../Error.zig");
 const _span = @import("../../span.zig");

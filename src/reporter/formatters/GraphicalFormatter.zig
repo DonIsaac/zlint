@@ -4,8 +4,9 @@ alloc: std.mem.Allocator,
 
 const MAX_CONTEXT_LINES: u32 = 3;
 
-pub const FormatError = Writer.Error || std.mem.Allocator.Error;
 pub const Theme = GraphicalTheme;
+
+pub const meta: Meta = .{ .report_statistics = true };
 
 pub fn unicode(alloc: std.mem.Allocator, comptime color: bool) GraphicalFormatter {
     // NOTE: must be comptime, otherwise none() returns a reference to a stack
@@ -487,6 +488,10 @@ const Location = _span.Location;
 const LocationSpan = _span.LocationSpan;
 
 const Error = @import("../../Error.zig");
+
+const formatter = @import("../formatter.zig");
+const FormatError = formatter.FormatError;
+const Meta = formatter.Meta;
 
 const t = std.testing;
 
