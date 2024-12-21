@@ -6,6 +6,11 @@ on:
       - main
     tags:
       - "v*.*.*"
+
+  # for testing. will remove later
+  pull_request:
+    branches:
+      - main
 env:
   ZIG_VERSION: 0.13.0
 
@@ -19,23 +24,21 @@ jobs:
     strategy:
       matrix:
         # FIXME: handle windows paths in attestation and upload steps
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+        os: [linux, macos, windows]
+        arch: [aarch64, x86_64]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v1
         with:
           version: ${{ env.ZIG_VERSION }}
-
-      - name: Get binary name
-        id: binary_name
-        run: echo "binary_name=zlint-${{ runner.os }}-${{ runner.arch }}" >> "$GITHUB_OUTPUT" 
         
       - name: zig build
-        env:
-          BINARY_NAME: ${{ steps.binary_name.outputs.binary_name }}
         run: |
-          zig build --summary all --color on --release=safe -Dversion=${{ github.ref_name }}
+          zig build --summary all --color on \
+            --release=safe \
+            -Dversion=${{ github.ref_name }} \
+            -Dtarget=${{ matrix.arch }}-${{ matrix.os }}
           mv zig-out/bin/zlint zig-out/bin/${{ env.BINARY_NAME }}
 
       - name: Generate artifact attestation

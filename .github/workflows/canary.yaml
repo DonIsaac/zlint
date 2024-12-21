@@ -1,0 +1,49 @@
+name: Canary
+
+on:
+  push:
+    branches:
+      - main
+env:
+  ZIG_VERSION: 0.13.0
+
+permissions:
+  id-token: write
+  contents: write
+  attestations: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        # FIXME: handle windows paths in attestation and upload steps
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v1
+        with:
+          version: ${{ env.ZIG_VERSION }}
+
+      - name: Get binary name
+        id: binary_name
+        run: echo "binary_name=zlint-${{ runner.os }}-${{ runner.arch }}" >> "$GITHUB_OUTPUT"
+
+      - name: zig build
+        env:
+          BINARY_NAME: ${{ steps.binary_name.outputs.binary_name }}
+        run: |
+          zig build --summary all --color on --release=safe -Dversion=${{ github.ref_name }}
+          mv zig-out/bin/zlint zig-out/bin/${{ env.BINARY_NAME }}
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: zig-out/bin/${{ steps.binary_name.outputs.binary_name }}
+
+      - name: Upload zlint binary
+        uses: actions/upload-artifact@v4
+        with:
+          path: zig-out/bin/zlint-${{ runner.os }}-${{ runner.arch }}
+          name: zlint-${{ runner.os }}-${{ runner.arch }}
+          retention-days: 1
