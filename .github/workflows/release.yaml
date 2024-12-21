@@ -5,10 +5,6 @@ on:
     tags:
       - "v*.*.*"
 
-  # for testing
-  pull_request:
-    branches:
-      - main
 env:
   ZIG_VERSION: 0.13.0
 
@@ -41,9 +37,6 @@ jobs:
           fi
           echo "binary_name=$binary_name" >> "$GITHUB_OUTPUT" 
 
-      - name: echo binary name
-        run: echo ${{ steps.binary_name.outputs.binary_name }}
-
       - name: zig build
         env:
           BINARY_NAME: ${{ steps.binary_name.outputs.binary_name }}
@@ -74,9 +67,8 @@ jobs:
           name: ${{ env.BINARY_NAME }}
           retention-days: 1
 
-
-# TODO
   release:
+    # Not used. Leaving here in case we want to create canary builds
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     needs:
@@ -90,8 +82,6 @@ jobs:
           pattern: zlint-*
           path: zig-out/dist
           merge-multiple: true
-      # TODO
-      - run: ls -lA zig-out/dist
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
