@@ -3,6 +3,10 @@
 pub const Github = @import("./formatters/GithubFormatter.zig");
 pub const Graphical = @import("./formatters/GraphicalFormatter.zig");
 
+pub const Meta = struct {
+    report_statistics: bool,
+};
+
 pub const Kind = enum {
     graphical,
     github,
@@ -22,10 +26,6 @@ pub const Kind = enum {
     pub fn fromString(str: []const u8) ?Kind {
         return formats.get(str);
     }
-};
-pub const Formatter = union(Kind) {
-    graphical: Graphical,
-    github: Github,
 };
 
 pub const FormatError = Writer.Error || Allocator.Error;

@@ -1,4 +1,3 @@
-pub const FormatError = Writer.Error || std.mem.Allocator.Error;
 const Chameleon = @import("chameleon");
 
 pub const Options = struct {
@@ -6,10 +5,13 @@ pub const Options = struct {
 };
 
 pub const Reporter = struct {
+    opts: Options = .{},
+    stats: Stats = .{},
+    report_stats: bool,
+
     writer: Writer,
     writer_lock: Mutex = .{},
-    stats: Stats = .{},
-    opts: Options = .{},
+
     alloc: Allocator,
     /// pointer to formatter impl. Allocation is owned.
     ptr: *anyopaque,
@@ -52,8 +54,13 @@ pub const Reporter = struct {
         writer: Writer,
         allocator: Allocator,
     ) Allocator.Error!Reporter {
+        comptime if (!@hasDecl(Formatter, "meta")) {
+            @compileError(@typeName(Formatter) ++ " is missing a meta: formatter.Meta declaration.");
+        };
+
         const fmt = try allocator.create(Formatter);
         fmt.* = formatter;
+        const meta: formatters.Meta = Formatter.meta;
 
         const gen = struct {
             fn format(ctx: *anyopaque, _writer: *Writer, e: Error) FormatError!void {
@@ -78,6 +85,7 @@ pub const Reporter = struct {
 
         return .{
             .writer = writer,
+            .report_stats = meta.report_statistics,
             .alloc = allocator,
             .ptr = @ptrCast(fmt),
             .vtable = .{
@@ -109,6 +117,7 @@ pub const Reporter = struct {
     }
 
     pub fn printStats(self: *Reporter, duration: i64) void {
+        if (!self.report_stats) return;
         const yellow, const yd = comptime blk: {
             var c = Chameleon.initComptime();
             const yellow = c.yellow().createPreset();
@@ -202,6 +211,7 @@ const Error = @import("../Error.zig");
 const Span = @import("../span.zig").Span;
 const Allocator = std.mem.Allocator;
 const formatters = @import("./formatter.zig");
+const FormatError = formatters.FormatError;
 
 const AtomicUsize = std.atomic.Value(usize);
 const Mutex = std.Thread.Mutex;
