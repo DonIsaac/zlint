@@ -35,7 +35,7 @@ jobs:
       - name: Get binary name
         id: binary_name
         run: |
-          binary_name=zlint-${{ runner.os }}-${{ runner.arch }}
+          binary_name=zlint-${{ matrix.os }}-${{ os.arch }}
           if [[ "${{ matrix.os}}" == "windows" ]] ; then
             binary_name="${binary_name}.exe"
           fi
