@@ -20,6 +20,8 @@ permissions:
 jobs:
   build:
     strategy:
+      # keep building others in case it's os-specific
+      fail-fast: false
       matrix:
         os: [linux, windows, macos]
         arch: [aarch64, x86_64]
