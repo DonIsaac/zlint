@@ -35,8 +35,6 @@ jobs:
           version: ${{ env.ZIG_VERSION }}
 
       - name: zig build
-        env:
-          BINARY_NAME: ${{ steps.binary_name.outputs.binary_name }}
         run: |
           zig build --summary all --color on \
             --release=safe \
