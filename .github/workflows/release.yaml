@@ -34,6 +34,15 @@ jobs:
         with:
           version: ${{ env.ZIG_VERSION }}
 
+      - name: Get binary name
+        id: binary_name
+        run: |
+          binary_name=zlint-${{ runner.os }}-${{ runner.arch }}
+          if [[ "${{ matrix.os}}" == "windows" ]] ; then
+            binary_name="${binary_name}.exe"
+          fi
+          echo "binary_name=$binary_name" >> "$GITHUB_OUTPUT" 
+
       - name: zig build
         run: |
           zig build --summary all --color on \
