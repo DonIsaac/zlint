@@ -41,6 +41,9 @@ jobs:
           fi
           echo "binary_name=$binary_name" >> "$GITHUB_OUTPUT" 
 
+      - name: echo binary name
+        run: echo ${{ steps.binary_name.outputs.binary_name }}
+
       - name: zig build
         env:
           BINARY_NAME: ${{ steps.binary_name.outputs.binary_name }}
