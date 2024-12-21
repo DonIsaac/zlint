@@ -26,8 +26,6 @@ jobs:
         os: [linux, windows, macos]
         arch: [aarch64, x86_64]
     runs-on: ubuntu-latest
-    env:
-      BINARY_NAME: zlint-${{ matrix.os }}-${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v1
@@ -44,6 +42,8 @@ jobs:
           echo "binary_name=$binary_name" >> "$GITHUB_OUTPUT" 
 
       - name: zig build
+        env:
+          BINARY_NAME: ${{ steps.binary_name.outputs.binary_name }}
         run: |
           zig build --summary all --color on \
             --release=safe \
@@ -53,11 +53,15 @@ jobs:
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
+        env:
+          BINARY_NAME: ${{ steps.binary_name.outputs.binary_name }}
         with:
           subject-path: zig-out/bin/${{ env.BINARY_NAME }}
 
       - name: Upload zlint binary
         uses: actions/upload-artifact@v4
+        env:
+          BINARY_NAME: ${{ steps.binary_name.outputs.binary_name }}
         with:
           path: zig-out/bin/${{ env.BINARY_NAME}}
           name: ${{ env.BINARY_NAME }}
