@@ -35,7 +35,7 @@ jobs:
           if [[ "${{ matrix.os }}" == "windows" ]] ; then
             binary_name="${binary_name}.exe"
           fi
-          echo "binary_name=$binary_name" >> "$GITHUB_OUTPUT" 
+          echo "binary_name=$binary_name" >> "$GITHUB_OUTPUT"
 
       - name: zig build
         env:
