@@ -1,0 +1,13 @@
+name: ZLint
+
+on:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ZLint Action
+        uses: DonIsaac/zlint-action@9d79d371ff94ba0656df5c39e987faa3b7760fe3
+                  
