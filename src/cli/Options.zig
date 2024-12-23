@@ -15,6 +15,9 @@ quiet: bool = false,
 print_ast: bool = false,
 /// How diagnostics are formatted.
 format: formatter.Kind = .graphical,
+/// Instead of walking directories in cwd, read names of files to lint from stdin.
+/// If relative, paths are resolved from the cwd.
+stdin: bool = false,
 /// Positional arguments
 args: std.ArrayListUnmanaged(util.string) = .{},
 
@@ -24,6 +27,7 @@ pub const usage =
 const help =
     \\--print-ast <file>  Parse a file and print its AST as JSON
     \\-f, --format <fmt>  Choose an output format (default, graphical, github, gh)
+    \\-S, --stdin         Lint filepaths received from stdin (newline separated)
     \\--deny-warnings     Warnings produce a non-zero exit code
     \\-q, --quiet         Only display error diagnostics
     \\-V, --verbose       Enable verbose logging   
@@ -63,6 +67,8 @@ fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options 
             opts.version = true;
         } else if (eq(arg, "--deny-warnings")) {
             opts.deny_warnings = true;
+        } else if (eq(arg, "-S") or eq(arg, "--stdin")) {
+            opts.stdin = true;
         } else if (eq(arg, "-f") or eq(arg, "--format")) {
             // TODO: comptime string concat on format names
             const fmt = argv.next() orelse {
