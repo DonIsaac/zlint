@@ -25,7 +25,7 @@ const MIN_LEN: u32 = "//zlint-disable".len;
 /// Amount of stack space to reserve when parsing.
 const STACK_FALLBACK_SIZE: usize = 2048;
 
-fn new(source: []const u8) DisableDirectivesParser {
+pub fn new(source: []const u8) DisableDirectivesParser {
     assert(source.len > 0);
     // SAFETY: initialized at beginning of parsed(). These are private fields
     // that shouldn't be accessed externally: fuck around with abstraction
@@ -37,6 +37,7 @@ fn new(source: []const u8) DisableDirectivesParser {
         .span = undefined,
     };
 }
+
 /// ### Examples
 /// - `// zlint-disable` - disable all rules for this file
 /// - `// zlint-disable -- some comment` - same as above
@@ -48,7 +49,7 @@ fn new(source: []const u8) DisableDirectivesParser {
 /// - `// zlint-disable-next-line` - disable violations for all rules on next line
 /// - `// zlint-disable-next-line  -- no-undefined` same as above. `no-undefined` is treated as a comment
 /// - `// zlint-disable-next-line no-undefined`
-fn parse(self: *DisableDirectivesParser, allocator: Allocator, line_comment: Span) Allocator.Error!?DisableDirectiveComment {
+pub fn parse(self: *DisableDirectivesParser, allocator: Allocator, line_comment: Span) Allocator.Error!?DisableDirectiveComment {
     assert(self.source.len >= line_comment.end); // ensure line comment is within source code
     defer if (comptime util.IS_DEBUG) self.reset();
 
@@ -59,7 +60,10 @@ fn parse(self: *DisableDirectivesParser, allocator: Allocator, line_comment: Spa
 
     var fb = std.heap.stackFallback(STACK_FALLBACK_SIZE, allocator);
     const alloc = fb.get();
-    defer self.rules.deinit(alloc);
+    defer {
+        self.rules.deinit(alloc);
+        self.rules = .{}; // Put rules back into a valid, empty state for the next parse.
+    }
 
     // consume /\s*//[/!]?\s*/
     self.eatWhitespace(); // "\s*"
@@ -221,6 +225,10 @@ test parse {
         // try t.expectEqual(expected.kind, actual.k);
         // try t.expectEqual(expected, actual);
     }
+}
+
+test {
+    _ = @import("./Parser_test.zig");
 }
 
 test eatWhitespace {

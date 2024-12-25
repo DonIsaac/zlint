@@ -1,5 +1,5 @@
 //! A disable directive parsed from a comment.
-//! 
+//!
 //! ## Examples
 //! ```zig
 //! // zlint-disable
