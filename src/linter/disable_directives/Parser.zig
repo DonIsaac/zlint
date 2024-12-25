@@ -184,7 +184,7 @@ test parse {
             "// zlint-disable no-undefined",
             .{
                 .kind = .global,
-                .span = .{ .start = 0, .end = 19 },
+                .span = .{ .start = 0, .end = 29 },
                 .disabled_rules = @constCast(&[_]Span{Span.new(17, 29)}),
             },
         },
