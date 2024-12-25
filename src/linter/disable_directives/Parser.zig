@@ -128,10 +128,10 @@ fn eatWhitespace(self: *DisableDirectivesParser) void {
 /// Move the cursor forward if the next character is `expected`. Otherwise
 /// the cursor is not modified and `null` is returned.
 fn eat(self: *DisableDirectivesParser, expected: u8) ?void {
-    const next = self.cursor + 1;
-    if (next >= self.span.end) return null;
-    if (self.source[next] == expected) {
-        self.cursor = next;
+    if (self.cursor >= self.span.end) return null;
+
+    if (self.curr() == expected) {
+        self.cursor += 1;
         return;
     } else {
         return null;
