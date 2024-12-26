@@ -94,7 +94,6 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Ast = std.zig.Ast;
-const Token = std.zig.Token;
 const Type = std.builtin.Type;
 const assert = std.debug.assert;
 
@@ -103,6 +102,8 @@ const _tokenizer = @import("./tokenizer.zig");
 const TokenList = _tokenizer.TokenList;
 const CommentList = _tokenizer.CommentList;
 const TokenIndex = _ast.TokenIndex;
+
+pub const Token = _tokenizer.Token;
 
 pub const NodeLinks = @import("NodeLinks.zig");
 pub const Scope = @import("Scope.zig");
