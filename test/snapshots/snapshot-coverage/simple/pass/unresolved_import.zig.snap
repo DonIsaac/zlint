@@ -5,7 +5,7 @@
       "debugName": "@This()", 
       "token": null, 
       "declNode": "root", 
-      "scope": semantic.id.NominalId(u32)(0), 
+      "scope": util.id.NominalId(u32)(0), 
       "flags": ["const"], 
       "references": [
         
@@ -19,7 +19,7 @@
       "debugName": "", 
       "token": 1, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(0), 
+      "scope": util.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
       "references": [
         
@@ -31,7 +31,7 @@
   ], 
   "unresolvedReferences": [],
   "scopes": {
-    "id": semantic.id.NominalId(u32)(0), 
+    "id": util.id.NominalId(u32)(0), 
     "flags": ["top"], 
     "bindings": {
       "@This()": 0, 

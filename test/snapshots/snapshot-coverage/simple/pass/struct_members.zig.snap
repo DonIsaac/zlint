@@ -5,7 +5,7 @@
       "debugName": "@This()", 
       "token": null, 
       "declNode": "root", 
-      "scope": semantic.id.NominalId(u32)(0), 
+      "scope": util.id.NominalId(u32)(0), 
       "flags": ["const"], 
       "references": [
         
@@ -19,7 +19,7 @@
       "debugName": "", 
       "token": 2, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(0), 
+      "scope": util.id.NominalId(u32)(0), 
       "flags": ["variable", "const", "struct"], 
       "references": [
         
@@ -33,7 +33,7 @@
       "debugName": "", 
       "token": 6, 
       "declNode": "container_field_init", 
-      "scope": semantic.id.NominalId(u32)(1), 
+      "scope": util.id.NominalId(u32)(1), 
       "flags": ["member", "struct"], 
       "references": [
         
@@ -47,7 +47,7 @@
       "debugName": "", 
       "token": 11, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(1), 
+      "scope": util.id.NominalId(u32)(1), 
       "flags": ["variable", "const"], 
       "references": [
         
@@ -61,7 +61,7 @@
       "debugName": "", 
       "token": 19, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(1), 
+      "scope": util.id.NominalId(u32)(1), 
       "flags": ["variable", "const"], 
       "references": [
         
@@ -73,7 +73,7 @@
   ], 
   "unresolvedReferences": [],
   "scopes": {
-    "id": semantic.id.NominalId(u32)(0), 
+    "id": util.id.NominalId(u32)(0), 
     "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
@@ -82,7 +82,7 @@
     }, 
     "children": [
       {
-        "id": semantic.id.NominalId(u32)(1), 
+        "id": util.id.NominalId(u32)(1), 
         "flags": ["struct", "block"], 
         "bindings": {
           "a": 2, 

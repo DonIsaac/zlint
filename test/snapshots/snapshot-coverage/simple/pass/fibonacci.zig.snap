@@ -5,7 +5,7 @@
       "debugName": "@This()", 
       "token": null, 
       "declNode": "root", 
-      "scope": semantic.id.NominalId(u32)(0), 
+      "scope": util.id.NominalId(u32)(0), 
       "flags": ["const"], 
       "references": [
         
@@ -19,7 +19,7 @@
       "debugName": "", 
       "token": 1, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(0), 
+      "scope": util.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
       "references": [
         {"symbol":1,"scope":0,"node":"identifier","identifier":"std","flags":["read"]}, 
@@ -37,7 +37,7 @@
       "debugName": "", 
       "token": 9, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(0), 
+      "scope": util.id.NominalId(u32)(0), 
       "flags": ["variable", "const"], 
       "references": [
         {"symbol":2,"scope":2,"node":"identifier","identifier":"Managed","flags":["call"]}, 
@@ -54,7 +54,7 @@
       "debugName": "", 
       "token": 23, 
       "declNode": "fn_decl", 
-      "scope": semantic.id.NominalId(u32)(0), 
+      "scope": util.id.NominalId(u32)(0), 
       "flags": ["fn"], 
       "references": [
         
@@ -68,7 +68,7 @@
       "debugName": "", 
       "token": 31, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(2), 
+      "scope": util.id.NominalId(u32)(2), 
       "flags": ["variable", "const"], 
       "references": [
         {"symbol":4,"scope":2,"node":"identifier","identifier":"allocator","flags":["read"]}, 
@@ -87,7 +87,7 @@
       "debugName": "", 
       "token": 40, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(2), 
+      "scope": util.id.NominalId(u32)(2), 
       "flags": ["variable"], 
       "references": [
         {"symbol":5,"scope":2,"node":"identifier","identifier":"a","flags":["call"]}, 
@@ -105,7 +105,7 @@
       "debugName": "", 
       "token": 60, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(2), 
+      "scope": util.id.NominalId(u32)(2), 
       "flags": ["variable"], 
       "references": [
         {"symbol":6,"scope":2,"node":"identifier","identifier":"b","flags":["call"]}, 
@@ -123,7 +123,7 @@
       "debugName": "", 
       "token": 80, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(2), 
+      "scope": util.id.NominalId(u32)(2), 
       "flags": ["variable"], 
       "references": [
         {"symbol":7,"scope":2,"node":"identifier","identifier":"i","flags":["read"]}, 
@@ -139,7 +139,7 @@
       "debugName": "", 
       "token": 87, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(2), 
+      "scope": util.id.NominalId(u32)(2), 
       "flags": ["variable"], 
       "references": [
         {"symbol":8,"scope":2,"node":"identifier","identifier":"c","flags":["call"]}, 
@@ -156,7 +156,7 @@
       "debugName": "", 
       "token": 153, 
       "declNode": "simple_var_decl", 
-      "scope": semantic.id.NominalId(u32)(2), 
+      "scope": util.id.NominalId(u32)(2), 
       "flags": ["variable", "const"], 
       "references": [
         {"symbol":9,"scope":2,"node":"identifier","identifier":"as","flags":["read"]}, 
@@ -170,7 +170,7 @@
   ], 
   "unresolvedReferences": [],
   "scopes": {
-    "id": semantic.id.NominalId(u32)(0), 
+    "id": util.id.NominalId(u32)(0), 
     "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
@@ -181,14 +181,14 @@
     }, 
     "children": [
       {
-        "id": semantic.id.NominalId(u32)(1), 
+        "id": util.id.NominalId(u32)(1), 
         "flags": ["function"], 
         "bindings": {
           
         }, 
         "children": [
           {
-            "id": semantic.id.NominalId(u32)(2), 
+            "id": util.id.NominalId(u32)(2), 
             "flags": ["function", "block"], 
             "bindings": {
               "allocator": 4, 
@@ -201,7 +201,7 @@
             }, 
             "children": [
               {
-                "id": semantic.id.NominalId(u32)(3), 
+                "id": util.id.NominalId(u32)(3), 
                 "flags": ["block"], 
                 "bindings": {
                   
