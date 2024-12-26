@@ -39,7 +39,7 @@ pub fn NominalId(TRepr: type) type {
         }
 
         /// Check if two Ids are equal.
-        pub inline fn eq(self: Id, other: Id) bool {
+        pub inline fn eql(self: Id, other: Id) bool {
             return self.int() == other.int();
         }
 

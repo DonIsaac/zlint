@@ -192,7 +192,7 @@ pub const Flags = packed struct(FLAGS_REPR) {
 
 const std = @import("std");
 const _ast = @import("ast.zig");
-const NominalId = @import("id.zig").NominalId;
+const NominalId = @import("util").NominalId;
 
 const Node = _ast.Node;
 const TokenIndex = _ast.TokenIndex;
