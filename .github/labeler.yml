@@ -1,0 +1,23 @@
+A-cli:
+  - changed-files:
+      - any-glob-to-any-file: ["src/cli/**"]
+
+A-linter:
+  - changed-files:
+      - any-glob-to-any-file: ["src/linter/**", "src/linter.zig"]
+
+A-semantic:
+  - changed-files:
+      - any-glob-to-any-file: ["src/semantic/**", "src/semantic.zig"]
+
+A-reporter:
+  - changed-files:
+      - any-glob-to-any-file: ["src/reporter/**", "src/reporter.zig"]
+
+C-ci:
+  - changed-files:
+      - any-glob-to-any-file: [".github/workflows/**"]
+
+C-test:
+  - changed-files:
+      - any-glob-to-any-file: ["test/**"]
