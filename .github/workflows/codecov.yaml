@@ -16,12 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install kcov
+        run: |
+          sudo apt-get update
+          sudo apt-get install kcov -y
       - uses: extractions/setup-just@v2
       - uses: mlugg/setup-zig@v1
         with:
           version: ${{ env.ZIG_VERSION }}
-      - name: Install kcov
-        run: sudo apt-get install kcov
 
       - run: just submodules
       - run: zig build
