@@ -12,11 +12,12 @@ env:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   codecov:
     name: Collect and upload test coverage
-    runs-on: ubuntu-latest
+    runs-on: "ubuntu-22.04"
     steps:
       - uses: actions/checkout@v4
       - name: Install kcov
