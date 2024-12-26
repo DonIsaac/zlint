@@ -35,7 +35,7 @@ pub inline fn isGlobal(self: *const DisableDirectiveComment) bool {
 }
 
 /// Does this directive disable diagnostics for all rules?
-/// 
+///
 /// _(say that 3 times fast lol)_
 pub inline fn disablesAllRules(self: *const DisableDirectiveComment) bool {
     return self.disabled_rules.len == 0;

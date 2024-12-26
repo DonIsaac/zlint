@@ -65,12 +65,12 @@ pub const Linter = struct {
     }
 
     /// Lint a Zig source file.
-    /// 
+    ///
     /// ## Diagnostics
     /// Parse, semantic, and lint errors are stored in `errors`. Callers should
     /// pass a reference to a `null`-initialized error list. If any errors
     /// occur, that `null` value will be replaced with a list of errors, and a
-    /// `LintError` will be returned to indicate what stage the linter got to 
+    /// `LintError` will be returned to indicate what stage the linter got to
     /// before exiting.
     pub fn runOnSource(
         self: *Linter,
@@ -156,7 +156,7 @@ pub const Linter = struct {
     /// - When filtering occurs, remaining rules are stored in `rulebuf`, and
     ///   the slice of that buffer storing rules is returned.
     /// - A slice over `rulebuf` when at least one rule is filtered out. It contains
-    ///   the rules taht were not filtered.
+    ///   the rules that were not filtered.
     /// - `null` if all rules are filtered out;
     /// - A pointer to this linter's owned ruleset when no rules are filtered out.
     ///   `rulebuf` will be unmodified.
@@ -250,8 +250,8 @@ pub const Linter = struct {
                 i += 1;
             }
         }
-        // no rules will be matched if disable directives are misued or rule
-        // names are mispelled (e.g. `zlint-disable not-a-rule`). In this case,
+        // no rules will be matched if disable directives are misused or rule
+        // names are misspelled (e.g. `zlint-disable not-a-rule`). In this case,
         // no rules are disabled so we just run them all.
         return if (i == 0) configured_rules else rulebuf[0..i];
     }
