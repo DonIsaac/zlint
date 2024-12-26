@@ -116,6 +116,10 @@ pub const Rule = struct {
         return self.runOnSymbolFn(self.ptr, symbol, ctx);
     }
 
+    pub fn getIdFor(name: []const u8) ?Rule.Id {
+        return rule_ids.get(name);
+    }
+
     pub const Id = util.NominalId(u32);
 };
 

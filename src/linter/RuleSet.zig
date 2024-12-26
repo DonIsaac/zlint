@@ -3,7 +3,7 @@ rules: std.ArrayListUnmanaged(Rule.WithSeverity) = .{},
 const RuleSet = @This();
 
 /// Total number of all lint rules.
-const RULES_COUNT: usize = @typeInfo(rules).Struct.decls.len;
+pub const RULES_COUNT: usize = @typeInfo(rules).Struct.decls.len;
 const ALL_RULE_IMPLS_SIZE: usize = Rule.MAX_SIZE * @typeInfo(rules).Struct.decls.len;
 const ALL_RULES_SIZE: usize = @sizeOf(Rule.WithSeverity) * @typeInfo(rules).Struct.decls.len;
 

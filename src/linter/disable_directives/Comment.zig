@@ -29,6 +29,18 @@ pub const Kind = enum {
     line,
 };
 
+/// Returns `true` if this disable directive applies to an entire file.
+pub inline fn isGlobal(self: *const DisableDirectiveComment) bool {
+    return self.kind == .global;
+}
+
+/// Does this directive disable diagnostics for all rules?
+/// 
+/// _(say that 3 times fast lol)_
+pub inline fn disablesAllRules(self: *const DisableDirectiveComment) bool {
+    return self.disabled_rules.len == 0;
+}
+
 pub fn eql(self: DisableDirectiveComment, other: DisableDirectiveComment) bool {
     if (self.kind != other.kind or !self.span.eql(other.span)) return false;
     if (self.disabled_rules == other.disabled_rules) return true;
