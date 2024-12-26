@@ -148,5 +148,6 @@ pub const Linter = struct {
 test {
     std.testing.refAllDecls(@This());
     std.testing.refAllDecls(@import("linter/tester.zig"));
+    std.testing.refAllDecls(@import("linter/disable_directives/Parser.zig"));
     std.testing.refAllDeclsRecursive(rules);
 }
