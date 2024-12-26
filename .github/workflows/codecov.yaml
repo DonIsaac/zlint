@@ -3,23 +3,27 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 env:
   ZIG_VERSION: 0.13.0
 
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   codecov:
     name: Collect and upload test coverage
-    runs-on: ubuntu-latest
+    runs-on: "ubuntu-22.04"
     steps:
       - uses: actions/checkout@v4
       - name: Install kcov
         run: |
           sudo apt-get update
-          sudo apt-get install kcov -y
+          sudo apt-get install -y kcov
       - uses: extractions/setup-just@v2
       - uses: mlugg/setup-zig@v1
         with:
