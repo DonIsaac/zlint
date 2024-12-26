@@ -2,6 +2,8 @@ const std = @import("std");
 const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 
+pub const NominalId = @import("./util/id.zig").NominalId;
+
 pub const string = []const u8;
 pub const stringSlice = [:0]const u8;
 pub const stringMut = []u8;
