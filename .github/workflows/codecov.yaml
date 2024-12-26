@@ -16,13 +16,12 @@ concurrency:
 jobs:
   codecov:
     name: Collect and upload test coverage
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22
     steps:
       - uses: actions/checkout@v4
       - name: Install kcov
         run: |
-          brew update --preinstall
-          brew install kcov
+          sudo apt-get install kcov
       - uses: extractions/setup-just@v2
       - uses: mlugg/setup-zig@v1
         with:
