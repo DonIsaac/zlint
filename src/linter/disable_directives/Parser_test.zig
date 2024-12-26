@@ -102,6 +102,7 @@ test "not a disable directive" {
 
 test "disable directives may be in doc comments" {
     const cases = &[_]TestCase{
+        .{ .src = "//  zlint-disable", .expected = .{ .kind = .global, .span = NULL_SPAN } },
         .{ .src = "/// zlint-disable", .expected = .{ .kind = .global, .span = NULL_SPAN } },
         .{ .src = "//! zlint-disable", .expected = .{ .kind = .global, .span = NULL_SPAN } },
     };
