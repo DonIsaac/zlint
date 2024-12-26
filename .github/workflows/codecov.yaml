@@ -16,7 +16,7 @@ concurrency:
 jobs:
   codecov:
     name: Collect and upload test coverage
-    runs-on: ubuntu-22
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Install kcov
