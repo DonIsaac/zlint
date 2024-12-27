@@ -61,6 +61,22 @@ jobs:
       - run: zig build --fetch
       - run: zig build test --summary all -freference-trace --color on
 
+  # https://imgflip.com/i/9eygz0
+  lint:
+    name: Lint Changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Install tooling
+      - uses: extractions/setup-just@v2
+      - uses: mlugg/setup-zig@v1
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - run: zig build
+      - uses: DonIsaac/zlint-action@v0
+        with:
+          binary: ./zig-out/bin/zlint
+
   e2e:
     name: Test E2E
     runs-on: ubuntu-latest
