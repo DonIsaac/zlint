@@ -86,9 +86,9 @@ GITHUB=${GITHUB-"https://github.com"}
 github_repo="$GITHUB/DonIsaac/zlint"
 
 if [[ $# = 0 ]]; then
-    zlint_uri=$github_repo/releases/latest/download/zlint-$target.zip
+    zlint_uri=$github_repo/releases/latest/download/zlint-$target
 else
-    zlint_uri=$github_repo/releases/download/$1/zlint-$target.zip
+    zlint_uri=$github_repo/releases/download/$1/zlint-$target
 fi
 
 # macos/linux cross-compat mktemp
