@@ -93,7 +93,7 @@ fi
 
 # macos/linux cross-compat mktemp
 # https://unix.stackexchange.com/questions/30091/fix-or-alternative-for-mktemp-in-os-x
-tmpdir=mytmpdir=$(mktemp -d 2>/dev/null || mktemp -d -t 'zlint')
+tmpdir=$(mktemp -d 2>/dev/null || mktemp -d -t 'zlint')
 install_dir=/usr/local/bin
 
 curl --fail --location --progress-bar --output "$tmpdir/zlint" "$zlint_uri" ||
