@@ -42,11 +42,26 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
         var visitor = try LintVisitor.init(alloc, &reporter, config, null);
         defer visitor.deinit();
 
-        var src = try fs.cwd().openDir(".", .{ .iterate = true });
-        defer src.close();
-        var walker = try LintWalker.init(alloc, src, &visitor);
-        defer walker.deinit();
-        try walker.walk();
+        if (!options.stdin) {
+            var src = try fs.cwd().openDir(".", .{ .iterate = true });
+            defer src.close();
+            var walker = try LintWalker.init(alloc, src, &visitor);
+            defer walker.deinit();
+            try walker.walk();
+        } else {
+            // SAFETY: initialized by reader
+            var msg_buf: [4069]u8 = undefined;
+            var stdin = std.io.getStdIn();
+            // const did_lock = try stdin.tryLock(.shared);
+            // defer if (did_lock) stdin.unlock();
+            var buf_reader = std.io.bufferedReader(stdin.reader());
+            var reader = buf_reader.reader();
+            while (try reader.readUntilDelimiterOrEof(&msg_buf, '\n')) |filepath| {
+                if (!std.mem.endsWith(u8, filepath, ".zig")) continue;
+                const owned = try alloc.dupe(u8, filepath);
+                visitor.lintFile(owned);
+            }
+        }
     }
 
     const stop = std.time.milliTimestamp();
@@ -116,6 +131,8 @@ const LintVisitor = struct {
         return WalkState.Continue;
     }
 
+    /// `filepath` must be an owned allocation on the heap, and gets moved into
+    /// the visitor. This is for thread safety reasons.
     fn lintFile(self: *LintVisitor, filepath: []u8) void {
         self.lintFileImpl(filepath) catch |e| switch (e) {
             error.OutOfMemory => @panic("Out of memory"),

@@ -36,6 +36,7 @@ const RunOnSymbolFn = *const fn (ptr: *const anyopaque, symbol: Symbol.Id, ctx: 
 pub const Rule = struct {
     // name: string,
     meta: Meta,
+    id: Id,
     ptr: *anyopaque,
     runOnNodeFn: RunOnNodeFn,
     runOnSymbolFn: RunOnSymbolFn,
@@ -81,6 +82,8 @@ pub const Rule = struct {
             @compileError("Rule must have a `pub const " ++ META_FIELD_NAME ++ " Rule.Meta` field");
         };
 
+        const id = comptime rule_ids.get(meta.name) orelse @compileError("Could not find an id for rule '" ++ meta.name ++ "'.");
+
         const gen = struct {
             pub fn runOnNode(pointer: *const anyopaque, node: NodeWrapper, ctx: *LinterContext) anyerror!void {
                 if (@hasDecl(ptr_info.child, "runOnNode")) {
@@ -97,6 +100,7 @@ pub const Rule = struct {
         };
 
         return .{
+            .id = id,
             .meta = meta,
             .ptr = ptr,
             .runOnNodeFn = gen.runOnNode,
@@ -111,17 +115,37 @@ pub const Rule = struct {
     pub fn runOnSymbol(self: *const Rule, symbol: Symbol.Id, ctx: *LinterContext) !void {
         return self.runOnSymbolFn(self.ptr, symbol, ctx);
     }
+
+    pub fn getIdFor(name: []const u8) ?Rule.Id {
+        return rule_ids.get(name);
+    }
+
+    pub const Id = util.NominalId(u32);
 };
 
-fn getRuleName(ty: std.builtin.Type) string {
-    switch (ty) {
-        .Pointer => {
-            const child = ty.Pointer.child;
-            if (!@hasDecl(child, "Name")) {
-                @panic("Rule must have a `pub const Name: []const u8` field");
-            }
-            return child.Name;
-        },
-        else => @panic("Rule must be a pointer"),
+const IdMap = std.StaticStringMap(Rule.Id);
+const rule_ids: IdMap = ids: {
+    const Type = std.builtin.Type;
+    const AllRules = @import("./rules.zig");
+    const RuleDecls: []const Type.Declaration = @typeInfo(AllRules).Struct.decls;
+    var ids: [RuleDecls.len]struct { []const u8, Rule.Id } = undefined;
+    for (RuleDecls, 0..) |decl, i| {
+        const RuleImpl = @field(AllRules, decl.name);
+        if (!@hasDecl(RuleImpl, "meta")) {
+            @compileError("Rule '" ++ decl.name ++ "' is missing a meta: Rule.Meta property.");
+        }
+        const name: []const u8 = @field(AllRules, decl.name).meta.name;
+        const id = Rule.Id.new(i);
+        ids[i] = .{ name, id };
     }
+    break :ids IdMap.initComptime(ids);
+};
+
+test rule_ids {
+    const t = std.testing;
+    try t.expectEqual(
+        @typeInfo(@import("./rules.zig")).Struct.decls.len,
+        rule_ids.kvs.len,
+    );
+    try t.expect(rule_ids.get("no-undefined") != null);
 }

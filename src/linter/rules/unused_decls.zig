@@ -104,7 +104,7 @@ pub fn runOnSymbol(_: *const UnusedDecls, symbol: Symbol.Id, ctx: *LinterContext
     // are too many false positives for non-root constants. Once such references
     // are reliably resolved, remove this check.
     const scope: Scope.Id = slice.items(.scope)[s];
-    if (!scope.eq(semantic.Semantic.ROOT_SCOPE_ID)) return;
+    if (!scope.eql(semantic.Semantic.ROOT_SCOPE_ID)) return;
 
     if (flags.s_variable and flags.s_const) {
         _ = ctx.diagnosticFmt(

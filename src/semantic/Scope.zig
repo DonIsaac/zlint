@@ -216,7 +216,7 @@ const Allocator = std.mem.Allocator;
 const Ast = _ast.Ast;
 const NodeIndex = _ast.NodeIndex;
 const Symbol = @import("Symbol.zig");
-const NominalId = @import("id.zig").NominalId;
+const NominalId = util.NominalId;
 
 const string = util.string;
 const assert = std.debug.assert;

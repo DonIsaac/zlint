@@ -1,4 +1,4 @@
-# ZLint
+# ⚡️ ZLint
 
 [![codecov](https://codecov.io/gh/DonIsaac/zlint/graph/badge.svg?token=5bDT3yGZt8)](https://codecov.io/gh/DonIsaac/zlint)
 [![CI](https://github.com/DonIsaac/zlint/actions/workflows/ci.yaml/badge.svg)](https://github.com/DonIsaac/zlint/actions/workflows/ci.yaml)
@@ -6,24 +6,36 @@
 An opinionated linter for the Zig programming language.
 
 > [!WARNING]
-> This project is still very much under construction.
+> This project is still under construction. It is usable and useful,
+> but many features have not been implemented yet.
 
-## Features
+## ✨ Features
 
-- ZLint has its own semantic analyzer, heavily inspired by [the Oxc
-  project](https://github.com/oxc-project/oxc), that is completely separate from
-  the Zig compiler. This means that ZLint still checks and understands code that
-  may otherwise be ignored by Zig due to dead code elimination.
-- Pretty, detailed, and easy-to-understand error messages.
+- 🔍 **Custom Analysis**. ZLint has its own semantic analyzer, heavily inspired
+  by [the Oxc project](https://github.com/oxc-project/oxc), that is completely
+  separate from the Zig compiler. This means that ZLint still checks and
+  understands code that may otherwise be ignored by Zig due to dead code
+  elimination.
+- ⚡️ **Fast**. Designed from the ground-up to be highly performant, ZLint
+  typically takes a few hundred milliseconds to lint large projects.
+- 💡 **Understandable**. Error messages are pretty, detailed, and easy to understand. 
+  Most rules come with explanations on how to fix them and what _exactly_ is wrong.
   ![image](https://github.com/user-attachments/assets/dbe0a38a-4906-42fe-a07e-9f7676e3973b)
 
-## Installation
+## 📦 Installation
+Pre-built binaries for Windows, MacOS, and Linux on x64 and aarch64 are
+available [for each release](https://github.com/DonIsaac/zlint/releases/latest).
 
-Pre-built binaries are available for each release. The latest release can be
-found [here](https://github.com/DonIsaac/zlint/releases/latest). Note that
-pre-built windows binaries are not yet available.
+```sh
+curl -fsSL https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/tasks/install.sh | bash
+```
 
-### Building from Source
+> [!WARNING]
+> - Pre-built binaries are not available for Alpine Linux (or any other MUSL-based distro).
+>   Please build from source.
+> - This installation script does not work on Windows. Please download the binary manually.
+
+### 🔨 Building from Source
 
 Clone this repo and compile the project with Zig.
 
@@ -31,11 +43,11 @@ Clone this repo and compile the project with Zig.
 zig build --release=safe
 ```
 
-## Lint Rules
+## ⚡️ Lint Rules
 
 All lints and what they do can be found [here](docs/rules/).
 
-## Configuration
+## ⚙️ Configuration
 
 Create a `zlint.json` file in the same directory as `build.zig`. This disables
 all default rules, only enabling the ones you choose.
@@ -49,7 +61,14 @@ all default rules, only enabling the ones you choose.
 }
 ```
 
-## Contributing
+ZLint also supports [ESLint-like disable directives](https://eslint.org/docs/latest/use/configure/rules#comment-descriptions) to turn off some or all rules for a specific file.
+
+```zig
+// zlint-disable no-undefined -- We need to come back and fix this later
+const x: i32 = undefined;
+```
+
+## 🙋‍♂️ Contributing
 
 If you have any rule ideas, please add them to the [rule ideas
 board](https://github.com/DonIsaac/zlint/issues/3).

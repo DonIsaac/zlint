@@ -9,6 +9,8 @@ const Arc = ptrs.Arc;
 const assert = std.debug.assert;
 const string = util.string;
 
+const t = std.testing;
+
 pub const LocationSpan = struct {
     span: LabeledSpan,
     location: Location,
@@ -69,10 +71,33 @@ pub const Span = struct {
         return contents[self.start..self.end];
     }
 
+    /// Translate a span towards the end of the file by `offset` characters.
+    ///
+    /// ## Example
+    /// ```zig
+    /// const span = Span.new(5, 7);
+    /// const moved = span.shiftRight(5);
+    /// try std.testing.expectEqual(Span.new(10, 12), moved);
+    /// ```
+    pub fn shiftRight(self: Span, offset: u32) Span {
+        return .{ .start = self.start + offset, .end = self.end + offset };
+    }
+
+    pub inline fn contains(self: Span, point: u32) bool {
+        self.start >= point and point < self.end;
+    }
+
     pub fn eql(self: Span, other: Span) bool {
         return self.start == other.start and self.end == other.end;
     }
 };
+
+test "Span.shiftRight" {
+    const span = Span.new(5, 7);
+    const moved = span.shiftRight(5);
+    try t.expectEqual(Span.new(10, 12), moved);
+    try t.expectEqual(Span.new(5, 7), span); // original span is not mutated
+}
 
 pub const LabeledSpan = struct {
     span: Span,
@@ -137,7 +162,6 @@ fn findLineColumn(source: []const u8, byte_offset: u32) Location {
 }
 
 test findLineColumn {
-    const t = std.testing;
     const source =
         \\Foo bar
         \\baz

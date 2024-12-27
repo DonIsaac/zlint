@@ -355,11 +355,12 @@ pub const ReferenceIterator = struct {
 const Symbol = @This();
 
 const std = @import("std");
+const util = @import("util");
 const ast = @import("ast.zig");
 
 const Allocator = std.mem.Allocator;
 const Type = std.builtin.Type;
-const NominalId = @import("id.zig").NominalId;
+const NominalId = util.NominalId;
 
 const Node = ast.Node;
 const Scope = @import("Scope.zig");
