@@ -23,10 +23,17 @@ An opinionated linter for the Zig programming language.
   ![image](https://github.com/user-attachments/assets/dbe0a38a-4906-42fe-a07e-9f7676e3973b)
 
 ## 📦 Installation
+Pre-built binaries for Windows, MacOS, and Linux on x64 and aarch64 are
+available [for each release](https://github.com/DonIsaac/zlint/releases/latest).
 
-Pre-built binaries are available for each release. The latest release can be
-found [here](https://github.com/DonIsaac/zlint/releases/latest). Note that
-pre-built windows binaries are not yet available.
+```sh
+curl -fsSL https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/tasks/install.sh | bash
+```
+
+> [!WARNING]
+> - Pre-built binaries are not available for Alpine Linux (or any other MUSL-based distro).
+>   Please build from source.
+> - This installation script does not work on Windows. Please download the binary manually.
 
 ### 🔨 Building from Source
 
