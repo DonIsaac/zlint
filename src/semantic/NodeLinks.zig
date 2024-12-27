@@ -63,16 +63,16 @@ pub inline fn setParent(self: *NodeLinks, child_id: NodeIndex, parent_id: NodeIn
     self.parents.items[child_id] = parent_id;
 }
 
-pub inline fn getParent(self: *NodeLinks, node_id: NodeIndex) ?NodeIndex {
+pub inline fn getParent(self: *const NodeLinks, node_id: NodeIndex) ?NodeIndex {
     if (node_id == ROOT_NODE_ID) {
         return NULL_NODE;
     }
-    return self.parents[node_id];
+    return self.parents.items[node_id];
 }
 
 /// Iterate over a node's parents. The first element is the node itself, and
 /// the last will be the root node.
-pub fn iterParentIds(self: *NodeLinks, node_id: NodeIndex) ParentIdsIterator {
+pub fn iterParentIds(self: *const NodeLinks, node_id: NodeIndex) ParentIdsIterator {
     return ParentIdsIterator{
         .links = self,
         .curr_id = node_id,
@@ -80,7 +80,7 @@ pub fn iterParentIds(self: *NodeLinks, node_id: NodeIndex) ParentIdsIterator {
 }
 
 const ParentIdsIterator = struct {
-    links: *NodeLinks,
+    links: *const NodeLinks,
     curr_id: ?NodeIndex,
 
     pub fn next(self: *ParentIdsIterator) ?NodeIndex {
