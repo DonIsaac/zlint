@@ -16,14 +16,20 @@ builds.
 ### Allowed Scenarios
 
 There are some cases where using `undefined` makes sense, such as array
-initialization. Such cases should be communicated to other programmers via a
-safety comment. Adding `SAFETY: <reason>` before the line using `undefined`
-will not trigger a rule violation.
+initialization. Some cases are implicitly allowed, but others should be
+communicated to other programmers via a safety comment. Adding `SAFETY:
+<reason>` before the line using `undefined` will not trigger a rule
+violation.
 
 ```zig
-// SAFETY: arr is immediately initialized after declaration.
+// arrays may be set to undefined without a safety comment
 var arr: [10]u8 = undefined;
 @memset(&arr, 0);
+
+// SAFETY: foo is written to by `initializeFoo`, so `undefined` is never
+// read.
+var foo: u32 = undefined
+initializeFoo(&foo);
 ```
 
 ## Examples

@@ -6,6 +6,34 @@
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 
   𝙭 no-undefined: `undefined` is missing a safety comment
+   ╭─[no-undefined.zig:1:21]
+ 1 │ const slice: []u8 = undefined;
+   ·                     ─────────
+   ╰────
+  help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
+
+  𝙭 no-undefined: `undefined` is missing a safety comment
+   ╭─[no-undefined.zig:1:23]
+ 1 │ const slice: [:0]u8 = undefined;
+   ·                       ─────────
+   ╰────
+  help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
+
+  𝙭 no-undefined: `undefined` is missing a safety comment
+   ╭─[no-undefined.zig:1:25]
+ 1 │ const many_ptr: [*]u8 = undefined;
+   ·                         ─────────
+   ╰────
+  help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
+
+  𝙭 no-undefined: `undefined` is missing a safety comment
+   ╭─[no-undefined.zig:1:27]
+ 1 │ const many_ptr: [*:0]u8 = undefined;
+   ·                           ─────────
+   ╰────
+  help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
+
+  𝙭 no-undefined: `undefined` is missing a safety comment
    ╭─[no-undefined.zig:2:11]
  1 │ // This is not a safety comment
  2 │ const x = undefined;

@@ -9,14 +9,20 @@
 //! ### Allowed Scenarios
 //!
 //! There are some cases where using `undefined` makes sense, such as array
-//! initialization. Such cases should be communicated to other programmers via a
-//! safety comment. Adding `SAFETY: <reason>` before the line using `undefined`
-//! will not trigger a rule violation.
+//! initialization. Some cases are implicitly allowed, but others should be
+//! communicated to other programmers via a safety comment. Adding `SAFETY:
+//! <reason>` before the line using `undefined` will not trigger a rule
+//! violation.
 //!
 //! ```zig
-//! // SAFETY: arr is immediately initialized after declaration.
+//! // arrays may be set to undefined without a safety comment
 //! var arr: [10]u8 = undefined;
 //! @memset(&arr, 0);
+//! 
+//! // SAFETY: foo is written to by `initializeFoo`, so `undefined` is never
+//! // read.
+//! var foo: u32 = undefined
+//! initializeFoo(&foo);
 //! ```
 //!
 //! ## Examples
@@ -58,6 +64,7 @@ const util = @import("util");
 const mem = std.mem;
 const source = @import("../../source.zig");
 
+const Semantic = @import("../../semantic.zig").Semantic;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const Loc = std.zig.Loc;
@@ -66,6 +73,8 @@ const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
 
+allow_arrays: bool = true,
+
 const NoUndefined = @This();
 pub const meta: Rule.Meta = .{
     .name = "no-undefined",
@@ -73,13 +82,27 @@ pub const meta: Rule.Meta = .{
     .default = .warning,
 };
 
-pub fn runOnNode(_: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterContext) void {
+pub fn runOnNode(self: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const node = wrapper.node;
     const ast = ctx.ast();
 
     if (node.tag != .identifier) return;
     const name = ast.getNodeSource(wrapper.idx);
     if (!std.mem.eql(u8, name, "undefined")) return;
+
+    {}
+    if (self.allow_arrays) arrays: {
+        const tags: []const Node.Tag = ast.nodes.items(.tag);
+        if (ctx.semantic.node_links.getParent(wrapper.idx)) |parent| {
+            const decl = ast.fullVarDecl(parent) orelse break :arrays;
+            const ty = decl.ast.type_node;
+            if (ty == Semantic.NULL_NODE) break :arrays;
+            switch (tags[ty]) {
+                .array_type, .array_type_sentinel => return,
+                else => {},
+            }
+        }
+    }
 
     // `undefined` is ok if a `SAFETY: <reason>` comment is present before it.
     if (ctx.commentsBefore(node.main_token)) |comment| {
@@ -111,6 +134,8 @@ test NoUndefined {
 
     const pass = &[_][:0]const u8{
         "const x: ?u32 = null;",
+        "const arr: [1]u8 = undefined;",
+        "const arr: [1:0]u8 = undefined;",
         \\// SAFETY: this is safe because foo bar
         \\var x: []u8 = undefined;
         ,
@@ -119,6 +144,10 @@ test NoUndefined {
     };
     const fail = &[_][:0]const u8{
         "const x = undefined;",
+        "const slice: []u8 = undefined;",
+        "const slice: [:0]u8 = undefined;",
+        "const many_ptr: [*]u8 = undefined;",
+        "const many_ptr: [*:0]u8 = undefined;",
         \\// This is not a safety comment
         \\const x = undefined;
     };
