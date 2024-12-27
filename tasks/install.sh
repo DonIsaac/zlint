@@ -7,7 +7,7 @@ if [[ ${OS:-} = Windows_NT ]]; then
   if [[ $platform != MINGW64* ]]; then
     # powershell -c "irm zlint.sh/install.ps1|iex"
     # exit $?
-    echo "zlint's install does not support Windows yet. Please download a copy of zlint here: https://github.com/DonIsaac/zlint/releases/tag/v0.4.0"
+    echo "zlint's install does not support Windows yet. Please download a copy of zlint here: https://github.com/DonIsaac/zlint/releases/latest"
     exit 1
   fi
 fi
