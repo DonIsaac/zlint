@@ -18,7 +18,7 @@
 //! // arrays may be set to undefined without a safety comment
 //! var arr: [10]u8 = undefined;
 //! @memset(&arr, 0);
-//! 
+//!
 //! // SAFETY: foo is written to by `initializeFoo`, so `undefined` is never
 //! // read.
 //! var foo: u32 = undefined
