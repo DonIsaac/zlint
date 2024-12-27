@@ -77,6 +77,7 @@ pub const Linter = struct {
         source: *Source,
         errors: *?ErrorList,
     ) (LintError || Allocator.Error)!void {
+        if (source.text().len == 0) return;
         var builder = SemanticBuilder.init(self.gpa);
         builder.withSource(source);
         defer builder.deinit();
