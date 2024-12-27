@@ -55,13 +55,6 @@ success() {
     echo -e "${Green}$@ ${Color_Off}"
 }
 
-command -v unzip >/dev/null ||
-    error 'unzip is required to install zlint'
-
-if [[ $# -gt 2 ]]; then
-    error 'Too many arguments, only 2 are allowed. The first can be a specific tag of bun to install. (e.g. "bun-v0.1.4") The second can be a build variant of bun to install. (e.g. "debug-info")'
-fi
-
 case $platform in
 'Darwin x86_64')
     target=macos-x86_64
