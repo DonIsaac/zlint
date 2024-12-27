@@ -9,5 +9,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: ZLint Action
-        uses: DonIsaac/zlint-action@9d79d371ff94ba0656df5c39e987faa3b7760fe3
+        uses: DonIsaac/zlint-action@ff0119c6ac24408ff4285fab2cf83d8b1423cbdc
                   
