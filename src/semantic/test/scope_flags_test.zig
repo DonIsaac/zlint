@@ -109,11 +109,33 @@ test "function signatures and body scopes" {
 //     try testXDeclScope(cases);
 // }
 
-test "comptime scopes" {
+test "block scopes" {
     const cases = &[_]TestCase{
+        // .{
+        //     "const y = { const x = 1; };",
+        //     Scope.Flags{ .s_block = true, .s_comptime = true },
+        // },
+        // .{
+        //     \\fn foo() u32 {
+        //     \\  const y = blk: {
+        //     \\    const x: u32 = 1;
+        //     \\    break :blk x;
+        //     \\  };
+        //     \\
+        //     \\  return y;
+        //     \\}
+        //     ,
+        //     .{ .s_block = true },
+        // },
         .{
-            "const y = { const x = 1; };",
-            Scope.Flags{ .s_block = true, .s_comptime = true },
+            \\fn foo() void {
+            \\  comptime {
+            \\    const x: u32 = 1;
+            \\  }
+            \\  return y;
+            \\}
+            ,
+            .{ .s_block = true, .s_comptime = true },
         },
     };
 

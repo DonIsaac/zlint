@@ -322,7 +322,7 @@
                 "children": [
                   {
                     "id": util.id.NominalId(u32)(15), 
-                    "flags": ["block"], 
+                    "flags": ["block", "comptime"], 
                     "bindings": {
                       
                     }, 
