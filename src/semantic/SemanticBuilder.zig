@@ -538,8 +538,8 @@ inline fn visitRecursiveSlice(self: *SemanticBuilder, node_id: NodeIndex) !void 
 fn visitBlock(self: *SemanticBuilder, statements: []const NodeIndex) !void {
     const NON_COMPTIME_BLOCKS: Scope.Flags = .{ .s_test = true, .s_block = true, .s_function = true };
     const is_root = self.currentScope() == ROOT_SCOPE;
-    const is_comptime = is_root and !self._curr_scope_flags.intersects(NON_COMPTIME_BLOCKS);
     const was_comptime = self._curr_scope_flags.s_comptime;
+    const is_comptime = was_comptime or (is_root and !self._curr_scope_flags.intersects(NON_COMPTIME_BLOCKS));
 
     self._curr_scope_flags.s_comptime = is_comptime;
     defer self._curr_scope_flags.s_comptime = was_comptime;

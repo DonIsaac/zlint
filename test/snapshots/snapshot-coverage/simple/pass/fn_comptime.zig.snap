@@ -259,14 +259,14 @@
         "children": [
           {
             "id": util.id.NominalId(u32)(2), 
-            "flags": ["function", "block"], 
+            "flags": ["function", "block", "comptime"], 
             "bindings": {
               
             }, 
             "children": [
               {
                 "id": util.id.NominalId(u32)(3), 
-                "flags": ["struct", "block"], 
+                "flags": ["struct", "block", "comptime"], 
                 "bindings": {
                   "inner": 3, 
                   "Self": 4, 
@@ -312,7 +312,7 @@
         "children": [
           {
             "id": util.id.NominalId(u32)(7), 
-            "flags": ["function", "block"], 
+            "flags": ["function", "block", "comptime"], 
             "bindings": {
               "l": 9, 
               
@@ -320,14 +320,14 @@
             "children": [
               {
                 "id": util.id.NominalId(u32)(8), 
-                "flags": [], 
+                "flags": ["comptime"], 
                 "bindings": {
                   
                 }, 
                 "children": [
                   {
                     "id": util.id.NominalId(u32)(9), 
-                    "flags": ["block"], 
+                    "flags": ["block", "comptime"], 
                     "bindings": {
                       
                     }, 
@@ -338,7 +338,7 @@
                 
               }, {
                 "id": util.id.NominalId(u32)(10), 
-                "flags": [], 
+                "flags": ["comptime"], 
                 "bindings": {
                   
                 }, 
@@ -346,7 +346,7 @@
                 
               }, {
                 "id": util.id.NominalId(u32)(11), 
-                "flags": ["struct", "block"], 
+                "flags": ["struct", "block", "comptime"], 
                 "bindings": {
                   "inner": 10, 
                   
@@ -378,7 +378,7 @@
             "children": [
               {
                 "id": util.id.NominalId(u32)(14), 
-                "flags": ["block"], 
+                "flags": ["block", "comptime"], 
                 "bindings": {
                   "c": 14, 
                   
@@ -386,14 +386,14 @@
                 "children": [
                   {
                     "id": util.id.NominalId(u32)(15), 
-                    "flags": [], 
+                    "flags": ["comptime"], 
                     "bindings": {
                       
                     }, 
                     "children": [
                       {
                         "id": util.id.NominalId(u32)(16), 
-                        "flags": ["block"], 
+                        "flags": ["block", "comptime"], 
                         "bindings": {
                           
                         }, 
@@ -404,7 +404,7 @@
                     
                   }, {
                     "id": util.id.NominalId(u32)(17), 
-                    "flags": [], 
+                    "flags": ["comptime"], 
                     "bindings": {
                       
                     }, 
