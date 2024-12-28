@@ -108,6 +108,46 @@ pub const Rule = struct {
         };
     }
 
+    pub fn initUserDefined(file_path: [:0]const u8) !Rule {
+        const dll_handle = std.c.dlopen(file_path.ptr, std.c.RTLD.LAZY) orelse {
+            std.log.err("Couldn't dlopen '{s}'", .{file_path});
+            return error.DlOpenFailed;
+        };
+
+        const meta_getter: *const fn() *const Meta = std.c.dlsym(dll_handle, "_zlint_meta") orelse {
+            std.log.err("Couldn't dlsym _zlint_meta", .{});
+            return error.DlSymMetaFailed;
+            //@compileError("Rule must have a `pub const " ++ META_FIELD_NAME ++ " Rule.Meta` field");
+        };
+
+        const meta: Meta = meta_getter().*;
+
+        const id = comptime rule_ids.get(meta.name) orelse @compileError("Could not find an id for rule '" ++ meta.name ++ "'.");
+
+        const gen = struct {
+            pub fn runOnNode(pointer: *const anyopaque, node: NodeWrapper, ctx: *LinterContext) anyerror!void {
+                if (@hasDecl(ptr_info.child, "runOnNode")) {
+                    const self: T = @ptrCast(@constCast(pointer));
+                    return ptr_info.child.runOnNode(self, node, ctx);
+                }
+            }
+            pub fn runOnSymbol(pointer: *const anyopaque, symbol: Symbol.Id, ctx: *LinterContext) anyerror!void {
+                if (@hasDecl(ptr_info.child, "runOnSymbol")) {
+                    const self: T = @ptrCast(@constCast(pointer));
+                    return ptr_info.child.runOnSymbol(self, symbol, ctx);
+                }
+            }
+        };
+
+        return .{
+            .id = id,
+            .meta = meta,
+            .ptr = ptr,
+            .runOnNodeFn = gen.runOnNode,
+            .runOnSymbolFn = gen.runOnSymbol,
+        };
+    }
+
     pub fn runOnNode(self: *const Rule, node: NodeWrapper, ctx: *LinterContext) !void {
         return self.runOnNodeFn(self.ptr, node, ctx);
     }
