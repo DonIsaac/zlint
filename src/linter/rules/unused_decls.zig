@@ -56,7 +56,7 @@ const Symbol = semantic.Symbol;
 const Scope = semantic.Scope;
 const Loc = std.zig.Loc;
 const Span = _source.Span;
-const LinterContext = @import("../lint_context.zig");
+const LinterContext = @import("../lint_context.zig").Context;
 const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
 

@@ -245,7 +245,7 @@ const panic = std.debug.panic;
 const assert = std.debug.assert;
 
 const NodeWrapper = @import("rule.zig").NodeWrapper;
-const LinterContext = @import("lint_context.zig");
+const LinterContext = @import("lint_context.zig").Context;
 const MockRule = struct {
     pub const meta: Rule.Meta = .{
         .name = "no-undefined",

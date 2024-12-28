@@ -4,7 +4,7 @@ const _source = @import("source.zig");
 const _semantic = @import("semantic.zig");
 
 const _rule = @import("linter/rule.zig");
-const Context = @import("linter/lint_context.zig");
+const Context = @import("linter/lint_context.zig").Context;
 const disable_directives = @import("linter/disable_directives.zig");
 const ErrorList = Context.ErrorList;
 

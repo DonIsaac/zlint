@@ -8,9 +8,9 @@ const string = util.string;
 const Symbol = semantic.Symbol;
 const Severity = @import("../Error.zig").Severity;
 
-const LinterContext = @import("lint_context.zig");
+const LinterContext = @import("lint_context.zig").Context;
 
-pub const NodeWrapper = struct {
+pub const NodeWrapper = packed struct {
     node: *const Ast.Node,
     idx: Ast.Node.Index,
 
@@ -114,7 +114,7 @@ pub const Rule = struct {
             return error.DlOpenFailed;
         };
 
-        const meta_getter: *const fn() *const Meta = std.c.dlsym(dll_handle, "_zlint_meta") orelse {
+        const meta_getter: *const fn () *const Meta = std.c.dlsym(dll_handle, "_zlint_meta") orelse {
             std.log.err("Couldn't dlsym _zlint_meta", .{});
             return error.DlSymMetaFailed;
             //@compileError("Rule must have a `pub const " ++ META_FIELD_NAME ++ " Rule.Meta` field");
@@ -122,19 +122,22 @@ pub const Rule = struct {
 
         const meta: Meta = meta_getter().*;
 
+        // NOTE: NodeWrapper is packed which mostly makes this ABI safe
+        // TODO: use official error size?
+        const maybe_runOnNode: ?*const fn (*const anyopaque, NodeWrapper, *LinterContext) u16 = @ptrCast(std.c.dlsym(dll_handle, "_zlint_runOnNode"));
+        const maybe_runOnSymbol: ?*const fn (*const anyopaque, Symbol.Id, *LinterContext) u16 = std.c.dlsym(dll_handle, "_zlint_runOnSymbol");
+
         const id = comptime rule_ids.get(meta.name) orelse @compileError("Could not find an id for rule '" ++ meta.name ++ "'.");
 
         const gen = struct {
             pub fn runOnNode(pointer: *const anyopaque, node: NodeWrapper, ctx: *LinterContext) anyerror!void {
-                if (@hasDecl(ptr_info.child, "runOnNode")) {
-                    const self: T = @ptrCast(@constCast(pointer));
-                    return ptr_info.child.runOnNode(self, node, ctx);
+                if (maybe_runOnNode) |_runOnNode| {
+                    return _runOnNode(pointer, node, ctx);
                 }
             }
             pub fn runOnSymbol(pointer: *const anyopaque, symbol: Symbol.Id, ctx: *LinterContext) anyerror!void {
-                if (@hasDecl(ptr_info.child, "runOnSymbol")) {
-                    const self: T = @ptrCast(@constCast(pointer));
-                    return ptr_info.child.runOnSymbol(self, symbol, ctx);
+                if (maybe_runOnSymbol) |_runOnSymbol| {
+                    return _runOnSymbol(pointer, symbol, ctx);
                 }
             }
         };
@@ -142,7 +145,7 @@ pub const Rule = struct {
         return .{
             .id = id,
             .meta = meta,
-            .ptr = ptr,
+            .ptr = dll_handle,
             .runOnNodeFn = gen.runOnNode,
             .runOnSymbolFn = gen.runOnSymbol,
         };
