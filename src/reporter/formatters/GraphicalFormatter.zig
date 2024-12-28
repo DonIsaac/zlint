@@ -108,9 +108,11 @@ fn renderContext(self: *GraphicalFormatter, w: *Writer, e: *Error) FormatError!v
 
     try self.renderContextMasthead(w, e, lineum_width, primary);
 
+    var last_rendered_line: u32 = 0;
     for (locations.items) |loc| {
         if (loc.rendered) continue;
-        try self.renderContextLines(w, src, lineum_width, locations.items, loc);
+        try self.renderContextLines(w, src, lineum_width, locations.items, loc, last_rendered_line);
+        last_rendered_line = loc.line() + self.context_lines;
     }
     try self.renderContextFinisher(w, lineum_width);
 }
@@ -158,6 +160,8 @@ fn renderContextLines(
     lineum_width: u32,
     locations: []ContextInfo,
     loc: ContextInfo,
+    // last rendered line of the previous location
+    last_rendered_line: u32,
 ) !void {
     var LINEBUF: [MAX_CONTEXT_LINES * 2 + 1]Line = undefined;
     var linebuf = LINEBUF[0..(self.context_lines * 2 + 1)];
@@ -180,8 +184,9 @@ fn renderContextLines(
     lines_end += 1;
 
     for (linebuf[lines_start..lines_end]) |line| {
-        // try w.print("{d}:", .{line.num});
-        // try w.writeByteNTimes(' ', padding);
+        // avoid double-rendering lines when two spans have their context lines
+        // overlap.
+        if (line.num <= last_rendered_line) continue;
         try self.renderCodeLinePrefix(w, line.num, lineum_width);
         try w.writeAll(util.trimWhitespaceRight(line.contents));
         if (util.IS_WINDOWS) {
