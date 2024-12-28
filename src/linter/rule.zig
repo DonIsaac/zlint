@@ -10,7 +10,8 @@ const Severity = @import("../Error.zig").Severity;
 
 const LinterContext = @import("lint_context.zig").Context;
 
-pub const NodeWrapper = packed struct {
+// FIXME: must be ABI stable, use packed
+pub const NodeWrapper = struct {
     node: *const Ast.Node,
     idx: Ast.Node.Index,
 

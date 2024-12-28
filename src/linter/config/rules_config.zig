@@ -21,6 +21,7 @@ pub const RulesConfig = struct {
     no_unresolved: RuleConfig(rules.NoUnresolved) = .{},
     suppressed_errors: RuleConfig(rules.SuppressedErrors) = .{},
     unused_decls: RuleConfig(rules.UnusedDecls) = .{},
+    _user_rules: std.StringArrayHashMap(?*anyopaque) = .{},
 
     pub fn jsonParse(allocator: Allocator, source: *json.Scanner, options: json.ParseOptions) !RulesConfig {
         var config = RulesConfig{};
@@ -35,12 +36,16 @@ pub const RulesConfig = struct {
                 else => return ParseError.UnexpectedToken,
             };
 
+            // TODO: use comptime prefix-tree of known rules
             inline for (meta.fields(RulesConfig)) |field| {
+                if (mem.startsWith(u8, "_", field.name)) continue;
                 const RuleConfigImpl = @TypeOf(@field(config, field.name));
                 if (mem.eql(u8, key, RuleConfigImpl.name)) {
                     @field(config, field.name) = try RuleConfigImpl.jsonParse(allocator, source, options);
                     break;
                 }
+                // TODO:
+                // handle unknown keys
             }
         }
 

@@ -97,7 +97,7 @@ pub const Linter = struct {
         defer semantic_result.deinit();
         const semantic = semantic_result.value;
 
-        var rulebuf: [RuleSet.RULES_COUNT]Rule.WithSeverity = undefined;
+        var rulebuf: [RuleSet.BUILTIN_RULES_COUNT]Rule.WithSeverity = undefined;
         const rules = try self.getRulesForFile(&rulebuf, &semantic) orelse return;
 
         var ctx = Context.init(self.gpa, &semantic, source);
@@ -163,7 +163,7 @@ pub const Linter = struct {
     ///   `rulebuf` will be unmodified.
     fn getRulesForFile(
         self: *Linter,
-        rulebuf: *[RuleSet.RULES_COUNT]Rule.WithSeverity,
+        rulebuf: *[RuleSet.BUILTIN_RULES_COUNT]Rule.WithSeverity,
         semantic: *const Semantic,
     ) Allocator.Error!?[]const Rule.WithSeverity {
         const configured_rules = self.rules.rules.items;
@@ -223,12 +223,12 @@ pub const Linter = struct {
     /// _definitely_ has at least one named rule disabled.
     fn filterDisabledRules(
         source: []const u8,
-        rulebuf: *[RuleSet.RULES_COUNT]Rule.WithSeverity,
+        rulebuf: *[RuleSet.BUILTIN_RULES_COUNT]Rule.WithSeverity,
         configured_rules: []const Rule.WithSeverity,
         dd: *const disable_directives.Comment,
     ) ?[]const Rule.WithSeverity {
         assert(dd.disabled_rules.len > 0);
-        var disabled_rules_buf: [RuleSet.RULES_COUNT]Rule.Id = undefined;
+        var disabled_rules_buf: [RuleSet.BUILTIN_RULES_COUNT]Rule.Id = undefined;
         const disabled_rules: []const Rule.Id = blk: {
             var i: usize = 0;
             for (dd.disabled_rules) |rule_span| {

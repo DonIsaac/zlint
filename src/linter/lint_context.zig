@@ -1,4 +1,5 @@
-pub const Context = packed struct {
+// FIXME: must be ABI stable, use packed
+pub const Context = struct {
     //! Context is only valid over the lifetime of a Source and the min lifetime of
     //! all rules
     semantic: *const Semantic,
