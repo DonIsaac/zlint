@@ -29,6 +29,36 @@
 //!   var my_str = try std.heap.page_allocator.alloc(u8, 8);
 //! }
 //! ```
+//!
+//! Zig allows `try` in comptime scopes in or nested within functions. This rule
+//! does not flag these cases.
+//! ```zig
+//! const std = @import("std");
+//! fn foo(x: u32) void {
+//!   comptime {
+//!     // valid
+//!     try bar(x);
+//!   }
+//! }
+//! fn bar(x: u32) !void {
+//!   return if (x == 0) error.Unreachable else void;
+//! }
+//! ```
+//!
+//! Zig also allows `try` on functions whose error union sets are empty. ZLint
+//! does _not_ respect this case. Please refactor such functions to not return
+//! an error union.
+//! ```zig
+//! const std = @import("std");
+//! fn foo() !u32 {
+//!   // compiles, but treated as a violation. `bar` should return `u32`.
+//!   const x = try bar();
+//!   return x + 1;
+//! }
+//! fn bar() u32 {
+//!   return 1;
+//! }
+//! ```
 
 const std = @import("std");
 const util = @import("util");
@@ -68,6 +98,9 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
 
     while (it.next()) |scope| {
         const flags = scope_flags[scope.int()];
+        // `try` is allowed in non-error returning comptime code; it causes
+        // a compilation error.
+        if (flags.s_comptime) return;
         const is_function_sig = flags.s_function and !flags.s_block;
         // functions create two scopes: one for the signature (binds params,
         // return type references symbols here) and one for the function body.
@@ -211,6 +244,23 @@ test HomelessTry {
         ,
         \\pub fn iterationCount(this: *const @This()) !u32 {
         \\  return try std.fmt.parseInt(u32, this.i, 0);
+        \\}
+        ,
+        // comptime code
+        \\const std = @import("std");
+        \\fn foo(x: u32) void {
+        \\  comptime {
+        \\    try bar(x);
+        \\  }
+        \\}
+        ,
+        \\const std = @import("std");
+        \\fn foo(x: bool) void {
+        \\  comptime {
+        \\    if (x) {
+        \\      try bar(x);
+        \\    }
+        \\  }
         \\}
         ,
     };
