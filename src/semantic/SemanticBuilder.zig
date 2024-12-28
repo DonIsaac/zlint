@@ -1104,7 +1104,7 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     });
 
     var fn_signature_implies_comptime = false;
-    const tags: []Node.Tag = ast.nodes.items(.tag);
+    const tags: []const Node.Tag = ast.nodes.items(.tag);
     for (proto.ast.params) |param_id| {
         if (tags[param_id] == .@"comptime") {
             fn_signature_implies_comptime = true;
@@ -1858,6 +1858,7 @@ const t = std.testing;
 test {
     t.refAllDecls(@import("test/symbol_ref_test.zig"));
     t.refAllDecls(@import("test/symbol_decl_test.zig"));
+    t.refAllDecls(@import("test/scope_flags_test.zig"));
 }
 test "Struct/enum fields are bound bound to the struct/enums's member table" {
     const alloc = std.testing.allocator;
