@@ -1,4 +1,4 @@
-todo for this draft PR:
+## todo for this draft PR:
 
 - windows implementation, possible still just using libc
 - update relevant tests, add a fixture specific to user defined tests and test it
@@ -15,4 +15,11 @@ todo for this draft PR:
   ```
   to build the dynamic library at runtime with zig's built-in caching.
 
-- make the function pointers use ABI stable types
+- make the ABI stable
+- put this behind a flag --unsafe-allow-user-defined-rules
+
+## potential future work:
+
+- add wasm bindings, and support wasm based plugins with a template for building one in zig
+  NOTE: it is not secure to compile user zig to wasm and then run it, I don't believe the zig
+  compiler makes security guarantees for compiling code.
