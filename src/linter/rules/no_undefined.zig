@@ -91,7 +91,6 @@ pub fn runOnNode(self: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterCon
     const name = ast.getNodeSource(wrapper.idx);
     if (!std.mem.eql(u8, name, "undefined")) return;
 
-    {}
     if (self.allow_arrays) arrays: {
         const tags: []const Node.Tag = ast.nodes.items(.tag);
         if (ctx.semantic.node_links.getParent(wrapper.idx)) |parent| {
@@ -115,10 +114,6 @@ pub fn runOnNode(self: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterCon
     }
 
     const e = ctx.diagnostic("`undefined` is missing a safety comment", .{ctx.spanT(node.main_token)});
-    // e.help = .{
-    //     .str = "Add a `SAFETY: <reason>` before this line explaining why this code is safe.",
-    //     .static = true,
-    // };
     e.help = Cow.static("Add a `SAFETY: <reason>` before this line explaining why this code is safe.");
 }
 

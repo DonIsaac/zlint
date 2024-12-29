@@ -106,7 +106,6 @@ pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterCont
     const error_param = ctx.semantic.tokenSlice(ident_tok);
     const returned_ident = ctx.ast().getNodeSource(return_param);
     if (std.mem.eql(u8, error_param, returned_ident)) {
-        // ctx.error(span, "returning the same error as caught");
         var err = ctx.diagnostic(
             "Caught error is immediately returned",
             .{ctx.spanN(return_node)},

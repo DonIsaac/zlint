@@ -81,7 +81,6 @@ pub fn runOnNode(_: *const NoReturnTry, wrapper: NodeWrapper, ctx: *LinterContex
         try_start + 3,
     );
     const e = ctx.diagnostic("This error union can be directly returned.", .{span});
-    // e.help = .{ .str = "Replace `return try` with `return`" };
     e.help = Cow.static("Replace `return try` with `return`");
 }
 
