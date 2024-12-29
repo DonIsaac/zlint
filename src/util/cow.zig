@@ -34,7 +34,7 @@ pub fn Cow(comptime sentinel: bool) type {
         str: Slice,
         /// For runtime safety checks only. Do not use. Removed in any release
         /// build.
-        __alloc: DebugAlloc = null,
+        __alloc: DebugAlloc = if (IS_DEBUG) null else {},
 
         const Self = @This();
 
@@ -140,7 +140,7 @@ const DebugAlloc = if (IS_DEBUG) ?Allocator else void;
 
 /// Should be completely eliminiated in release binaries.
 inline fn asDebug(allocator: Allocator) DebugAlloc {
-    return if (comptime IS_DEBUG) allocator else void;
+    return if (comptime IS_DEBUG) allocator else {};
 }
 
 const t = std.testing;
