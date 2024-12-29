@@ -17,7 +17,7 @@ pub const UserRuleConfig = struct {
     // TODO: get default severity from rule dll
     severity: Severity = Severity.err,
     path: []const u8,
-    options: struct {
+    options: ?struct {
         _inner: ?*anyopaque = null,
 
         pub fn jsonParse(allocator: Allocator, source: *json.Scanner, options: json.ParseOptions) !@This() {
@@ -63,6 +63,7 @@ pub const RulesConfig = struct {
                 if (mem.eql(u8, key, RuleConfigImpl.name)) {
                     @field(config, field.name) = try RuleConfigImpl.jsonParse(allocator, source, options);
                     handled = true;
+                    std.debug.print("handled: {s}\n", .{key});
                     break;
                 }
             }
@@ -70,6 +71,7 @@ pub const RulesConfig = struct {
             if (!handled) {
                 const user_rule_config = try json.innerParse(UserRuleConfig, allocator, source, options);
                 try config._user_rules.map.put(allocator, key, user_rule_config);
+                std.debug.print("unhandled: {s}, {any}\n", .{ key, user_rule_config });
             }
         }
 
