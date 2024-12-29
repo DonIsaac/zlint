@@ -7,7 +7,7 @@
 //! holds ownership over allocations.
 
 code: []const u8 = "",
-message: PossiblyStaticStr,
+message: Cow(false),
 severity: Severity = .err,
 /// Text ranges over problematic parts of the source code.
 labels: std.ArrayListUnmanaged(LabeledSpan) = .{},
@@ -16,34 +16,23 @@ labels: std.ArrayListUnmanaged(LabeledSpan) = .{},
 source_name: ?string = null,
 source: ?ArcStr = null,
 /// Optional help text. This will go under the code snippet.
-help: ?PossiblyStaticStr = null,
+help: ?Cow(false) = null,
 
 // Although this is not [:0]const u8, it should not be mutated. Needs to be mut
 // to indicate to Arc it's owned by the Error. Otherwise, arc.deinit() won't
 // free the slice.
 const ArcStr = Arc([:0]u8);
-pub const PossiblyStaticStr = struct {
-    static: bool = true,
-    str: string,
 
-    pub fn format(this: PossiblyStaticStr, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
-        return writer.writeAll(this.str);
-    }
-};
-
-pub fn new(message: string) Error {
-    return Error{ .message = .{ .str = message, .static = false } };
+pub fn new(message: []u8, allocator: Allocator) Error {
+    return Error{ .message = Cow(false).owned(message, allocator) };
 }
 
-pub fn newStatic(message: string) Error {
-    return Error{ .message = .{ .str = message, .static = true } };
+pub fn newStatic(comptime message: string) Error {
+    return Error{ .message = Cow(false).static(message) };
 }
 
 pub fn fmt(alloc: Allocator, comptime format: string, args: anytype) Allocator.Error!Error {
-    return Error{ .message = .{
-        .str = try std.fmt.allocPrint(alloc, format, args),
-        .static = false,
-    } };
+    return Error{ .message = try Cow(false).fmt(alloc, format, args) };
 }
 
 pub fn newAtLocation(message: string, span: Span) Error {
@@ -54,13 +43,14 @@ pub fn newAtLocation(message: string, span: Span) Error {
 }
 
 pub fn deinit(self: *Error, alloc: std.mem.Allocator) void {
-    if (!self.message.static) alloc.free(self.message.str);
+    // if (!self.message.static) alloc.free(self.message.str);
+    self.message.deinit(alloc);
 
-    if (self.help != null and !self.help.?.static) alloc.free(self.help.?.str);
+    if (self.help) |*help| help.deinit(alloc);
     if (self.source_name != null) alloc.free(self.source_name.?);
     if (self.source != null) self.source.?.deinit();
     for (self.labels.items) |*label| {
-        if (label.label) |*label_text| label_text.deinit();
+        if (label.label) |*label_text| label_text.deinit(alloc);
     }
     self.labels.deinit(alloc);
 }
@@ -199,6 +189,7 @@ const _span = @import("span.zig");
 const Allocator = std.mem.Allocator;
 const Arc = ptrs.Arc;
 const string = util.string;
+const Cow = util.Cow;
 
 const Source = _src.Source;
 const Span = _span.Span;

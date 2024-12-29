@@ -19,3 +19,7 @@ pub const printer = struct {
 };
 
 pub const walk = @import("visit/walk.zig");
+
+test {
+    std.testing.refAllDecls(@import("util"));
+}

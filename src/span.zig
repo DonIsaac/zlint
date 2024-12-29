@@ -101,7 +101,7 @@ test "Span.shiftRight" {
 
 pub const LabeledSpan = struct {
     span: Span,
-    label: ?util.Boo([]u8) = null,
+    label: ?util.Cow(false) = null,
     primary: bool = false,
 
     pub inline fn unlabeled(start: u32, end: u32) LabeledSpan {

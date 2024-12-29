@@ -1691,7 +1691,7 @@ inline fn assertToken(self: *const SemanticBuilder, token: TokenIndex, comptime 
 
 fn addAstError(self: *SemanticBuilder, ast: *const Ast, ast_err: Ast.Error) Allocator.Error!void {
     // error message
-    const message: string = blk: {
+    const message: []u8 = blk: {
         var msg: std.ArrayListUnmanaged(u8) = .{};
         defer msg.deinit(self._gpa);
         try ast.renderError(ast_err, msg.writer(self._gpa));
@@ -1699,7 +1699,7 @@ fn addAstError(self: *SemanticBuilder, ast: *const Ast, ast_err: Ast.Error) Allo
     };
     errdefer self._gpa.free(message);
 
-    var err = Error.new(message);
+    var err = Error.new(message, self._gpa);
     errdefer err.deinit(self._gpa);
 
     // label where in the source the error occurred
