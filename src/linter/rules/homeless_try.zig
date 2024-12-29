@@ -75,6 +75,7 @@ const Span = _source.Span;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
+const Cow = util.Cow(false);
 
 // Rule metadata
 const HomelessTry = @This();
@@ -161,10 +162,11 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
         },
     );
     const return_type_src = ctx.ast().getNodeSource(return_type);
-    e.help = .{
-        .str = std.fmt.allocPrint(ctx.gpa, "Change the return type to `!{s}`.", .{return_type_src}) catch @panic("OOM"),
-        .static = false,
-    };
+    // e.help = .{
+    //     .str = std.fmt.allocPrint(ctx.gpa, "Change the return type to `!{s}`.", .{return_type_src}) catch @panic("OOM"),
+    //     .static = false,
+    // };
+    e.help = Cow.fmt(ctx.gpa, "Change the return type to `!{s}`.", .{return_type_src}) catch @panic("OOM");
 }
 
 // Used by the Linter to register the rule so it can be run.

@@ -38,6 +38,7 @@
 //! ```
 
 const std = @import("std");
+const util = @import("util");
 const _source = @import("../../source.zig");
 const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
@@ -52,6 +53,7 @@ const LinterContext = @import("../lint_context.zig");
 const LabeledSpan = _span.LabeledSpan;
 const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
+const Cow = util.Cow(false);
 
 // Rule metadata
 const NoReturnTry = @This();
@@ -79,7 +81,8 @@ pub fn runOnNode(_: *const NoReturnTry, wrapper: NodeWrapper, ctx: *LinterContex
         try_start + 3,
     );
     const e = ctx.diagnostic("This error union can be directly returned.", .{span});
-    e.help = .{ .str = "Replace `return try` with `return`" };
+    // e.help = .{ .str = "Replace `return try` with `return`" };
+    e.help = Cow.static("Replace `return try` with `return`");
 }
 
 pub fn rule(self: *NoReturnTry) Rule {

@@ -53,6 +53,7 @@ const Span = _source.Span;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
+const Cow = util.Cow(false);
 
 // Rule metadata
 const NoCatchReturn = @This();
@@ -110,7 +111,7 @@ pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterCont
             "Caught error is immediately returned",
             .{ctx.spanN(return_node)},
         );
-        err.help = .{ .str = "Use a `try` statement to return unhandled errors.", .static = true };
+        err.help = Cow.static("Use a `try` statement to return unhandled errors.");
     }
 }
 

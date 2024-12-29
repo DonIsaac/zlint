@@ -3,6 +3,7 @@ const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 
 pub const NominalId = @import("./util/id.zig").NominalId;
+pub const Cow = @import("./util/cow.zig").Cow;
 
 pub const string = []const u8;
 pub const stringSlice = [:0]const u8;
@@ -57,74 +58,6 @@ pub inline fn assertUnsafe(condition: bool) void {
     }
 }
 
-pub fn Boo(T: type) type {
-    const info = @typeInfo(T);
-    return switch (info) {
-        .Pointer => if (info.Pointer.size == .Slice) BooSlice(info.Pointer.child) else BooGeneric(T),
-        else => BooGeneric(T),
-    };
-}
-
-fn BooGeneric(T: type) type {
-    const Borrow = union(enum) {
-        borrowed: *const T,
-        owned: T,
-    };
-    return struct {
-        alloc: ?Allocator = null,
-        value: Borrow,
-
-        const Self = @This();
-
-        pub fn borrowed(ptr: *const T) Self {
-            return Self{ .value = .{ .borrowed = ptr } };
-        }
-
-        pub fn owned(value: T) Self {
-            return Self{ .value = .{ .owned = value } };
-        }
-    };
-}
-
-fn BooSlice(T: type) type {
-    const Borrow = union(enum) {
-        borrowed: []const T,
-        owned: []T,
-    };
-
-    return struct {
-        alloc: ?Allocator = null,
-        value: Borrow,
-
-        const Self = @This();
-
-        pub fn borrowed(ptr: []const T) Self {
-            return Self{ .value = .{ .borrowed = ptr } };
-        }
-
-        pub fn owned(value: []T) Self {
-            return Self{ .value = .{ .owned = value } };
-        }
-
-        pub fn fmt(alloc: Allocator, comptime format: []const u8, args: anytype) Allocator.Error!Self {
-            const value = try std.fmt.allocPrint(alloc, format, args);
-            return Self{ .value = .{ .owned = value }, .alloc = alloc };
-        }
-
-        pub fn borrow(self: *const Self) []const T {
-            return switch (self.value) {
-                .borrowed => self.value.borrowed,
-                .owned => self.value.owned,
-            };
-        }
-
-        pub fn deinit(self: *Self) void {
-            switch (self.value) {
-                .borrowed => {},
-                .owned => if (self.alloc) |a| {
-                    a.free(self.value.owned);
-                },
-            }
-        }
-    };
+test {
+    std.testing.refAllDeclsRecursive(@This());
 }

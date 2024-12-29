@@ -117,7 +117,7 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
         self.linter.runOnSource(&source, &pass_errors) catch |e| switch (e) {
             error.OutOfMemory => return Allocator.Error.OutOfMemory,
             else => {
-                self.diagnostic.message = BooStr.fmt(
+                self.diagnostic.message = Cow.fmt(
                     self.alloc,
                     "Pass test case #{d} failed: {s}\n\nSource:\n{s}\n",
                     .{ i + 1, @errorName(e), src },
@@ -134,7 +134,7 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
             defer errors.deinit();
             try self.errors.appendSlice(self.alloc, errors.items);
             if (errors.items.len > 0) {
-                self.diagnostic.message = BooStr.fmt(
+                self.diagnostic.message = Cow.fmt(
                     self.alloc,
                     "Expected test case #{d} to pass:\n\n{s}",
                     .{ i + 1, src },
@@ -168,7 +168,7 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
             },
         };
         if (fail_errors == null or fail_errors.?.items.len == 0) {
-            self.diagnostic.message = BooStr.fmt(
+            self.diagnostic.message = Cow.fmt(
                 self.alloc,
                 "Expected test case #{d} to fail:\n\n{s}",
                 .{ i + 1, src },
@@ -183,14 +183,14 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
 fn saveSnapshot(self: *RuleTester) SnapshotError!void {
     const snapshot_file: fs.File = brk: {
         var snapshot_dir = fs.cwd().makeOpenPath(SNAPSHOT_DIR, .{}) catch |e| {
-            self.diagnostic.message = BooStr.borrowed("Failed to open snapshot directory '" ++ SNAPSHOT_DIR ++ "'");
+            self.diagnostic.message = Cow.static("Failed to open snapshot directory '" ++ SNAPSHOT_DIR ++ "'");
             return e;
         };
         defer snapshot_dir.close();
         const snapshot_filename = try std.mem.concat(self.alloc, u8, &[_]string{ self.rule.meta.name, ".snap" });
         defer self.alloc.free(snapshot_filename);
         const snapshot_file = snapshot_dir.createFile(snapshot_filename, .{ .truncate = true }) catch |e| {
-            self.diagnostic.message = BooStr.fmt(
+            self.diagnostic.message = Cow.fmt(
                 self.alloc,
                 "Failed to open snapshot file '{s}'",
                 .{snapshot_filename},
@@ -213,7 +213,7 @@ pub fn deinit(self: *RuleTester) void {
     self.alloc.free(self.filename);
     self.passes.deinit(self.alloc);
     self.fails.deinit(self.alloc);
-    self.diagnostic.message.deinit();
+    self.diagnostic.message.deinit(self.alloc);
 
     for (0..self.errors.items.len) |i| {
         var err = self.errors.items[i];
@@ -224,7 +224,7 @@ pub fn deinit(self: *RuleTester) void {
 
 const TestDiagnostic = struct {
     /// Always static. Do not `free()`.
-    message: BooStr = BooStr.borrowed(""),
+    message: Cow = Cow.static(""),
     // errors:
 };
 
@@ -239,7 +239,7 @@ const Rule = @import("rule.zig").Rule;
 const Source = @import("../source.zig").Source;
 const GraphicalFormatter = @import("../reporter.zig").formatter.Graphical;
 
-const BooStr = util.Boo(string);
+const Cow = util.Cow(false);
 const string = util.string;
 const panic = std.debug.panic;
 const assert = std.debug.assert;

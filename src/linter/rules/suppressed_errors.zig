@@ -48,6 +48,7 @@
 //! ```
 
 const std = @import("std");
+const util = @import("util");
 const _source = @import("../../source.zig");
 const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
@@ -63,6 +64,7 @@ const Rule = _rule.Rule;
 const LabeledSpan = _span.LabeledSpan;
 const NodeWrapper = _rule.NodeWrapper;
 const NULL_NODE = semantic.Semantic.NULL_NODE;
+const Cow = util.Cow(false);
 
 // Rule metadata
 const SuppressedErrors = @This();
@@ -77,7 +79,8 @@ fn swallowedDiagnostic(ctx: *LinterContext, span: Span) void {
         "`catch` statement suppresses errors",
         .{LabeledSpan{ .span = span }},
     );
-    e.help = .{ .str = "Handle this error or propagate it to the caller with `try`." };
+    // e.help = .{ .str = "Handle this error or propagate it to the caller with `try`." };
+    e.help = Cow.static("Handle this error or propagate it to the caller with `try`.");
 }
 
 fn unreachableDiagnostic(ctx: *LinterContext, span: Span) void {
@@ -85,7 +88,8 @@ fn unreachableDiagnostic(ctx: *LinterContext, span: Span) void {
         "Caught error is mishandled with `unreachable`",
         .{LabeledSpan{ .span = span }},
     );
-    e.help = .{ .str = "Use `try` to propagate this error. If this branch shouldn't happen, use `@panic` or `std.debug.panic` instead." };
+    // e.help = .{ .str = "Use `try` to propagate this error. If this branch shouldn't happen, use `@panic` or `std.debug.panic` instead." };
+    e.help = Cow.static("Use `try` to propagate this error. If this branch shouldn't happen, use `@panic` or `std.debug.panic` instead.");
 }
 
 // Runs on each node in the AST. Useful for syntax-based rules.

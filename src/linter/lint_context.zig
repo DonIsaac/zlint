@@ -70,7 +70,7 @@ pub inline fn labelN(
     const s = self.semantic.ast.nodeToSpan(node_id);
     return LabeledSpan{
         .span = .{ .start = s.start, .end = s.end },
-        .label = util.Boo([]u8).fmt(self.gpa, fmt, args) catch @panic("OOM"),
+        .label = util.Cow(false).fmt(self.gpa, fmt, args) catch @panic("OOM"),
         .primary = false,
     };
 }
@@ -84,7 +84,7 @@ pub inline fn labelT(
     const s = self.semantic.ast.tokenToSpan(token_id);
     return LabeledSpan{
         .span = .{ .start = s.start, .end = s.end },
-        .label = util.Boo([]u8).fmt(self.gpa, fmt, args) catch @panic("OOM"),
+        .label = util.Cow(false).fmt(self.gpa, fmt, args) catch @panic("OOM"),
         .primary = false,
     };
 }
@@ -124,7 +124,7 @@ pub fn diagnosticFmt(
 /// - `spans` should not be empty (they _can_ be, but
 ///   this is not user-friendly.).
 /// - `spans` is anytype for more flexible coercion into a `[]const Span`
-pub fn diagnostic(self: *Context, message: string, spans: anytype) *Error {
+pub fn diagnostic(self: *Context, comptime message: string, spans: anytype) *Error {
     // TODO: inline
     return self._diagnostic(Error.newStatic(message), &spans);
 }

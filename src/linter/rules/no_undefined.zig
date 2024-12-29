@@ -72,6 +72,7 @@ const Span = source.Span;
 const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
+const Cow = util.Cow(false);
 
 allow_arrays: bool = true,
 
@@ -114,10 +115,11 @@ pub fn runOnNode(self: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterCon
     }
 
     const e = ctx.diagnostic("`undefined` is missing a safety comment", .{ctx.spanT(node.main_token)});
-    e.help = .{
-        .str = "Add a `SAFETY: <reason>` before this line explaining why this code is safe.",
-        .static = true,
-    };
+    // e.help = .{
+    //     .str = "Add a `SAFETY: <reason>` before this line explaining why this code is safe.",
+    //     .static = true,
+    // };
+    e.help = Cow.static("Add a `SAFETY: <reason>` before this line explaining why this code is safe.");
 }
 
 pub fn rule(self: *NoUndefined) Rule {
