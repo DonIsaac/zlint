@@ -27,7 +27,7 @@ pub const UserRuleConfig = struct {
             if (try source.next() != .object_end) return ParseError.UnexpectedToken;
             return .{};
         }
-    },
+    } = null,
 };
 
 pub const RulesConfig = struct {
@@ -63,7 +63,6 @@ pub const RulesConfig = struct {
                 if (mem.eql(u8, key, RuleConfigImpl.name)) {
                     @field(config, field.name) = try RuleConfigImpl.jsonParse(allocator, source, options);
                     handled = true;
-                    std.debug.print("handled: {s}\n", .{key});
                     break;
                 }
             }
@@ -71,7 +70,6 @@ pub const RulesConfig = struct {
             if (!handled) {
                 const user_rule_config = try json.innerParse(UserRuleConfig, allocator, source, options);
                 try config._user_rules.map.put(allocator, key, user_rule_config);
-                std.debug.print("unhandled: {s}, {any}\n", .{ key, user_rule_config });
             }
         }
 

@@ -1,7 +1,9 @@
 {
-    "no-undefined": "warn"
-    "custom-rule": {
-        "severity": "err",
-        "path": "./custom-rule.zig"
+    "rules": {
+        "no-undefined": "warn",
+        "custom-rule": {
+            "severity": "error",
+            "path": "./custom-rule.zig"
+        }
     }
 }

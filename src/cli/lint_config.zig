@@ -13,7 +13,6 @@ pub fn resolveLintConfig(
     cwd: Dir,
     config_filename: [:0]const u8,
 ) !lint.Config.Managed {
-    std.debug.print("resolveLintConfig?\n", .{});
     var _arena = arena;
     const alloc = _arena.allocator();
 
