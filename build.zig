@@ -40,6 +40,23 @@ pub fn build(b: *std.Build) void {
     });
     l.link(zlint, false, .{});
 
+    b.installFile("./src/custom_rule_test.zig", "share/user-defined/entry.zig");
+    // FIXME: install only needed types
+    b.installDirectory(.{
+        .source_dir = b.path("./src"),
+        .install_dir = .{ .custom = "share/user-defined" },
+        .install_subdir = "",
+    });
+
+    // FIXME: the horror
+    b.installDirectory(.{
+        .source_dir = l.dependencies.getPtr("smart-pointers").?.path("src"),
+        .install_dir = .{ .custom = "share/user-defined/deps" },
+        .install_subdir = "",
+    });
+
+    b.installFile("./src/custom_rule_api.zig", "share/user-defined/custom_rule_api.zig");
+
     // artifacts
     const exe = b.addExecutable(.{
         .name = "zlint",
@@ -52,6 +69,7 @@ pub fn build(b: *std.Build) void {
         .strip = if (debug_release) false else null,
     });
     l.link(&exe.root_module, false, .{});
+    exe.linkLibC();
     b.installArtifact(exe);
 
     const e2e = b.addExecutable(.{

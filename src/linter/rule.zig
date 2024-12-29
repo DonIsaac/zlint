@@ -8,9 +8,10 @@ const string = util.string;
 const Symbol = semantic.Symbol;
 const Severity = @import("../Error.zig").Severity;
 
-const LinterContext = @import("lint_context.zig");
+const LinterContext = @import("lint_context.zig").Context;
 
-pub const NodeWrapper = struct {
+// FIXME: must be ABI stable, use packed
+pub const NodeWrapper = extern struct {
     node: *const Ast.Node,
     idx: Ast.Node.Index,
 
@@ -40,6 +41,12 @@ pub const Rule = struct {
     ptr: *anyopaque,
     runOnNodeFn: RunOnNodeFn,
     runOnSymbolFn: RunOnSymbolFn,
+    kind: Kind,
+
+    pub const Kind = enum {
+        builtin,
+        userDefined,
+    };
 
     /// Rules must have a constant with this name of type `Rule.Meta`.
     const META_FIELD_NAME = "meta";
@@ -105,6 +112,176 @@ pub const Rule = struct {
             .ptr = ptr,
             .runOnNodeFn = gen.runOnNode,
             .runOnSymbolFn = gen.runOnSymbol,
+            .kind = .builtin,
+        };
+    }
+
+    fn hashName(name: []const u8) Rule.Id {
+        var hasher = std.hash.Wyhash.init(0);
+        std.hash.autoHashStrat(&hasher, name, .Deep);
+        const hash = hasher.final();
+        const repr = std.mem.bytesToValue(Rule.Id.Repr, std.mem.asBytes(&hash));
+        return Rule.Id.new(repr);
+    }
+
+    const UserDefinedData = struct {
+        dll_handle: *anyopaque,
+        maybe_runOnNode: ?*const fn (*const anyopaque, NodeWrapper, *LinterContext) u16,
+        maybe_runOnSymbol: ?*const fn (*const anyopaque, Symbol.Id, *LinterContext) u16,
+    };
+
+    pub fn initUserDefined(alloc: std.mem.Allocator, file_path: [:0]const u8) !Rule {
+        // NOTE: we should also provide a module so that people can define their own
+        // more complicated user-defined rule builds in their build.zig
+
+        // TODO: prompt the user when we have to build it for the first time
+        std.debug.print("compiling user defined plugin at '{s}'\n", .{file_path});
+
+        // NOTE: this will be slow because we block on it,
+        // we should be compiling several user defined rules in parallel
+        const user_entry_arg = try std.fmt.allocPrint(alloc, "-Muser_entry={s}", .{file_path});
+        defer alloc.free(user_entry_arg);
+
+        var args = std.process.args();
+        defer args.deinit();
+        const exe_path = args.next() orelse @panic("no exe arg on posix"); // FIXME: not cross platform, is there a better way anyway?
+
+        const abi_path = try std.fs.path.join(alloc, &.{ exe_path, "../../share/user-defined/custom_rule_api.zig" });
+        defer alloc.free(abi_path);
+
+        const user_defined_rule_entry_path = try std.fs.path.join(alloc, &.{ exe_path, "../../share/user-defined/entry.zig" });
+        defer alloc.free(abi_path);
+
+        const abi_arg = try std.fmt.allocPrint(alloc, "-Mzlint={s}", .{abi_path});
+        defer alloc.free(abi_arg);
+
+        const entry_arg = try std.fmt.allocPrint(alloc, "-Mroot={s}", .{user_defined_rule_entry_path});
+        defer alloc.free(entry_arg);
+
+        const util_path = try std.fs.path.join(alloc, &.{ exe_path, "../../share/user-defined/util.zig" });
+        defer alloc.free(util_path);
+
+        const util_arg = try std.fmt.allocPrint(alloc, "-Mutil={s}", .{util_path});
+        defer alloc.free(util_arg);
+
+        const smart_pointers_path = try std.fs.path.join(alloc, &.{ exe_path, "../../share/user-defined/smart-pointers-stub.zig" });
+        defer alloc.free(smart_pointers_path);
+
+        const smart_pointers_arg = try std.fmt.allocPrint(alloc, "-Msmart-pointers={s}", .{smart_pointers_path});
+        defer alloc.free(smart_pointers_arg);
+
+        const chameleon_path = try std.fs.path.join(alloc, &.{ exe_path, "../../share/user-defined/chameleon-stub.zig" });
+        defer alloc.free(chameleon_path);
+
+        const chameleon_arg = try std.fmt.allocPrint(alloc, "-Mchameleon={s}", .{chameleon_path});
+        defer alloc.free(chameleon_arg);
+
+        const argv = &.{
+            "zig",
+            "build-lib",
+            "--cache-dir",
+            "./.zlint", // TODO: cache dir should be next to resolved config!
+            "-dynamic",
+            "--dep",
+            "zlint",
+            "--dep",
+            "user_entry",
+            "--dep",
+            "util",
+            "--dep",
+            "chameleon",
+            "--dep",
+            "smart-pointers",
+            entry_arg,
+            "--dep",
+            "util",
+            abi_arg,
+            "--dep",
+            "zlint",
+            user_entry_arg,
+            util_arg,
+            smart_pointers_arg,
+            chameleon_arg,
+        };
+
+        std.debug.print("cli: ", .{});
+        inline for (argv) |arg| {
+            std.debug.print("{s} ", .{arg});
+        }
+        std.debug.print("\n", .{});
+
+        // FIXME: should inherit stdout/stderr instead of collecting it
+        const compile_process = try std.process.Child.run(.{
+            .allocator = alloc,
+            .cwd = std.fs.path.dirname(file_path) orelse return error.DlOpenFailed,
+            // FIXME: consult zig path from config
+            .argv = argv,
+        });
+        defer alloc.free(compile_process.stdout);
+        defer alloc.free(compile_process.stderr);
+
+        std.debug.print("Compiling... {s}\n", .{compile_process.stdout});
+        std.debug.print("(stderr)... {s}\n", .{compile_process.stderr});
+        if (!std.meta.eql(compile_process.term, .{ .Exited = 0 })) {
+            return error.UserDefinedRuleCompileFail;
+        }
+
+        const dll_handle = std.c.dlopen(file_path.ptr, std.c.RTLD.LAZY) orelse {
+            std.log.err("Couldn't dlopen '{s}'", .{file_path});
+            return error.DlOpenFailed;
+        };
+
+        const ptr = try alloc.create(UserDefinedData);
+
+        ptr.* = UserDefinedData{
+            .dll_handle = dll_handle,
+            .maybe_runOnNode = undefined,
+            .maybe_runOnSymbol = undefined,
+        };
+
+        const meta_getter: *const fn () *const Meta = @ptrCast(std.c.dlsym(dll_handle, "_zlint_meta") orelse {
+            std.log.err("Couldn't dlsym _zlint_meta", .{});
+            return error.DlSymMetaFailed;
+            //@compileError("Rule must have a `pub const " ++ META_FIELD_NAME ++ " Rule.Meta` field");
+        });
+
+        const meta: Meta = meta_getter().*;
+
+        // NOTE: NodeWrapper is packed which mostly makes this ABI safe
+        // TODO: use official error size?
+        ptr.maybe_runOnNode = @ptrCast(std.c.dlsym(dll_handle, "_zlint_runOnNode"));
+        ptr.maybe_runOnSymbol = @ptrCast(std.c.dlsym(dll_handle, "_zlint_runOnSymbol"));
+
+        const id = hashName(meta.name);
+
+        const gen = struct {
+            pub fn runOnNode(pointer: *const anyopaque, node: NodeWrapper, ctx: *LinterContext) anyerror!void {
+                const self: *const UserDefinedData = @alignCast(@ptrCast(pointer));
+                if (self.maybe_runOnNode) |_runOnNode| {
+                    const err_code = _runOnNode(pointer, node, ctx);
+                    // FIXME: how to handle error codes? they are not stable across zig compilations so
+                    // definitely ABI unsafe
+                    if (err_code != 0)
+                        return error.UserDefinedRuleError;
+                }
+            }
+            pub fn runOnSymbol(pointer: *const anyopaque, symbol: Symbol.Id, ctx: *LinterContext) anyerror!void {
+                const self: *const UserDefinedData = @alignCast(@ptrCast(pointer));
+                if (self.maybe_runOnSymbol) |_runOnSymbol| {
+                    const err_code = _runOnSymbol(pointer, symbol, ctx);
+                    if (err_code != 0)
+                        return error.UserDefinedRuleError;
+                }
+            }
+        };
+
+        return .{
+            .id = id,
+            .meta = meta,
+            .ptr = ptr,
+            .runOnNodeFn = gen.runOnNode,
+            .runOnSymbolFn = gen.runOnSymbol,
+            .kind = .userDefined,
         };
     }
 

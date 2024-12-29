@@ -7,8 +7,9 @@ const ArenaAllocator = std.heap.ArenaAllocator;
 const Dir = std.fs.Dir;
 const lint = @import("../linter.zig");
 
+// FIXME: need a test helper that returns which exact file was resolved
 pub fn resolveLintConfig(
-    arena: ArenaAllocator,
+    arena: *ArenaAllocator,
     cwd: Dir,
     config_filename: [:0]const u8,
 ) !lint.Config.Managed {
@@ -134,10 +135,13 @@ test resolveLintConfig {
         try cwd.realpathAlloc(t.allocator, "test/fixtures/config");
     defer t.allocator.free(fixtures_dir);
 
-    const arena = std.heap.ArenaAllocator.init(t.allocator);
+    var arena = std.heap.ArenaAllocator.init(t.allocator);
     defer arena.deinit();
-    const config = try resolveLintConfig(arena, cwd, "zlint.json");
+    const config = try resolveLintConfig(&arena, try cwd.openDir(fixtures_dir, .{}), "zlint.json");
     try t.expectEqual(.warning, config.config.rules.no_undefined.severity);
+    const custom_rule = config.config.rules._user_rules.map.get("custom-rule");
+    try t.expect(custom_rule != null);
+    try t.expectEqual(.err, custom_rule.?.severity);
 }
 
 // fn iterParents(comptime N: usize, buf: [N]u8, path: []const u8, filename: []const u8) {

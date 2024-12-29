@@ -1,3 +1,9 @@
 {
-    "no-undefined": "warn"
+    "rules": {
+        "no-undefined": "warn",
+        "custom-rule": {
+            "severity": "error",
+            "path": "./custom_rule_test.zig"
+        }
+    }
 }

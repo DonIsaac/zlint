@@ -69,8 +69,7 @@ pub fn run(self: *TestSuite) !void {
         if (ent.kind != .file) continue;
         if (!std.mem.endsWith(u8, ent.path, ".zig")) continue;
         if (std.mem.indexOfScalar(u8, ent.path, 0) != null) {
-            std.debug.print("bad path: {s}\n", .{ent.path});
-            @panic("fuck");
+            std.debug.panic("bad path: {s}\n", .{ent.path});
         }
         // Walker.Entry is not thread-safe. walk() uses a non-sync stack, and
         // Entries store pointers to data in that stack. Subsequent calls to

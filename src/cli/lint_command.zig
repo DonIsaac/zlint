@@ -29,7 +29,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
     var arena = std.heap.ArenaAllocator.init(alloc);
     const config = blk: {
         errdefer arena.deinit();
-        break :blk try lint_config.resolveLintConfig(arena, fs.cwd(), "zlint.json");
+        break :blk try lint_config.resolveLintConfig(&arena, fs.cwd(), "zlint.json");
     };
     var reporter = try reporters.Reporter.initKind(options.format, stdout, alloc);
     defer reporter.deinit();

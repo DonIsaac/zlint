@@ -47,7 +47,7 @@ test "Enabled rules have their violations reported" {
     };
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = arena, .config = config });
+        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
         defer linter.deinit();
         linter.runOnSource(&src, &errors) catch |e| {
             switch (e) {
@@ -74,7 +74,7 @@ test "When no rules are enabled, no violations are reported" {
     };
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = arena, .config = .{} });
+        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = .{} });
 
         defer linter.deinit();
         try linter.runOnSource(&src, &errors);
@@ -101,7 +101,7 @@ test "When a rule is configured to 'off', none of its violations are reported" {
     };
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = arena, .config = config });
+        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
         defer linter.deinit();
         linter.runOnSource(&src, &errors) catch |e| {
             switch (e) {
@@ -140,7 +140,7 @@ test "When rules are configured but a specific rule is disabled with 'zlint-disa
     };
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = arena, .config = config });
+        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
         defer linter.deinit();
         linter.runOnSource(&src, &errors) catch |e| {
             switch (e) {
@@ -179,7 +179,7 @@ test "When rules are configured but disabled with 'zlint-disable', nothing gets 
     };
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = arena, .config = config });
+        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
         defer linter.deinit();
         linter.runOnSource(&src, &errors) catch |e| {
             switch (e) {
@@ -217,7 +217,7 @@ test "When the global disable directive is misplaced, violations still gets repo
     };
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = arena, .config = config });
+        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
         defer linter.deinit();
         linter.runOnSource(&src, &errors) catch |e| {
             switch (e) {

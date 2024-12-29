@@ -69,7 +69,7 @@ const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const Loc = std.zig.Loc;
 const Span = source.Span;
-const LinterContext = @import("../lint_context.zig");
+const LinterContext = @import("../lint_context.zig").Context;
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
 
