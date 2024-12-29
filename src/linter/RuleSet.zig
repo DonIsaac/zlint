@@ -12,13 +12,12 @@ pub fn ensureTotalCapacityForAllRules(self: *RuleSet, arena: Allocator) Allocato
 }
 
 pub fn loadRulesFromConfig(self: *RuleSet, arena: Allocator, config: *const RulesConfig) !void {
-    try self.rules.ensureUnusedCapacity(arena, BUILTIN_RULES_SIZE + config._user_rules.count());
+    try self.rules.ensureUnusedCapacity(arena, BUILTIN_RULES_SIZE + config._user_rules.map.count());
 
     const info = @typeInfo(RulesConfig);
     inline for (info.Struct.fields) |field| {
-        if (std.mem.startsWith(u8, field.name, "_")) {
+        if (comptime std.mem.startsWith(u8, field.name, "_"))
             continue;
-        }
         const rule = @field(config, field.name);
         if (rule.severity != Severity.off) {
             self.rules.appendAssumeCapacity(.{
@@ -30,10 +29,14 @@ pub fn loadRulesFromConfig(self: *RuleSet, arena: Allocator, config: *const Rule
     }
 
     {
-        var user_rule_iter = config._user_rules.iterator();
+        var user_rule_iter = config._user_rules.map.iterator();
         while (user_rule_iter.next()) |user_rule_entry| {
+            // FIXME: can we get a [:0]const u8 out of the json?
             const path = user_rule_entry.value_ptr.path;
-            const rule = Rule.initUserDefined(path) catch |err| {
+            const zpath = try arena.dupeZ(u8, path);
+            defer arena.free(zpath);
+            // FIXME: is it ok to use the arena for this?
+            const rule = Rule.initUserDefined(arena, zpath) catch |err| {
                 std.log.err("Failed with {} loading custom rule at '{s}'", .{ err, path });
                 continue;
             };

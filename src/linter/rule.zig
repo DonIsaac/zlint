@@ -41,6 +41,12 @@ pub const Rule = struct {
     ptr: *anyopaque,
     runOnNodeFn: RunOnNodeFn,
     runOnSymbolFn: RunOnSymbolFn,
+    kind: Kind,
+
+    pub const Kind = enum {
+        builtin,
+        userDefined,
+    };
 
     /// Rules must have a constant with this name of type `Rule.Meta`.
     const META_FIELD_NAME = "meta";
@@ -106,39 +112,68 @@ pub const Rule = struct {
             .ptr = ptr,
             .runOnNodeFn = gen.runOnNode,
             .runOnSymbolFn = gen.runOnSymbol,
+            .kind = .builtin,
         };
     }
 
-    pub fn initUserDefined(file_path: [:0]const u8) !Rule {
+    fn hashName(name: []const u8) Rule.Id {
+        var hasher = std.hash.Wyhash.init(0);
+        std.hash.autoHashStrat(&hasher, name, .Deep);
+        const hash = hasher.final();
+        const repr = std.mem.bytesToValue(Rule.Id.Repr, std.mem.asBytes(&hash));
+        return Rule.Id.new(repr);
+    }
+
+    const UserDefinedData = struct {
+        dll_handle: *anyopaque,
+        maybe_runOnNode: ?*const fn (*const anyopaque, NodeWrapper, *LinterContext) u16,
+        maybe_runOnSymbol: ?*const fn (*const anyopaque, Symbol.Id, *LinterContext) u16,
+    };
+
+    pub fn initUserDefined(alloc: std.mem.Allocator, file_path: [:0]const u8) !Rule {
         const dll_handle = std.c.dlopen(file_path.ptr, std.c.RTLD.LAZY) orelse {
             std.log.err("Couldn't dlopen '{s}'", .{file_path});
             return error.DlOpenFailed;
         };
 
-        const meta_getter: *const fn () *const Meta = std.c.dlsym(dll_handle, "_zlint_meta") orelse {
+        const ptr = try alloc.create(UserDefinedData);
+
+        ptr.* = UserDefinedData{
+            .dll_handle = dll_handle,
+            .maybe_runOnNode = undefined,
+            .maybe_runOnSymbol = undefined,
+        };
+
+        const meta_getter: *const fn () *const Meta = @ptrCast(std.c.dlsym(dll_handle, "_zlint_meta") orelse {
             std.log.err("Couldn't dlsym _zlint_meta", .{});
             return error.DlSymMetaFailed;
             //@compileError("Rule must have a `pub const " ++ META_FIELD_NAME ++ " Rule.Meta` field");
-        };
+        });
 
         const meta: Meta = meta_getter().*;
 
         // NOTE: NodeWrapper is packed which mostly makes this ABI safe
         // TODO: use official error size?
-        const maybe_runOnNode: ?*const fn (*const anyopaque, NodeWrapper, *LinterContext) u16 = @ptrCast(std.c.dlsym(dll_handle, "_zlint_runOnNode"));
-        const maybe_runOnSymbol: ?*const fn (*const anyopaque, Symbol.Id, *LinterContext) u16 = std.c.dlsym(dll_handle, "_zlint_runOnSymbol");
+        ptr.maybe_runOnNode = @ptrCast(std.c.dlsym(dll_handle, "_zlint_runOnNode"));
+        ptr.maybe_runOnSymbol = @ptrCast(std.c.dlsym(dll_handle, "_zlint_runOnSymbol"));
 
-        const id = comptime rule_ids.get(meta.name) orelse @compileError("Could not find an id for rule '" ++ meta.name ++ "'.");
+        const id = hashName(meta.name);
 
         const gen = struct {
             pub fn runOnNode(pointer: *const anyopaque, node: NodeWrapper, ctx: *LinterContext) anyerror!void {
-                if (maybe_runOnNode) |_runOnNode| {
-                    return _runOnNode(pointer, node, ctx);
+                const self: *const UserDefinedData = @alignCast(@ptrCast(pointer));
+                if (self.maybe_runOnNode) |_runOnNode| {
+                    const err_code = _runOnNode(pointer, node, ctx);
+                    return @errorFromInt(err_code);
                 }
             }
             pub fn runOnSymbol(pointer: *const anyopaque, symbol: Symbol.Id, ctx: *LinterContext) anyerror!void {
-                if (maybe_runOnSymbol) |_runOnSymbol| {
-                    return _runOnSymbol(pointer, symbol, ctx);
+                const self: *const UserDefinedData = @alignCast(@ptrCast(pointer));
+                if (self.maybe_runOnSymbol) |_runOnSymbol| {
+                    // FIXME: how to handle error codes? they are not stable across zig compilations so
+                    // definitely ABI unsafe
+                    const err_code = _runOnSymbol(pointer, symbol, ctx);
+                    return @errorFromInt(err_code);
                 }
             }
         };
@@ -146,9 +181,10 @@ pub const Rule = struct {
         return .{
             .id = id,
             .meta = meta,
-            .ptr = dll_handle,
+            .ptr = ptr,
             .runOnNodeFn = gen.runOnNode,
             .runOnSymbolFn = gen.runOnSymbol,
+            .kind = .userDefined,
         };
     }
 

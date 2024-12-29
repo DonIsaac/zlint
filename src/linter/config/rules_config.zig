@@ -13,6 +13,23 @@ const assert = std.debug.assert;
 
 const ParseError = json.ParseError(json.Scanner);
 
+pub const UserRuleConfig = struct {
+    // TODO: get default severity from rule dll
+    severity: Severity = Severity.err,
+    path: []const u8,
+    options: struct {
+        _inner: ?*anyopaque = null,
+
+        pub fn jsonParse(allocator: Allocator, source: *json.Scanner, options: json.ParseOptions) !@This() {
+            _ = allocator;
+            _ = options;
+            if (try source.next() != .object_begin) return ParseError.UnexpectedToken;
+            if (try source.next() != .object_end) return ParseError.UnexpectedToken;
+            return .{};
+        }
+    },
+};
+
 pub const RulesConfig = struct {
     homeless_try: RuleConfig(rules.HomelessTry) = .{},
     no_catch_return: RuleConfig(rules.NoCatchReturn) = .{},
@@ -21,7 +38,7 @@ pub const RulesConfig = struct {
     no_unresolved: RuleConfig(rules.NoUnresolved) = .{},
     suppressed_errors: RuleConfig(rules.SuppressedErrors) = .{},
     unused_decls: RuleConfig(rules.UnusedDecls) = .{},
-    _user_rules: std.StringArrayHashMap(?*anyopaque) = .{},
+    _user_rules: std.json.ArrayHashMap(UserRuleConfig) = .{},
 
     pub fn jsonParse(allocator: Allocator, source: *json.Scanner, options: json.ParseOptions) !RulesConfig {
         var config = RulesConfig{};
@@ -36,16 +53,23 @@ pub const RulesConfig = struct {
                 else => return ParseError.UnexpectedToken,
             };
 
-            // TODO: use comptime prefix-tree of known rules
+            // REPORTME: would be nice if inline for supported an else clause
+            var handled = false;
+
             inline for (meta.fields(RulesConfig)) |field| {
-                if (mem.startsWith(u8, "_", field.name)) continue;
+                if (comptime mem.startsWith(u8, field.name, "_")) continue;
                 const RuleConfigImpl = @TypeOf(@field(config, field.name));
+                // TODO: use comptime prefix-tree of known rules
                 if (mem.eql(u8, key, RuleConfigImpl.name)) {
                     @field(config, field.name) = try RuleConfigImpl.jsonParse(allocator, source, options);
+                    handled = true;
                     break;
                 }
-                // TODO:
-                // handle unknown keys
+            }
+
+            if (!handled) {
+                const user_rule_config = try json.innerParse(UserRuleConfig, allocator, source, options);
+                try config._user_rules.map.put(allocator, key, user_rule_config);
             }
         }
 
@@ -75,6 +99,7 @@ fn testConfig(source: []const u8, expected: RulesConfig) !void {
     defer actual.deinit();
     const info = @typeInfo(RulesConfig);
     inline for (info.Struct.fields) |field| {
+        if (comptime std.mem.startsWith(u8, field.name, "_")) continue;
         const expected_rule_config = @field(expected, field.name);
         const actual_rule_config = @field(actual.value, field.name);
         // TODO: Test that configs are the same, once rule configuration is implemented.

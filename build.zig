@@ -52,6 +52,7 @@ pub fn build(b: *std.Build) void {
         .strip = if (debug_release) false else null,
     });
     l.link(&exe.root_module, false, .{});
+    exe.linkLibC();
     b.installArtifact(exe);
 
     const e2e = b.addExecutable(.{
