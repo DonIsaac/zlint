@@ -21,3 +21,6 @@ tmp/
 .tmp/
 temp/
 *.tmp
+
+# zlint user defined rule build cache
+.zlint

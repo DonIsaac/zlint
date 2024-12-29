@@ -21,6 +21,12 @@ stdin: bool = false,
 /// Positional arguments
 args: std.ArrayListUnmanaged(util.string) = .{},
 
+// allow invoking the zig compiler on user-specified code
+// and loading the resulting dynamic code at runtime as
+// a user defined rule. This is not secure so do not use
+// use it with a zlint.json and rules you don't trust
+allow_user_defined_rules: bool = false,
+
 pub const usage =
     \\Usage: zlint [options] [<dirs>]
 ;
@@ -33,7 +39,13 @@ const help =
     \\-V, --verbose       Enable verbose logging   
     \\-v, --version       Print version and exit
     \\-h, --help          Show this help message
+    \\--unsafe-allow-user-defined-rules
+    \\                    allow invoking the zig compiler on user-specified code
+    \\                    and loading the resulting dynamic code at runtime as
+    \\                    a user defined rule. This is not secure so do not use
+    \\                    use it with a zlint.json and rules you don't trust
 ;
+
 const ParseError = error{
     OutOfMemory,
     InvalidArg,
@@ -94,6 +106,8 @@ fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options 
             std.process.exit(0);
         } else if (eq(arg, "--")) {
             continue;
+        } else if (eq(arg, "--unsafe-allow-user-defined-rules")) {
+            opts.allow_user_defined_rules = true;
         } else {
             if (err) |e| {
                 e.* = Error.fmt(alloc, "unknown option: {s}\n", .{arg}) catch @panic("OOM");

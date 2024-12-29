@@ -10,6 +10,7 @@ pub const lint = struct {
     pub const Linter = @import("linter.zig").Linter;
     pub const Rule = @import("linter/rule.zig").Rule;
     pub const rules = @import("linter/rules.zig");
+    pub const NodeWrapper = @import("linter/rule.zig").NodeWrapper;
 };
 
 pub const printer = struct {

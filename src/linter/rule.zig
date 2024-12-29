@@ -131,6 +131,83 @@ pub const Rule = struct {
     };
 
     pub fn initUserDefined(alloc: std.mem.Allocator, file_path: [:0]const u8) !Rule {
+        // NOTE: we should also provide a module so that people can define their own
+        // more complicated user-defined rule builds in their build.zig
+
+        // TODO: prompt the user when we have to build it for the first time
+        std.debug.print("compiling user defined plugin at '{s}'\n", .{file_path});
+
+        // NOTE: this will be slow because we block on it,
+        // we should be compiling several user defined rules in parallel
+        const user_entry_arg = try std.fmt.allocPrint(alloc, "-Muser_entry={s}", .{file_path});
+        defer alloc.free(user_entry_arg);
+
+        var args = std.process.args();
+        defer args.deinit();
+        const exe_path = args.next() orelse @panic("no exe arg on posix"); // FIXME: not cross platform, is there a better way anyway?
+
+        const abi_path = try std.fs.path.join(alloc, &.{ exe_path, "../../share/user-defined/custom_rule_api.zig" });
+        defer alloc.free(abi_path);
+
+        const user_defined_rule_entry_path = try std.fs.path.join(alloc, &.{ exe_path, "../../share/user-defined/entry.zig" });
+        defer alloc.free(abi_path);
+
+        const abi_arg = try std.fmt.allocPrint(alloc, "-Mzlint={s}", .{abi_path});
+        defer alloc.free(abi_arg);
+
+        const entry_arg = try std.fmt.allocPrint(alloc, "-Mroot={s}", .{user_defined_rule_entry_path});
+        defer alloc.free(entry_arg);
+
+        const util_path = try std.fs.path.join(alloc, &.{ exe_path, "../../share/user-defined/util.zig" });
+        defer alloc.free(util_path);
+
+        const util_arg = try std.fmt.allocPrint(alloc, "-Mutil={s}", .{util_path});
+        defer alloc.free(util_arg);
+
+        const argv = &.{
+            "zig",
+            "build-lib",
+            "--cache-dir",
+            "./.zlint", // TODO: cache dir should be next to resolved config!
+            "-dynamic",
+            "--dep",
+            "zlint",
+            "--dep",
+            "user_entry",
+            "--dep",
+            "util",
+            entry_arg,
+            "--dep",
+            "util",
+            abi_arg,
+            "--dep",
+            "zlint",
+            user_entry_arg,
+            util_arg,
+        };
+
+        std.debug.print("cli: ", .{});
+        inline for (argv) |arg| {
+            std.debug.print("{s} ", .{arg});
+        }
+        std.debug.print("\n", .{});
+
+        // FIXME: should inherit stdout/stderr instead of collecting it
+        const compile_process = try std.process.Child.run(.{
+            .allocator = alloc,
+            .cwd = std.fs.path.dirname(file_path) orelse return error.DlOpenFailed,
+            // FIXME: consult zig path from config
+            .argv = argv,
+        });
+        defer alloc.free(compile_process.stdout);
+        defer alloc.free(compile_process.stderr);
+
+        std.debug.print("Compiling... {s}\n", .{compile_process.stdout});
+        std.debug.print("(stderr)... {s}\n", .{compile_process.stderr});
+        if (!std.meta.eql(compile_process.term, .{ .Exited = 0 })) {
+            return error.UserDefinedRuleCompileFail;
+        }
+
         const dll_handle = std.c.dlopen(file_path.ptr, std.c.RTLD.LAZY) orelse {
             std.log.err("Couldn't dlopen '{s}'", .{file_path});
             return error.DlOpenFailed;
