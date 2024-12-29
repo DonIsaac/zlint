@@ -119,10 +119,11 @@ test "RulesConfig.jsonParse" {
     ,
         RulesConfig{ .no_undefined = .{ .severity = Severity.err } },
     );
+    // FIXME: add user rule parse test
     try testConfig(
         \\{
         \\  "no-undefined": "allow",
-        \\  "homeless-try": "error"
+        \\  "homeless-try": "error",
         \\}
     ,
         RulesConfig{

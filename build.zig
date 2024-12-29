@@ -82,6 +82,21 @@ pub fn build(b: *std.Build) void {
     l.link(&unit.root_module, true, .{});
     b.installArtifact(unit);
 
+    // FIXME: the runner should invoke zig compiler itself
+    // artifacts
+    const test_custom_rule = b.addSharedLibrary(.{
+        .name = "custom_rule_test",
+        .root_source_file = b.path("src/custom_rule_test.zig"),
+        .single_threaded = single_threaded,
+        .target = l.target,
+        .optimize = l.optimize,
+        .error_tracing = if (debug_release) true else null,
+        .unwind_tables = if (debug_release) true else null,
+        .strip = if (debug_release) false else null,
+    });
+    l.link(&test_custom_rule.root_module, false, .{});
+    b.installArtifact(test_custom_rule);
+
     // steps
 
     const run_exe = b.addRunArtifact(exe);

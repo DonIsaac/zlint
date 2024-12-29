@@ -14,7 +14,7 @@ const assert = std.debug.assert;
 pub const string = []const u8;
 
 pub const TestFolders = struct {
-    /// List of ecosystem repositories. Used by several test suties.
+    /// List of ecosystem repositories. Used by several test suites.
     pub const REPOS_META_FILE = "test/repos.json";
     /// Folder where repositories in `REPOS_META_FILE` get cloned to
     pub const REPOS_DIR = "zig-out/repos";
@@ -38,14 +38,13 @@ pub const TestFolders = struct {
         var snapshot_filename: string = "";
         var filename_needs_dealloc = false;
 
-        if(!std.mem.endsWith(u8, name, SNAP_EXT)) {
-            const with_ext = try std.mem.concat(alloc, u8, &[_]string {name, SNAP_EXT});
+        if (!std.mem.endsWith(u8, name, SNAP_EXT)) {
+            const with_ext = try std.mem.concat(alloc, u8, &[_]string{ name, SNAP_EXT });
             filename_needs_dealloc = true;
             snapshot_filename = with_ext;
         } else {
             snapshot_filename = name;
         }
-
 
         // create suite subfolder if it doesn't exist yet
         const cwd = fs.cwd();
@@ -142,7 +141,7 @@ pub const CmdRunner = struct {
 /// cases, which breaks openFile. TODO: open a bug report in Zig.
 pub fn cleanStrSlice(slice: string) string {
     const sentinel = std.mem.indexOfScalar(u8, slice, 0);
-    if (sentinel) |s|{
+    if (sentinel) |s| {
         return slice[0..s];
     } else {
         return slice;

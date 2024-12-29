@@ -3,7 +3,7 @@
         "no-undefined": "warn",
         "custom-rule": {
             "severity": "error",
-            "path": "./custom-rule.zig"
+            "path": "../../../zig-out/lib/libcustom_rule_test.so"
         }
     }
 }

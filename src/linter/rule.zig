@@ -11,7 +11,7 @@ const Severity = @import("../Error.zig").Severity;
 const LinterContext = @import("lint_context.zig").Context;
 
 // FIXME: must be ABI stable, use packed
-pub const NodeWrapper = struct {
+pub const NodeWrapper = extern struct {
     node: *const Ast.Node,
     idx: Ast.Node.Index,
 
@@ -164,16 +164,18 @@ pub const Rule = struct {
                 const self: *const UserDefinedData = @alignCast(@ptrCast(pointer));
                 if (self.maybe_runOnNode) |_runOnNode| {
                     const err_code = _runOnNode(pointer, node, ctx);
-                    return @errorFromInt(err_code);
+                    // FIXME: how to handle error codes? they are not stable across zig compilations so
+                    // definitely ABI unsafe
+                    if (err_code != 0)
+                        return error.UserDefinedRuleError;
                 }
             }
             pub fn runOnSymbol(pointer: *const anyopaque, symbol: Symbol.Id, ctx: *LinterContext) anyerror!void {
                 const self: *const UserDefinedData = @alignCast(@ptrCast(pointer));
                 if (self.maybe_runOnSymbol) |_runOnSymbol| {
-                    // FIXME: how to handle error codes? they are not stable across zig compilations so
-                    // definitely ABI unsafe
                     const err_code = _runOnSymbol(pointer, symbol, ctx);
-                    return @errorFromInt(err_code);
+                    if (err_code != 0)
+                        return error.UserDefinedRuleError;
                 }
             }
         };
