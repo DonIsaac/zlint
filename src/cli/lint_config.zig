@@ -8,7 +8,7 @@ const Dir = std.fs.Dir;
 const lint = @import("../linter.zig");
 
 pub fn resolveLintConfig(
-    arena: ArenaAllocator,
+    arena: *ArenaAllocator,
     cwd: Dir,
     config_filename: [:0]const u8,
 ) !lint.Config.Managed {
@@ -134,9 +134,9 @@ test resolveLintConfig {
         try cwd.realpathAlloc(t.allocator, "test/fixtures/config");
     defer t.allocator.free(fixtures_dir);
 
-    const arena = std.heap.ArenaAllocator.init(t.allocator);
+    var arena = std.heap.ArenaAllocator.init(t.allocator);
     defer arena.deinit();
-    const config = try resolveLintConfig(arena, cwd, "zlint.json");
+    const config = try resolveLintConfig(&arena, try cwd.openDir(fixtures_dir, .{}), "zlint.json");
     try t.expectEqual(.warning, config.config.rules.no_undefined.severity);
 }
 

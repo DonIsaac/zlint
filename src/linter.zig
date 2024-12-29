@@ -42,12 +42,12 @@ pub const Linter = struct {
 
     pub fn init(gpa: Allocator, config: Config.Managed) !Linter {
         var ruleset = RuleSet{};
-        var arena = config.arena;
-        try ruleset.loadRulesFromConfig(arena.allocator(), &config.config.rules);
+        // FIXME: blergh two arenas
+        try ruleset.loadRulesFromConfig(config.arena.allocator(), &config.config.rules);
         const linter = Linter{
             .rules = ruleset,
             .gpa = gpa,
-            .arena = arena,
+            .arena = ArenaAllocator.init(gpa),
         };
         return linter;
     }
