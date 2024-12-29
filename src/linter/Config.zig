@@ -4,10 +4,10 @@ const Config = @This();
 
 pub const Managed = struct {
     config: Config,
-    arena: std.heap.ArenaAllocator,
+    arena: *std.heap.ArenaAllocator,
 };
 
-pub fn intoManaged(self: Config, arena: std.heap.ArenaAllocator) Managed {
+pub fn intoManaged(self: Config, arena: *std.heap.ArenaAllocator) Managed {
     return Managed{ .config = self, .arena = arena };
 }
 
