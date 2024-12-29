@@ -161,3 +161,9 @@ test Cow {
     try t.expectEqualStrings(cow.borrow(), "Hello, world!");
     try t.expectEqualStrings(borrowed.borrow(), "Hello, World!");
 }
+
+test "Cow.format" {
+    const actual = try std.fmt.allocPrint(t.allocator, "{}", .{Cow(false).static("Hello, world!")});
+    defer t.allocator.free(actual);
+    try t.expectEqualStrings("Cow<false>(borrowed, \"Hello, world!\")", actual);
+}
