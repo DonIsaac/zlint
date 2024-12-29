@@ -164,6 +164,18 @@ pub const Rule = struct {
         const util_arg = try std.fmt.allocPrint(alloc, "-Mutil={s}", .{util_path});
         defer alloc.free(util_arg);
 
+        const smart_pointers_path = try std.fs.path.join(alloc, &.{ exe_path, "../../share/user-defined/smart-pointers-stub.zig" });
+        defer alloc.free(smart_pointers_path);
+
+        const smart_pointers_arg = try std.fmt.allocPrint(alloc, "-Msmart-pointers={s}", .{smart_pointers_path});
+        defer alloc.free(smart_pointers_arg);
+
+        const chameleon_path = try std.fs.path.join(alloc, &.{ exe_path, "../../share/user-defined/chameleon-stub.zig" });
+        defer alloc.free(chameleon_path);
+
+        const chameleon_arg = try std.fmt.allocPrint(alloc, "-Mchameleon={s}", .{chameleon_path});
+        defer alloc.free(chameleon_arg);
+
         const argv = &.{
             "zig",
             "build-lib",
@@ -176,6 +188,10 @@ pub const Rule = struct {
             "user_entry",
             "--dep",
             "util",
+            "--dep",
+            "chameleon",
+            "--dep",
+            "smart-pointers",
             entry_arg,
             "--dep",
             "util",
@@ -184,6 +200,8 @@ pub const Rule = struct {
             "zlint",
             user_entry_arg,
             util_arg,
+            smart_pointers_arg,
+            chameleon_arg,
         };
 
         std.debug.print("cli: ", .{});

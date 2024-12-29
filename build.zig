@@ -47,6 +47,14 @@ pub fn build(b: *std.Build) void {
         .install_dir = .{ .custom = "share/user-defined" },
         .install_subdir = "",
     });
+
+    // FIXME: the horror
+    b.installDirectory(.{
+        .source_dir = l.dependencies.getPtr("smart-pointers").?.path("src"),
+        .install_dir = .{ .custom = "share/user-defined/deps" },
+        .install_subdir = "",
+    });
+
     b.installFile("./src/custom_rule_api.zig", "share/user-defined/custom_rule_api.zig");
 
     // artifacts

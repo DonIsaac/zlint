@@ -1,15 +1,13 @@
 const std = @import("std");
 
-const Rule = @import("zlint").Rule;
+const Meta = @import("zlint").Meta;
 const NodeWrapper = @import("zlint").NodeWrapper;
 const Symbol = @import("zlint").Symbol;
 const LinterContext = @import("zlint").LinterContext;
 
 const user_rule = @import("user_entry");
 
-// FIXME: the runtime compiler invocation will have its own entry zig file which imports all the above
-// stuff and implements this C API for you. It will also handle providing some `zlint` import
-export fn _zlint_meta() *const Rule.Meta {
+export fn _zlint_meta() *const Meta {
     return &user_rule.meta;
 }
 

@@ -1,16 +1,11 @@
 const std = @import("std");
 
-// const Rule = @import("./linter/rule.zig").Rule;
-// const NodeWrapper = @import("./linter/rule.zig").NodeWrapper;
-// const Symbol = @import("./semantic/Symbol.zig");
-// const LinterContext = @import("./linter/lint_context.zig").Context;
-
-const Rule = @import("zlint").Rule;
+const Meta = @import("zlint").Meta;
 const NodeWrapper = @import("zlint").NodeWrapper;
 const Symbol = @import("zlint").Symbol;
 const LinterContext = @import("zlint").LinterContext;
 
-pub const meta: Rule.Meta = .{
+pub const meta: Meta = .{
     .name = "string",
     .category = .suspicious,
     .default = .err,
