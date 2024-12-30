@@ -3,12 +3,14 @@ rules: RulesConfig = .{},
 const Config = @This();
 
 pub const Managed = struct {
+    /// should only be set if created from an on-disk config
+    path: ?[]const u8 = null,
     config: Config,
     arena: *std.heap.ArenaAllocator,
 };
 
-pub fn intoManaged(self: Config, arena: *std.heap.ArenaAllocator) Managed {
-    return Managed{ .config = self, .arena = arena };
+pub fn intoManaged(self: Config, arena: *std.heap.ArenaAllocator, path: ?[]const u8) Managed {
+    return Managed{ .config = self, .arena = arena, .path = path };
 }
 
 pub const DEFAULT: Config = .{

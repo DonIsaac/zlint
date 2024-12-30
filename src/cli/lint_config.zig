@@ -29,9 +29,9 @@ pub fn resolveLintConfig(
         var scanner = json.Scanner.initCompleteInput(alloc, source);
         defer scanner.deinit();
         const config = try json.parseFromTokenSourceLeaky(lint.Config, alloc, &scanner, .{});
-        return config.intoManaged(arena);
+        return config.intoManaged(arena, try alloc.dupe(u8, maybe_path_to_config));
     }
-    return lint.Config.DEFAULT.intoManaged(arena);
+    return lint.Config.DEFAULT.intoManaged(arena, null);
 }
 
 const ParentIterError = error{
@@ -137,6 +137,8 @@ test resolveLintConfig {
     var arena = std.heap.ArenaAllocator.init(t.allocator);
     defer arena.deinit();
     const config = try resolveLintConfig(&arena, try cwd.openDir(fixtures_dir, .{}), "zlint.json");
+    try t.expect(config.path != null);
+    try t.expectStringEndsWith(config.path.?, "zlint/test/fixtures/config/zlint.json");
     try t.expectEqual(.warning, config.config.rules.no_undefined.severity);
 }
 
