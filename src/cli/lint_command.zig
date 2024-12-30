@@ -27,8 +27,10 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
     // includes the config source string, the parsed Config object, and
     // (eventually) whatever each rule needs to store. This lets all configs
     // store slices to the config's source, avoiding allocations.
-    var config = try lint_config.resolveLintConfig(alloc, fs.cwd(), "zlint.json");
-    defer config.deinit();
+    var arena = std.heap.ArenaAllocator.init(alloc);
+    defer arena.deinit();
+
+    const config = try lint_config.resolveLintConfig(&arena, fs.cwd(), "zlint.json");
 
     var reporter = try reporters.Reporter.initKind(options.format, stdout, alloc);
     defer reporter.deinit();
@@ -84,7 +86,7 @@ const LintVisitor = struct {
     allocator: Allocator,
 
     fn init(allocator: Allocator, reporter: *reporters.Reporter, config: _lint.Config.Managed, n_threads: ?u32) !LintVisitor {
-        errdefer config.deinit();
+        errdefer config.arena.deinit();
         var linter = try Linter.init(allocator, config);
         errdefer linter.deinit();
         // try linter.registerAllRules();
