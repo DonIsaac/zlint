@@ -22,15 +22,10 @@ const Options = @import("../cli/Options.zig");
 
 pub fn lint(alloc: Allocator, options: Options) !u8 {
     const stdout = std.io.getStdOut().writer();
-    // NOTE: everything config related is stored in the same arena. This
-    // includes the config source string, the parsed Config object, and
-    // (eventually) whatever each rule needs to store. This lets all configs
-    // store slices to the config's source, avoiding allocations.
-    var arena = std.heap.ArenaAllocator.init(alloc);
-    const config = blk: {
-        errdefer arena.deinit();
-        break :blk try lint_config.resolveLintConfig(&arena, fs.cwd(), "zlint.json");
-    };
+
+    var config = try lint_config.resolveLintConfig(alloc, fs.cwd(), "zlint.json");
+    defer config.deinit();
+
     var reporter = try reporters.Reporter.initKind(options.format, stdout, alloc);
     defer reporter.deinit();
     reporter.opts = .{ .quiet = options.quiet };
@@ -85,7 +80,7 @@ const LintVisitor = struct {
     allocator: Allocator,
 
     fn init(allocator: Allocator, reporter: *reporters.Reporter, config: _lint.Config.Managed, n_threads: ?u32) !LintVisitor {
-        errdefer config.arena.deinit();
+        errdefer config.deinit();
         var linter = try Linter.init(allocator, config);
         errdefer linter.deinit();
         // try linter.registerAllRules();

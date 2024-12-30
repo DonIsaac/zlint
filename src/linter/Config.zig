@@ -6,11 +6,19 @@ pub const Managed = struct {
     /// should only be set if created from an on-disk config
     path: ?[]const u8 = null,
     config: Config,
-    arena: *std.heap.ArenaAllocator,
+    arena: std.heap.ArenaAllocator,
+
+    pub fn deinit(self: Managed) void {
+        self.arena.deinit();
+    }
 };
 
-pub fn intoManaged(self: Config, arena: *std.heap.ArenaAllocator, path: ?[]const u8) Managed {
-    return Managed{ .config = self, .arena = arena, .path = path };
+pub fn intoManaged(self: Config, alloc: std.mem.Allocator, path: ?[]const u8) Managed {
+    return Managed{
+        .config = self,
+        .arena = std.heap.ArenaAllocator.init(alloc),
+        .path = path,
+    };
 }
 
 pub const DEFAULT: Config = .{
