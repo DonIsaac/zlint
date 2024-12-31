@@ -104,7 +104,13 @@ pub fn Cow(comptime sentinel: bool) type {
             self.borrowed = false;
         }
 
-        pub fn format(self: Self, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+        /// Use a `{s}` specifier to print the contained string. Use `{}` or
+        /// `{any}` for debug printing.
+        pub fn format(self: Self, comptime _fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+            if (_fmt.len == 1 and _fmt[0] == 's') {
+                return writer.writeAll(self.str);
+            }
+
             return writer.print("Cow<{}>({s}, \"{s}\")", .{
                 sentinel,
                 if (self.borrowed) "borrowed" else "owned",
@@ -163,7 +169,15 @@ test Cow {
 }
 
 test "Cow.format" {
-    const actual = try std.fmt.allocPrint(t.allocator, "{}", .{Cow(false).static("Hello, world!")});
-    defer t.allocator.free(actual);
-    try t.expectEqualStrings("Cow<false>(borrowed, \"Hello, world!\")", actual);
+    const no_specifier = try std.fmt.allocPrint(t.allocator, "{}", .{Cow(false).static("Hello, world!")});
+    defer t.allocator.free(no_specifier);
+    try t.expectEqualStrings("Cow<false>(borrowed, \"Hello, world!\")", no_specifier);
+
+    const any = try std.fmt.allocPrint(t.allocator, "{any}", .{Cow(false).static("Hello, world!")});
+    defer t.allocator.free(any);
+    try t.expectEqualStrings("Cow<false>(borrowed, \"Hello, world!\")", any);
+
+    const str = try std.fmt.allocPrint(t.allocator, "{s}", .{Cow(false).static("Hello, world!")});
+    defer t.allocator.free(str);
+    try t.expectEqualStrings("Hello, world!)", str);
 }
