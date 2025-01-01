@@ -37,7 +37,15 @@
             "program": "./zig-out/bin/test",
             "cwd": "${workspaceRoot}",
             "preLaunchTask": "build -Dsingle-threaded"
-        }
+        },
+        {
+            "name": "test-utils",
+            "type": "lldb",
+            "request": "launch",
+            "program": "./zig-out/bin/test-utils",
+            "cwd": "${workspaceRoot}",
+            "preLaunchTask": "build -Dsingle-threaded"
+        },
         // {
         //     "name": "zig test [file]",
         //     "type": "lldb",

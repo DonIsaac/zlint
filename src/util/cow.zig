@@ -82,8 +82,7 @@ pub fn Cow(comptime sentinel: bool) type {
         /// allocates if the `Cow` is borrowed.
         pub fn borrowMut(self: *Self, allocator: Allocator) Allocator.Error!MutSlice {
             if (self.borrowed) {
-                // self.str = try allocator.alloc
-                try self.toOwned(allocator);
+                try self.toOwnedImpl(allocator);
                 self.setAlloc(allocator);
             }
             return @constCast(self.str);
@@ -95,13 +94,17 @@ pub fn Cow(comptime sentinel: bool) type {
         }
 
         pub fn toOwned(self: *Self, allocator: Allocator) Allocator.Error!void {
-            assert(self.borrowed);
+            if (self.borrowed) try self.toOwnedImpl(allocator);
+        }
+
+        fn toOwnedImpl(self: *Self, allocator: Allocator) Allocator.Error!void {
+            assert(self.borrowed, "This Cow is already owned.", .{});
             const owned_data: MutSlice = try (if (comptime sentinel)
                 allocator.allocSentinel(u8, self.str.len, 0)
             else
                 allocator.alloc(u8, self.str.len));
-            self.str = owned_data;
-            self.borrowed = false;
+            @memcpy(owned_data, self.str);
+            self.* = .{ .str = owned_data, .borrowed = false, .__alloc = asDebug(allocator) };
         }
 
         /// Use a `{s}` specifier to print the contained string. Use `{}` or
@@ -155,7 +158,6 @@ test Cow {
     defer cow.deinit(t.allocator);
 
     try t.expect(!cow.borrowed);
-    try t.expect(false);
     try t.expectEqualStrings("Hello, world!", cow.borrow());
 
     var borrowed = cow.clone();
@@ -164,8 +166,8 @@ test Cow {
     try t.expectEqual(cow.borrow().ptr, borrowed.borrow().ptr);
 
     std.mem.replaceScalar(u8, try borrowed.borrowMut(t.allocator), 'w', 'W');
-    try t.expectEqualStrings(cow.borrow(), "Hello, world!");
-    try t.expectEqualStrings(borrowed.borrow(), "Hello, World!");
+    try t.expectEqualStrings("Hello, world!", cow.borrow());
+    try t.expectEqualStrings("Hello, World!", borrowed.borrow());
 }
 
 test "Cow.format" {
@@ -179,5 +181,5 @@ test "Cow.format" {
 
     const str = try std.fmt.allocPrint(t.allocator, "{s}", .{Cow(false).static("Hello, world!")});
     defer t.allocator.free(str);
-    try t.expectEqualStrings("Hello, world!)", str);
+    try t.expectEqualStrings("Hello, world!", str);
 }
