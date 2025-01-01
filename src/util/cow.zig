@@ -14,6 +14,8 @@ pub fn Cow(comptime sentinel: bool) type {
     const MutSlice = if (sentinel) [:0]u8 else []u8;
     const Slice = if (sentinel) [:0]const u8 else []const u8;
 
+    const null_alloc = comptime if (IS_DEBUG) null else {};
+
     return struct {
         /// Does this `Cow` own its data, or is it borrowing it from someone
         /// else? `true` if borrowed.
@@ -34,7 +36,7 @@ pub fn Cow(comptime sentinel: bool) type {
         str: Slice,
         /// For runtime safety checks only. Do not use. Removed in any release
         /// build.
-        __alloc: DebugAlloc = if (IS_DEBUG) null else {},
+        __alloc: DebugAlloc = null_alloc,
 
         const Self = @This();
 
@@ -70,7 +72,11 @@ pub fn Cow(comptime sentinel: bool) type {
         }
 
         pub fn clone(self: Self) Self {
-            return .{ .borrowed = true, .str = self.str, .__alloc = null };
+            return .{
+                .borrowed = true,
+                .str = self.str,
+                .__alloc = null_alloc,
+            };
         }
 
         /// Immutably borrow the string stored by this `Cow` without allocating.
