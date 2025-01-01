@@ -52,6 +52,8 @@ pub const Span = struct {
     start: u32,
     end: u32,
 
+    pub const EMPTY = Span{ .start = 0, .end = 0 };
+
     pub inline fn new(start: u32, end: u32) Span {
         assert(end >= start);
         return .{ .start = start, .end = end };

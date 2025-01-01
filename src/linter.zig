@@ -274,4 +274,5 @@ test {
 
     // test suites
     _ = @import("./linter/test/disabling_rules_test.zig");
+    std.testing.refAllDeclsRecursive(@import("./linter/fix.zig"));
 }
