@@ -23,8 +23,8 @@ _default:
 init:
     ./tasks/init.sh
 
-install:
-    cp zig-out/bin/zlint ~/.bin/zlint
+install dir="~/.bin":
+    cp zig-out/bin/zlint {{dir}}/zlint
 
 # Run CI checks locally. Run this before making a PR.
 ready:
@@ -109,12 +109,20 @@ new-rule name:
     fi
     zig fmt src/linter
 
-codesign cmd="./zig-out/bin/zlint": build
-    codesign --entitlements dev-entitlements.xml -fs - {{cmd}}
+# (MacOS only) sign binaries so they can be debugged and traced with Instruments
+codesign cmd="./zig-out/bin/zlint" *ARGS="": (build ARGS)
+    codesign --entitlements entitlements.dev.plist -fs - {{cmd}}
 
-leaks cmd="./zig-out/bin/zlint": 
+# (MacOS only) detect and debug memory leaks
+leaks cmd="./zig-out/bin/zlint": (codesign cmd)
     just codesign {{cmd}}
     MallocStackLogging=true leaks -atExit -- {{cmd}}
+
+# (MacOS only) trace a binary with Instruments
+trace cmd="./zig-out/bin/zlint": (codesign cmd "--release=fast -Ddebug-release")
+    @mkdir -p tmp
+    @rm -rf ./tmp/trace.trace
+    xcrun xctrace record --template "Time Profiler" --output ./tmp/trace.trace --launch {{cmd}}
 
 # Clear the screen, then run `zig build {{cmd}}`. Used by `just watch`.
 clear-run cmd:
