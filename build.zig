@@ -70,7 +70,7 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(e2e);
 
-    const unit = b.addTest(.{
+    const test_exe = b.addTest(.{
         .root_source_file = b.path("src/main.zig"),
         .single_threaded = single_threaded,
         .target = l.target,
@@ -78,8 +78,19 @@ pub fn build(b: *std.Build) void {
         .error_tracing = if (debug_release) true else null,
         .strip = if (debug_release) false else null,
     });
-    l.link(&unit.root_module, true, .{});
-    b.installArtifact(unit);
+    l.link(&test_exe.root_module, true, .{});
+    b.installArtifact(test_exe);
+
+    const test_utils = b.addTest(.{
+        .name = "test-utils",
+        .root_source_file = b.path("src/util.zig"),
+        .single_threaded = single_threaded,
+        .target = l.target,
+        .optimize = l.optimize,
+        .error_tracing = if (debug_release) true else null,
+        .strip = if (debug_release) false else null,
+    });
+    b.installArtifact(test_utils);
 
     // steps
 
@@ -90,16 +101,19 @@ pub fn build(b: *std.Build) void {
     const run = b.step("run", "Run zlint from the current directory");
     run.dependOn(&run_exe.step);
 
-    const run_tests = b.addRunArtifact(unit);
+    const run_exe_tests = b.addRunArtifact(test_exe);
+    const run_utils_tests = b.addRunArtifact(test_utils);
     const unit_step = b.step("test", "Run unit tests");
-    unit_step.dependOn(&run_tests.step);
+    unit_step.dependOn(&run_exe_tests.step);
+    unit_step.dependOn(&run_utils_tests.step);
 
     const run_e2e = b.addRunArtifact(e2e);
     const e2e_step = b.step("test-e2e", "Run e2e tests");
     e2e_step.dependOn(&run_e2e.step);
 
     const test_all_step = b.step("test-all", "Run all tests");
-    test_all_step.dependOn(&run_tests.step);
+    test_all_step.dependOn(&run_exe_tests.step);
+    test_all_step.dependOn(&run_utils_tests.step);
     test_all_step.dependOn(&run_e2e.step);
 
     const docs_step = b.step("docs", "Generate documentation");

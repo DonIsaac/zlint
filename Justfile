@@ -68,9 +68,10 @@ coverage:
     zig build
     mkdir -p ./.coverage
     kcov --include-path=src,test ./.coverage/test zig-out/bin/test
+    kcov --include-path=src,test ./.coverage/test-utils zig-out/bin/test-utils
     kcov --include-path=src,test ./.coverage/test-e2e zig-out/bin/test-e2e
     kcov --include-path=src,test ./.coverage/test-zlint zig-out/bin/zlint || true
-    kcov --merge ./.coverage/all ./.coverage/test ./.coverage/test-e2e ./.coverage/test-zlint
+    kcov --merge ./.coverage/all ./.coverage/test ./.coverage/test-utils ./.coverage/test-e2e ./.coverage/test-zlint
 
 # Run benchmarks. Optionally specify a `--release` mode.
 bench mode="safe":
@@ -107,6 +108,13 @@ new-rule name:
         echo "Please install bun to use this command."; \
     fi
     zig fmt src/linter
+
+codesign cmd="./zig-out/bin/zlint": build
+    codesign --entitlements dev-entitlements.xml -fs - {{cmd}}
+
+leaks cmd="./zig-out/bin/zlint": 
+    just codesign {{cmd}}
+    MallocStackLogging=true leaks -atExit -- {{cmd}}
 
 # Clear the screen, then run `zig build {{cmd}}`. Used by `just watch`.
 clear-run cmd:
