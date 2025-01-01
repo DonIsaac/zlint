@@ -8,12 +8,11 @@ const Dir = std.fs.Dir;
 const lint = @import("../linter.zig");
 
 pub fn resolveLintConfig(
-    arena: ArenaAllocator,
+    arena: *std.heap.ArenaAllocator,
     cwd: Dir,
     config_filename: [:0]const u8,
 ) !lint.Config.Managed {
-    var _arena = arena;
-    const alloc = _arena.allocator();
+    const arena_alloc = arena.allocator();
 
     var it = try ParentIterator(4096).fromDir(cwd, config_filename);
     while (it.next()) |maybe_path_to_config| {
@@ -24,14 +23,17 @@ pub fn resolveLintConfig(
             }
         };
         defer file.close();
-        const source = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
-        errdefer alloc.free(source);
-        var scanner = json.Scanner.initCompleteInput(alloc, source);
+        const source = try file.readToEndAlloc(arena_alloc, std.math.maxInt(u32));
+        errdefer arena_alloc.free(source);
+        var scanner = json.Scanner.initCompleteInput(arena_alloc, source);
         defer scanner.deinit();
-        const config = try json.parseFromTokenSourceLeaky(lint.Config, alloc, &scanner, .{});
-        return config.intoManaged(arena);
+        const config = try json.parseFromTokenSourceLeaky(lint.Config, arena_alloc, &scanner, .{});
+        var managed = config.intoManaged(arena, null);
+        managed.path = try managed.arena.allocator().dupe(u8, maybe_path_to_config);
+        return managed;
     }
-    return lint.Config.DEFAULT.intoManaged(arena);
+
+    return lint.Config.DEFAULT.intoManaged(arena, null);
 }
 
 const ParentIterError = error{
@@ -128,15 +130,19 @@ const util = @import("util");
 test resolveLintConfig {
     const cwd = fs.cwd();
 
-    const fixtures_dir = if (util.IS_WINDOWS)
-        try cwd.realpathAlloc(t.allocator, "test\\fixtures\\config")
-    else
-        try cwd.realpathAlloc(t.allocator, "test/fixtures/config");
+    const fixtures_dir = try cwd.realpathAlloc(t.allocator, "test/fixtures/config");
     defer t.allocator.free(fixtures_dir);
 
-    const arena = std.heap.ArenaAllocator.init(t.allocator);
+    var arena = std.heap.ArenaAllocator.init(t.allocator);
     defer arena.deinit();
-    const config = try resolveLintConfig(arena, cwd, "zlint.json");
+
+    const config = try resolveLintConfig(&arena, try cwd.openDir(fixtures_dir, .{}), "zlint.json");
+    try t.expect(config.path != null);
+
+    const expected_path = try std.fs.path.resolve(t.allocator, &.{"zlint/test/fixtures/config/zlint.json"});
+    defer t.allocator.free(expected_path);
+
+    try t.expectStringEndsWith(config.path.?, expected_path);
     try t.expectEqual(.warning, config.config.rules.no_undefined.severity);
 }
 

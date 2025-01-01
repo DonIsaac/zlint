@@ -1,3 +1,5 @@
 {
-    "no-undefined": "warn"
+    "rules": {
+        "no-undefined": "warn"
+    }
 }
