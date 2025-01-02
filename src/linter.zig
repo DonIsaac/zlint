@@ -6,7 +6,10 @@ const _semantic = @import("semantic.zig");
 const _rule = @import("linter/rule.zig");
 const Context = @import("linter/lint_context.zig");
 const disable_directives = @import("linter/disable_directives.zig");
-const ErrorList = Context.ErrorList;
+// const ErrorList = Context.ErrorList;
+
+const Fix = @import("linter/fix.zig").Fix;
+const Fixer = @import("linter/fix.zig").Fixer;
 
 const Arc = ptrs.Arc;
 const Error = @import("Error.zig");
@@ -35,6 +38,7 @@ pub const Linter = struct {
     rules: RuleSet = .{},
     gpa: Allocator,
     arena: ArenaAllocator,
+    options: Options = .{},
 
     pub fn initEmpty(gpa: Allocator) Linter {
         return Linter{ .gpa = gpa, .arena = ArenaAllocator.init(gpa) };
@@ -76,7 +80,7 @@ pub const Linter = struct {
     pub fn runOnSource(
         self: *Linter,
         source: *Source,
-        errors: *?ErrorList,
+        errors: *?std.ArrayList(Error),
     ) (LintError || Allocator.Error)!void {
         if (source.text().len == 0) return;
         var builder = SemanticBuilder.init(self.gpa);
@@ -102,6 +106,7 @@ pub const Linter = struct {
         const rules = try self.getRulesForFile(&rulebuf, &semantic) orelse return;
 
         var ctx = Context.init(self.gpa, &semantic, source);
+        if (self.options.fix) ctx.fix = Fix.Meta.fix();
         const nodes = ctx.semantic.ast.nodes;
         assert(nodes.len < std.math.maxInt(u32));
 
@@ -123,7 +128,7 @@ pub const Linter = struct {
                         "Rule '{s}' failed to run: {s}",
                         .{ rule.meta.name, @errorName(e) },
                     );
-                    try ctx.errors.append(err);
+                    try ctx.errors.append(.{ .err = err });
                 };
             }
         }
@@ -140,15 +145,40 @@ pub const Linter = struct {
                         "Rule '{s}' failed to run: {s}",
                         .{ rule.meta.name, @errorName(e) },
                     );
-                    try ctx.errors.append(err);
+                    try ctx.errors.append(.{ .err = err });
                 };
             }
         }
+        if (ctx.errors.items.len == 0) return;
 
-        if (ctx.errors.items.len > 0) {
-            errors.* = ctx.errors;
+        if (!self.options.fix) {
+            // note: deinit's array list, but not each item's allocation.
+            // Items (that is, the errors) get moved.
+            defer ctx.deinit();
+            const n = ctx.errors.items.len;
+            var es = try std.ArrayList(Error).initCapacity(self.gpa, n);
+            for (0..n) |i| es.appendAssumeCapacity(ctx.errors.items[i].err);
+            errors.* = es;
             return LintError.LintingFailed;
         }
+
+        // TODO: move logic into a linter service
+        const unfixed_errors = try self.applyFixes(&ctx, source);
+        if (unfixed_errors.items.len > 0) {
+            errors.* = unfixed_errors;
+            return LintError.LintingFailed;
+        }
+    }
+
+    fn applyFixes(self: *const Linter, ctx: *Context, source: *Source) Allocator.Error!std.ArrayList(Error) {
+        var fixer = Fixer{ .allocator = self.gpa };
+        var result = try fixer.applyFixes(ctx.source.text(), ctx.errors.items);
+        if (result.did_fix and source.fd != null) {
+            var fd = source.fd.?;
+            // TODO: create + report failures in error list
+            fd.writeAll(result.source.items) catch |e| std.debug.panic("Failed to save fixed source: {s}", .{@errorName(e)});
+        }
+        return result.unfixed_errors.toManaged(self.gpa);
     }
 
     /// Get the list of rules that should be run on a file. Rules disabled
@@ -262,6 +292,10 @@ pub const Linter = struct {
         ParseFailed,
         AnalysisFailed,
         LintingFailed,
+    };
+
+    pub const Options = struct {
+        fix: bool = false,
     };
 };
 

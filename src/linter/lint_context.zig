@@ -4,9 +4,15 @@ semantic: *const Semantic,
 gpa: Allocator,
 /// Errors collected by lint rules
 errors: ErrorList,
+
 /// this slice is 'static (in data segment) and should never be free'd
 curr_rule_name: string = "",
 curr_severity: Severity = Severity.err,
+
+/// Are auto fixes enabled?
+// fix: bool = false,
+fix: Fix.Meta = Fix.Meta.disabled,
+
 source: *Source,
 
 pub fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context {
@@ -145,7 +151,14 @@ pub fn report(self: *Context, diagnostic_: Error) void {
 }
 
 pub fn reportWithFix(self: *Context, diagnostic_: Error, fixer: *FixerFn) void {
-    self._report(Diagnostic{ .err = diagnostic_, .fixer = fixer });
+    if (self.fix.isDisabled()) return self._report(Diagnostic{ .err = diagnostic_ });
+
+    const fix_builder = Fix.Builder{ .allocator = self.gpa, .meta = .{ .kind = .fix }};
+    const fix: Fix = @call(.never_inline, fixer, .{fix_builder}) catch |e| {
+        std.debug.panic("Fixer for rule \"{s}\" failed: {s}", .{self.curr_rule_name, @errorName(e) });
+    };
+
+    self._report(Diagnostic{ .err = diagnostic_, .fix = fix });
 }
 
 fn _report(self: *Context, diagnostic_: Diagnostic) void {
@@ -156,7 +169,7 @@ fn _report(self: *Context, diagnostic_: Diagnostic) void {
     e.source = self.source.contents.clone();
     e.severity = self.curr_severity;
     // TODO: handle errors better
-    self.errors.append(d.err) catch @panic("Cannot add new error: Out of memory");
+    self.errors.append(d) catch @panic("Cannot add new error: Out of memory");
 }
 
 /// Find the comment block ending on the line before the given token.
@@ -193,11 +206,11 @@ pub fn deinit(self: *Context) void {
 
 pub const Diagnostic = struct {
     err: Error,
-    // fix: ?Fix = null,
-    fixer: ?*FixerFn = null,
+    fix: ?Fix = null,
 };
 
-pub const ErrorList = std.ArrayList(Error);
+// TODO: add comptime check to use `std.ArrayList(Error)` when not fixing
+pub const ErrorList = std.ArrayList(Diagnostic);
 
 const Context = @This();
 

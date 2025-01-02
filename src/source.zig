@@ -16,12 +16,13 @@ pub const Source = struct {
     contents: ArcStr,
     pathname: ?string = null,
     gpa: Allocator,
+    fd: ?fs.File,
 
     /// Create a source from an opened file. This file must be opened with at least read permissions.
     ///
     /// Both `file` and `pathname` are moved into the source.
     pub fn init(gpa: Allocator, file: fs.File, pathname: ?string) !Source {
-        defer file.close();
+        errdefer file.close();
         const meta = try file.metadata();
         const contents = try gpa.allocSentinel(u8, meta.size(), 0);
         errdefer gpa.free(contents);
@@ -32,6 +33,7 @@ pub const Source = struct {
             .contents = try ArcStr.init(gpa, contents),
             .pathname = pathname,
             .gpa = gpa,
+            .fd = file,
         };
     }
     /// Create a source file directly from a string. Takes ownership of both
@@ -44,6 +46,7 @@ pub const Source = struct {
             .contents = contents_arc,
             .pathname = pathname,
             .gpa = gpa,
+            .fd = null,
         };
     }
 
@@ -53,9 +56,8 @@ pub const Source = struct {
 
     pub fn deinit(self: *Source) void {
         self.contents.deinit();
-        if (self.pathname != null) {
-            self.gpa.free(self.pathname.?);
-        }
+        if (self.pathname) |p| self.gpa.free(p);
+        if (self.fd) |f| f.close();
         self.* = undefined;
     }
 };
