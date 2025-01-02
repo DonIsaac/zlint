@@ -153,9 +153,9 @@ pub fn report(self: *Context, diagnostic_: Error) void {
 pub fn reportWithFix(self: *Context, diagnostic_: Error, fixer: *FixerFn) void {
     if (self.fix.isDisabled()) return self._report(Diagnostic{ .err = diagnostic_ });
 
-    const fix_builder = Fix.Builder{ .allocator = self.gpa, .meta = .{ .kind = .fix }};
+    const fix_builder = Fix.Builder{ .allocator = self.gpa, .meta = .{ .kind = .fix } };
     const fix: Fix = @call(.never_inline, fixer, .{fix_builder}) catch |e| {
-        std.debug.panic("Fixer for rule \"{s}\" failed: {s}", .{self.curr_rule_name, @errorName(e) });
+        std.debug.panic("Fixer for rule \"{s}\" failed: {s}", .{ self.curr_rule_name, @errorName(e) });
     };
 
     self._report(Diagnostic{ .err = diagnostic_, .fix = fix });
