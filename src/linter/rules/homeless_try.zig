@@ -71,7 +71,6 @@ const Node = Ast.Node;
 const Symbol = semantic.Symbol;
 const Scope = semantic.Scope;
 const Loc = std.zig.Loc;
-const Span = _source.Span;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
@@ -82,15 +81,6 @@ fn notInFnDiagnostic(ctx: *LinterContext, node: Node.Index) Error {
     return ctx.diagnostic("`try` cannot be used outside of a function or test block.", .{
         ctx.labelT(ctx.ast().firstToken(node), "there is nowhere to propagate errors to.", .{}),
     });
-    // var e = Error.newStatic("`try` cannot be used outside of a function or test block.");
-    // e.labels.append()
-
-    // _ = ctx.diagnostic(
-    //     "`try` cannot be used outside of a function.",
-    //     .{
-    //         ctx.labelT(ctx.ast().firstToken(wrapper.idx), "there is nowhere to propagate errors to.", .{}),
-    //     },
-    // );
 }
 
 // Rule metadata

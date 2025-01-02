@@ -89,67 +89,20 @@ pub inline fn labelT(
     };
 }
 
-// pub fn diagnosticFmt(
-//     self: *Context,
-//     comptime message: string,
-//     args: anytype,
-//     spans: anytype,
-// ) *Error {
-//     // TODO: inline
-//     return self._diagnostic(
-//         Error.fmt(self.gpa, message, args) catch @panic("Failed to create error message: Out of memory"),
-//         &spans,
-//     );
-// }
-
-// /// Report a Rule violation.
-// ///
-// /// Takes a short summary of the problem (a static string) and a set of
-// /// [`Span`]s (anything that can be coerced into `[]const Span`)highlighting
-// /// the problematic code. If you need to allocate memory for your `message`, use
-// /// `diagnosticFmt`.
-// ///
-// /// ## Example
-// /// ```zig
-// /// const MyRule = struct {
-// ///   pub fn runOnNode(_: *const MyRule, wrapper: NodeWrapper, ctx: *LinterContext) void {
-// ///     // check for a rule violation..
-// ///     ctx.diagnostic("This is a problem", .{ctx.spanN(wrapper.idx)});
-// ///   }
-// /// };
-// /// ```
-// ///
-// /// ### Notes
-// ///
-// /// - `spans` should not be empty (they _can_ be, but
-// ///   this is not user-friendly.).
-// /// - `spans` is anytype for more flexible coercion into a `[]const Span`
-// pub fn diagnostic(self: *Context, comptime message: string, spans: anytype) *Error {
-//     // TODO: inline
-//     return self._diagnostic(Error.newStatic(message), &spans);
-// }
-
-// fn _diagnostic(self: *Context, err: Error, spans: []const LabeledSpan) *Error {
-//     var e = err;
-//     const a = self.gpa;
-//     e.code = self.curr_rule_name;
-//     e.source_name = if (self.source.pathname) |p| a.dupe(u8, p) catch @panic("OOM") else null;
-//     e.source = self.source.contents.clone();
-//     e.severity = self.curr_severity;
-
-//     if (spans.len > 0) {
-//         e.labels.appendSlice(a, spans) catch @panic("OOM");
-//     }
-//     // TODO: handle errors better
-//     self.errors.append(e) catch @panic("Cannot add new error: Out of memory");
-//     return &self.errors.items[self.errors.items.len - 1];
-// }
-pub fn diagnostic(self: *Context, comptime message: string, spans: anytype) Error {
+/// Create a new `Error` with a static message string.
+pub fn diagnostic(
+    self: *Context,
+    /// error message
+    comptime message: string,
+    /// location(s) of the problem
+    spans: anytype,
+) Error {
     var e = Error.newStatic(message);
     e.labels.ensureTotalCapacityPrecise(self.gpa, spans.len) catch @panic("OOM");
     e.labels.appendSliceAssumeCapacity(&spans);
     return e;
 }
+/// Create a new `Error` with a formatted message
 pub fn diagnosticf(self: *Context, comptime template: []const u8, args: anytype, spans: anytype) Error {
     var e = Error.fmt(self.gpa, template, args) catch @panic("OOM");
     e.labels.ensureTotalCapacityPrecise(self.gpa, spans.len) catch @panic("OOM");

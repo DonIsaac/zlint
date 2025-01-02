@@ -69,7 +69,6 @@ const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const TokenIndex = Ast.TokenIndex;
 const Loc = std.zig.Loc;
-const Span = source.Span;
 const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;

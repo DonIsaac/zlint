@@ -48,7 +48,6 @@ const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const Symbol = semantic.Symbol;
 const Loc = std.zig.Loc;
-const Span = _source.Span;
 const LinterContext = @import("../lint_context.zig");
 const LabeledSpan = _span.LabeledSpan;
 const Rule = _rule.Rule;
