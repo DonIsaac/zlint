@@ -145,6 +145,54 @@ fn _diagnostic(self: *Context, err: Error, spans: []const LabeledSpan) *Error {
     return &self.errors.items[self.errors.items.len - 1];
 }
 
+/// Report a problem found in a source file.
+///
+/// Use `reportWithFix` to provide an automatic fix for the reported error.  It
+/// is highly recommended to provide a fix if possible; this provides the best
+/// user experience.
+///
+/// Reports should have at least one label (they _can_ be, but this is not
+/// user-friendly).
+///
+/// When building a diagnostic, consider separating out the logic for creating
+/// the error into a separate factory. This helps keep your rule logic clear and
+/// makes it extremely apparent what kind of messages your rule can produce.
+///
+/// ## Example
+/// ```zig
+/// const Error = @import("../../Error.zig");
+///
+/// fn myDiagnostic(ctx: *LinterContext) Error {
+///     var err = Error.newStatic("This is a problem");
+///     err.labels.append(ctx.gpa, ctx.spanN(wrapper.idx)) catch @panic("OOM");
+///     return err;
+/// }
+///
+/// const MyRule = struct {
+///   pub fn runOnNode(_: *const MyRule, wrapper: NodeWrapper, ctx: *LinterContext) void {
+///     // check for a rule violation..
+///     ctx.report(myDiagnostic(ctx));
+///   }
+/// };
+/// ```
+pub fn report(self: *Context, diagnostic_: Error) void {
+    self._report(Diagnostic{ .err = diagnostic_ });
+}
+
+pub fn reportWithFix(self: *Context, diagnostic_: Error, fixer: *FixerFn) void {
+    self._report(Diagnostic{ .err = diagnostic_, .fixer = fixer });
+}
+
+fn _report(self: *Context, diagnostic_: Diagnostic) void {
+    var e = &diagnostic_.err;
+    e.code = self.curr_rule_name;
+    e.source_name = if (self.source.pathname) |p| self.gpa.dupe(u8, p) catch @panic("OOM") else null;
+    e.source = self.source.contents.clone();
+    e.severity = self.curr_severity;
+    // TODO: handle errors better
+    self.errors.append(e) catch @panic("Cannot add new error: Out of memory");
+}
+
 /// Find the comment block ending on the line before the given token.
 pub fn commentsBefore(self: *Context, token: Ast.TokenIndex) ?[]const u8 {
     const source = self.ast().source;
@@ -177,6 +225,12 @@ pub fn deinit(self: *Context) void {
     self.* = undefined;
 }
 
+pub const Diagnostic = struct {
+    err: Error,
+    // fix: ?Fix = null,
+    fixer: ?*FixerFn,
+};
+
 pub const ErrorList = std.ArrayList(Error);
 
 const Context = @This();
@@ -197,3 +251,6 @@ const Rule = _rule.Rule;
 const Semantic = _semantic.Semantic;
 const Source = _source.Source;
 const string = util.string;
+
+const Fix = @import("./fix.zig").Fix;
+const FixerFn = @import("./fix.zig").FixerFn;

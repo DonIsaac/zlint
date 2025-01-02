@@ -3,6 +3,7 @@ const util = @import("util");
 const fix = @import("../fix.zig");
 
 const Cow = util.Cow(false);
+const Span = @import("../../span.zig").Span;
 
 const t = std.testing;
 const expect = t.expect;
@@ -103,14 +104,12 @@ test "deleting a section" {
 
 test "replacing a section" {
     var fixer = fix.Fixer{ .allocator = t.allocator };
+    var builder = fix.Fix.Builder{ .allocator = t.allocator };
     const src = "const x = 1; const y = 2; const z = 3;";
 
     {
         var res = try fixer.applyFixes(src, &[_]fix.Fix{
-            .{
-                .span = .{ .start = 0, .end = 12 },
-                .replacement = Cow.static("const a = 4;"),
-            },
+            builder.replace(Span.new(0, 12), Cow.static("const a = 4;")),
         });
         defer res.deinit(t.allocator);
         try expect(res.did_fix);
