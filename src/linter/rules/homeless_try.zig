@@ -75,7 +75,23 @@ const Span = _source.Span;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
+const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
+
+fn notInFnDiagnostic(ctx: *LinterContext, node: Node.Index) Error {
+    return ctx.diagnostic("`try` cannot be used outside of a function or test block.", .{
+        ctx.labelT(ctx.ast().firstToken(node), "there is nowhere to propagate errors to.", .{}),
+    });
+    // var e = Error.newStatic("`try` cannot be used outside of a function or test block.");
+    // e.labels.append()
+
+    // _ = ctx.diagnostic(
+    //     "`try` cannot be used outside of a function.",
+    //     .{
+    //         ctx.labelT(ctx.ast().firstToken(wrapper.idx), "there is nowhere to propagate errors to.", .{}),
+    //     },
+    // );
+}
 
 // Rule metadata
 const HomelessTry = @This();
@@ -116,12 +132,7 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
         if (flags.isContainer()) break;
     }
 
-    _ = ctx.diagnostic(
-        "`try` cannot be used outside of a function.",
-        .{
-            ctx.labelT(ctx.ast().firstToken(wrapper.idx), "there is nowhere to propagate errors to.", .{}),
-        },
-    );
+    ctx.report(notInFnDiagnostic(ctx, wrapper.idx));
 }
 
 fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void {
@@ -151,7 +162,7 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
         },
     }
 
-    const e = ctx.diagnostic(
+    var e = ctx.diagnostic(
         "`try` cannot be used in functions that do not return errors.",
         .{
             if (proto.name_token) |name_token|
@@ -163,6 +174,7 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
     );
     const return_type_src = ctx.ast().getNodeSource(return_type);
     e.help = Cow.fmt(ctx.gpa, "Change the return type to `!{s}`.", .{return_type_src}) catch @panic("OOM");
+    ctx.report(e);
 }
 
 // Used by the Linter to register the rule so it can be run.

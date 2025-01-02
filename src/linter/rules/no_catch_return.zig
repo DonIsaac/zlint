@@ -53,6 +53,7 @@ const Span = _source.Span;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
+const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
 
 // Rule metadata
@@ -63,6 +64,15 @@ pub const meta: Rule.Meta = .{
     .category = .pedantic,
     .default = .warning,
 };
+
+fn noCatchReturnDiagnostic(ctx: *LinterContext, return_node: Node.Index) Error {
+    var err = ctx.diagnostic(
+        "Caught error is immediately returned",
+        .{ctx.spanN(return_node)},
+    );
+    err.help = Cow.static("Use a `try` statement to return unhandled errors.");
+    return err;
+}
 
 // Runs on each node in the AST. Useful for syntax-based rules.
 pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterContext) void {
@@ -106,11 +116,7 @@ pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterCont
     const error_param = ctx.semantic.tokenSlice(ident_tok);
     const returned_ident = ctx.ast().getNodeSource(return_param);
     if (std.mem.eql(u8, error_param, returned_ident)) {
-        var err = ctx.diagnostic(
-            "Caught error is immediately returned",
-            .{ctx.spanN(return_node)},
-        );
-        err.help = Cow.static("Use a `try` statement to return unhandled errors.");
+        ctx.report(noCatchReturnDiagnostic(ctx, return_node));
     }
 }
 

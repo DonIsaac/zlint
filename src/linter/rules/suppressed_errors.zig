@@ -64,6 +64,7 @@ const Rule = _rule.Rule;
 const LabeledSpan = _span.LabeledSpan;
 const NodeWrapper = _rule.NodeWrapper;
 const NULL_NODE = semantic.Semantic.NULL_NODE;
+const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
 
 // Rule metadata
@@ -74,22 +75,22 @@ pub const meta: Rule.Meta = .{
     .default = .warning,
 };
 
-fn swallowedDiagnostic(ctx: *LinterContext, span: Span) void {
-    const e = ctx.diagnostic(
+fn swallowedDiagnostic(ctx: *LinterContext, span: Span) Error {
+    var e = ctx.diagnostic(
         "`catch` statement suppresses errors",
         .{LabeledSpan{ .span = span }},
     );
-    // e.help = .{ .str = "Handle this error or propagate it to the caller with `try`." };
     e.help = Cow.static("Handle this error or propagate it to the caller with `try`.");
+    return e;
 }
 
-fn unreachableDiagnostic(ctx: *LinterContext, span: Span) void {
-    const e = ctx.diagnostic(
+fn unreachableDiagnostic(ctx: *LinterContext, span: Span) Error {
+    var e = ctx.diagnostic(
         "Caught error is mishandled with `unreachable`",
         .{LabeledSpan{ .span = span }},
     );
-    // e.help = .{ .str = "Use `try` to propagate this error. If this branch shouldn't happen, use `@panic` or `std.debug.panic` instead." };
     e.help = Cow.static("Use `try` to propagate this error. If this branch shouldn't happen, use `@panic` or `std.debug.panic` instead.");
+    return e;
 }
 
 // Runs on each node in the AST. Useful for syntax-based rules.
@@ -114,13 +115,13 @@ pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterC
                 const body_span = ast.nodeToSpan(catch_body);
                 const catch_keyword_start: u32 = ast.tokens.items(.start)[node.main_token];
                 const span = Span.new(catch_keyword_start, body_span.end);
-                swallowedDiagnostic(ctx, span);
+                ctx.report(swallowedDiagnostic(ctx, span));
                 return;
             }
             switch (tags[stmts.lhs]) {
                 .unreachable_literal => {
                     const span = ast.nodeToSpan(stmts.lhs);
-                    unreachableDiagnostic(ctx, .{ .start = span.start, .end = span.end });
+                    ctx.report(unreachableDiagnostic(ctx, .{ .start = span.start, .end = span.end }));
                 },
                 else => return,
             }
@@ -129,7 +130,7 @@ pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterC
             // lexeme() exists
             const unreachable_token = ast.nodes.items(.main_token)[catch_body];
             const start: u32 = ast.tokens.items(.start)[unreachable_token];
-            unreachableDiagnostic(ctx, Span.sized(start, "unreachable".len));
+            ctx.report(unreachableDiagnostic(ctx, Span.sized(start, "unreachable".len)));
         },
         else => return,
     }

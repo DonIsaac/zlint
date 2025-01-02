@@ -107,11 +107,11 @@ pub fn runOnSymbol(_: *const UnusedDecls, symbol: Symbol.Id, ctx: *LinterContext
     if (!scope.eql(semantic.Semantic.ROOT_SCOPE_ID)) return;
 
     if (flags.s_variable and flags.s_const) {
-        _ = ctx.diagnosticFmt(
+        ctx.report(ctx.diagnosticf(
             "variable '{s}' is declared but never used.",
             .{name},
             .{ctx.spanT(slice.items(.token)[s].unwrap().?.int())},
-        );
+        ));
         return;
     }
 }
