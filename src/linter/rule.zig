@@ -7,6 +7,7 @@ const Ast = std.zig.Ast;
 const string = util.string;
 const Symbol = semantic.Symbol;
 const Severity = @import("../Error.zig").Severity;
+const Fix = @import("./fix.zig").Fix;
 
 const LinterContext = @import("lint_context.zig");
 
@@ -47,7 +48,13 @@ pub const Rule = struct {
     pub const Meta = struct {
         name: string,
         category: Category,
+        /// Default severity when no config file is provided. Rules that are
+        /// `.off` do not get run at all.
         default: Severity = .off,
+        /// Advertise auto-fixing capabilities to users.
+        ///
+        /// Used (in part) when generating documentation.
+        fix: Fix.Meta = Fix.Meta.disabled,
     };
 
     pub const Category = enum {

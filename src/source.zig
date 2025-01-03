@@ -53,9 +53,7 @@ pub const Source = struct {
 
     pub fn deinit(self: *Source) void {
         self.contents.deinit();
-        if (self.pathname != null) {
-            self.gpa.free(self.pathname.?);
-        }
+        if (self.pathname) |p| self.gpa.free(p);
         self.* = undefined;
     }
 };

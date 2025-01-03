@@ -42,6 +42,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
         // TODO: use options to specify number of threads (if provided)
         var visitor = try LintVisitor.init(alloc, &reporter, config, null);
         defer visitor.deinit();
+        visitor.linter.options.fix = options.fix;
 
         if (!options.stdin) {
             var src = try fs.cwd().openDir(".", .{ .iterate = true });

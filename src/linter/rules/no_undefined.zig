@@ -67,11 +67,12 @@ const source = @import("../../source.zig");
 const Semantic = @import("../../semantic.zig").Semantic;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
+const TokenIndex = Ast.TokenIndex;
 const Loc = std.zig.Loc;
-const Span = source.Span;
 const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
+const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
 
 allow_arrays: bool = true,
@@ -82,6 +83,12 @@ pub const meta: Rule.Meta = .{
     .category = .restriction,
     .default = .warning,
 };
+
+fn undefinedMissingSafetyComment(ctx: *LinterContext, undefined_tok: TokenIndex) Error {
+    var e = ctx.diagnostic("`undefined` is missing a safety comment", .{ctx.spanT(undefined_tok)});
+    e.help = Cow.static("Add a `SAFETY: <reason>` before this line explaining why this code is safe.");
+    return e;
+}
 
 pub fn runOnNode(self: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const node = wrapper.node;
@@ -113,8 +120,7 @@ pub fn runOnNode(self: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterCon
         }
     }
 
-    const e = ctx.diagnostic("`undefined` is missing a safety comment", .{ctx.spanT(node.main_token)});
-    e.help = Cow.static("Add a `SAFETY: <reason>` before this line explaining why this code is safe.");
+    ctx.report(undefinedMissingSafetyComment(ctx, node.main_token));
 }
 
 pub fn rule(self: *NoUndefined) Rule {

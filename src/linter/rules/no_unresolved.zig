@@ -40,7 +40,6 @@ const _source = @import("../../source.zig");
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const Loc = std.zig.Loc;
-const Span = _source.Span;
 const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
@@ -62,10 +61,11 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
         return;
     }
     if (node.data.lhs == 0) {
-        _ = ctx.diagnostic(
+        ctx.report(ctx.diagnostic(
             "Call to `@import()` has no file path or module name.",
             .{ctx.spanN(wrapper.idx)},
-        );
+        ));
+        return;
     }
 
     const tags: []Ast.Node.Tag = ctx.ast().nodes.items(.tag);
@@ -73,7 +73,7 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
 
     // Note: this will get caught by ast check
     if (tags[node.data.lhs] != .string_literal) {
-        _ = ctx.diagnostic("@import operand must be a string literal", .{ctx.spanN(node.data.lhs)});
+        ctx.report(ctx.diagnostic("@import operand must be a string literal", .{ctx.spanN(node.data.lhs)}));
         return;
     }
     const pathname_str = ctx.semantic.tokenSlice(main_tokens[node.data.lhs]);
@@ -99,19 +99,19 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
         // TODO: use absolute paths and cache stat results.
         // depends on: https://github.com/DonIsaac/zlint/issues/81
         const stat = dir.statFile(pathname) catch {
-            _ = ctx.diagnosticFmt(
+            ctx.report(ctx.diagnosticf(
                 "Unresolved import to '{s}'",
                 .{pathname},
                 .{ctx.spanN(node.data.lhs)},
-            );
+            ));
             return;
         };
         if (stat.kind == .directory) {
-            _ = ctx.diagnosticFmt(
+            ctx.report(ctx.diagnosticf(
                 "Unresolved import to directory '{s}'",
                 .{pathname},
                 .{ctx.spanN(node.data.lhs)},
-            );
+            ));
         }
     }
 }

@@ -4,9 +4,17 @@ semantic: *const Semantic,
 gpa: Allocator,
 /// Errors collected by lint rules
 errors: ErrorList,
+
 /// this slice is 'static (in data segment) and should never be free'd
 curr_rule_name: string = "",
 curr_severity: Severity = Severity.err,
+// TODO: `void` in release builds
+curr_fix_capabilities: Fix.Meta = Fix.Meta.disabled,
+
+/// Are auto fixes enabled?
+// fix: bool = false,
+fix: Fix.Meta = Fix.Meta.disabled,
+
 source: *Source,
 
 pub fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context {
@@ -25,6 +33,7 @@ pub fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context 
 pub inline fn updateForRule(self: *Context, rule: *const Rule.WithSeverity) void {
     self.curr_rule_name = rule.rule.meta.name;
     self.curr_severity = rule.severity;
+    self.curr_fix_capabilities = rule.rule.meta.fix;
 }
 
 // ============================== SHORTHANDS ===============================
@@ -89,60 +98,98 @@ pub inline fn labelT(
     };
 }
 
-pub fn diagnosticFmt(
+/// Create a new `Error` with a static message string.
+pub fn diagnostic(
     self: *Context,
+    /// error message
     comptime message: string,
-    args: anytype,
+    /// location(s) of the problem
     spans: anytype,
-) *Error {
-    // TODO: inline
-    return self._diagnostic(
-        Error.fmt(self.gpa, message, args) catch @panic("Failed to create error message: Out of memory"),
-        &spans,
-    );
+) Error {
+    var e = Error.newStatic(message);
+    e.labels.ensureTotalCapacityPrecise(self.gpa, spans.len) catch @panic("OOM");
+    e.labels.appendSliceAssumeCapacity(&spans);
+    return e;
+}
+/// Create a new `Error` with a formatted message
+pub fn diagnosticf(self: *Context, comptime template: []const u8, args: anytype, spans: anytype) Error {
+    var e = Error.fmt(self.gpa, template, args) catch @panic("OOM");
+    e.labels.ensureTotalCapacityPrecise(self.gpa, spans.len) catch @panic("OOM");
+    e.labels.appendSliceAssumeCapacity(&spans);
+    return e;
 }
 
-/// Report a Rule violation.
+/// Report a problem found in a source file.
 ///
-/// Takes a short summary of the problem (a static string) and a set of
-/// [`Span`]s (anything that can be coerced into `[]const Span`)highlighting
-/// the problematic code. If you need to allocate memory for your `message`, use
-/// `diagnosticFmt`.
+/// Use `reportWithFix` to provide an automatic fix for the reported error.  It
+/// is highly recommended to provide a fix if possible; this provides the best
+/// user experience.
+///
+/// Reports should have at least one label (they _can_ be, but this is not
+/// user-friendly).
+///
+/// When building a diagnostic, consider separating out the logic for creating
+/// the error into a separate factory. This helps keep your rule logic clear and
+/// makes it extremely apparent what kind of messages your rule can produce.
 ///
 /// ## Example
 /// ```zig
+/// const Error = @import("../../Error.zig");
+///
+/// fn myDiagnostic(ctx: *LinterContext) Error {
+///     var err = Error.newStatic("This is a problem");
+///     err.labels.append(ctx.gpa, ctx.spanN(wrapper.idx)) catch @panic("OOM");
+///     return err;
+/// }
+///
 /// const MyRule = struct {
 ///   pub fn runOnNode(_: *const MyRule, wrapper: NodeWrapper, ctx: *LinterContext) void {
 ///     // check for a rule violation..
-///     ctx.diagnostic("This is a problem", .{ctx.spanN(wrapper.idx)});
+///     ctx.report(myDiagnostic(ctx));
 ///   }
 /// };
 /// ```
-///
-/// ### Notes
-///
-/// - `spans` should not be empty (they _can_ be, but
-///   this is not user-friendly.).
-/// - `spans` is anytype for more flexible coercion into a `[]const Span`
-pub fn diagnostic(self: *Context, comptime message: string, spans: anytype) *Error {
-    // TODO: inline
-    return self._diagnostic(Error.newStatic(message), &spans);
+pub fn report(self: *Context, diagnostic_: Error) void {
+    self._report(Diagnostic{ .err = diagnostic_ });
 }
 
-fn _diagnostic(self: *Context, err: Error, spans: []const LabeledSpan) *Error {
-    var e = err;
-    const a = self.gpa;
+pub fn reportWithFix(
+    self: *Context,
+    ctx: anytype,
+    diagnostic_: Error,
+    fixer: *const FixerFn(@TypeOf(ctx)),
+) void {
+    if (self.fix.isDisabled()) return self._report(Diagnostic{ .err = diagnostic_ });
+
+    if (comptime util.IS_DEBUG and @import("builtin").is_test) {
+        util.assert(
+            !self.curr_fix_capabilities.isDisabled(),
+            "Rule '{s}' just provided an auto-fix without advertising auto-fix capabilities in its `Meta`. Please update your rule's `meta.fix` field.",
+            .{self.curr_rule_name},
+        );
+    }
+
+    const fix_builder = Fix.Builder{
+        .allocator = self.gpa,
+        .meta = .{ .kind = .fix },
+        .ctx = self,
+    };
+    const fix: Fix = @call(.never_inline, fixer, .{ ctx, fix_builder }) catch |e| {
+        std.debug.panic("Fixer for rule \"{s}\" failed: {s}", .{ self.curr_rule_name, @errorName(e) });
+    };
+
+    self._report(Diagnostic{ .err = diagnostic_, .fix = fix });
+}
+
+fn _report(self: *Context, diagnostic_: Diagnostic) void {
+    var d = diagnostic_;
+    var e = &d.err;
     e.code = self.curr_rule_name;
-    e.source_name = if (self.source.pathname) |p| a.dupe(u8, p) catch @panic("OOM") else null;
+    e.source_name = if (self.source.pathname) |p| self.gpa.dupe(u8, p) catch @panic("OOM") else null;
     e.source = self.source.contents.clone();
     e.severity = self.curr_severity;
-
-    if (spans.len > 0) {
-        e.labels.appendSlice(a, spans) catch @panic("OOM");
-    }
     // TODO: handle errors better
-    self.errors.append(e) catch @panic("Cannot add new error: Out of memory");
-    return &self.errors.items[self.errors.items.len - 1];
+    self.errors.append(d) catch @panic("Cannot add new error: Out of memory");
 }
 
 /// Find the comment block ending on the line before the given token.
@@ -177,7 +224,13 @@ pub fn deinit(self: *Context) void {
     self.* = undefined;
 }
 
-pub const ErrorList = std.ArrayList(Error);
+pub const Diagnostic = struct {
+    err: Error,
+    fix: ?Fix = null,
+};
+
+// TODO: add comptime check to use `std.ArrayList(Error)` when not fixing
+pub const ErrorList = std.ArrayList(Diagnostic);
 
 const Context = @This();
 
@@ -197,3 +250,6 @@ const Rule = _rule.Rule;
 const Semantic = _semantic.Semantic;
 const Source = _source.Source;
 const string = util.string;
+
+const Fix = @import("./fix.zig").Fix;
+const FixerFn = @import("./fix.zig").FixerFn;

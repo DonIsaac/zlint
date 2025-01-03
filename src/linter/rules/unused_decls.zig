@@ -55,7 +55,6 @@ const Node = Ast.Node;
 const Symbol = semantic.Symbol;
 const Scope = semantic.Scope;
 const Loc = std.zig.Loc;
-const Span = _source.Span;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
@@ -107,11 +106,11 @@ pub fn runOnSymbol(_: *const UnusedDecls, symbol: Symbol.Id, ctx: *LinterContext
     if (!scope.eql(semantic.Semantic.ROOT_SCOPE_ID)) return;
 
     if (flags.s_variable and flags.s_const) {
-        _ = ctx.diagnosticFmt(
+        ctx.report(ctx.diagnosticf(
             "variable '{s}' is declared but never used.",
             .{name},
             .{ctx.spanT(slice.items(.token)[s].unwrap().?.int())},
-        );
+        ));
         return;
     }
 }

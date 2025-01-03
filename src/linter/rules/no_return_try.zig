@@ -48,11 +48,11 @@ const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const Symbol = semantic.Symbol;
 const Loc = std.zig.Loc;
-const Span = _source.Span;
 const LinterContext = @import("../lint_context.zig");
 const LabeledSpan = _span.LabeledSpan;
 const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
+const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
 
 // Rule metadata
@@ -62,6 +62,13 @@ pub const meta: Rule.Meta = .{
     .category = .pedantic,
     .default = .warning,
 };
+
+fn returnTryDiagnostic(ctx: *LinterContext, return_start: u32, try_start: u32) Error {
+    const span = LabeledSpan.unlabeled(return_start, try_start + 3);
+    var e = ctx.diagnostic("This error union can be directly returned.", .{span});
+    e.help = Cow.static("Replace `return try` with `return`");
+    return e;
+}
 
 // Runs on each node in the AST. Useful for syntax-based rules.
 pub fn runOnNode(_: *const NoReturnTry, wrapper: NodeWrapper, ctx: *LinterContext) void {
@@ -76,12 +83,7 @@ pub fn runOnNode(_: *const NoReturnTry, wrapper: NodeWrapper, ctx: *LinterContex
     const starts = ast.tokens.items(.start);
     const return_start = starts[node.main_token];
     const try_start = starts[ast.nodes.items(.main_token)[returned_id]];
-    const span = LabeledSpan.unlabeled(
-        return_start,
-        try_start + 3,
-    );
-    const e = ctx.diagnostic("This error union can be directly returned.", .{span});
-    e.help = Cow.static("Replace `return try` with `return`");
+    ctx.report(returnTryDiagnostic(ctx, return_start, try_start));
 }
 
 pub fn rule(self: *NoReturnTry) Rule {
