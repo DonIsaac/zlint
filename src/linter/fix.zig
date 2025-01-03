@@ -110,7 +110,7 @@ pub const Fixer = struct {
 
     const Diagnostic = @import("./lint_context.zig").Diagnostic;
     /// Take fixes in a set of diagnostics and apply them to a source file.
-    /// 
+    ///
     /// Diagnostics list is moved. Its items will be deinitialized.
     pub fn applyFixes(
         self: *Fixer,
