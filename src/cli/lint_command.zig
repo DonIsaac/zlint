@@ -143,9 +143,7 @@ const LintVisitor = struct {
     }
 
     fn lintFileImpl(self: *LintVisitor, filepath: []u8) !void {
-        const file = fs.cwd().openFile(filepath, .{
-            .mode = if (self.linter.options.fix) .read_write else .read_only,
-        }) catch |e| {
+        const file = fs.cwd().openFile(filepath, .{}) catch |e| {
             self.allocator.free(filepath);
             return e;
         };

@@ -173,3 +173,33 @@ test "noop fixes" {
     try expect(!res.did_fix);
     try expectEqual(0, res.source.items.len);
 }
+
+test "overlapping/nested fixes" {
+    var fixer = fix.Fixer{ .allocator = t.allocator };
+    const source =
+        \\const Foo = struct {
+        \\  a: u32,
+        \\};
+    ;
+    // `a: u32` -> `b: usize`
+    const into_b_usize = comptime fix.Fix{
+        .span = Span.new(23, 29),
+        .replacement = Cow.static("b: usize"),
+    };
+    // `a: u32` -> `a: bool`
+    const as_bool = comptime fix.Fix{
+        .span = Span.new(25, 29),
+        .replacement = Cow.static("bool"),
+    };
+    var res = try fixer.applyFixes(source, toDiagnostic([_]fix.Fix{ into_b_usize, as_bool }));
+    defer res.deinit(t.allocator);
+
+    try expect(res.did_fix);
+    try expectEqualStrings(
+        \\const Foo = struct {
+        \\  b: usize,
+        \\};
+    ,
+        res.source.items,
+    );
+}

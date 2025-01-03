@@ -172,11 +172,14 @@ pub const Linter = struct {
         var fixer = Fixer{ .allocator = self.gpa };
         var result = try fixer.applyFixes(ctx.source.text(), ctx.errors.items);
         defer result.deinit(self.gpa);
-        if (result.did_fix and source.fd != null) {
-            var fd = source.fd.?;
-            // TODO: create + report failures in error list
-            fd.seekTo(0) catch |e| std.debug.panic("Failed to seek to start of file: {s}", .{@errorName(e)});
-            fd.writeAll(result.source.items) catch |e| std.debug.panic("Failed to save fixed source: {s}", .{@errorName(e)});
+        if (result.did_fix and source.pathname != null) {
+            const pathname = source.pathname.?;
+            // create instead of open to truncate contents
+            var file = std.fs.cwd().createFile(pathname, .{}) catch |e| {
+                std.debug.panic("Failed to apply fixes to '{s}': {}", .{ pathname, e });
+            };
+            defer file.close();
+            file.writeAll(result.source.items) catch |e| std.debug.panic("Failed to save fixed source to '{s}': {s}", .{ pathname, @errorName(e) });
         }
         const managed = result.unfixed_errors.toManaged(self.gpa);
         result.unfixed_errors = .{};
