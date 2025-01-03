@@ -106,6 +106,7 @@ pub const Linter = struct {
         const rules = try self.getRulesForFile(&rulebuf, &semantic) orelse return;
 
         var ctx = Context.init(self.gpa, &semantic, source);
+        defer ctx.deinit();
         if (self.options.fix) ctx.fix = Fix.Meta.fix();
         const nodes = ctx.semantic.ast.nodes;
         assert(nodes.len < std.math.maxInt(u32));
@@ -152,9 +153,6 @@ pub const Linter = struct {
         if (ctx.errors.items.len == 0) return;
 
         if (!self.options.fix) {
-            // note: deinit's array list, but not each item's allocation.
-            // Items (that is, the errors) get moved.
-            defer ctx.deinit();
             const n = ctx.errors.items.len;
             var es = try std.ArrayList(Error).initCapacity(self.gpa, n);
             for (0..n) |i| es.appendAssumeCapacity(ctx.errors.items[i].err);
@@ -173,12 +171,16 @@ pub const Linter = struct {
     fn applyFixes(self: *const Linter, ctx: *Context, source: *Source) Allocator.Error!std.ArrayList(Error) {
         var fixer = Fixer{ .allocator = self.gpa };
         var result = try fixer.applyFixes(ctx.source.text(), ctx.errors.items);
+        defer result.deinit(self.gpa);
         if (result.did_fix and source.fd != null) {
             var fd = source.fd.?;
             // TODO: create + report failures in error list
+            fd.seekTo(0) catch |e| std.debug.panic("Failed to seek to start of file: {s}", .{@errorName(e)});
             fd.writeAll(result.source.items) catch |e| std.debug.panic("Failed to save fixed source: {s}", .{@errorName(e)});
         }
-        return result.unfixed_errors.toManaged(self.gpa);
+        const managed = result.unfixed_errors.toManaged(self.gpa);
+        result.unfixed_errors = .{};
+        return managed;
     }
 
     /// Get the list of rules that should be run on a file. Rules disabled

@@ -164,7 +164,7 @@ test "replacing a section" {
 test "noop fixes" {
     var fixer = fix.Fixer{ .allocator = t.allocator };
     const source = "const x = 1;";
-    const builder = fix.Fix.Builder{ .allocator = t.allocator };
+    const builder = fix.Fix.Builder{ .allocator = t.allocator, .ctx = undefined };
     const f = builder.noop();
     try expect(f.isNoop());
 

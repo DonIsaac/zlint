@@ -8,6 +8,8 @@ errors: ErrorList,
 /// this slice is 'static (in data segment) and should never be free'd
 curr_rule_name: string = "",
 curr_severity: Severity = Severity.err,
+// TODO: `void` in release builds
+curr_fix_capabilities: Fix.Meta = Fix.Meta.disabled,
 
 /// Are auto fixes enabled?
 // fix: bool = false,
@@ -31,6 +33,7 @@ pub fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context 
 pub inline fn updateForRule(self: *Context, rule: *const Rule.WithSeverity) void {
     self.curr_rule_name = rule.rule.meta.name;
     self.curr_severity = rule.severity;
+    self.curr_fix_capabilities = rule.rule.meta.fix;
 }
 
 // ============================== SHORTHANDS ===============================
@@ -150,11 +153,28 @@ pub fn report(self: *Context, diagnostic_: Error) void {
     self._report(Diagnostic{ .err = diagnostic_ });
 }
 
-pub fn reportWithFix(self: *Context, diagnostic_: Error, fixer: *FixerFn) void {
+pub fn reportWithFix(
+    self: *Context,
+    ctx: anytype,
+    diagnostic_: Error,
+    fixer: *const FixerFn(@TypeOf(ctx)),
+) void {
     if (self.fix.isDisabled()) return self._report(Diagnostic{ .err = diagnostic_ });
 
-    const fix_builder = Fix.Builder{ .allocator = self.gpa, .meta = .{ .kind = .fix } };
-    const fix: Fix = @call(.never_inline, fixer, .{fix_builder}) catch |e| {
+    if (comptime util.IS_DEBUG and @import("builtin").is_test) {
+        util.assert(
+            !self.curr_fix_capabilities.isDisabled(),
+            "Rule '{s}' just provided an auto-fix without advertising auto-fix capabilities in its `Meta`. Please update your rule's `meta.fix` field.",
+            .{self.curr_rule_name},
+        );
+    }
+
+    const fix_builder = Fix.Builder{
+        .allocator = self.gpa,
+        .meta = .{ .kind = .fix },
+        .ctx = self,
+    };
+    const fix: Fix = @call(.never_inline, fixer, .{ ctx, fix_builder }) catch |e| {
         std.debug.panic("Fixer for rule \"{s}\" failed: {s}", .{ self.curr_rule_name, @errorName(e) });
     };
 

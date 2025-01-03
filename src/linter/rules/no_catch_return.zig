@@ -54,14 +54,15 @@ const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
 const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
+const Fix = @import("../fix.zig").Fix;
 
 // Rule metadata
 const NoCatchReturn = @This();
 pub const meta: Rule.Meta = .{
     .name = "no-catch-return",
-    // TODO: set the category to an appropriate value
     .category = .pedantic,
     .default = .warning,
+    .fix = Fix.Meta.fix(),
 };
 
 fn noCatchReturnDiagnostic(ctx: *LinterContext, return_node: Node.Index) Error {
@@ -86,6 +87,8 @@ pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterCont
     // look for a return statement. We loop to handle single-statement blocks.
     if (node.data.rhs == NULL_NODE) return;
     var return_node: Node.Index = node.data.rhs;
+    const end_of_last_tok = ctx.semantic.tokenSpan(ctx.ast().lastToken(return_node)).end;
+
     while (true) {
         switch (tags[return_node]) {
             .@"return" => break,
@@ -115,8 +118,45 @@ pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterCont
     const error_param = ctx.semantic.tokenSlice(ident_tok);
     const returned_ident = ctx.ast().getNodeSource(return_param);
     if (std.mem.eql(u8, error_param, returned_ident)) {
-        ctx.report(noCatchReturnDiagnostic(ctx, return_node));
+        ctx.reportWithFix(
+            Ctx{
+                .catch_node = wrapper.idx,
+                .tried_expr = wrapper.node.data.lhs,
+                .end = end_of_last_tok,
+            },
+            noCatchReturnDiagnostic(ctx, return_node),
+            &replaceWithTry,
+        );
     }
+}
+
+const Ctx = struct {
+    catch_node: Node.Index,
+    tried_expr: Node.Index,
+    end: u32,
+};
+
+fn replaceWithTry(ctx: Ctx, builder: Fix.Builder) !Fix {
+    const catch_node = ctx.catch_node;
+    const tried_expr = ctx.tried_expr;
+    // const ast = builder.ctx.ast();
+    // const end_of_catch = ast.lastToken(
+    //     ast.nodes.items(.data)[catch_node].rhs
+    // )
+    // const span = builder.spanCovering(.node, catch_node);
+    // const pos_of_semi_or_comma = span.end + 1;
+    // const semi_or_comma: u8 = switch (builder.source()[pos_of_semi_or_comma]) {
+    //     inline ';', ',' => |c| c,
+    //     else => |c| std.debug.panic("found unexpected terminator character '{c}'", .{c}),
+    // };
+    var span = builder.spanCovering(.node, catch_node);
+    span.end = ctx.end;
+
+    return builder.replacef(
+        span,
+        "try {s}",
+        .{builder.snippet(.node, tried_expr)},
+    );
 }
 
 // Used by the Linter to register the rule so it can be run.

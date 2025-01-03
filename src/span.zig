@@ -63,6 +63,27 @@ pub const Span = struct {
         return .{ .start = start, .end = start + size };
     }
 
+    pub fn from(value: anytype) Span {
+        return switch (@TypeOf(value)) {
+            Span => value, // base case
+            std.zig.Ast.Span => .{ .start = value.start, .end = value.end },
+            std.zig.Token.Loc => .{ .start = @intCast(value.start), .end = @intCast(value.end) },
+            [2]u32 => .{ .start = value[0], .end = value[1] },
+            else => |T| {
+                const info = @typeInfo(T);
+                switch (info) {
+                    .Struct, .Enum => {
+                        if (@hasField(T, "span")) {
+                            return Span.from(@field(value, "span"));
+                        }
+                    },
+                    else => {},
+                }
+                @compileError("Cannot convert type " ++ @typeName(T) ++ "into a Span.");
+            },
+        };
+    }
+
     pub inline fn len(self: Span) u32 {
         assert(self.end >= self.start);
         return self.end - self.start;

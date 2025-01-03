@@ -42,6 +42,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
         // TODO: use options to specify number of threads (if provided)
         var visitor = try LintVisitor.init(alloc, &reporter, config, null);
         defer visitor.deinit();
+        visitor.linter.options.fix = options.fix;
 
         if (!options.stdin) {
             var src = try fs.cwd().openDir(".", .{ .iterate = true });
@@ -142,7 +143,9 @@ const LintVisitor = struct {
     }
 
     fn lintFileImpl(self: *LintVisitor, filepath: []u8) !void {
-        const file = fs.cwd().openFile(filepath, .{}) catch |e| {
+        const file = fs.cwd().openFile(filepath, .{
+            .mode = if (self.linter.options.fix) .read_write else .read_only,
+        }) catch |e| {
             self.allocator.free(filepath);
             return e;
         };

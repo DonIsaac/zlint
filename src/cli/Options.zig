@@ -18,6 +18,8 @@ format: formatter.Kind = .graphical,
 /// Instead of walking directories in cwd, read names of files to lint from stdin.
 /// If relative, paths are resolved from the cwd.
 stdin: bool = false,
+/// enable auto fixes
+fix: bool = false,
 /// Positional arguments
 args: std.ArrayListUnmanaged(util.string) = .{},
 
@@ -28,6 +30,7 @@ const help =
     \\--print-ast <file>  Parse a file and print its AST as JSON
     \\-f, --format <fmt>  Choose an output format (default, graphical, github, gh)
     \\-S, --stdin         Lint filepaths received from stdin (newline separated)
+    \\--fix               Apply automatic fixes where possible
     \\--deny-warnings     Warnings produce a non-zero exit code
     \\-q, --quiet         Only display error diagnostics
     \\-V, --verbose       Enable verbose logging   
@@ -59,7 +62,9 @@ fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options 
             try opts.args.append(alloc, arg);
             continue;
         }
-        if (eq(arg, "-q") or eq(arg, "--quiet")) {
+        if (eq(arg, "--fix")) {
+            opts.fix = true;
+        } else if (eq(arg, "-q") or eq(arg, "--quiet")) {
             opts.quiet = true;
         } else if (eq(arg, "-V") or eq(arg, "--verbose")) {
             opts.verbose = true;
@@ -141,6 +146,7 @@ test parse {
         .{ "zlint", .{} },
         .{ "zlint --", .{} },
         .{ "zlint --print-ast", .{ .print_ast = true } },
+        .{ "zlint --fix", .{ .fix = true } },
         .{ "zlint --verbose", .{ .verbose = true } },
         .{ "zlint -V", .{ .verbose = true } },
         .{ "zlint --verbose --print-ast", .{ .verbose = true, .print_ast = true } },

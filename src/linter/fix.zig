@@ -1,4 +1,7 @@
-pub const FixerFn = fn (builder: Fix.Builder) anyerror!Fix;
+// pub const FixerFn = fn (builder: Fix.Builder) anyerror!Fix;
+pub fn FixerFn(Ctx: type) type {
+    return fn (ctx: Ctx, builder: Fix.Builder) anyerror!Fix;
+}
 
 pub const Fix = struct {
     meta: Meta = .{},
@@ -46,6 +49,7 @@ pub const Fix = struct {
     pub const Builder = struct {
         meta: Meta = .{},
         allocator: Allocator,
+        ctx: *const LinterContext,
 
         const EMPTY = Cow.static("");
 
@@ -57,6 +61,7 @@ pub const Fix = struct {
                 .replacement = EMPTY,
             };
         }
+
         pub fn delete(self: Builder, span: Span) Fix {
             return Fix{
                 .meta = self.meta,
@@ -73,11 +78,28 @@ pub const Fix = struct {
             };
         }
 
-        pub fn replaceFmt(self: Builder, span: Span, comptime fmt: []const u8, args: anytype) Fix {
+        pub fn replacef(self: Builder, span: Span, comptime fmt: []const u8, args: anytype) Fix {
             return Fix{
                 .meta = self.meta,
                 .span = span,
                 .replacement = Cow.fmt(self.allocator, fmt, args) catch @panic("OOM"),
+            };
+        }
+
+        pub inline fn source(self: Builder) []const u8 {
+            return self.ctx.semantic.ast.source;
+        }
+
+        pub const Spanned = enum { node, token };
+
+        pub fn snippet(self: Builder, comptime kind: Spanned, id: u32) []const u8 {
+            return self.spanCovering(kind, id).snippet(self.ctx.ast().source);
+        }
+
+        pub fn spanCovering(self: Builder, comptime kind: Spanned, id: u32) Span {
+            return switch (kind) {
+                .node => Span.from(self.ctx.ast().nodeToSpan(id)),
+                .token => Span.from(self.ctx.semantic.tokens.items(.loc)[id]),
             };
         }
     };
@@ -87,7 +109,9 @@ pub const Fixer = struct {
     allocator: Allocator,
 
     const Diagnostic = @import("./lint_context.zig").Diagnostic;
-    // TODO: use a iterator yielding fixes
+    /// Take fixes in a set of diagnostics and apply them to a source file.
+    /// 
+    /// Diagnostics list is moved. Its items will be deinitialized.
     pub fn applyFixes(
         self: *Fixer,
         source: [:0]const u8,
@@ -101,7 +125,7 @@ pub const Fixer = struct {
         var stackfb = heap.stackFallback(STACK_SIZE * @sizeOf(Fix), self.allocator);
         const alloc = stackfb.get();
 
-        var fixes = std.ArrayList(Fix).init(alloc);
+        var fixes = std.ArrayList(Diagnostic).init(alloc);
         defer fixes.deinit();
         try fixes.ensureTotalCapacityPrecise(STACK_SIZE);
 
@@ -120,21 +144,24 @@ pub const Fixer = struct {
                 try unfixed_errors.append(self.allocator, diagnostic.err);
                 continue;
             }
-            try fixes.append(fix);
+            try fixes.append(diagnostic);
         }
         if (fixes.items.len == 0) return noFixes(unfixed_errors);
-        mem.sortUnstable(Fix, fixes.items, {}, spanStartLessThan);
+        mem.sortUnstable(Diagnostic, fixes.items, {}, spanStartLessThan);
 
         var fixed: std.ArrayListUnmanaged(u8) = .{};
         try fixed.ensureTotalCapacity(self.allocator, source.len);
         errdefer fixed.deinit(self.allocator);
 
         var last_end: u32 = 0;
-        for (fixes.items) |fix| {
+        for (fixes.items) |*diagnostic| {
+            var fix = &diagnostic.fix.?;
+            defer fix.replacement.deinit(self.allocator);
             if (fix.span.start < last_end) {
-                // FIXME: report diagnostic
+                try unfixed_errors.append(self.allocator, diagnostic.err);
                 continue;
             }
+            defer diagnostic.err.deinit(self.allocator);
             // append source up to the start of the fix
             try fixed.appendSlice(self.allocator, source[last_end..fix.span.start]);
             // append replacement, skipping the deleted/replaced section
@@ -150,8 +177,11 @@ pub const Fixer = struct {
     }
 
     pub const Result = struct {
+        /// Was at least one fix applied?
         did_fix: bool,
+        /// The fixed source code. Heap-allocated. Always empty if `did_fix` is `false`.
         source: std.ArrayListUnmanaged(u8),
+        /// Errors that could not be fixed.
         unfixed_errors: std.ArrayListUnmanaged(Error),
 
         pub fn deinit(self: *Result, allocator: Allocator) void {
@@ -184,8 +214,8 @@ pub const Fixer = struct {
         };
     }
 
-    fn spanStartLessThan(_: void, a: Fix, b: Fix) bool {
-        return a.span.start < b.span.start;
+    fn spanStartLessThan(_: void, a: Diagnostic, b: Diagnostic) bool {
+        return a.fix.?.span.start < b.fix.?.span.start;
     }
 };
 
@@ -202,4 +232,5 @@ const Allocator = std.mem.Allocator;
 const Span = @import("../span.zig").Span;
 const Cow = util.Cow(false);
 
+const LinterContext = @import("./lint_context.zig");
 const Error = @import("../Error.zig");
