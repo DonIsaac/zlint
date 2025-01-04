@@ -6,7 +6,7 @@ const IS_DEBUG = @import("../util.zig").IS_DEBUG;
 /// ## Example
 /// ```zig
 /// const Foo = struct {
-///   debug_check: DebugOnly(u32) = debugOnly(42),
+///   debug_check: DebugOnly(u32) = debugOnly(u32, 42),
 /// };
 /// ```
 pub fn DebugOnly(comptime T: type) type {
@@ -19,7 +19,7 @@ pub fn DebugOnly(comptime T: type) type {
 /// ## Example
 /// ```zig
 /// const Foo = struct {
-///   debug_check: DebugOnly(u32) = debugOnly(42),
+///   debug_check: DebugOnly(u32) = debugOnly(u32, 42),
 /// };
 /// ```
 pub inline fn debugOnly(T: type, value: T) DebugOnly(T) {

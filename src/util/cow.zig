@@ -157,13 +157,7 @@ pub fn Cow(comptime sentinel: bool) type {
     };
 }
 
-// const DebugAlloc = if (IS_DEBUG) ?Allocator else void;
 const DebugAlloc = DebugOnly(?Allocator);
-
-// /// Should be completely eliminiated in release binaries.
-// inline fn asDebug(allocator: Allocator) DebugAlloc {
-//     return if (comptime IS_DEBUG) allocator else {};
-// }
 
 const t = std.testing;
 test Cow {
