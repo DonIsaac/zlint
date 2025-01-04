@@ -14,6 +14,9 @@ pub const IS_DEBUG = builtin.mode == .Debug;
 pub const IS_WINDOWS = builtin.target.os.tag == .windows;
 pub const NEWLINE = if (IS_WINDOWS) "\r\n" else "\n";
 
+pub const DebugOnly = @import("./util/debug_only.zig").DebugOnly;
+pub const debugOnly = @import("./util/debug_only.zig").debugOnly;
+
 const WHITESPACE = [4]u8{ ' ', '\t', '\n', '\r' };
 pub fn trimWhitespace(s: string) string {
     return std.mem.trim(u8, s, &WHITESPACE);

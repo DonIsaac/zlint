@@ -4,6 +4,8 @@ const Allocator = std.mem.Allocator;
 const assert = @import("../util.zig").assert;
 const debugAssert = @import("../util.zig").debugAssert;
 const IS_DEBUG = @import("../util.zig").IS_DEBUG;
+const DebugOnly = @import("./debug_only.zig").DebugOnly;
+const debugOnly = @import("./debug_only.zig").debugOnly;
 
 /// A clone-on-write type monomorphized for strings.
 ///
@@ -14,7 +16,7 @@ pub fn Cow(comptime sentinel: bool) type {
     const MutSlice = if (sentinel) [:0]u8 else []u8;
     const Slice = if (sentinel) [:0]const u8 else []const u8;
 
-    const null_alloc = comptime if (IS_DEBUG) null else {};
+    const null_alloc = debugOnly(?Allocator, null); //comptime if (IS_DEBUG) null else {};
 
     return struct {
         /// Does this `Cow` own its data, or is it borrowing it from someone
@@ -60,7 +62,7 @@ pub fn Cow(comptime sentinel: bool) type {
             return .{
                 .borrowed = false,
                 .str = str,
-                .__alloc = asDebug(allocator),
+                .__alloc = debugOnly(?Allocator, allocator),
             };
         }
 
@@ -68,7 +70,7 @@ pub fn Cow(comptime sentinel: bool) type {
         pub fn fmt(allocator: Allocator, comptime format_str: []const u8, args: anytype) Allocator.Error!Self {
             const print = if (sentinel) std.fmt.allocPrintZ else std.fmt.allocPrint;
             const str = try print(allocator, format_str, args);
-            return .{ .borrowed = false, .str = str, .__alloc = asDebug(allocator) };
+            return .{ .borrowed = false, .str = str, .__alloc = debugOnly(?Allocator, allocator) };
         }
 
         pub fn clone(self: Self) Self {
@@ -110,7 +112,11 @@ pub fn Cow(comptime sentinel: bool) type {
             else
                 allocator.alloc(u8, self.str.len));
             @memcpy(owned_data, self.str);
-            self.* = .{ .str = owned_data, .borrowed = false, .__alloc = asDebug(allocator) };
+            self.* = .{
+                .str = owned_data,
+                .borrowed = false,
+                .__alloc = debugOnly(?Allocator, allocator),
+            };
         }
 
         /// Use a `{s}` specifier to print the contained string. Use `{}` or
@@ -151,12 +157,13 @@ pub fn Cow(comptime sentinel: bool) type {
     };
 }
 
-const DebugAlloc = if (IS_DEBUG) ?Allocator else void;
+// const DebugAlloc = if (IS_DEBUG) ?Allocator else void;
+const DebugAlloc = DebugOnly(?Allocator);
 
-/// Should be completely eliminiated in release binaries.
-inline fn asDebug(allocator: Allocator) DebugAlloc {
-    return if (comptime IS_DEBUG) allocator else {};
-}
+// /// Should be completely eliminiated in release binaries.
+// inline fn asDebug(allocator: Allocator) DebugAlloc {
+//     return if (comptime IS_DEBUG) allocator else {};
+// }
 
 const t = std.testing;
 test Cow {
