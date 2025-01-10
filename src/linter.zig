@@ -290,7 +290,7 @@ pub const Linter = struct {
         // no rules will be matched if disable directives are misused or rule
         // names are misspelled (e.g. `zlint-disable not-a-rule`). In this case,
         // no rules are disabled so we just run them all.
-        return if (i == 0) configured_rules else rulebuf[0..i];
+        return rulebuf[0..i];
     }
 
     pub const LintError = error{
