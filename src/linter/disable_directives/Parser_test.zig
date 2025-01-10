@@ -117,8 +117,8 @@ test "disabling specific rules" {
                 .kind = .global,
                 .span = NULL_SPAN,
                 .disabled_rules = @constCast(&[_]Span{
-                    Span.new(17, 21),
-                    Span.new(21, 25),
+                    Span.new(17, 20),
+                    Span.new(21, 24),
                     Span.new(25, 28),
                 }),
             },
@@ -129,8 +129,8 @@ test "disabling specific rules" {
                 .kind = .global,
                 .span = NULL_SPAN,
                 .disabled_rules = @constCast(&[_]Span{
-                    Span.new(17, 21),
-                    Span.new(22, 26),
+                    Span.new(17, 20),
+                    Span.new(22, 25),
                     Span.new(27, 30),
                 }),
             },

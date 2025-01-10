@@ -97,8 +97,7 @@ pub fn parse(self: *DisableDirectivesParser, allocator: Allocator, line_comment:
                 else => break,
             }
         }
-        self.cursor = @min(self.cursor + 1, self.span.end);
-        // try self.rules.append(alloc, self.source[start..self.cursor]);
+        self.cursor = @min(self.cursor, self.span.end);
         try self.rules.append(alloc, Span.new(@intCast(start), @intCast(self.cursor)));
         self.eat(',') orelse {};
         self.eatWhitespace();
@@ -198,8 +197,8 @@ test parse {
                 .kind = .global,
                 .span = .{ .start = 0, .end = 28 },
                 .disabled_rules = @constCast(&[_]Span{
-                    Span.new(17, 21),
-                    Span.new(21, 25),
+                    Span.new(17, 20),
+                    Span.new(21, 24),
                     Span.new(25, 28),
                 }),
             },
