@@ -181,43 +181,25 @@ test parse {
     const TestCase = Tuple(&[_]type{ []const u8, ?DisableDirectiveComment, ExpectedDisableDisableDirectives });
     const cases = &[_]TestCase{
         // global directives
-        TestCase{
-            "//zlint-disable",
-            .{ .kind = .global, .span = .{ .start = 0, .end = 15 } }, &[_][]const u8{} },
-        TestCase{
-            "// zlint-disable",
-            .{ .kind = .global, .span = .{ .start = 0, .end = 16 } }, &[_][]const u8{} },
-        TestCase{
-            "// zlint-disable -- no-undefined",
-            .{ .kind = .global, .span = .{ .start = 0, .end = 16 } }, &[_][]const u8{} },
-        TestCase{
-            "// zlint-disable no-undefined",
-            .{
-                .kind = .global,
-                .span = .{ .start = 0, .end = 29 },
-                .disabled_rules = @constCast(&[_]Span{Span.new(17, 29)}),
-            },
-            &[_][]const u8{
-                "no-undefined",
-            }
-        },
-        TestCase{
-            "// zlint-disable foo bar baz",
-            .{
-                .kind = .global,
-                .span = .{ .start = 0, .end = 28 },
-                .disabled_rules = @constCast(&[_]Span{
-                    Span.new(17, 20),
-                    Span.new(21, 24),
-                    Span.new(25, 28),
-                }),
-            },
-            &[_][]const u8{
-                "foo",
-                "bar",
-                "baz"
-            }
-        },
+        TestCase{ "//zlint-disable", .{ .kind = .global, .span = .{ .start = 0, .end = 15 } }, &[_][]const u8{} },
+        TestCase{ "// zlint-disable", .{ .kind = .global, .span = .{ .start = 0, .end = 16 } }, &[_][]const u8{} },
+        TestCase{ "// zlint-disable -- no-undefined", .{ .kind = .global, .span = .{ .start = 0, .end = 16 } }, &[_][]const u8{} },
+        TestCase{ "// zlint-disable no-undefined", .{
+            .kind = .global,
+            .span = .{ .start = 0, .end = 29 },
+            .disabled_rules = @constCast(&[_]Span{Span.new(17, 29)}),
+        }, &[_][]const u8{
+            "no-undefined",
+        } },
+        TestCase{ "// zlint-disable foo bar baz", .{
+            .kind = .global,
+            .span = .{ .start = 0, .end = 28 },
+            .disabled_rules = @constCast(&[_]Span{
+                Span.new(17, 20),
+                Span.new(21, 24),
+                Span.new(25, 28),
+            }),
+        }, &[_][]const u8{ "foo", "bar", "baz" } },
     };
 
     for (cases) |case| {
@@ -234,7 +216,7 @@ test parse {
             for (0.., expected_disabled_directives) |idx, expected_disabled_directive| {
                 try t.expectEqualStrings(
                     expected_disabled_directive,
-                    source[a.disabled_rules[idx].start  .. a.disabled_rules[idx].end],
+                    source[a.disabled_rules[idx].start..a.disabled_rules[idx].end],
                 );
             }
 
