@@ -54,6 +54,7 @@ const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
 const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
+const Fix = @import("../fix.zig").Fix;
 
 // Rule metadata
 const NoReturnTry = @This();
@@ -61,6 +62,7 @@ pub const meta: Rule.Meta = .{
     .name = "no-return-try",
     .category = .pedantic,
     .default = .warning,
+    .fix = Fix.Meta.fix(),
 };
 
 fn returnTryDiagnostic(ctx: *LinterContext, return_start: u32, try_start: u32) Error {
@@ -82,8 +84,18 @@ pub fn runOnNode(_: *const NoReturnTry, wrapper: NodeWrapper, ctx: *LinterContex
 
     const starts = ast.tokens.items(.start);
     const return_start = starts[node.main_token];
-    const try_start = starts[ast.nodes.items(.main_token)[returned_id]];
-    ctx.report(returnTryDiagnostic(ctx, return_start, try_start));
+    const try_token = ast.nodes.items(.main_token)[returned_id];
+    const try_start: Ast.TokenIndex = starts[try_token];
+    ctx.reportWithFix(
+        FixCtx{ .try_token = try_token },
+        returnTryDiagnostic(ctx, return_start, try_start),
+        &deleteTry,
+    );
+}
+
+const FixCtx = struct { try_token: Ast.TokenIndex };
+fn deleteTry(ctx: FixCtx, builder: Fix.Builder) anyerror!Fix {
+    return builder.delete(builder.spanCovering(.token, ctx.try_token));
 }
 
 pub fn rule(self: *NoReturnTry) Rule {
