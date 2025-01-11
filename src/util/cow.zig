@@ -16,7 +16,7 @@ pub fn Cow(comptime sentinel: bool) type {
     const MutSlice = if (sentinel) [:0]u8 else []u8;
     const Slice = if (sentinel) [:0]const u8 else []const u8;
 
-    const null_alloc = debugOnly(?Allocator, null); //comptime if (IS_DEBUG) null else {};
+    const null_alloc = debugOnly(?Allocator, null);
 
     return struct {
         /// Does this `Cow` own its data, or is it borrowing it from someone
@@ -47,6 +47,16 @@ pub fn Cow(comptime sentinel: bool) type {
         /// Static `Cow`s are valid for the entire lifetime of the program (
         /// that is, their lifetime is `'static`). `str` will point to somewhere
         /// in the data segment. Attempts to mutate it will trigger a segfault.
+        ///
+        /// ## Example
+        /// ```zig
+        /// const message = "Hello, world!";
+        /// const cow = Cow(false).static(message);
+        ///
+        /// // `cow` stores _exactly_ `message`.
+        /// try expectEqualStrings("Hello, world!", cow.borrow());
+        /// try expectEqual(message.ptr, cow.borrow().ptr);
+        /// ```
         pub fn static(comptime str: anytype) Self {
             return .{
                 .borrowed = true,
@@ -73,6 +83,10 @@ pub fn Cow(comptime sentinel: bool) type {
             return .{ .borrowed = false, .str = str, .__alloc = debugOnly(?Allocator, allocator) };
         }
 
+        /// Create a new `Cow` storing the same string as `self`.
+        ///
+        /// This is a "clone" in the Rust sense. The new `Cow` borrows from
+        /// the current one. No allocations are performed.
         pub fn clone(self: Self) Self {
             return .{
                 .borrowed = true,
@@ -96,16 +110,30 @@ pub fn Cow(comptime sentinel: bool) type {
             return @constCast(self.str);
         }
 
+        /// Mutably borrow the string stored in `self`, asserting that `self` is
+        /// owned.
         pub fn borrowMutUnchecked(self: *Self) MutSlice {
             assert(!self.borrowed, "This Cow is borrowing its data.");
             return @constCast(self.str);
         }
 
+        /// Update this `Cow` in-place so that it owns its string.
+        ///
+        /// If you are just trying to obtain a mutable reference, use
+        /// `borrowMut` instead.
+        ///
+        /// ## Example
+        /// ```zig
+        /// const cow = Cow(false).static("Hello, world!");
+        /// const owned = try cow.toOwned(allocator);
+        /// const string_mut: []u8 = cow.borrowMutUnchecked();
+        /// ```
         pub fn toOwned(self: *Self, allocator: Allocator) Allocator.Error!void {
             if (self.borrowed) try self.toOwnedImpl(allocator);
         }
 
         fn toOwnedImpl(self: *Self, allocator: Allocator) Allocator.Error!void {
+            @setCold(true);
             assert(self.borrowed, "This Cow is already owned.", .{});
             const owned_data: MutSlice = try (if (comptime sentinel)
                 allocator.allocSentinel(u8, self.str.len, 0)
@@ -133,10 +161,21 @@ pub fn Cow(comptime sentinel: bool) type {
             });
         }
 
+        /// Destroy this `Cow`. The underlying string will only be deallocated
+        /// if it is owned.
+        ///
+        /// All `Cow`s borrowing this string will become invalidated. Consumers
+        /// are responsible for ensuring that borrowing `Cow`s have a lifetime
+        /// that is less than or equal to the `Cow` being deinitialized.
         pub fn deinit(self: *Self, allocator: Allocator) void {
             if (self.borrowed) return;
 
             if (comptime IS_DEBUG) {
+                // All constructors/methods defined in Cow set __alloc when the
+                // allocation is owned. If its missing, its most likely due to
+                // someone constructing a Cow with struct initialization syntax.
+                // In order to maintain internal invariants, Cows should not be
+                // constructed this way.
                 assert(self.__alloc != null, "Do not create ad-hoc Cows; use one of the constructor APIs instead.", .{});
 
                 assert(
@@ -189,4 +228,18 @@ test "Cow.format" {
     const str = try std.fmt.allocPrint(t.allocator, "{s}", .{Cow(false).static("Hello, world!")});
     defer t.allocator.free(str);
     try t.expectEqualStrings("Hello, world!", str);
+}
+
+test "Cow.toOwned" {
+    const s = "Hello, world!";
+    var cow = Cow(false).static(s);
+    defer cow.deinit(t.allocator);
+
+    try t.expectEqualStrings(s, cow.borrow());
+    try t.expectEqual(s.ptr, cow.borrow().ptr);
+
+    // Same string data, different allocation.
+    try cow.toOwned(t.allocator);
+    try t.expectEqualStrings(s, cow.borrow());
+    try t.expect(s.ptr != cow.borrow().ptr);
 }
