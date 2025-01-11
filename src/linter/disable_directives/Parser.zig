@@ -177,12 +177,19 @@ test {
 }
 
 test parse {
-    const TestCase = Tuple(&[_]type{ []const u8, ?DisableDirectiveComment });
+    const ExpectedDisableDisableDirectives = []const []const u8;
+    const TestCase = Tuple(&[_]type{ []const u8, ?DisableDirectiveComment, ExpectedDisableDisableDirectives });
     const cases = &[_]TestCase{
         // global directives
-        TestCase{ "//zlint-disable", .{ .kind = .global, .span = .{ .start = 0, .end = 15 } } },
-        TestCase{ "// zlint-disable", .{ .kind = .global, .span = .{ .start = 0, .end = 16 } } },
-        TestCase{ "// zlint-disable -- no-undefined", .{ .kind = .global, .span = .{ .start = 0, .end = 16 } } },
+        TestCase{
+            "//zlint-disable",
+            .{ .kind = .global, .span = .{ .start = 0, .end = 15 } }, &[_][]const u8{} },
+        TestCase{
+            "// zlint-disable",
+            .{ .kind = .global, .span = .{ .start = 0, .end = 16 } }, &[_][]const u8{} },
+        TestCase{
+            "// zlint-disable -- no-undefined",
+            .{ .kind = .global, .span = .{ .start = 0, .end = 16 } }, &[_][]const u8{} },
         TestCase{
             "// zlint-disable no-undefined",
             .{
@@ -190,6 +197,9 @@ test parse {
                 .span = .{ .start = 0, .end = 29 },
                 .disabled_rules = @constCast(&[_]Span{Span.new(17, 29)}),
             },
+            &[_][]const u8{
+                "no-undefined",
+            }
         },
         TestCase{
             "// zlint-disable foo bar baz",
@@ -202,11 +212,16 @@ test parse {
                     Span.new(25, 28),
                 }),
             },
+            &[_][]const u8{
+                "foo",
+                "bar",
+                "baz"
+            }
         },
     };
 
     for (cases) |case| {
-        const source, const expected = case;
+        const source, const expected, const expected_disabled_directives = case;
         var parser = DisableDirectivesParser.new(source);
         var actual = try parser.parse(t.allocator, Span.new(0, @intCast(source.len)));
         if (actual) |*a| {
@@ -215,6 +230,13 @@ test parse {
             try t.expectEqual(e.kind, a.kind);
             try t.expectEqual(e.span, a.span);
             try t.expectEqualSlices(Span, e.disabled_rules, a.disabled_rules);
+
+            for (0.., expected_disabled_directives) |idx, expected_disabled_directive| {
+                try t.expectEqualStrings(
+                    expected_disabled_directive,
+                    source[a.disabled_rules[idx].start  .. a.disabled_rules[idx].end],
+                );
+            }
 
             // try t.expectEqual(expected, a);
         } else {
