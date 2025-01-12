@@ -228,3 +228,42 @@ test "When the global disable directive is misplaced, violations still gets repo
         try expectEqual(2, errors.?.items.len);
     }
 }
+
+test "When the multiple global directives are set, all rules are honored" {
+    const source_with_global_disable =
+        \\// zlint-disable unused-decls no-undefined
+        \\const Unused = struct{
+        \\  uninitialized: u32 = undefined,
+        \\};
+    ;
+    var arena = ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+    var src = try makeSource(t.allocator, source_with_global_disable);
+    defer src.deinit();
+
+    var errors: ?ErrorList = null;
+    defer if (errors) |errs| {
+        for (errs.items) |*err| err.deinit(t.allocator);
+        errs.deinit();
+    };
+
+    const config = Config{
+        .rules = .{
+            .no_undefined = .{ .severity = .err },
+            .unused_decls = .{ .severity = .err },
+        },
+    };
+
+    {
+        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
+        defer linter.deinit();
+
+        linter.runOnSource(&src, &errors) catch |e| {
+            switch (e) {
+                error.OutOfMemory => return e,
+                else => {},
+            }
+        };
+        try expectEqual(null, errors);
+    }
+}
