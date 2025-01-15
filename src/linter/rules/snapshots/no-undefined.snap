@@ -50,3 +50,47 @@
    ╰────
   help: uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
+  𝙭 no-undefined: `undefined` cannot be used in comparisons.
+   ╭─[no-undefined.zig:1:32]
+ 1 │ fn foo(x: *Foo) void { if (x > undefined) {} }
+   ·                                ─────────
+   ╰────
+  help: uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+
+  𝙭 no-undefined: `undefined` cannot be used in comparisons.
+   ╭─[no-undefined.zig:1:33]
+ 1 │ fn foo(x: *Foo) void { if (x >= undefined) {} }
+   ·                                 ─────────
+   ╰────
+  help: uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+
+  𝙭 no-undefined: `undefined` cannot be used in comparisons.
+   ╭─[no-undefined.zig:1:33]
+ 1 │ fn foo(x: *Foo) void { if (x != undefined) {} }
+   ·                                 ─────────
+   ╰────
+  help: uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+
+  𝙭 no-undefined: `undefined` cannot be used in comparisons.
+   ╭─[no-undefined.zig:1:33]
+ 1 │ fn foo(x: *Foo) void { if (x <= undefined) {} }
+   ·                                 ─────────
+   ╰────
+  help: uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+
+  𝙭 no-undefined: `undefined` cannot be used in comparisons.
+   ╭─[no-undefined.zig:1:32]
+ 1 │ fn foo(x: *Foo) void { if (x < undefined) {} }
+   ·                                ─────────
+   ╰────
+  help: uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+
+  𝙭 no-undefined: `undefined` cannot be used in comparisons.
+   ╭─[no-undefined.zig:3:12]
+ 2 │   // SAFETY: this is never safe, so this comment is ignored
+ 3 │   if (x == undefined) {
+   ·            ─────────
+ 4 │     @import("std").debug.print("x is undefined\n", .{});
+   ╰────
+  help: uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+

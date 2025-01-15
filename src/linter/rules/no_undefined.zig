@@ -184,6 +184,18 @@ test NoUndefined {
         \\    @import("std").debug.print("x is undefined\n", .{});
         \\  }
         \\}
+        ,
+        "fn foo(x: *Foo) void { if (x > undefined) {} }",
+        "fn foo(x: *Foo) void { if (x >= undefined) {} }",
+        "fn foo(x: *Foo) void { if (x != undefined) {} }",
+        "fn foo(x: *Foo) void { if (x <= undefined) {} }",
+        "fn foo(x: *Foo) void { if (x < undefined) {} }",
+        \\fn foo(x: *Foo) void {
+        \\  // SAFETY: this is never safe, so this comment is ignored
+        \\  if (x == undefined) {
+        \\    @import("std").debug.print("x is undefined\n", .{});
+        \\  }
+        \\}
     };
 
     try runner
