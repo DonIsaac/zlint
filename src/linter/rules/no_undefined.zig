@@ -62,13 +62,11 @@
 const std = @import("std");
 const util = @import("util");
 const mem = std.mem;
-const source = @import("../../source.zig");
 
 const Semantic = @import("../../semantic.zig").Semantic;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const TokenIndex = Ast.TokenIndex;
-const Loc = std.zig.Loc;
 const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
@@ -89,6 +87,11 @@ fn undefinedMissingSafetyComment(ctx: *LinterContext, undefined_tok: TokenIndex)
     e.help = Cow.static("Add a `SAFETY: <reason>` before this line explaining why this code is safe.");
     return e;
 }
+fn undefinedComparison(ctx: *LinterContext, undefined_tok: TokenIndex) Error {
+    var e = ctx.diagnostic("`undefined` cannot be used in comparisons.", .{ctx.spanT(undefined_tok)});
+    e.help = Cow.static("uninitialized data can have any value. If you need to check that a value does not exist, use `null`.");
+    return e;
+}
 
 pub fn runOnNode(self: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const node = wrapper.node;
@@ -98,14 +101,33 @@ pub fn runOnNode(self: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterCon
     const name = ast.getNodeSource(wrapper.idx);
     if (!std.mem.eql(u8, name, "undefined")) return;
 
-    if (self.allow_arrays) arrays: {
-        const tags: []const Node.Tag = ast.nodes.items(.tag);
+    const node_tags: []const Node.Tag = ast.nodes.items(.tag);
+
+    early_exit: {
         if (ctx.semantic.node_links.getParent(wrapper.idx)) |parent| {
-            const decl = ast.fullVarDecl(parent) orelse break :arrays;
-            const ty = decl.ast.type_node;
-            if (ty == Semantic.NULL_NODE) break :arrays;
-            switch (tags[ty]) {
-                .array_type, .array_type_sentinel => return,
+            const parent_tag = node_tags[parent];
+            switch (parent_tag) {
+                // initializing arrays to undefined can be ok, e.g. when using
+                // @memset.
+                .global_var_decl,
+                .local_var_decl,
+                .aligned_var_decl,
+                .simple_var_decl,
+                => if (self.allow_arrays) {
+                    // SAFETY: tags in case guarantee that a full variable declaration
+                    // is present.
+                    const decl = ast.fullVarDecl(parent) orelse unreachable;
+                    const ty = decl.ast.type_node;
+                    if (ty == Semantic.NULL_NODE) break :early_exit;
+                    switch (node_tags[ty]) {
+                        .array_type, .array_type_sentinel => return,
+                        else => {},
+                    }
+                },
+
+                // Comparison to undefined is always U.B. NOTE: we skip safety
+                // comment check b/c this is _never_ safe.
+                .equal_equal, .bang_equal, .less_or_equal, .less_than, .greater_or_equal, .greater_than => return ctx.report(undefinedComparison(ctx, node.main_token)),
                 else => {},
             }
         }
@@ -153,6 +175,24 @@ test NoUndefined {
         "const many_ptr: [*:0]u8 = undefined;",
         \\// This is not a safety comment
         \\const x = undefined;
+        ,
+        \\fn foo(x: *Foo) void {
+        \\  if (x == undefined) {
+        \\    @import("std").debug.print("x is undefined\n", .{});
+        \\  }
+        \\}
+        ,
+        "fn foo(x: *Foo) void { if (x > undefined) {} }",
+        "fn foo(x: *Foo) void { if (x >= undefined) {} }",
+        "fn foo(x: *Foo) void { if (x != undefined) {} }",
+        "fn foo(x: *Foo) void { if (x <= undefined) {} }",
+        "fn foo(x: *Foo) void { if (x < undefined) {} }",
+        \\fn foo(x: *Foo) void {
+        \\  // SAFETY: this is never safe, so this comment is ignored
+        \\  if (x == undefined) {
+        \\    @import("std").debug.print("x is undefined\n", .{});
+        \\  }
+        \\}
     };
 
     try runner
