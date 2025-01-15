@@ -62,14 +62,11 @@
 const std = @import("std");
 const util = @import("util");
 const mem = std.mem;
-const source = @import("../../source.zig");
 
 const Semantic = @import("../../semantic.zig").Semantic;
-const Scope = Semantic.Scope;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const TokenIndex = Ast.TokenIndex;
-const Loc = std.zig.Loc;
 const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
