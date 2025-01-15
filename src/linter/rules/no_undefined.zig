@@ -115,7 +115,8 @@ pub fn runOnNode(self: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterCon
                 .global_var_decl,
                 .local_var_decl,
                 .aligned_var_decl,
-                .simple_var_decl, => if (self.allow_arrays) {
+                .simple_var_decl,
+                => if (self.allow_arrays) {
                     // SAFETY: tags in case guarantee that a full variable declaration
                     // is present.
                     const decl = ast.fullVarDecl(parent) orelse unreachable;
@@ -129,12 +130,7 @@ pub fn runOnNode(self: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterCon
 
                 // Comparison to undefined is always U.B. NOTE: we skip safety
                 // comment check b/c this is _never_ safe.
-                .equal_equal,
-                .bang_equal,
-                .less_or_equal,
-                .less_than,
-                .greater_or_equal,
-                .greater_than => return ctx.report(undefinedComparison(ctx, node.main_token)),
+                .equal_equal, .bang_equal, .less_or_equal, .less_than, .greater_or_equal, .greater_than => return ctx.report(undefinedComparison(ctx, node.main_token)),
                 else => {},
             }
         }
