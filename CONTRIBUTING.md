@@ -15,7 +15,7 @@ We use the following tools:
 - [just](https://github.com/casey/just) for running tasks
 - [entr](http://eradman.com/entrproject/) for an ad-hoc watch mode
 - [typos](https://github.com/crate-ci/typos) for spell checking
-- [bun](https://bun.sh/) for generating boilderplate for new rules and other tasks
+- [bun](https://bun.sh/) for generating boilerplate for new rules and other tasks
 
 ### Details
 
