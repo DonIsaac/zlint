@@ -60,7 +60,7 @@ const NoReturnTry = @This();
 pub const meta: Rule.Meta = .{
     .name = "no-return-try",
     .category = .pedantic,
-    .default = .warning,
+    .default = .off,
 };
 
 fn returnTryDiagnostic(ctx: *LinterContext, return_start: u32, try_start: u32) Error {
