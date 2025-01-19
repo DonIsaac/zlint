@@ -20,7 +20,7 @@ An opinionated linter for the Zig programming language.
   typically takes a few hundred milliseconds to lint large projects.
 - 💡 **Understandable**. Error messages are pretty, detailed, and easy to understand. 
   Most rules come with explanations on how to fix them and what _exactly_ is wrong.
-  ![image](https://github.com/user-attachments/assets/dbe0a38a-4906-42fe-a07e-9f7676e3973b)
+  ![diagnostic example](./docs/assets/diagnostic-example.jpg)
 
 ## 📦 Installation
 Pre-built binaries for Windows, MacOS, and Linux on x64 and aarch64 are
