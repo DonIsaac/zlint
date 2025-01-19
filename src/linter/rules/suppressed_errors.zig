@@ -219,6 +219,10 @@ test SuppressedErrors {
         \\}
         ,
         \\fn foo(w: Writer) void {
+        \\  w.writeAll("") catch unreachable;
+        \\}
+        ,
+        \\fn foo(w: Writer) void {
         \\  w.writeByte('x') catch {};
         \\}
         ,
