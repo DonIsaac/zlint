@@ -153,5 +153,5 @@ test rule_ids {
         @typeInfo(@import("./rules.zig")).Struct.decls.len,
         rule_ids.kvs.len,
     );
-    try t.expect(rule_ids.get("no-undefined") != null);
+    try t.expect(rule_ids.get("unsafe-undefined") != null);
 }

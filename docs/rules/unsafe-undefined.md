@@ -1,4 +1,4 @@
-# `no-undefined`
+# `unsafe-undefined`
 
 > Category: restriction
 >
@@ -6,7 +6,7 @@
 
 ## What This Rule Does
 
-Disallows initializing or assigning variables to `undefined`.
+Disallows potentiall unsafe usages of `undefined`.
 
 Reading uninitialized memory is one of the most common sources of undefined
 behavior. While debug builds come with runtime safety checks for `undefined`
@@ -67,4 +67,9 @@ const Foo = struct {
     self.x = undefined;
   }
 };
+
+// Undefined is allowed in test cases, except when used in a comparison
+test "foo" {
+  var foo: u32 = undefined;
+}
 ```

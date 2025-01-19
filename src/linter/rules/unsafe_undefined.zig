@@ -76,9 +76,9 @@ const Cow = util.Cow(false);
 
 allow_arrays: bool = true,
 
-const NoUndefined = @This();
+const UnsafeUndefined = @This();
 pub const meta: Rule.Meta = .{
-    .name = "no-undefined",
+    .name = "unsafe-undefined",
     .category = .restriction,
     .default = .warning,
 };
@@ -99,7 +99,7 @@ fn undefinedDefault(ctx: *LinterContext, undefined_tok: TokenIndex) Error {
     return e;
 }
 
-pub fn runOnNode(self: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterContext) void {
+pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const node = wrapper.node;
     const ast = ctx.ast();
 
@@ -236,16 +236,16 @@ fn hasSafetyComment(ctx: *const LinterContext, first_token: TokenIndex) bool {
     return false;
 }
 
-pub fn rule(self: *NoUndefined) Rule {
+pub fn rule(self: *UnsafeUndefined) Rule {
     return Rule.init(self);
 }
 
 const RuleTester = @import("../tester.zig");
-test NoUndefined {
+test UnsafeUndefined {
     const t = std.testing;
 
-    var no_undefined = NoUndefined{};
-    var runner = RuleTester.init(t.allocator, no_undefined.rule());
+    var unsafe_undefined = UnsafeUndefined{};
+    var runner = RuleTester.init(t.allocator, unsafe_undefined.rule());
     defer runner.deinit();
 
     const pass = &[_][:0]const u8{

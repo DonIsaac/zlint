@@ -1,48 +1,48 @@
-  𝙭 no-undefined: `undefined` is missing a safety comment
-   ╭─[no-undefined.zig:1:11]
+  𝙭 unsafe-undefined: `undefined` is missing a safety comment
+   ╭─[unsafe-undefined.zig:1:11]
  1 │ const x = undefined;
    ·           ─────────
    ╰────
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 
-  𝙭 no-undefined: `undefined` is missing a safety comment
-   ╭─[no-undefined.zig:1:21]
+  𝙭 unsafe-undefined: `undefined` is missing a safety comment
+   ╭─[unsafe-undefined.zig:1:21]
  1 │ const slice: []u8 = undefined;
    ·                     ─────────
    ╰────
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 
-  𝙭 no-undefined: `undefined` is missing a safety comment
-   ╭─[no-undefined.zig:1:23]
+  𝙭 unsafe-undefined: `undefined` is missing a safety comment
+   ╭─[unsafe-undefined.zig:1:23]
  1 │ const slice: [:0]u8 = undefined;
    ·                       ─────────
    ╰────
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 
-  𝙭 no-undefined: `undefined` is missing a safety comment
-   ╭─[no-undefined.zig:1:25]
+  𝙭 unsafe-undefined: `undefined` is missing a safety comment
+   ╭─[unsafe-undefined.zig:1:25]
  1 │ const many_ptr: [*]u8 = undefined;
    ·                         ─────────
    ╰────
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 
-  𝙭 no-undefined: `undefined` is missing a safety comment
-   ╭─[no-undefined.zig:1:27]
+  𝙭 unsafe-undefined: `undefined` is missing a safety comment
+   ╭─[unsafe-undefined.zig:1:27]
  1 │ const many_ptr: [*:0]u8 = undefined;
    ·                           ─────────
    ╰────
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 
-  𝙭 no-undefined: Do not use `undefined` as a default value
-   ╭─[no-undefined.zig:1:33]
+  𝙭 unsafe-undefined: Do not use `undefined` as a default value
+   ╭─[unsafe-undefined.zig:1:33]
  1 │ const Foo = struct { bar: u32 = undefined };
    ·                                 ─────────
  2 │ fn foo(x: *Foo) void {
    ╰────
   help: If this really can be `undefined`, do so explicitly during struct initialization.
 
-  𝙭 no-undefined: `undefined` cannot be used in comparisons.
-   ╭─[no-undefined.zig:3:12]
+  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+   ╭─[unsafe-undefined.zig:3:12]
  2 │ fn foo(x: *Foo) void {
  3 │   if (x == undefined) {
    ·            ─────────
@@ -50,43 +50,43 @@
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 no-undefined: `undefined` cannot be used in comparisons.
-   ╭─[no-undefined.zig:1:32]
+  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+   ╭─[unsafe-undefined.zig:1:32]
  1 │ fn foo(x: *Foo) void { if (x > undefined) {} }
    ·                                ─────────
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 no-undefined: `undefined` cannot be used in comparisons.
-   ╭─[no-undefined.zig:1:33]
+  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+   ╭─[unsafe-undefined.zig:1:33]
  1 │ fn foo(x: *Foo) void { if (x >= undefined) {} }
    ·                                 ─────────
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 no-undefined: `undefined` cannot be used in comparisons.
-   ╭─[no-undefined.zig:1:33]
+  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+   ╭─[unsafe-undefined.zig:1:33]
  1 │ fn foo(x: *Foo) void { if (x != undefined) {} }
    ·                                 ─────────
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 no-undefined: `undefined` cannot be used in comparisons.
-   ╭─[no-undefined.zig:1:33]
+  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+   ╭─[unsafe-undefined.zig:1:33]
  1 │ fn foo(x: *Foo) void { if (x <= undefined) {} }
    ·                                 ─────────
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 no-undefined: `undefined` cannot be used in comparisons.
-   ╭─[no-undefined.zig:1:32]
+  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+   ╭─[unsafe-undefined.zig:1:32]
  1 │ fn foo(x: *Foo) void { if (x < undefined) {} }
    ·                                ─────────
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 no-undefined: `undefined` cannot be used in comparisons.
-   ╭─[no-undefined.zig:3:12]
+  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+   ╭─[unsafe-undefined.zig:3:12]
  2 │   var x: u32 = undefined;
  3 │   if (x == undefined) {}
    ·            ─────────
@@ -94,8 +94,8 @@
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 no-undefined: `undefined` cannot be used in comparisons.
-   ╭─[no-undefined.zig:3:12]
+  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+   ╭─[unsafe-undefined.zig:3:12]
  2 │   // SAFETY: this is never safe, so this comment is ignored
  3 │   if (x == undefined) {
    ·            ─────────
@@ -103,24 +103,24 @@
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 no-undefined: `undefined` is missing a safety comment
-   ╭─[no-undefined.zig:2:11]
+  𝙭 unsafe-undefined: `undefined` is missing a safety comment
+   ╭─[unsafe-undefined.zig:2:11]
  1 │ // This is not a safety comment
  2 │ const x = undefined;
    ·           ─────────
    ╰────
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 
-  𝙭 no-undefined: `undefined` is missing a safety comment
-   ╭─[no-undefined.zig:3:14]
+  𝙭 unsafe-undefined: `undefined` is missing a safety comment
+   ╭─[unsafe-undefined.zig:3:14]
  2 │ const x: u32 = 1;
  3 │ var y: u32 = undefined;
    ·              ─────────
    ╰────
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 
-  𝙭 no-undefined: `undefined` is missing a safety comment
-   ╭─[no-undefined.zig:4:10]
+  𝙭 unsafe-undefined: `undefined` is missing a safety comment
+   ╭─[unsafe-undefined.zig:4:10]
  3 │   .foo = undefined,
  4 │   .bar = undefined,
    ·          ─────────
@@ -128,8 +128,8 @@
    ╰────
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 
-  𝙭 no-undefined: `undefined` is missing a safety comment
-   ╭─[no-undefined.zig:3:16]
+  𝙭 unsafe-undefined: `undefined` is missing a safety comment
+   ╭─[unsafe-undefined.zig:3:16]
  2 │ fn foo() void {
  3 │   var x: u32 = undefined;
    ·                ─────────

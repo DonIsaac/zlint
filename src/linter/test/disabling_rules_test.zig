@@ -40,7 +40,7 @@ test "Enabled rules have their violations reported" {
 
     const config = Config{
         .rules = .{
-            .no_undefined = .{ .severity = .err },
+            .unsafe_undefined = .{ .severity = .err },
             .unused_decls = .{ .severity = .err },
         },
     };
@@ -95,7 +95,7 @@ test "When a rule is configured to 'off', none of its violations are reported" {
 
     const config = Config{
         .rules = .{
-            .no_undefined = .{ .severity = .err },
+            .unsafe_undefined = .{ .severity = .err },
         },
     };
 
@@ -109,13 +109,13 @@ test "When a rule is configured to 'off', none of its violations are reported" {
             }
         };
         try expectEqual(1, errors.?.items.len);
-        try expectEqual("no-undefined", errors.?.items[0].code);
+        try expectEqual("unsafe-undefined", errors.?.items[0].code);
     }
 }
 
 test "When rules are configured but a specific rule is disabled with 'zlint-disable', only non-disabled rules get reported" {
     const source_with_global_disable =
-        \\// zlint-disable no-undefined
+        \\// zlint-disable unsafe-undefined
         \\const Unused = struct{
         \\  uninitialized: u32 = undefined,
         \\};
@@ -133,7 +133,7 @@ test "When rules are configured but a specific rule is disabled with 'zlint-disa
 
     const config = Config{
         .rules = .{
-            .no_undefined = .{ .severity = .err },
+            .unsafe_undefined = .{ .severity = .err },
             .unused_decls = .{ .severity = .err },
         },
     };
@@ -172,7 +172,7 @@ test "When rules are configured but disabled with 'zlint-disable', nothing gets 
 
     const config = Config{
         .rules = .{
-            .no_undefined = .{ .severity = .err },
+            .unsafe_undefined = .{ .severity = .err },
             .unused_decls = .{ .severity = .err },
         },
     };
@@ -210,7 +210,7 @@ test "When the global disable directive is misplaced, violations still gets repo
 
     const config = Config{
         .rules = .{
-            .no_undefined = .{ .severity = .err },
+            .unsafe_undefined = .{ .severity = .err },
             .unused_decls = .{ .severity = .err },
         },
     };
@@ -230,7 +230,7 @@ test "When the global disable directive is misplaced, violations still gets repo
 
 test "When the multiple global directives are set, all rules are honored" {
     const source_with_global_disable =
-        \\// zlint-disable unused-decls no-undefined
+        \\// zlint-disable unused-decls unsafe-undefined
         \\const Unused = struct{
         \\  uninitialized: u32 = undefined,
         \\};
@@ -248,7 +248,7 @@ test "When the multiple global directives are set, all rules are honored" {
 
     const config = Config{
         .rules = .{
-            .no_undefined = .{ .severity = .err },
+            .unsafe_undefined = .{ .severity = .err },
             .unused_decls = .{ .severity = .err },
         },
     };
