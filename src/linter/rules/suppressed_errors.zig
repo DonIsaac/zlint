@@ -163,9 +163,7 @@ fn isSuppressingWriterError(ctx: *const LinterContext, caught: Node.Index) bool 
                 else => return false,
             }
         },
-        else => {
-            return false;
-        },
+        else => return false,
     }
     unreachable;
 }
