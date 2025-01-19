@@ -41,7 +41,7 @@
    ╰────
   help: If this really can be `undefined`, do so explicitly during struct initialization.
 
-  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+  𝙭 unsafe-undefined: comparing with `undefined` is unspecified behavior.
    ╭─[unsafe-undefined.zig:3:12]
  2 │ fn foo(x: *Foo) void {
  3 │   if (x == undefined) {
@@ -50,42 +50,42 @@
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+  𝙭 unsafe-undefined: comparing with `undefined` is unspecified behavior.
    ╭─[unsafe-undefined.zig:1:32]
  1 │ fn foo(x: *Foo) void { if (x > undefined) {} }
    ·                                ─────────
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+  𝙭 unsafe-undefined: comparing with `undefined` is unspecified behavior.
    ╭─[unsafe-undefined.zig:1:33]
  1 │ fn foo(x: *Foo) void { if (x >= undefined) {} }
    ·                                 ─────────
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+  𝙭 unsafe-undefined: comparing with `undefined` is unspecified behavior.
    ╭─[unsafe-undefined.zig:1:33]
  1 │ fn foo(x: *Foo) void { if (x != undefined) {} }
    ·                                 ─────────
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+  𝙭 unsafe-undefined: comparing with `undefined` is unspecified behavior.
    ╭─[unsafe-undefined.zig:1:33]
  1 │ fn foo(x: *Foo) void { if (x <= undefined) {} }
    ·                                 ─────────
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+  𝙭 unsafe-undefined: comparing with `undefined` is unspecified behavior.
    ╭─[unsafe-undefined.zig:1:32]
  1 │ fn foo(x: *Foo) void { if (x < undefined) {} }
    ·                                ─────────
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+  𝙭 unsafe-undefined: comparing with `undefined` is unspecified behavior.
    ╭─[unsafe-undefined.zig:3:12]
  2 │   var x: u32 = undefined;
  3 │   if (x == undefined) {}
@@ -94,7 +94,7 @@
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
-  𝙭 unsafe-undefined: `undefined` cannot be used in comparisons.
+  𝙭 unsafe-undefined: comparing with `undefined` is unspecified behavior.
    ╭─[unsafe-undefined.zig:3:12]
  2 │   // SAFETY: this is never safe, so this comment is ignored
  3 │   if (x == undefined) {
@@ -134,6 +134,22 @@
  3 │   var x: u32 = undefined;
    ·                ─────────
  4 │ }
+   ╰────
+  help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
+
+  𝙭 unsafe-undefined: `undefined` is missing a safety comment
+   ╭─[unsafe-undefined.zig:2:11]
+ 1 │ fn notDeinit(self: *Foo) void {
+ 2 │   foo.* = undefined;
+   ·           ─────────
+ 3 │ }
+   ╰────
+  help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
+
+  𝙭 unsafe-undefined: `undefined` is missing a safety comment
+   ╭─[unsafe-undefined.zig:1:21]
+ 1 │ const deinit: u32 = undefined;
+   ·                     ─────────
    ╰────
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 

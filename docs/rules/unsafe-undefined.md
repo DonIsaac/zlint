@@ -6,7 +6,7 @@
 
 ## What This Rule Does
 
-Disallows potentiall unsafe usages of `undefined`.
+Disallows initializing or assigning variables to `undefined`.
 
 Reading uninitialized memory is one of the most common sources of undefined
 behavior. While debug builds come with runtime safety checks for `undefined`
@@ -22,15 +22,70 @@ communicated to other programmers via a safety comment. Adding `SAFETY:
 violation.
 
 ```zig
-// arrays may be set to undefined without a safety comment
-var arr: [10]u8 = undefined;
-@memset(&arr, 0);
-
 // SAFETY: foo is written to by `initializeFoo`, so `undefined` is never
 // read.
 var foo: u32 = undefined
 initializeFoo(&foo);
+
+// SAFETY: this covers the entire initialization
+const bar: Bar = .{
+  .a = undefined,
+  .b = undefined,
+};
 ```
+
+> [!NOTE]
+> Oviously unsafe usages of `undefined`, such `x == undefined`, are not
+> allowed even in these exceptions.
+
+#### Arrays
+
+Array-typed variable declarations may be initialized to undefined.
+Array-typed container fields with `undefined` as a default value will still
+trigger a violation.
+
+```zig
+// arrays may be set to undefined without a safety comment
+var arr: [10]u8 = undefined;
+@memset(&arr, 0);
+
+// This is not allowed
+const Foo = struct {
+  foo: [4]u32 = undefined
+};
+```
+
+#### Destructors
+
+Invalidating freed pointers/data by setting it to `undefined` is helpful for
+finding use-after-free bugs. Using `undefined` in destructors will not trigger
+a violation, unless it is obviously unsafe (e.g. in a comparison).
+
+```zig
+const std = @import("std");
+const Foo = struct {
+  data: []u8,
+  pub fn init(allocator: std.mem.Allocator) !Foo {
+     const data = try allocator.alloc(u8, 8);
+     return .{ .data = data };
+  }
+  pub fn deinit(self: *Foo, allocator: std.mem.Allocator) void {
+    allocator.free(self.data);
+    self.* = undefined; // safe
+  }
+};
+```
+
+A method is considered a destructor if it is named
+
+- `deinit`
+- `destroy`
+- `reset`
+
+#### `test` blocks
+
+All usages of `undefined` in `test` blocks are allowed. Code that isn't safe
+will be caught by the test runner.
 
 ## Examples
 
@@ -59,17 +114,16 @@ const Foo = struct {
     self.x.* = value;
   }
 
+  // variables may be re-assigned to `undefined` in destructors
   fn deinit(self: *Foo, alloc: std.mem.Allocator) void {
     alloc.destroy(self.x);
-    // SAFETY: Foo is being deinitialized, so `x` is no longer used.
-    // setting to undefined allows for use-after-free detection in
-    //debug builds.
     self.x = undefined;
   }
 };
 
-// Undefined is allowed in test cases, except when used in a comparison
-test "foo" {
-  var foo: u32 = undefined;
+test Foo {
+  // Allowed. If this is truly unsafe, it will be caught by the test.
+  var foo: Foo = undefined;
+  // ...
 }
 ```

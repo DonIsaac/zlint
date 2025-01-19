@@ -15,15 +15,66 @@
 //! violation.
 //!
 //! ```zig
-//! // arrays may be set to undefined without a safety comment
-//! var arr: [10]u8 = undefined;
-//! @memset(&arr, 0);
-//!
 //! // SAFETY: foo is written to by `initializeFoo`, so `undefined` is never
 //! // read.
 //! var foo: u32 = undefined
 //! initializeFoo(&foo);
+//!
+//! // SAFETY: this covers the entire initialization
+//! const bar: Bar = .{
+//!   .a = undefined,
+//!   .b = undefined,
+//! };
 //! ```
+//!
+//! > [!NOTE]
+//! > Oviously unsafe usages of `undefined`, such `x == undefined`, are not
+//! allowed even in these exceptions.
+//!
+//! #### Arrays
+//! Array-typed variable declarations may be initialized to undefined.
+//! Array-typed container fields with `undefined` as a default value will still
+//! trigger a violation.
+//!
+//! ```zig
+//! // arrays may be set to undefined without a safety comment
+//! var arr: [10]u8 = undefined;
+//! @memset(&arr, 0);
+//!
+//! // This is not allowed
+//! const Foo = struct {
+//!   foo: [4]u32 = undefined
+//! };
+//! ```
+//!
+//! #### Destructors
+//! Invalidating freed pointers/data by setting it to `undefined` is helpful for
+//! finding use-after-free bugs. Using `undefined` in destructors will not trigger
+//! a violation, unless it is obviously unsafe (e.g. in a comparison).
+//!
+//! ```zig
+//! const std = @import("std");
+//! const Foo = struct {
+//!   data: []u8,
+//!   pub fn init(allocator: std.mem.Allocator) !Foo {
+//!      const data = try allocator.alloc(u8, 8);
+//!      return .{ .data = data };
+//!   }
+//!   pub fn deinit(self: *Foo, allocator: std.mem.Allocator) void {
+//!     allocator.free(self.data);
+//!     self.* = undefined; // safe
+//!   }
+//! };
+//! ```
+//!
+//! A method is considered a destructor if it is named
+//! - `deinit`
+//! - `destroy`
+//! - `reset`
+//!
+//! #### `test` blocks
+//! All usages of `undefined` in `test` blocks are allowed. Code that isn't safe
+//! will be caught by the test runner.
 //!
 //! ## Examples
 //!
@@ -50,23 +101,27 @@
 //!     self.x.* = value;
 //!   }
 //!
+//!   // variables may be re-assigned to `undefined` in destructors
 //!   fn deinit(self: *Foo, alloc: std.mem.Allocator) void {
 //!     alloc.destroy(self.x);
-//!     // SAFETY: Foo is being deinitialized, so `x` is no longer used.
-//!     // setting to undefined allows for use-after-free detection in
-//!     //debug builds.
 //!     self.x = undefined;
 //!   }
 //! };
+//!
+//! test Foo {
+//!   // Allowed. If this is truly unsafe, it will be caught by the test.
+//!   var foo: Foo = undefined;
+//!   // ...
+//! }
 //! ```
 const std = @import("std");
 const util = @import("util");
 const mem = std.mem;
 const ascii = std.ascii;
-
 const Semantic = @import("../../semantic.zig").Semantic;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
+const Token = Semantic.Token;
 const TokenIndex = Ast.TokenIndex;
 const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
@@ -89,7 +144,7 @@ fn undefinedMissingSafetyComment(ctx: *LinterContext, undefined_tok: TokenIndex)
     return e;
 }
 fn undefinedComparison(ctx: *LinterContext, undefined_tok: TokenIndex) Error {
-    var e = ctx.diagnostic("`undefined` cannot be used in comparisons.", .{ctx.spanT(undefined_tok)});
+    var e = ctx.diagnostic("comparing with `undefined` is unspecified behavior.", .{ctx.spanT(undefined_tok)});
     e.help = Cow.static("Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.");
     return e;
 }
@@ -98,6 +153,13 @@ fn undefinedDefault(ctx: *LinterContext, undefined_tok: TokenIndex) Error {
     e.help = Cow.static("If this really can be `undefined`, do so explicitly during struct initialization.");
     return e;
 }
+
+const StringSet = std.StaticStringMap(void);
+const destructor_names = StringSet.initComptime([_]struct { []const u8 }{
+    .{"deinit"},
+    .{"destroy"},
+    .{"reset"},
+});
 
 pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const node = wrapper.node;
@@ -110,10 +172,11 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
     const node_tags: []const Node.Tag = ast.nodes.items(.tag);
     const main_tokens: []const TokenIndex = ast.nodes.items(.main_token);
 
-    var safety_comment_check = true;
-    var has_safety_comment = false;
+    var safety_comment_check = true; // should we look for safety comments?
+    var has_safety_comment = false; //  a safety comment has been found
     var it = ctx.links().iterParentIds(wrapper.idx);
     var i: u32 = 0;
+
     while (it.next()) |parent| {
         defer i += 1;
         switch (node_tags[parent]) {
@@ -165,61 +228,36 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
             .test_decl => return,
 
             // short circuit. Nothing interesting is above these nodes.
-            .fn_decl => break,
+            .fn_decl => {
+                // check for `foo.* = undefined` in destructors, which is fine
+                const fn_keyword = main_tokens[parent];
+                if (comptime util.IS_DEBUG) {
+                    const tok_tags: []const Token.Tag = ast.tokens.items(.tag);
+                    util.assert(
+                        tok_tags[fn_keyword] == .keyword_fn,
+                        "main token of fn_decl == mtain token of fn_proto == fn keyword. Got {any}.",
+                        .{tok_tags[fn_keyword]},
+                    );
+                    util.assert(
+                        tok_tags[fn_keyword + 1] == .identifier,
+                        "expected identifier after `fn` keyword, got {any}.",
+                        .{tok_tags[fn_keyword + 1]},
+                    );
+                }
+                const fn_name = ast.tokenSlice(fn_keyword + 1);
+                if (destructor_names.has(fn_name)) return;
+            },
             else => {
                 if (has_safety_comment) return;
                 // `undefined` is ok if a `SAFETY: <reason>` comment is present before it.
+                // NOTE: we do not exit early in case there's a safety comment over
+                // an `undefined` comparison
                 if (!has_safety_comment and safety_comment_check and hasSafetyComment(ctx, main_tokens[parent])) {
                     has_safety_comment = true;
                 }
             },
         }
     }
-
-    // early_exit: {
-    //     if (ctx.semantic.node_links.getParent(wrapper.idx)) |parent| {
-    //         const parent_tag = node_tags[parent];
-    //         switch (parent_tag) {
-    //             // initializing arrays to undefined can be ok, e.g. when using
-    //             // @memset.
-    //             .global_var_decl,
-    //             .local_var_decl,
-    //             .aligned_var_decl,
-    //             .simple_var_decl,
-    //             => if (self.allow_arrays) {
-    //                 // SAFETY: tags in case guarantee that a full variable declaration
-    //                 // is present.
-    //                 const decl = ast.fullVarDecl(parent) orelse unreachable;
-    //                 const ty = decl.ast.type_node;
-    //                 if (ty == Semantic.NULL_NODE) break :early_exit;
-    //                 switch (node_tags[ty]) {
-    //                     .array_type, .array_type_sentinel => return,
-    //                     else => {},
-    //                 }
-    //             },
-
-    //             // Comparison to undefined is unspecified behavior. NOTE: we
-    //             // skip safety comment check b/c this is _never_ safe.
-    //             .equal_equal,
-    //             .bang_equal,
-    //             .less_or_equal,
-    //             .less_than,
-    //             .greater_or_equal,
-    //             .greater_than,
-    //             => return ctx.report(undefinedComparison(ctx, node.main_token)),
-    //             else => {},
-    //         }
-    //     }
-    // }
-
-    // // `undefined` is ok if a `SAFETY: <reason>` comment is present before it.
-    // if (ctx.commentsBefore(node.main_token)) |comment| {
-    //     var lines = mem.splitScalar(u8, comment, '\n');
-    //     while (lines.next()) |line| {
-    //         const l = util.trimWhitespace(mem.trimLeft(u8, util.trimWhitespace(line), "//"));
-    //         if (std.ascii.startsWithIgnoreCase(l, "SAFETY:")) return;
-    //     }
-    // }
 
     ctx.report(undefinedMissingSafetyComment(ctx, node.main_token));
 }
@@ -271,11 +309,24 @@ test UnsafeUndefined {
         \\  // SAFETY: this is safe because foo bar
         \\  bar: u32 = undefined,
         \\};
-        // `undefined` is safe in test blocks (except when comparing)
+        // `undefined` is safe in test blocks (except when comparing)...
         \\ test "foo" {
         \\  var x: u32 = undefined;
         \\  x = 1;
         \\}
+        // and in destructors
+        \\fn deinit(self: *Foo) void {
+        \\  foo.* = undefined;
+        \\}
+        ,
+        \\fn destroy(self: *Foo) void {
+        \\  foo.* = undefined;
+        \\}
+        ,
+        \\fn reset(self: *Foo) void {
+        \\  foo.* = undefined;
+        \\}
+        ,
     };
     const fail = &[_][:0]const u8{
         "const x = undefined;",
@@ -327,6 +378,13 @@ test UnsafeUndefined {
         \\fn foo() void {
         \\  var x: u32 = undefined;
         \\}
+        ,
+        // destructors
+        \\fn notDeinit(self: *Foo) void {
+        \\  foo.* = undefined;
+        \\}
+        ,
+        \\const deinit: u32 = undefined;
     };
 
     try runner
