@@ -81,6 +81,10 @@ test "Symbol flags - container fields" {
             .{ .s_struct = true, .s_member = true },
         },
         .{
+            "x: u32", // top-level struct member
+            .{ .s_struct = true, .s_member = true },
+        },
+        .{
             "const Foo = enum { x };",
             .{ .s_enum = true, .s_member = true },
         },
