@@ -311,6 +311,11 @@ test UnsafeUndefined {
         \\  // SAFETY: this is safe because foo bar
         \\  bar: u32 = undefined,
         \\};
+        ,
+        \\const Foo = struct {
+        \\  // SAFETY: this is safe because foo bar
+        \\  bar: [4]u32 = undefined,
+        \\};
         // `undefined` is safe in test blocks (except when comparing)...
         \\ test "foo" {
         \\  var x: u32 = undefined;
