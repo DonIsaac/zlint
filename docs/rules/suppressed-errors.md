@@ -55,4 +55,6 @@ const y = foo() catch {
   std.debug.print("Foo failed.\n", .{});
 };
 const z = foo() catch null;
+// Writer errors may be safely ignored
+writer.print("{}", .{5}) catch {};
 ```

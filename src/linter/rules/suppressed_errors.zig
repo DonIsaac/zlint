@@ -45,6 +45,8 @@
 //!   std.debug.print("Foo failed.\n", .{});
 //! };
 //! const z = foo() catch null;
+//! // Writer errors may be safely ignored
+//! writer.print("{}", .{5}) catch {};
 //! ```
 
 const std = @import("std");
@@ -55,6 +57,7 @@ const _span = @import("../../span.zig");
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
+const TokenIndex = Ast.TokenIndex;
 const Span = _span.Span;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
@@ -101,6 +104,7 @@ pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterC
     const tags: []Node.Tag = nodes.items(.tag);
 
     const catch_body = node.data.rhs;
+    const caught = node.data.lhs;
     switch (tags[catch_body]) {
         // .block is only ever constructed for blocks with > 2 statements.
         .block_two, .block_two_semicolon => {
@@ -109,6 +113,7 @@ pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterC
 
             // `catch {}`
             if (stmts.lhs == NULL_NODE) {
+                if (isSuppressingWriterError(ctx, caught)) return;
                 const body_span = ast.nodeToSpan(catch_body);
                 const catch_keyword_start: u32 = ast.tokens.items(.start)[node.main_token];
                 const span = Span.new(catch_keyword_start, body_span.end);
@@ -117,6 +122,7 @@ pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterC
             }
             switch (tags[stmts.lhs]) {
                 .unreachable_literal => {
+                    if (isSuppressingWriterError(ctx, caught)) return;
                     const span = ast.nodeToSpan(stmts.lhs);
                     ctx.report(unreachableDiagnostic(ctx, .{ .start = span.start, .end = span.end }));
                 },
@@ -124,6 +130,7 @@ pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterC
             }
         },
         .unreachable_literal => {
+            if (isSuppressingWriterError(ctx, caught)) return;
             // lexeme() exists
             const unreachable_token = ast.nodes.items(.main_token)[catch_body];
             const start: u32 = ast.tokens.items(.start)[unreachable_token];
@@ -132,6 +139,48 @@ pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterC
         else => return,
     }
 }
+
+/// Is this catch suppressing errors from a `Writer` method?
+fn isSuppressingWriterError(ctx: *const LinterContext, caught: Node.Index) bool {
+    const nodes = ctx.ast().nodes;
+    const tags: []const Node.Tag = nodes.items(.tag);
+    const datas: []const Node.Data = nodes.items(.data);
+
+    switch (tags[caught]) {
+        .call,
+        .call_one,
+        .call_one_comma,
+        => {
+            const callee = datas[caught].lhs;
+            std.debug.assert(callee != NULL_NODE);
+            switch (tags[callee]) {
+                .field_access => {
+                    // identifier token
+                    const member: TokenIndex = datas[callee].rhs;
+                    std.debug.assert(member != NULL_NODE);
+                    return printMethods.has(ctx.ast().tokenSlice(member));
+                },
+                else => return false,
+            }
+        },
+        else => |tag| {
+            std.debug.print("{any}\n", .{tag});
+            return false;
+        },
+    }
+    unreachable;
+}
+
+const printMethods = std.StaticStringMap(void).initComptime(&[_]struct { []const u8 }{
+    .{"print"},
+    .{"write"},
+    .{"writeAll"},
+    .{"writeByte"},
+    .{"writeByteNTimes"},
+    .{"writeBytesNTimes"},
+    .{"writeStruct"},
+    .{"writeStructEndian"},
+});
 
 // Used by the Linter to register the rule so it can be run.
 pub fn rule(self: *SuppressedErrors) Rule {
@@ -146,10 +195,7 @@ test SuppressedErrors {
     var runner = RuleTester.init(t.allocator, suppressed_errors.rule());
     defer runner.deinit();
 
-    // Code your rule should pass on
     const pass = &[_][:0]const u8{
-        // TODO: add test cases
-        // "const x = 1",
         \\fn foo() void {
         \\  try bar();
         \\}
@@ -167,9 +213,32 @@ test SuppressedErrors {
         \\  bar() catch { std.debug.print("Something bad happened", .{}); };
         \\}
         ,
+        // suppressing writer errors is allowed
+        \\fn foo(w: Writer) void {
+        \\  w.writeAll("") catch {};
+        \\}
+        ,
+        \\fn foo(w: Writer) void {
+        \\  w.writeAll("") catch unreachable;
+        \\}
+        ,
+        \\fn foo(w: Writer) void {
+        \\  w.writeAll("") catch { unreachable; };
+        \\}
+        ,
+        \\fn foo(w: Writer) void {
+        \\  w.writeByte('x') catch {};
+        \\}
+        ,
+        \\fn foo(w: Writer) void {
+        \\  w.print("{s}\n", "foo") catch {};
+        \\}
+        ,
+        \\fn foo(bar: *Foo) void {
+        \\  bar.baz.writeAll("") catch {};
+        \\}
     };
 
-    // Code your rule should fail on
     const fail = &[_][:0]const u8{
         // swallowed
         \\fn foo() void {
@@ -193,6 +262,12 @@ test SuppressedErrors {
         ,
         \\fn foo() void {
         \\  bar() catch { unreachable; };
+        \\}
+        ,
+        \\fn foo(w: Writer) void {
+        \\  const x = blk: {
+        \\    break :blk w.print("{}", .{5}); 
+        \\  } catch unreachable;
         \\}
         ,
     };

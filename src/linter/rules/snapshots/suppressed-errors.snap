@@ -43,3 +43,12 @@
    ╰────
   help: Use `try` to propagate this error. If this branch shouldn't happen, use `@panic` or `std.debug.panic` instead.
 
+  𝙭 suppressed-errors: Caught error is mishandled with `unreachable`
+   ╭─[suppressed-errors.zig:4:11]
+ 3 │     break :blk w.print("{}", .{5});
+ 4 │   } catch unreachable;
+   ·           ───────────
+ 5 │ }
+   ╰────
+  help: Use `try` to propagate this error. If this branch shouldn't happen, use `@panic` or `std.debug.panic` instead.
+
