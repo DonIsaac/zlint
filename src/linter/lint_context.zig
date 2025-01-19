@@ -193,7 +193,7 @@ fn _report(self: *Context, diagnostic_: Diagnostic) void {
 }
 
 /// Find the comment block ending on the line before the given token.
-pub fn commentsBefore(self: *Context, token: Ast.TokenIndex) ?[]const u8 {
+pub fn commentsBefore(self: *const Context, token: Ast.TokenIndex) ?[]const u8 {
     const source = self.ast().source;
     var line_start = self.ast().tokenToSpan(token).start;
     while (line_start > 0) : (line_start -= 1) {

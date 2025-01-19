@@ -33,57 +33,66 @@
    ╰────
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 
-  𝙭 no-undefined: `undefined` is missing a safety comment
-   ╭─[no-undefined.zig:2:11]
- 1 │ // This is not a safety comment
- 2 │ const x = undefined;
-   ·           ─────────
+  𝙭 no-undefined: Do not use `undefined` as a default value
+   ╭─[no-undefined.zig:1:33]
+ 1 │ const Foo = struct { bar: u32 = undefined };
+   ·                                 ─────────
+ 2 │ fn foo(x: *Foo) void {
    ╰────
-  help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
+  help: If this really can be `undefined`, do so explicitly during struct initialization.
 
   𝙭 no-undefined: `undefined` cannot be used in comparisons.
-   ╭─[no-undefined.zig:2:12]
- 1 │ fn foo(x: *Foo) void {
- 2 │   if (x == undefined) {
+   ╭─[no-undefined.zig:3:12]
+ 2 │ fn foo(x: *Foo) void {
+ 3 │   if (x == undefined) {
    ·            ─────────
- 3 │     @import("std").debug.print("x is undefined\n", .{});
+ 4 │     @import("std").debug.print("x is undefined\n", .{});
    ╰────
-  help: uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+  help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
   𝙭 no-undefined: `undefined` cannot be used in comparisons.
    ╭─[no-undefined.zig:1:32]
  1 │ fn foo(x: *Foo) void { if (x > undefined) {} }
    ·                                ─────────
    ╰────
-  help: uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+  help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
   𝙭 no-undefined: `undefined` cannot be used in comparisons.
    ╭─[no-undefined.zig:1:33]
  1 │ fn foo(x: *Foo) void { if (x >= undefined) {} }
    ·                                 ─────────
    ╰────
-  help: uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+  help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
   𝙭 no-undefined: `undefined` cannot be used in comparisons.
    ╭─[no-undefined.zig:1:33]
  1 │ fn foo(x: *Foo) void { if (x != undefined) {} }
    ·                                 ─────────
    ╰────
-  help: uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+  help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
   𝙭 no-undefined: `undefined` cannot be used in comparisons.
    ╭─[no-undefined.zig:1:33]
  1 │ fn foo(x: *Foo) void { if (x <= undefined) {} }
    ·                                 ─────────
    ╰────
-  help: uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+  help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
   𝙭 no-undefined: `undefined` cannot be used in comparisons.
    ╭─[no-undefined.zig:1:32]
  1 │ fn foo(x: *Foo) void { if (x < undefined) {} }
    ·                                ─────────
    ╰────
-  help: uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+  help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+
+  𝙭 no-undefined: `undefined` cannot be used in comparisons.
+   ╭─[no-undefined.zig:3:12]
+ 2 │   var x: u32 = undefined;
+ 3 │   if (x == undefined) {}
+   ·            ─────────
+ 4 │ }
+   ╰────
+  help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 
   𝙭 no-undefined: `undefined` cannot be used in comparisons.
    ╭─[no-undefined.zig:3:12]
@@ -92,5 +101,39 @@
    ·            ─────────
  4 │     @import("std").debug.print("x is undefined\n", .{});
    ╰────
-  help: uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+  help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
+
+  𝙭 no-undefined: `undefined` is missing a safety comment
+   ╭─[no-undefined.zig:2:11]
+ 1 │ // This is not a safety comment
+ 2 │ const x = undefined;
+   ·           ─────────
+   ╰────
+  help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
+
+  𝙭 no-undefined: `undefined` is missing a safety comment
+   ╭─[no-undefined.zig:3:14]
+ 2 │ const x: u32 = 1;
+ 3 │ var y: u32 = undefined;
+   ·              ─────────
+   ╰────
+  help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
+
+  𝙭 no-undefined: `undefined` is missing a safety comment
+   ╭─[no-undefined.zig:4:10]
+ 3 │   .foo = undefined,
+ 4 │   .bar = undefined,
+   ·          ─────────
+ 5 │ };
+   ╰────
+  help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
+
+  𝙭 no-undefined: `undefined` is missing a safety comment
+   ╭─[no-undefined.zig:3:16]
+ 2 │ fn foo() void {
+ 3 │   var x: u32 = undefined;
+   ·                ─────────
+ 4 │ }
+   ╰────
+  help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 

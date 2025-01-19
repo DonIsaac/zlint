@@ -62,6 +62,7 @@
 const std = @import("std");
 const util = @import("util");
 const mem = std.mem;
+const ascii = std.ascii;
 
 const Semantic = @import("../../semantic.zig").Semantic;
 const Ast = std.zig.Ast;
@@ -89,7 +90,12 @@ fn undefinedMissingSafetyComment(ctx: *LinterContext, undefined_tok: TokenIndex)
 }
 fn undefinedComparison(ctx: *LinterContext, undefined_tok: TokenIndex) Error {
     var e = ctx.diagnostic("`undefined` cannot be used in comparisons.", .{ctx.spanT(undefined_tok)});
-    e.help = Cow.static("uninitialized data can have any value. If you need to check that a value does not exist, use `null`.");
+    e.help = Cow.static("Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.");
+    return e;
+}
+fn undefinedDefault(ctx: *LinterContext, undefined_tok: TokenIndex) Error {
+    var e = ctx.diagnostic("Do not use `undefined` as a default value", .{ctx.spanT(undefined_tok)});
+    e.help = Cow.static("If this really can be `undefined`, do so explicitly during struct initialization.");
     return e;
 }
 
@@ -99,50 +105,135 @@ pub fn runOnNode(self: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterCon
 
     if (node.tag != .identifier) return;
     const name = ast.getNodeSource(wrapper.idx);
-    if (!std.mem.eql(u8, name, "undefined")) return;
+    if (!mem.eql(u8, name, "undefined")) return;
 
     const node_tags: []const Node.Tag = ast.nodes.items(.tag);
+    const main_tokens: []const TokenIndex = ast.nodes.items(.main_token);
 
-    early_exit: {
-        if (ctx.semantic.node_links.getParent(wrapper.idx)) |parent| {
-            const parent_tag = node_tags[parent];
-            switch (parent_tag) {
-                // initializing arrays to undefined can be ok, e.g. when using
-                // @memset.
-                .global_var_decl,
-                .local_var_decl,
-                .aligned_var_decl,
-                .simple_var_decl,
-                => if (self.allow_arrays) {
+    var safety_comment_check = true;
+    var has_safety_comment = false;
+    var it = ctx.links().iterParentIds(wrapper.idx);
+    var i: u32 = 0;
+    while (it.next()) |parent| {
+        defer i += 1;
+        switch (node_tags[parent]) {
+            // initializing arrays to undefined can be ok, e.g. when using
+            // @memset.
+            .global_var_decl,
+            .local_var_decl,
+            .aligned_var_decl,
+            .simple_var_decl,
+            => {
+                // first parent?
+                if (self.allow_arrays and i == 1) {
                     // SAFETY: tags in case guarantee that a full variable declaration
                     // is present.
                     const decl = ast.fullVarDecl(parent) orelse unreachable;
                     const ty = decl.ast.type_node;
-                    if (ty == Semantic.NULL_NODE) break :early_exit;
+                    if (ty == Semantic.NULL_NODE) break;
                     switch (node_tags[ty]) {
                         .array_type, .array_type_sentinel => return,
                         else => {},
                     }
-                },
+                }
+                if (has_safety_comment or (safety_comment_check and hasSafetyComment(ctx, main_tokens[parent]))) return;
+                safety_comment_check = false;
+            },
 
-                // Comparison to undefined is always U.B. NOTE: we skip safety
-                // comment check b/c this is _never_ safe.
-                .equal_equal, .bang_equal, .less_or_equal, .less_than, .greater_or_equal, .greater_than => return ctx.report(undefinedComparison(ctx, node.main_token)),
-                else => {},
-            }
+            // Using `undefined` as a field's default value
+            .container_field_init,
+            .container_field_align,
+            .container_field,
+            => {
+                if (!has_safety_comment) {
+                    ctx.report(undefinedDefault(ctx, node.main_token));
+                }
+                return;
+            },
+
+            // Comparison to undefined is unspecified behavior. NOTE: we
+            // skip safety comment check b/c this is _never_ safe.
+            .equal_equal,
+            .bang_equal,
+            .less_or_equal,
+            .less_than,
+            .greater_or_equal,
+            .greater_than,
+            => return ctx.report(undefinedComparison(ctx, node.main_token)),
+
+            // `undefined` is safe in tests
+            .test_decl => return,
+
+            // short circuit. Nothing interesting is above these nodes.
+            .fn_decl => break,
+            else => {
+                if (has_safety_comment) return;
+                // `undefined` is ok if a `SAFETY: <reason>` comment is present before it.
+                if (!has_safety_comment and safety_comment_check and hasSafetyComment(ctx, main_tokens[parent])) {
+                    has_safety_comment = true;
+                }
+            },
         }
     }
 
-    // `undefined` is ok if a `SAFETY: <reason>` comment is present before it.
-    if (ctx.commentsBefore(node.main_token)) |comment| {
+    // early_exit: {
+    //     if (ctx.semantic.node_links.getParent(wrapper.idx)) |parent| {
+    //         const parent_tag = node_tags[parent];
+    //         switch (parent_tag) {
+    //             // initializing arrays to undefined can be ok, e.g. when using
+    //             // @memset.
+    //             .global_var_decl,
+    //             .local_var_decl,
+    //             .aligned_var_decl,
+    //             .simple_var_decl,
+    //             => if (self.allow_arrays) {
+    //                 // SAFETY: tags in case guarantee that a full variable declaration
+    //                 // is present.
+    //                 const decl = ast.fullVarDecl(parent) orelse unreachable;
+    //                 const ty = decl.ast.type_node;
+    //                 if (ty == Semantic.NULL_NODE) break :early_exit;
+    //                 switch (node_tags[ty]) {
+    //                     .array_type, .array_type_sentinel => return,
+    //                     else => {},
+    //                 }
+    //             },
+
+    //             // Comparison to undefined is unspecified behavior. NOTE: we
+    //             // skip safety comment check b/c this is _never_ safe.
+    //             .equal_equal,
+    //             .bang_equal,
+    //             .less_or_equal,
+    //             .less_than,
+    //             .greater_or_equal,
+    //             .greater_than,
+    //             => return ctx.report(undefinedComparison(ctx, node.main_token)),
+    //             else => {},
+    //         }
+    //     }
+    // }
+
+    // // `undefined` is ok if a `SAFETY: <reason>` comment is present before it.
+    // if (ctx.commentsBefore(node.main_token)) |comment| {
+    //     var lines = mem.splitScalar(u8, comment, '\n');
+    //     while (lines.next()) |line| {
+    //         const l = util.trimWhitespace(mem.trimLeft(u8, util.trimWhitespace(line), "//"));
+    //         if (std.ascii.startsWithIgnoreCase(l, "SAFETY:")) return;
+    //     }
+    // }
+
+    ctx.report(undefinedMissingSafetyComment(ctx, node.main_token));
+}
+
+/// `undefined` is ok if a `SAFETY: <reason>` comment is present before it.
+fn hasSafetyComment(ctx: *const LinterContext, first_token: TokenIndex) bool {
+    if (ctx.commentsBefore(first_token)) |comment| {
         var lines = mem.splitScalar(u8, comment, '\n');
         while (lines.next()) |line| {
             const l = util.trimWhitespace(mem.trimLeft(u8, util.trimWhitespace(line), "//"));
-            if (std.ascii.startsWithIgnoreCase(l, "SAFETY:")) return;
+            if (ascii.startsWithIgnoreCase(l, "SAFETY:")) return true;
         }
     }
-
-    ctx.report(undefinedMissingSafetyComment(ctx, node.main_token));
+    return false;
 }
 
 pub fn rule(self: *NoUndefined) Rule {
@@ -166,6 +257,25 @@ test NoUndefined {
         ,
         \\// safety: this is safe because foo bar
         \\var x: []u8 = undefined;
+        ,
+        \\// sAfEtY: this is safe because foo bar
+        \\var x: []u8 = undefined;
+        ,
+        \\// SAFETY: this is safe because foo bar
+        \\const x = Foo{
+        \\  .foo = undefined,
+        \\  .bar = undefined,
+        \\};
+        ,
+        \\const Foo = struct {
+        \\  // SAFETY: this is safe because foo bar
+        \\  bar: u32 = undefined,
+        \\};
+        // `undefined` is safe in test blocks (except when comparing)
+        \\ test "foo" {
+        \\  var x: u32 = undefined;
+        \\  x = 1;
+        \\}
     };
     const fail = &[_][:0]const u8{
         "const x = undefined;",
@@ -173,9 +283,9 @@ test NoUndefined {
         "const slice: [:0]u8 = undefined;",
         "const many_ptr: [*]u8 = undefined;",
         "const many_ptr: [*:0]u8 = undefined;",
-        \\// This is not a safety comment
-        \\const x = undefined;
-        ,
+        \\const Foo = struct { bar: u32 = undefined };
+        // comparing to undefined is never allowed, even in test blocks and with
+        // safety comments
         \\fn foo(x: *Foo) void {
         \\  if (x == undefined) {
         \\    @import("std").debug.print("x is undefined\n", .{});
@@ -187,11 +297,35 @@ test NoUndefined {
         "fn foo(x: *Foo) void { if (x != undefined) {} }",
         "fn foo(x: *Foo) void { if (x <= undefined) {} }",
         "fn foo(x: *Foo) void { if (x < undefined) {} }",
+        \\ test "foo" {
+        \\  var x: u32 = undefined;
+        \\  if (x == undefined) {}
+        \\}
+        ,
         \\fn foo(x: *Foo) void {
         \\  // SAFETY: this is never safe, so this comment is ignored
         \\  if (x == undefined) {
         \\    @import("std").debug.print("x is undefined\n", .{});
         \\  }
+        \\}
+        ,
+        // safety comments
+        \\// This is not a safety comment
+        \\const x = undefined;
+        ,
+        \\// SAFETY: foo
+        \\const x: u32 = 1;
+        \\var y: u32 = undefined;
+        ,
+        \\const x = Foo{
+        \\  // SAFETY: this is safe because foo bar
+        \\  .foo = undefined,
+        \\  .bar = undefined,
+        \\};
+        ,
+        \\// SAFETY: comments over fn decls aren't considered
+        \\fn foo() void {
+        \\  var x: u32 = undefined;
         \\}
     };
 
