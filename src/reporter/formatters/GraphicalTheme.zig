@@ -62,12 +62,12 @@ pub const ThemeStyles = struct {
     emphasize: Chameleon,
     /// Styles to cycle through (using `.iter().cycle()`), to render the lines
     /// and text for diagnostic highlights.
-    highlights: []const Chameleon,
+    highlights: [3]Chameleon,
 
     /// Nice RGB colors.
     /// [Credit](http://terminal.sexy/#FRUV0NDQFRUVrEFCkKlZ9L91ap-1qnWfdbWq0NDQUFBQrEFCkKlZ9L91ap-1qnWfdbWq9fX1).
     pub fn rgb() ThemeStyles {
-        var c = Chameleon{};
+        comptime var c = Chameleon{};
         return .{
             .err = c.rgb(255, 30, 30).createPreset(),
             .warning = c.rgb(244, 191, 117).createPreset(),
@@ -76,7 +76,7 @@ pub const ThemeStyles = struct {
             .link = c.rgb(92, 157, 255).underline().bold().createPreset(),
             .linum = c.dim().createPreset(),
             .emphasize = c.bold().createPreset(),
-            .highlights = &[_]Chameleon{
+            .highlights = [_]Chameleon{
                 c.rgb(246, 87, 248).createPreset(),
                 c.rgb(30, 201, 212).createPreset(),
                 c.rgb(145, 246, 111).createPreset(),
@@ -95,7 +95,7 @@ pub const ThemeStyles = struct {
             .link = c.cyan().underline().bold().createPreset(),
             .linum = c.dim().createPreset(),
             .emphasize = c.bold().createPreset(),
-            .highlights = &[_]Chameleon{
+            .highlights = [_]Chameleon{
                 c.magenta().bold().createPreset(),
                 c.yellow().bold().createPreset(),
                 c.green().bold().createPreset(),
@@ -106,7 +106,6 @@ pub const ThemeStyles = struct {
     pub fn none() ThemeStyles {
         comptime var c = Chameleon{};
         const empty = c.createPreset();
-        const empties = &[_]Chameleon{ empty, empty };
         return .{
             .err = empty,
             .warning = empty,
@@ -115,7 +114,7 @@ pub const ThemeStyles = struct {
             .link = empty,
             .linum = empty,
             .emphasize = empty,
-            .highlights = empties,
+            .highlights = [_]Chameleon{ empty, empty, empty },
         };
     }
 };
