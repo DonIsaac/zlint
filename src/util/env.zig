@@ -5,13 +5,12 @@ const unicode = std.unicode;
 const posix = std.posix;
 const assert = std.debug.assert;
 
-
 const native_os = builtin.os.tag;
 
 /// Categories for environment values. Used to check flags, not when you actually
 /// want the value itself
 pub const ValueKind = enum {
-    /// Environemnt variable is present
+    /// Environment variable is present
     defined,
     /// Environment variable has a "truthy" value (`1`, `on`, whatever)
     enabled,
@@ -35,7 +34,6 @@ pub fn checkEnvFlag(comptime key: []const u8, comptime kind: ValueKind) bool {
             2 => (value[0] == 'o' or value[0] == 'O') and (value[1] == 'n' or value[1] == 'N'),
             else => false,
         };
-
     } else if (native_os == .wasi and !builtin.link_libc) {
         @compileError("ahg we need to support WASI?");
     } else {
