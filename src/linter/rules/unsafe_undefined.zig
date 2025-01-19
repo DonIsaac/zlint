@@ -245,7 +245,9 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
                     );
                 }
                 const fn_name = ast.tokenSlice(fn_keyword + 1);
-                if (destructor_names.has(fn_name)) return;
+                // once a function declaration is reached, SAFETY comments will
+                // no longer apply, so we can just skip checking remaining parents.
+                if (destructor_names.has(fn_name)) return else break;
             },
             else => {
                 if (has_safety_comment) return;
