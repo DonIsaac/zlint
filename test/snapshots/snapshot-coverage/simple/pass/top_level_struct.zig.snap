@@ -20,7 +20,7 @@
       "token": 0, 
       "declNode": "container_field_init", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["member"], 
+      "flags": ["member", "struct"], 
       "references": [
         
       ], 
@@ -34,7 +34,7 @@
       "token": 4, 
       "declNode": "container_field_init", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["member"], 
+      "flags": ["member", "struct"], 
       "references": [
         
       ], 

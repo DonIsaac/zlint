@@ -642,6 +642,7 @@ fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.C
         .identifier = identifier,
         .flags = .{
             .s_comptime = field.comptime_token != null,
+            .s_struct = self.currentScope().eql(ROOT_SCOPE),
         },
     });
     const parent = self.currentContainerSymbolUnwrap().into(usize);
