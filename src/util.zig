@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 
+pub const env = @import("./util/env.zig");
 pub const NominalId = @import("./util/id.zig").NominalId;
 pub const Cow = @import("./util/cow.zig").Cow;
 

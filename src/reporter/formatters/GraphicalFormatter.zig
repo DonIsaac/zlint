@@ -8,24 +8,18 @@ pub const Theme = GraphicalTheme;
 
 pub const meta: Meta = .{ .report_statistics = true };
 
-pub fn unicode(alloc: std.mem.Allocator, comptime color: bool) GraphicalFormatter {
-    // NOTE: must be comptime, otherwise none() returns a reference to a stack
-    // pointer.
-    const theme = comptime blk: {
-        var theme = GraphicalTheme.unicode();
-        if (!color) theme.styles = GraphicalTheme.ThemeStyles.none();
-        break :blk theme;
+pub fn unicode(alloc: std.mem.Allocator, color: bool) GraphicalFormatter {
+    const theme: GraphicalTheme = .{
+        .styles = if (color) Styles.ansi() else Styles.none(),
+        .characters = GraphicalTheme.ThemeCharacters.unicode(),
     };
     return .{ .theme = theme, .alloc = alloc };
 }
 
-pub fn ascii(alloc: std.mem.Allocator, comptime color: bool) GraphicalFormatter {
-    // NOTE: must be comptime, otherwise none() returns a reference to a stack
-    // pointer.
-    const theme = comptime blk: {
-        var theme = GraphicalTheme.ascii();
-        if (!color) theme.styles = GraphicalTheme.ThemeStyles.none();
-        break :blk theme;
+pub fn ascii(alloc: std.mem.Allocator, color: bool) GraphicalFormatter {
+    const theme: GraphicalTheme = .{
+        .styles = if (color) Styles.ansi() else Styles.none(),
+        .characters = GraphicalTheme.ThemeCharacters.ascii(),
     };
     return .{ .theme = theme, .alloc = alloc };
 }
@@ -485,6 +479,7 @@ const assert = std.debug.assert;
 const Writer = std.fs.File.Writer; // TODO: use std.io.Writer?
 
 const GraphicalTheme = @import("GraphicalTheme.zig");
+const Styles = GraphicalTheme.ThemeStyles;
 
 const _span = @import("../../span.zig");
 const Span = _span.Span;
