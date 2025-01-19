@@ -82,7 +82,7 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
         // 2 for open/close quotes
         if (pathname.len < 4) return;
         const ext = pathname[pathname.len - 4 ..];
-        if (!isDotSlash(ext) and !std.mem.eql(u8, ext, ".zig")) return;
+        if (!isDotSlash(pathname) and !std.mem.eql(u8, ext, ".zig")) return;
     }
 
     // join it with the current file's folder to get where it would be
@@ -114,7 +114,7 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
     }
 }
 
-fn isDotSlash(pathname: []const u8) bool {
+inline fn isDotSlash(pathname: []const u8) bool {
     if (pathname.len < 2) return false;
     return pathname[0] == '.' and (pathname[1] == '/' or (util.IS_DEBUG and pathname[1] == '\\'));
 }
@@ -138,8 +138,7 @@ test NoUnresolved {
     const fail = &[_][:0]const u8{
         \\const x = @import("does-not-exist.zig");
         ,
-        // TODO: dir.statFile() returns .{ .kind = .file } even for directories
-        // \\const x = @import("./walk");
+        \\const x = @import("./walk");
         // TODO: currently caught by semantic analysis. Right now sema failures
         // make the linter panic. uncomment when sema failures are handled
         // "const p = \"foo.zig\"\nconst x = @import(foo);",
