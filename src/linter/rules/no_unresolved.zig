@@ -99,7 +99,7 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
             ctx.report(ctx.diagnosticf(
                 "Unresolved import to '{s}'",
                 .{pathname},
-                .{ctx.spanN(node.data.lhs)},
+                .{ctx.labelN(node.data.lhs, "file '{s}' does not exist", .{pathname})},
             ));
             return;
         };
@@ -107,7 +107,7 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
             ctx.report(ctx.diagnosticf(
                 "Unresolved import to directory '{s}'",
                 .{pathname},
-                .{ctx.spanN(node.data.lhs)},
+                .{ctx.labelN(node.data.lhs, "'{s}' is a folder", .{pathname})},
             ));
         }
     }
