@@ -223,6 +223,10 @@ test SuppressedErrors {
         \\}
         ,
         \\fn foo(w: Writer) void {
+        \\  w.writeAll("") catch { unreachable; };
+        \\}
+        ,
+        \\fn foo(w: Writer) void {
         \\  w.writeByte('x') catch {};
         \\}
         ,
@@ -260,11 +264,16 @@ test SuppressedErrors {
         \\  bar() catch { unreachable; };
         \\}
         ,
+        \\fn foo(w: Writer) void {
+        \\  const x = blk: {
+        \\    break :blk w.print("{}", .{5}); 
+        \\  } catch unreachable;
+        \\}
+        ,
     };
 
-    _ = fail;
     try runner
         .withPass(pass)
-    // .withFail(fail)
+        .withFail(fail)
         .run();
 }
