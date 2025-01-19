@@ -1,5 +1,5 @@
 {
     "rules": {
-        "no-undefined": "warn"
+        "unsafe-undefined": "warn"
     }
 }

@@ -163,10 +163,7 @@ fn isSuppressingWriterError(ctx: *const LinterContext, caught: Node.Index) bool 
                 else => return false,
             }
         },
-        else => |tag| {
-            std.debug.print("{any}\n", .{tag});
-            return false;
-        },
+        else => return false,
     }
     unreachable;
 }

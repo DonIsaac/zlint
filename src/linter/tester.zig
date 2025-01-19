@@ -247,7 +247,7 @@ const NodeWrapper = @import("rule.zig").NodeWrapper;
 const LinterContext = @import("lint_context.zig");
 const MockRule = struct {
     pub const meta: Rule.Meta = .{
-        .name = "no-undefined",
+        .name = "unsafe-undefined",
         .category = .correctness,
     };
     pub fn runOnNode(_: *const MockRule, _: NodeWrapper, _: *LinterContext) void {}

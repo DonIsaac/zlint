@@ -44,14 +44,14 @@ pub fn new(source: []const u8) DisableDirectivesParser {
 /// ### Examples
 /// - `// zlint-disable` - disable all rules for this file
 /// - `// zlint-disable -- some comment` - same as above
-/// - `// zlint-disable no-undefined` - disable "no-undefined" for the entire file
+/// - `// zlint-disable unsafe-undefined` - disable "unsafe-undefined" for the entire file
 /// - `// zlint-disable foo bar baz` - disable "foo", "bar", and  "baz" for entire fil
 /// - `// `ZLint-disable foo, bar, baz` - let user do their thing, if they want commas and caps that's fine
 ///
 /// Disabling only on the next line works basically the same way
 /// - `// zlint-disable-next-line` - disable violations for all rules on next line
-/// - `// zlint-disable-next-line  -- no-undefined` same as above. `no-undefined` is treated as a comment
-/// - `// zlint-disable-next-line no-undefined`
+/// - `// zlint-disable-next-line  -- unsafe-undefined` same as above. `unsafe-undefined` is treated as a comment
+/// - `// zlint-disable-next-line unsafe-undefined`
 pub fn parse(self: *DisableDirectivesParser, allocator: Allocator, line_comment: Span) Allocator.Error!?DisableDirectiveComment {
     assert(self.source.len >= line_comment.end); // ensure line comment is within source code
     defer if (comptime util.IS_DEBUG) self.reset();
@@ -186,25 +186,45 @@ test parse {
     const TestCase = Tuple(&[_]type{ []const u8, ?DisableDirectiveComment, ExpectedDisableDisableDirectives });
     const cases = &[_]TestCase{
         // global directives
-        TestCase{ "//zlint-disable", .{ .kind = .global, .span = .{ .start = 0, .end = 15 } }, &[_][]const u8{} },
-        TestCase{ "// zlint-disable", .{ .kind = .global, .span = .{ .start = 0, .end = 16 } }, &[_][]const u8{} },
-        TestCase{ "// zlint-disable -- no-undefined", .{ .kind = .global, .span = .{ .start = 0, .end = 16 } }, &[_][]const u8{} },
-        TestCase{ "// zlint-disable no-undefined", .{
-            .kind = .global,
-            .span = .{ .start = 0, .end = 29 },
-            .disabled_rules = @constCast(&[_]Span{Span.new(17, 29)}),
-        }, &[_][]const u8{
-            "no-undefined",
-        } },
-        TestCase{ "// zlint-disable foo bar baz", .{
-            .kind = .global,
-            .span = .{ .start = 0, .end = 28 },
-            .disabled_rules = @constCast(&[_]Span{
-                Span.new(17, 20),
-                Span.new(21, 24),
-                Span.new(25, 28),
-            }),
-        }, &[_][]const u8{ "foo", "bar", "baz" } },
+        TestCase{
+            "//zlint-disable",
+            .{ .kind = .global, .span = .{ .start = 0, .end = 15 } },
+            &[_][]const u8{},
+        },
+        TestCase{
+            "// zlint-disable",
+            .{ .kind = .global, .span = .{ .start = 0, .end = 16 } },
+            &[_][]const u8{},
+        },
+        TestCase{
+            "// zlint-disable -- unsafe-undefined",
+            .{ .kind = .global, .span = .{ .start = 0, .end = 16 } },
+            &[_][]const u8{},
+        },
+        TestCase{
+            "// zlint-disable unsafe-undefined",
+            .{
+                .kind = .global,
+                .span = .{ .start = 0, .end = 33 },
+                .disabled_rules = @constCast(&[_]Span{Span.new(17, 33)}),
+            },
+            &[_][]const u8{
+                "unsafe-undefined",
+            },
+        },
+        TestCase{
+            "// zlint-disable foo bar baz",
+            .{
+                .kind = .global,
+                .span = .{ .start = 0, .end = 28 },
+                .disabled_rules = @constCast(&[_]Span{
+                    Span.new(17, 20),
+                    Span.new(21, 24),
+                    Span.new(25, 28),
+                }),
+            },
+            &[_][]const u8{ "foo", "bar", "baz" },
+        },
     };
 
     for (cases) |case| {

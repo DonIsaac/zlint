@@ -142,7 +142,7 @@ test resolveLintConfig {
     defer t.allocator.free(expected_path);
 
     try t.expectStringEndsWith(config.path.?, expected_path);
-    try t.expectEqual(.warning, config.config.rules.no_undefined.severity);
+    try t.expectEqual(.warning, config.config.rules.unsafe_undefined.severity);
 }
 
 // fn iterParents(comptime N: usize, buf: [N]u8, path: []const u8, filename: []const u8) {

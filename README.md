@@ -64,7 +64,7 @@ all default rules, only enabling the ones you choose.
 ZLint also supports [ESLint-like disable directives](https://eslint.org/docs/latest/use/configure/rules#comment-descriptions) to turn off some or all rules for a specific file.
 
 ```zig
-// zlint-disable no-undefined -- We need to come back and fix this later
+// zlint-disable unsafe-undefined -- We need to come back and fix this later
 const x: i32 = undefined;
 ```
 

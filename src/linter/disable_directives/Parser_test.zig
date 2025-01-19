@@ -78,8 +78,8 @@ test "comments" {
     const line: DisableDirectiveComment = .{ .kind = .line, .span = NULL_SPAN };
 
     const cases = &[_]TestCase{
-        .{ .src = "// zlint-disable -- no-undefined", .expected = global },
-        .{ .src = "// zlint-disable-next-line -- no-undefined", .expected = line },
+        .{ .src = "// zlint-disable -- unsafe-undefined", .expected = global },
+        .{ .src = "// zlint-disable-next-line -- unsafe-undefined", .expected = line },
         .{ .src = "// zlint-disable --", .expected = global },
         .{ .src = "// zlint-disable -- foo bar baz", .expected = global },
         .{ .src = "// zlint-disable     --   foo bar baz", .expected = global },
@@ -94,7 +94,7 @@ test "not a disable directive" {
         .{ .src = "// foo", .expected = null },
         .{ .src = "// foo foo foo foo foo foo foo foo foo foo", .expected = null },
         .{ .src = "// foo zlint-disable", .expected = null },
-        .{ .src = "zlint-disable no-undefined", .expected = null },
+        .{ .src = "zlint-disable unsafe-undefined", .expected = null },
     };
     try runTests(cases);
 }

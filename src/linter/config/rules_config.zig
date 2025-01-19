@@ -17,7 +17,7 @@ pub const RulesConfig = struct {
     homeless_try: RuleConfig(rules.HomelessTry) = .{},
     no_catch_return: RuleConfig(rules.NoCatchReturn) = .{},
     no_return_try: RuleConfig(rules.NoReturnTry) = .{},
-    no_undefined: RuleConfig(rules.NoUndefined) = .{},
+    unsafe_undefined: RuleConfig(rules.UnsafeUndefined) = .{},
     no_unresolved: RuleConfig(rules.NoUnresolved) = .{},
     suppressed_errors: RuleConfig(rules.SuppressedErrors) = .{},
     unused_decls: RuleConfig(rules.UnusedDecls) = .{},
@@ -85,18 +85,18 @@ fn testConfig(source: []const u8, expected: RulesConfig) !void {
 test "RulesConfig.jsonParse" {
     try testConfig("{}", RulesConfig{});
     try testConfig(
-        \\{ "no-undefined": "error" }
+        \\{ "unsafe-undefined": "error" }
     ,
-        RulesConfig{ .no_undefined = .{ .severity = Severity.err } },
+        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err } },
     );
     try testConfig(
         \\{
-        \\  "no-undefined": "allow",
+        \\  "unsafe-undefined": "allow",
         \\  "homeless-try": "error"
         \\}
     ,
         RulesConfig{
-            .no_undefined = .{ .severity = Severity.off },
+            .unsafe_undefined = .{ .severity = Severity.off },
             .homeless_try = .{ .severity = Severity.err },
         },
     );
