@@ -213,7 +213,7 @@ test SuppressedErrors {
         \\  bar() catch { std.debug.print("Something bad happened", .{}); };
         \\}
         ,
-        // supressing writer errors is allowed
+        // suppressing writer errors is allowed
         \\fn foo(w: Writer) void {
         \\  w.writeAll("") catch {};
         \\}
