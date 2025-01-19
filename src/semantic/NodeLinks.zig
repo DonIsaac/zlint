@@ -84,9 +84,10 @@ const ParentIdsIterator = struct {
     curr_id: ?NodeIndex,
 
     pub fn next(self: *ParentIdsIterator) ?NodeIndex {
+        const curr_id = self.curr_id orelse return null;
         // NOTE: using getParent instead of direct _parents access to ensure
         // root node is yielded.
-        defer self.curr_id = self.links.getParent(self.curr_id);
+        defer self.curr_id = self.links.getParent(curr_id);
         return self.curr_id;
     }
 };
