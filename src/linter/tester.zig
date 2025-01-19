@@ -242,7 +242,6 @@ const GraphicalFormatter = @import("../reporter.zig").formatter.Graphical;
 const Cow = util.Cow(false);
 const string = util.string;
 const panic = std.debug.panic;
-const assert = std.debug.assert;
 
 const NodeWrapper = @import("rule.zig").NodeWrapper;
 const LinterContext = @import("lint_context.zig");

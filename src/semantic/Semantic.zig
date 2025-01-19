@@ -98,9 +98,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Ast = std.zig.Ast;
-const Type = std.builtin.Type;
 const Span = @import("../span.zig").Span;
-const assert = std.debug.assert;
 
 const _ast = @import("./ast.zig");
 const _tokenizer = @import("./tokenizer.zig");
@@ -118,5 +116,3 @@ pub const SymbolTable = Symbol.SymbolTable;
 pub const Reference = @import("Reference.zig");
 
 const util = @import("util");
-const string = util.string;
-const stringSlice = util.stringSlice;

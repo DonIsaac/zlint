@@ -50,7 +50,7 @@ _errors: std.ArrayListUnmanaged(Error) = .{},
 /// the Zig team uses it to represent `null` without wasting extra memory.
 const NULL_NODE: NodeIndex = Semantic.NULL_NODE;
 const ROOT_SCOPE: Semantic.Scope.Id = Semantic.ROOT_SCOPE_ID;
-const BUILTIN_SCOPE: Semantic.Scope.Id = Semantic.BUILTIN_SCOPE_ID;
+// const BUILTIN_SCOPE: Semantic.Scope.Id = Semantic.BUILTIN_SCOPE_ID;
 
 pub const Result = Error.Result(Semantic);
 pub const SemanticError = error{
@@ -132,7 +132,7 @@ pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Resul
     builder.assertRoot(); // sanity check
 
     for (builder._semantic.ast.rootDecls()) |node| {
-        builder.visitNode(node) catch |e| return e;
+        try builder.visitNode(node);
         builder.assertRoot();
     }
 
@@ -1827,20 +1827,17 @@ const std = @import("std");
 const mem = std.mem;
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
-const Type = std.builtin.Type;
 
 const assert = std.debug.assert;
 
 const tokenizer = @import("tokenizer.zig");
 const Token = tokenizer.Token;
-const TokenList = tokenizer.TokenList;
 
 const _ast = @import("ast.zig");
 const Ast = _ast.Ast;
 const full = Ast.full;
 const Node = _ast.Node;
 const NodeIndex = _ast.NodeIndex;
-const RawToken = _ast.RawToken;
 const TokenIndex = _ast.TokenIndex;
 
 const Error = @import("../Error.zig");

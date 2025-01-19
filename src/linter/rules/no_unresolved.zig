@@ -35,11 +35,8 @@
 const std = @import("std");
 const fs = std.fs;
 const path = std.fs.path;
-const _source = @import("../../source.zig");
 
 const Ast = std.zig.Ast;
-const Node = Ast.Node;
-const Loc = std.zig.Loc;
 const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;

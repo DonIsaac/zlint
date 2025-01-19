@@ -111,7 +111,6 @@ pub fn printScopeTree(self: *SemanticPrinter) !void {
     return self.printScope(&self.semantic.scopes.getScope(Semantic.ROOT_SCOPE_ID));
 }
 
-const StackAllocator = std.heap.StackFallbackAllocator(1024);
 fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
     const scopes = &self.semantic.scopes;
     const symbols = &self.semantic.symbols;
@@ -207,7 +206,6 @@ const Allocator = std.mem.Allocator;
 const Printer = @import("./Printer.zig");
 
 const _semantic = @import("../semantic.zig");
-const SemanticBuilder = _semantic.Builder;
 const Semantic = _semantic.Semantic;
 const Symbol = _semantic.Symbol;
 const Scope = _semantic.Scope;

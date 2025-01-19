@@ -4,12 +4,9 @@ const zlint = @import("zlint");
 const utils = @import("../utils.zig");
 
 const Allocator = std.mem.Allocator;
-const SemanticError = @import("ecosystem_coverage.zig").SemanticError; // TODO: move to shared file
-const string = utils.string;
 const TestFolders = utils.TestFolders;
 
 const Printer = zlint.printer.Printer;
-const AstPrinter = zlint.printer.AstPrinter;
 const SemanticPrinter = zlint.printer.SemanticPrinter;
 
 const SemanticBuilder = zlint.semantic.SemanticBuilder;

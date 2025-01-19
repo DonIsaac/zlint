@@ -32,8 +32,11 @@ pub fn new(source: []const u8) DisableDirectivesParser {
     // leaks and find out.
     return .{
         .source = source,
+        // SAFETY: above
         .cursor = undefined,
+        // SAFETY: above
         .kind = undefined,
+        // SAFETY: above
         .span = undefined,
     };
 }
@@ -166,7 +169,9 @@ inline fn assertInRange(self: *const DisableDirectivesParser) void {
 
 fn reset(self: *DisableDirectivesParser) void {
     self.cursor = undefined;
+    // SAFETY: this is a destructor
     self.kind = undefined;
+    // SAFETY: this is a destructor
     self.span = undefined;
 }
 
@@ -262,7 +267,6 @@ test eatWhitespace {
 
 const std = @import("std");
 const util = @import("util");
-const heap = std.heap;
 const ascii = std.ascii;
 const mem = std.mem;
 

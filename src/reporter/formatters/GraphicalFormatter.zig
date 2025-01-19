@@ -472,7 +472,6 @@ const ContextInfo = struct {
 const GraphicalFormatter = @This();
 
 const std = @import("std");
-const builtin = @import("builtin");
 const util = @import("util");
 
 const assert = std.debug.assert;
@@ -485,7 +484,6 @@ const _span = @import("../../span.zig");
 const Span = _span.Span;
 const LabeledSpan = _span.LabeledSpan;
 const Location = _span.Location;
-const LocationSpan = _span.LocationSpan;
 
 const Error = @import("../../Error.zig");
 

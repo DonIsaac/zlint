@@ -1,7 +1,6 @@
 const std = @import("std");
 const json = std.json;
 const Severity = @import("../../Error.zig").Severity;
-const Tuple = std.meta.Tuple;
 const Allocator = std.mem.Allocator;
 const Rule = @import("../rule.zig").Rule;
 

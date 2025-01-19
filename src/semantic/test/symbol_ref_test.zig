@@ -1,16 +1,9 @@
 const std = @import("std");
-const mem = std.mem;
 const meta = std.meta;
-const util = @import("util");
 const test_util = @import("util.zig");
 
-const SemanticBuilder = @import("../SemanticBuilder.zig");
-const Semantic = @import("../Semantic.zig");
 const Symbol = @import("../Symbol.zig");
-const report = @import("../../reporter.zig");
 const Reference = @import("../Reference.zig");
-
-const printer = @import("../../root.zig").printer;
 
 const t = std.testing;
 const panic = std.debug.panic;

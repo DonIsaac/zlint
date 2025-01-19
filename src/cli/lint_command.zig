@@ -6,12 +6,10 @@ const reporters = @import("../reporter.zig");
 const lint_config = @import("lint_config.zig");
 
 const fs = std.fs;
-const log = std.log;
 const mem = std.mem;
 const path = std.fs.path;
 
 const Allocator = std.mem.Allocator;
-const GraphicalReporter = reporters.GraphicalReporter;
 const Source = _source.Source;
 const Thread = std.Thread;
 const WalkState = walk.WalkState;

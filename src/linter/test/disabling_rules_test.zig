@@ -2,7 +2,6 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 
-const rules = @import("../rules.zig");
 const Linter = @import("../../linter.zig").Linter;
 const Config = @import("../../linter.zig").Config;
 const Source = @import("../../source.zig").Source;

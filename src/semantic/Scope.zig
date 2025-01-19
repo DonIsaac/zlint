@@ -213,12 +213,10 @@ const util = @import("util");
 const _ast = @import("ast.zig");
 
 const Allocator = std.mem.Allocator;
-const Ast = _ast.Ast;
 const NodeIndex = _ast.NodeIndex;
 const Symbol = @import("Symbol.zig");
 const NominalId = util.NominalId;
 
-const string = util.string;
 const assert = std.debug.assert;
 
 const t = std.testing;

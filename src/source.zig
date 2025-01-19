@@ -4,7 +4,6 @@ const ptrs = @import("smart-pointers");
 const fs = std.fs;
 
 const Allocator = std.mem.Allocator;
-const Ast = std.zig.Ast;
 const Arc = ptrs.Arc;
 const assert = std.debug.assert;
 const string = util.string;

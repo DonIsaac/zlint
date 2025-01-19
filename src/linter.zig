@@ -1,5 +1,4 @@
 const std = @import("std");
-const ptrs = @import("smart-pointers");
 const _source = @import("source.zig");
 const _semantic = @import("semantic.zig");
 
@@ -11,26 +10,20 @@ const disable_directives = @import("linter/disable_directives.zig");
 const Fix = @import("linter/fix.zig").Fix;
 const Fixer = @import("linter/fix.zig").Fixer;
 
-const Arc = ptrs.Arc;
 const Error = @import("Error.zig");
 const Severity = Error.Severity;
 const Source = _source.Source;
-const Span = _source.Span;
-const LabeledSpan = _source.LabeledSpan;
 const Semantic = _semantic.Semantic;
 const SemanticBuilder = _semantic.SemanticBuilder;
 
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
-const Ast = std.zig.Ast;
 const assert = std.debug.assert;
 const fs = std.fs;
-const print = std.debug.print;
 
 const Rule = _rule.Rule;
 const RuleSet = @import("linter/RuleSet.zig");
 const NodeWrapper = _rule.NodeWrapper;
-const string = @import("util").string;
 
 pub const Config = @import("./linter/Config.zig");
 
@@ -175,7 +168,7 @@ pub const Linter = struct {
         if (result.did_fix and source.pathname != null) {
             const pathname = source.pathname.?;
             // create instead of open to truncate contents
-            var file = std.fs.cwd().createFile(pathname, .{}) catch |e| {
+            var file = fs.cwd().createFile(pathname, .{}) catch |e| {
                 std.debug.panic("Failed to apply fixes to '{s}': {}", .{ pathname, e });
             };
             defer file.close();

@@ -213,11 +213,9 @@ const Stats = struct {
 const TestSuite = @This();
 
 const std = @import("std");
-const builtin = @import("builtin");
 const fs = std.fs;
 const Allocator = std.mem.Allocator;
 const ThreadPool = std.Thread.Pool;
-const panic = std.debug.panic;
 
 const recover = @import("recover");
 

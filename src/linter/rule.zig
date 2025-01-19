@@ -2,7 +2,6 @@ const std = @import("std");
 const util = @import("util");
 const semantic = @import("../semantic.zig");
 
-const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const string = util.string;
 const Symbol = semantic.Symbol;

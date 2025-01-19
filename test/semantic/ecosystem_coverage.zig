@@ -2,8 +2,6 @@ const test_runner = @import("../harness.zig");
 
 const std = @import("std");
 const fs = std.fs;
-const path = fs.path;
-const process = std.process;
 const Allocator = std.mem.Allocator;
 const print = std.debug.print;
 

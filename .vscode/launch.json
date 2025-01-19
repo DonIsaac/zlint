@@ -5,6 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "zlint [multi-thread]",
+            "type": "lldb",
+            "request": "launch",
+            "program": "./zig-out/bin/zlint",
+            "cwd": "${workspaceRoot}",
+            "preLaunchTask": "build"
+        },
+        {
             "name": "zlint",
             "type": "lldb",
             "request": "launch",

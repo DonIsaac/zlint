@@ -48,11 +48,6 @@ const all_rules = @import("rules.zig");
 const all_rule_decls = @typeInfo(all_rules).Struct.decls;
 
 const std = @import("std");
-const util = @import("util");
-const json = std.json;
-const string = util.string;
-
-const Rule = @import("rule.zig").Rule;
 
 const RulesConfig = @import("config/rules_config.zig").RulesConfig;
 

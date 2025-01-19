@@ -1,7 +1,6 @@
 const std = @import("std");
 const test_util = @import("util.zig");
 
-const Semantic = @import("../Semantic.zig");
 const Symbol = @import("../Symbol.zig");
 
 const t = std.testing;
@@ -10,7 +9,6 @@ const panic = std.debug.panic;
 const print = std.debug.print;
 
 const TestCase = std.meta.Tuple(&[_]type{ [:0]const u8, Symbol.Flags });
-const TestFlagsError = error{IdentNotFound};
 
 fn testFlags(cases: []const TestCase) !void {
     for (cases) |case| {

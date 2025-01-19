@@ -3,7 +3,6 @@ const DisableDirectivesParser = @import("./Parser.zig");
 const DisableDirectiveComment = @import("./Comment.zig");
 const Span = @import("../../span.zig").Span;
 
-const Tuple = std.meta.Tuple;
 const t = std.testing;
 const print = std.debug.print;
 
