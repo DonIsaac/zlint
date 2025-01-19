@@ -8,11 +8,7 @@
 //! zig build run -- --print-ast | prettier --stdin-filepath foo.ast.json > tmp/foo.ast.json
 //! ```
 const std = @import("std");
-const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
-const Ast = std.zig.Ast;
-const Node = Ast.Node;
-const NodeId = Ast.Node.Index;
 
 const Options = @import("../cli/Options.zig");
 const Source = @import("../source.zig").Source;
@@ -21,11 +17,6 @@ const semantic = @import("../semantic.zig");
 const Printer = @import("../printer/Printer.zig");
 const AstPrinter = @import("../printer/AstPrinter.zig");
 const SemanticPrinter = @import("../printer/SemanticPrinter.zig");
-
-const assert = std.debug.assert;
-const IS_DEBUG = builtin.mode == .Debug;
-
-const NULL_NODE_ID: NodeId = 0;
 
 pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source) !void {
     var builder = semantic.SemanticBuilder.init(alloc);

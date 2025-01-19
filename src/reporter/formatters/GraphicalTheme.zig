@@ -241,4 +241,3 @@ pub const ThemeCharacters = struct {
 const GraphicalTheme = @This();
 
 pub const Chameleon = @import("chameleon").ComptimeChameleon;
-const std = @import("std");

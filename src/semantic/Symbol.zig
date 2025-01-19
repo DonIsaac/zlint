@@ -359,7 +359,6 @@ const util = @import("util");
 const ast = @import("ast.zig");
 
 const Allocator = std.mem.Allocator;
-const Type = std.builtin.Type;
 const NominalId = util.NominalId;
 
 const Node = ast.Node;

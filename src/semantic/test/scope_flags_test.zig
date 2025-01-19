@@ -2,7 +2,6 @@ const std = @import("std");
 const semantic = @import("../../semantic.zig");
 
 const t = std.testing;
-const panic = std.debug.panic;
 const print = std.debug.print;
 const build = @import("./util.zig").build;
 const Tuple = std.meta.Tuple;

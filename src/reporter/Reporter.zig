@@ -211,7 +211,6 @@ const Stats = struct {
 const std = @import("std");
 const util = @import("util");
 const Error = @import("../Error.zig");
-const Span = @import("../span.zig").Span;
 const Allocator = std.mem.Allocator;
 const formatters = @import("./formatter.zig");
 const FormatError = formatters.FormatError;

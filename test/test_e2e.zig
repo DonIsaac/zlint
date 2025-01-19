@@ -1,6 +1,3 @@
-const std = @import("std");
-const utils = @import("utils.zig");
-
 const test_runner = @import("harness/runner.zig");
 const TestRunner = test_runner.TestRunner;
 

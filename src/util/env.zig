@@ -1,9 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const process = std.process;
 const unicode = std.unicode;
 const posix = std.posix;
-const assert = std.debug.assert;
 
 const native_os = builtin.os.tag;
 

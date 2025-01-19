@@ -2,7 +2,6 @@ const std = @import("std");
 const fs = std.fs;
 const path = std.fs.path;
 const json = std.json;
-const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Dir = std.fs.Dir;
 const lint = @import("../linter.zig");
@@ -133,13 +132,13 @@ test resolveLintConfig {
     const fixtures_dir = try cwd.realpathAlloc(t.allocator, "test/fixtures/config");
     defer t.allocator.free(fixtures_dir);
 
-    var arena = std.heap.ArenaAllocator.init(t.allocator);
+    var arena = ArenaAllocator.init(t.allocator);
     defer arena.deinit();
 
     const config = try resolveLintConfig(&arena, try cwd.openDir(fixtures_dir, .{}), "zlint.json");
     try t.expect(config.path != null);
 
-    const expected_path = try std.fs.path.resolve(t.allocator, &.{"zlint/test/fixtures/config/zlint.json"});
+    const expected_path = try path.resolve(t.allocator, &.{"zlint/test/fixtures/config/zlint.json"});
     defer t.allocator.free(expected_path);
 
     try t.expectStringEndsWith(config.path.?, expected_path);

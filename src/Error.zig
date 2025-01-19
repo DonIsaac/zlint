@@ -183,7 +183,6 @@ const std = @import("std");
 const json = std.json;
 const ptrs = @import("smart-pointers");
 const util = @import("util");
-const _src = @import("source.zig");
 const _span = @import("span.zig");
 
 const Allocator = std.mem.Allocator;
@@ -191,7 +190,6 @@ const Arc = ptrs.Arc;
 const string = util.string;
 const Cow = util.Cow;
 
-const Source = _src.Source;
 const Span = _span.Span;
 const LabeledSpan = _span.LabeledSpan;
 

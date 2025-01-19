@@ -7,16 +7,11 @@ const std = @import("std");
 const zlint = @import("zlint");
 const fs = std.fs;
 const log = std.log;
-const math = std.math;
 const mem = std.mem;
-const meta = std.meta;
 const path = fs.path;
 const panic = std.debug.panic;
-const assert = std.debug.assert;
 
 const Allocator = mem.Allocator;
-const Ast = std.zig.Ast;
-const Node = Ast.Node;
 
 const Rule = zlint.lint.Rule;
 

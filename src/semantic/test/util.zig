@@ -1,5 +1,4 @@
 const std = @import("std");
-const mem = std.mem;
 
 const _source = @import("../../source.zig");
 const SemanticBuilder = @import("../SemanticBuilder.zig");
@@ -9,12 +8,7 @@ const report = @import("../../reporter.zig");
 const printer = @import("../../root.zig").printer;
 
 const t = std.testing;
-const panic = std.debug.panic;
 const print = std.debug.print;
-
-const AnalysisError = error{
-    AnalysisFailed,
-};
 
 pub fn build(src: [:0]const u8) !Semantic {
     var r = try report.Reporter.graphical(

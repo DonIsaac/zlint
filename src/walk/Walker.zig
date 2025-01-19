@@ -1,5 +1,3 @@
-const VisitFn = fn (entry: Entry) ?WalkState;
-
 pub fn Walker(comptime Visitor: type) type {
     comptime {
         const info = @typeInfo(Visitor);

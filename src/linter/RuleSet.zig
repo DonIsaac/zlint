@@ -36,6 +36,3 @@ const Rule = @import("rule.zig").Rule;
 const RulesConfig = @import("config/rules_config.zig").RulesConfig;
 const rules = @import("rules.zig");
 const Severity = @import("../Error.zig").Severity;
-
-const meta = std.meta;
-const Type = std.builtin.Type;

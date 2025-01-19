@@ -221,6 +221,7 @@ pub fn commentsBefore(self: *Context, token: Ast.TokenIndex) ?[]const u8 {
 
 pub fn deinit(self: *Context) void {
     self.errors.deinit();
+    // SAFETY: todo: allow undefined in deinit()
     self.* = undefined;
 }
 

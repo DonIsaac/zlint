@@ -1,19 +1,11 @@
 const std = @import("std");
-const builtin = @import("builtin");
-const lint = @import("linter.zig");
 const util = @import("util");
 const Source = @import("source.zig").Source;
-const semantic = @import("semantic.zig");
 const config = @import("config");
 const Error = @import("./Error.zig");
 
 const fs = std.fs;
-const path = std.path;
-const assert = std.debug.assert;
 const print = std.debug.print;
-
-const Ast = std.zig.Ast;
-const Linter = lint.Linter;
 
 const Options = @import("./cli/Options.zig");
 const print_cmd = @import("cli/print_command.zig");

@@ -9,7 +9,6 @@ const Child = process.Child;
 const EnvMap = process.EnvMap;
 
 const print = std.debug.print;
-const assert = std.debug.assert;
 
 pub const string = []const u8;
 

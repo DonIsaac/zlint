@@ -177,8 +177,6 @@ pub fn pIndent(self: *Printer) !void {
 
 const Printer = @This();
 
-const Options = @import("../cli/Options.zig");
-
 const std = @import("std");
 const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;

@@ -1,6 +1,5 @@
 const std = @import("std");
 const util = @import("util");
-const _ast = @import("./ast.zig");
 const span = @import("../span.zig");
 
 const Allocator = std.mem.Allocator;
