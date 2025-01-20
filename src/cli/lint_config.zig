@@ -155,7 +155,6 @@ const customRuleMessages = std.StaticStringMap([]const u8).initComptime([_]struc
     .{ "\"no-undefined\"", "`no-undefined` has been renamed to `unsafe-undefined`." },
 });
 
-
 const t = std.testing;
 test ParentIterator {
     if (util.IS_WINDOWS) {
