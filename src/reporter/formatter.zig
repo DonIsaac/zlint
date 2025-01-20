@@ -31,5 +31,5 @@ pub const Kind = enum {
 pub const FormatError = Writer.Error || Allocator.Error;
 
 const std = @import("std");
-const Writer = std.fs.File.Writer;
+const Writer = std.io.AnyWriter;
 const Allocator = std.mem.Allocator;

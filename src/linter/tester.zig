@@ -18,7 +18,7 @@ const RuleTester = @This();
 
 const SNAPSHOT_DIR = "src/linter/rules/snapshots";
 
-const SnapshotError = fs.Dir.OpenError || fs.Dir.MakeError || fs.Dir.StatFileError || Allocator.Error || fs.File.WriteError;
+const SnapshotError = fs.Dir.OpenError || fs.Dir.MakeError || fs.Dir.StatFileError || Allocator.Error || std.io.AnyWriter.Error;
 
 const TestError = error{
     /// Expected no violations, but violations were found.
@@ -84,7 +84,7 @@ pub fn withFail(self: *RuleTester, comptime fail: []const [:0]const u8) *RuleTes
 pub fn run(self: *RuleTester) !void {
     self.runImpl() catch |e| {
         const msg = self.diagnostic.message.borrow();
-        var stderr = std.io.getStdErr().writer();
+        var stderr = std.io.getStdErr().writer().any();
         try stderr.writeAll(msg);
         try stderr.writeByte('\n');
 
@@ -201,7 +201,7 @@ fn saveSnapshot(self: *RuleTester) SnapshotError!void {
     };
     defer snapshot_file.close();
 
-    var w = snapshot_file.writer();
+    var w = snapshot_file.writer().any();
     for (self.errors.items) |err| {
         try self.fmt.format(&w, err);
         try w.writeByte('\n');

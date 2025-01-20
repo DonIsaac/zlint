@@ -55,6 +55,7 @@ const ParentIterError = error{
 } || Dir.RealPathError;
 fn ParentIterator(comptime N: usize) type {
     return struct {
+        // SAFETY: initialized during .init()
         buf: [N]u8 = undefined,
         filename: []const u8,
         last_slash: isize,

@@ -114,5 +114,3 @@ pub const ScopeTree = Scope.ScopeTree;
 pub const Symbol = @import("Symbol.zig");
 pub const SymbolTable = Symbol.SymbolTable;
 pub const Reference = @import("Reference.zig");
-
-const util = @import("util");

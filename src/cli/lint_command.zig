@@ -28,7 +28,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
     var arena = std.heap.ArenaAllocator.init(alloc);
     defer arena.deinit();
 
-    var reporter = try reporters.Reporter.initKind(options.format, stdout, alloc);
+    var reporter = try reporters.Reporter.initKind(options.format, stdout.any(), alloc);
     defer reporter.deinit();
     reporter.opts.quiet = options.quiet;
     reporter.opts.report_stats = reporter.opts.report_stats and options.summary;
