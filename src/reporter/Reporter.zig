@@ -7,7 +7,7 @@ pub const Reporter = struct {
     opts: Options = .{},
     stats: Stats = .{},
 
-    writer: io.BufferedWriter(1024, Writer),
+    writer: io.BufferedWriter(4096, Writer),
     writer_lock: Mutex = .{},
 
     alloc: Allocator,
