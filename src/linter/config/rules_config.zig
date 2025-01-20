@@ -35,13 +35,16 @@ pub const RulesConfig = struct {
                 else => return ParseError.UnexpectedToken,
             };
 
+            var found = false;
             inline for (meta.fields(RulesConfig)) |field| {
                 const RuleConfigImpl = @TypeOf(@field(config, field.name));
                 if (mem.eql(u8, key, RuleConfigImpl.name)) {
                     @field(config, field.name) = try RuleConfigImpl.jsonParse(allocator, source, options);
+                    found = true;
                     break;
                 }
             }
+            if (!found) return error.UnknownField;
         }
 
         // eat '}'
@@ -100,4 +103,16 @@ test "RulesConfig.jsonParse" {
             .homeless_try = .{ .severity = Severity.err },
         },
     );
+    {
+        var scanner = json.Scanner.initCompleteInput(t.allocator,
+            \\{ "no-undefined": "allow" }
+        );
+        defer scanner.deinit();
+        try t.expectError(error.UnknownField, json.parseFromTokenSource(
+            RulesConfig,
+            t.allocator,
+            &scanner,
+            .{},
+        ));
+    }
 }
