@@ -28,11 +28,18 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
     var arena = std.heap.ArenaAllocator.init(alloc);
     defer arena.deinit();
 
-    const config = try lint_config.resolveLintConfig(&arena, fs.cwd(), "zlint.json");
-
     var reporter = try reporters.Reporter.initKind(options.format, stdout, alloc);
     defer reporter.deinit();
     reporter.opts = .{ .quiet = options.quiet };
+
+    const config = resolve_config: {
+        var errors: [1]Error = undefined;
+        const c = lint_config.resolveLintConfig(&arena, fs.cwd(), "zlint.json", alloc, &errors[0]) catch {
+            reporter.reportErrorSlice(alloc, errors[0..1]);
+            return 1;
+        };
+        break :resolve_config c;
+    };
 
     const start = std.time.milliTimestamp();
 

@@ -17,13 +17,14 @@ pub const NEWLINE = if (IS_WINDOWS) "\r\n" else "\n";
 pub const DebugOnly = @import("./util/debug_only.zig").DebugOnly;
 pub const debugOnly = @import("./util/debug_only.zig").debugOnly;
 
-const WHITESPACE = [4]u8{ ' ', '\t', '\n', '\r' };
 pub fn trimWhitespace(s: string) string {
-    return std.mem.trim(u8, s, &WHITESPACE);
+    return std.mem.trim(u8, s, &std.ascii.whitespace);
 }
-
 pub fn trimWhitespaceRight(s: string) string {
-    return std.mem.trimRight(u8, s, &WHITESPACE);
+    return std.mem.trimRight(u8, s, &std.ascii.whitespace);
+}
+pub fn isWhitespace(c: u8) bool {
+    return std.mem.indexOfScalar(u8, &std.ascii.whitespace, c) != null;
 }
 
 /// Assert that `condition` is true, panicking if it is not.

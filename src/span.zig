@@ -90,6 +90,7 @@ pub const Span = struct {
     }
 
     /// Translate a span towards the end of the file by `offset` characters.
+    /// Opposite of `shiftLeft`.
     ///
     /// ## Example
     /// ```zig
@@ -99,6 +100,19 @@ pub const Span = struct {
     /// ```
     pub fn shiftRight(self: Span, offset: u32) Span {
         return .{ .start = self.start + offset, .end = self.end + offset };
+    }
+
+    /// Translate a span towards the start of the file by `offset` characters.
+    /// Opposite of `shiftRight`.
+    ///
+    /// ## Example
+    /// ```zig
+    /// const span = Span.new(5, 7);
+    /// const moved = span.shiftLeft(5);
+    /// try std.testing.expectEqual(Span.new(0, 2), moved);
+    /// ```
+    pub fn shiftLeft(self: Span, offset: u32) Span {
+        return .{ .start = self.start - offset, .end = self.end - offset };
     }
 
     pub inline fn contains(self: Span, point: u32) bool {
@@ -114,6 +128,13 @@ test "Span.shiftRight" {
     const span = Span.new(5, 7);
     const moved = span.shiftRight(5);
     try t.expectEqual(Span.new(10, 12), moved);
+    try t.expectEqual(Span.new(5, 7), span); // original span is not mutated
+}
+
+test "Span.shiftLeft" {
+    const span = Span.new(5, 7);
+    const moved = span.shiftLeft(5);
+    try t.expectEqual(Span.new(0, 2), moved);
     try t.expectEqual(Span.new(5, 7), span); // original span is not mutated
 }
 

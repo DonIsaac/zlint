@@ -1,32 +1,47 @@
 const std = @import("std");
+const util = @import("util");
 const fs = std.fs;
 const path = std.fs.path;
 const json = std.json;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Dir = std.fs.Dir;
 const lint = @import("../linter.zig");
+const Cow = util.Cow(false);
+const Error = @import("../Error.zig");
+const Span = @import("../span.zig").Span;
 
 pub fn resolveLintConfig(
     arena: *std.heap.ArenaAllocator,
     cwd: Dir,
     config_filename: [:0]const u8,
+    err_alloc: std.mem.Allocator,
+    err: *Error,
 ) !lint.Config.Managed {
     const arena_alloc = arena.allocator();
 
     var it = try ParentIterator(4096).fromDir(cwd, config_filename);
     while (it.next()) |maybe_path_to_config| {
-        const file = fs.openFileAbsolute(maybe_path_to_config, .{ .mode = .read_only }) catch |err| {
-            switch (err) {
+        const file = fs.openFileAbsolute(maybe_path_to_config, .{ .mode = .read_only }) catch |e| {
+            switch (e) {
                 error.FileNotFound => continue,
-                else => return err,
+                else => return e,
             }
         };
         defer file.close();
         const source = try file.readToEndAlloc(arena_alloc, std.math.maxInt(u32));
         errdefer arena_alloc.free(source);
+
+        var diagnostics: json.Diagnostics = .{};
         var scanner = json.Scanner.initCompleteInput(arena_alloc, source);
         defer scanner.deinit();
-        const config = try json.parseFromTokenSourceLeaky(lint.Config, arena_alloc, &scanner, .{});
+        scanner.enableDiagnostics(&diagnostics);
+        // FIXME: i hate all these allocations, but they're needed b/c of how
+        // errors work. That needs refactoring.
+        const config = json.parseFromTokenSourceLeaky(lint.Config, arena_alloc, &scanner, .{}) catch |e| {
+            err.* = getReportForParseError(err_alloc, e, source, &diagnostics);
+            err.source_name = err_alloc.dupe(u8, maybe_path_to_config) catch @panic(err.message.borrow());
+            return e;
+        };
         var managed = config.intoManaged(arena, null);
         managed.path = try managed.arena.allocator().dupe(u8, maybe_path_to_config);
         return managed;
@@ -106,6 +121,41 @@ fn ParentIterator(comptime N: usize) type {
     };
 }
 
+fn getReportForParseError(
+    alloc: std.mem.Allocator,
+    e: json.ParseError(json.Scanner),
+    source: []const u8,
+    diagnostics: *const json.Diagnostics,
+) Error {
+    const offset: u32 = @truncate(diagnostics.getByteOffset());
+    var span = Span.sized(offset -| 1, 1);
+
+    const message = switch (e) {
+        error.UnknownField => blk: {
+            if (std.mem.lastIndexOfAny(u8, source[0..offset], &std.ascii.whitespace)) |start| {
+                span.start = @intCast(start + 1);
+            }
+            const field = source[span.start..span.end];
+            break :blk customRuleMessages.get(field) orelse "Unknown field";
+        },
+        error.UnexpectedToken => "Unexpected Token",
+        else => |err| @errorName(err),
+    };
+    var err = Error{
+        .message = Cow.borrowed(message),
+        .code = "invalid-config",
+    };
+
+    const own_source = alloc.dupeZ(u8, source) catch @panic(message);
+    err.source = Error.ArcStr.init(alloc, own_source) catch @panic(message);
+    err.labels.append(alloc, .{ .span = span }) catch @panic(message);
+    return err;
+}
+const customRuleMessages = std.StaticStringMap([]const u8).initComptime([_]struct { []const u8, []const u8 }{
+    .{ "\"no-undefined\"", "`no-undefined` has been renamed to `unsafe-undefined`." },
+});
+
+
 const t = std.testing;
 test ParentIterator {
     if (util.IS_WINDOWS) {
@@ -125,7 +175,6 @@ test ParentIterator {
     }
 }
 
-const util = @import("util");
 test resolveLintConfig {
     const cwd = fs.cwd();
 
@@ -135,7 +184,14 @@ test resolveLintConfig {
     var arena = ArenaAllocator.init(t.allocator);
     defer arena.deinit();
 
-    const config = try resolveLintConfig(&arena, try cwd.openDir(fixtures_dir, .{}), "zlint.json");
+    var err: Error = undefined;
+    const config = try resolveLintConfig(
+        &arena,
+        try cwd.openDir(fixtures_dir, .{}),
+        "zlint.json",
+        t.allocator,
+        &err,
+    );
     try t.expect(config.path != null);
 
     const expected_path = try path.resolve(t.allocator, &.{"zlint/test/fixtures/config/zlint.json"});
@@ -144,33 +200,3 @@ test resolveLintConfig {
     try t.expectStringEndsWith(config.path.?, expected_path);
     try t.expectEqual(.warning, config.config.rules.unsafe_undefined.severity);
 }
-
-// fn iterParents(comptime N: usize, buf: [N]u8, path: []const u8, filename: []const u8) {
-
-//     var buf = buffer;
-//     const curr_path = try cwd.realpath(".", buf[0..]);
-//     std.debug.assert(buf[0] == '/');
-//     if (buf.len - curr_path.len < 2 + config_filename.len) return Dir.RealPathError.NameTooLong;
-//     // "/foo/bar" slice => "/foo/bar/" sentinel
-//     buf[curr_path.len] = '/';
-//     buf[curr_path.len + 1] = 0;
-
-//     // FIXME: this is likely buggy as hell.
-//     var last_slash = curr_path.len;
-//     while (last_slash > 0) : ({
-//         last_slash = std.mem.lastIndexOf(u8, buf[0..last_slash], "/") orelse return null;
-//     }) {
-//         @memcpy(buf[last_slash + 1 ..][0..config_filename.len], config_filename);
-//         // "/foo/bar/zlint.json"
-//         const slice: [*:0]const u8 = @ptrCast(buf[0 .. last_slash + 1 + config_filename.len]);
-//         const file = fs.openFileAbsoluteZ(slice, .{ .mode = .read_only }) catch |err| {
-//             switch (err) {
-//                 error.FileNotFound => continue,
-//                 else => return err,
-//             }
-//         };
-//         return file;
-//     }
-
-//     return null;
-// }

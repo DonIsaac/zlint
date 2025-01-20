@@ -75,6 +75,11 @@ pub fn Cow(comptime sentinel: bool) type {
             };
         }
 
+        /// Create a `Cow` that borrows its data.
+        pub fn borrowed(str: Slice) Self {
+            return .{ .borrowed = true, .str = str };
+        }
+
         /// Create an owned `Cow` by printing a format string.
         pub fn fmt(allocator: Allocator, comptime format_str: []const u8, args: anytype) Allocator.Error!Self {
             const print = if (sentinel) std.fmt.allocPrintZ else std.fmt.allocPrint;

@@ -21,7 +21,7 @@ help: ?Cow(false) = null,
 // Although this is not [:0]const u8, it should not be mutated. Needs to be mut
 // to indicate to Arc it's owned by the Error. Otherwise, arc.deinit() won't
 // free the slice.
-const ArcStr = Arc([:0]u8);
+pub const ArcStr = Arc([:0]u8);
 
 pub fn new(message: []u8, allocator: Allocator) Error {
     return Error{ .message = Cow(false).owned(message, allocator) };
