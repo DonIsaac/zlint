@@ -1,5 +1,3 @@
-const Chameleon = @import("chameleon");
-
 pub const Options = struct {
     quiet: bool = false,
     report_stats: bool = true,
@@ -9,7 +7,7 @@ pub const Reporter = struct {
     opts: Options = .{},
     stats: Stats = .{},
 
-    writer: Writer,
+    writer: io.BufferedWriter(4096, Writer),
     writer_lock: Mutex = .{},
 
     alloc: Allocator,
@@ -87,7 +85,7 @@ pub const Reporter = struct {
         };
 
         return .{
-            .writer = writer,
+            .writer = .{ .unbuffered_writer = writer },
             .opts = .{
                 .report_stats = meta.report_statistics,
             },
@@ -116,8 +114,9 @@ pub const Reporter = struct {
             var e = err;
             defer e.deinit(alloc);
             if (self.opts.quiet and err.severity != .err) continue;
-            self.vtable.format(self.ptr, &self.writer, err) catch @panic("Failed to write error.");
-            self.writer.writeByte('\n') catch @panic("failed to write newline.");
+            var w = self.writer.writer().any();
+            self.vtable.format(self.ptr, &w, err) catch @panic("Failed to write error.");
+            w.writeByte('\n') catch @panic("failed to write newline.");
         }
     }
 
@@ -134,7 +133,8 @@ pub const Reporter = struct {
         const errors = self.stats.numErrorsSync();
         const warnings = self.stats.numWarningsSync();
         const files = self.stats.numFilesSync();
-        self.writer.print(
+        var w = self.writer.writer().any();
+        w.print(
             "\tFound " ++ yd ++ " errors and " ++ yd ++ " warnings across " ++ yd ++ " files in " ++ yellow.open ++ "{d}ms" ++ yellow.close ++ ".\n",
             .{ errors, warnings, files, duration },
         ) catch {};
@@ -145,6 +145,7 @@ pub const Reporter = struct {
     /// 1. The formatter has a `deinit()` method
     /// 2. This reporter owns the formatter.
     pub fn deinit(self: *Reporter) void {
+        self.writer.flush() catch {};
         self.vtable.deinit(self.ptr, self.alloc);
         self.vtable.destroy(self.ptr, self.alloc);
 
@@ -153,6 +154,7 @@ pub const Reporter = struct {
             self.vtable.deinit = &PanicForamtter.deinit;
         }
     }
+    const BufferedWriter = io.BufferedWriter(1024, Writer);
 };
 
 /// Formatter that always panics. Used to check for use-after-free bugs.
@@ -211,15 +213,17 @@ const Stats = struct {
 };
 
 const std = @import("std");
+const io = std.io;
 const util = @import("util");
 const Error = @import("../Error.zig");
 const Allocator = std.mem.Allocator;
 const formatters = @import("./formatter.zig");
 const FormatError = formatters.FormatError;
+const Chameleon = @import("chameleon");
 
 const AtomicUsize = std.atomic.Value(usize);
 const Mutex = std.Thread.Mutex;
-const Writer = std.fs.File.Writer; // TODO: use std.io.Writer?
+const Writer = std.io.AnyWriter;
 
 test {
     std.testing.refAllDecls(@This());

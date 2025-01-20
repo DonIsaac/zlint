@@ -475,7 +475,7 @@ const std = @import("std");
 const util = @import("util");
 
 const assert = std.debug.assert;
-const Writer = std.fs.File.Writer; // TODO: use std.io.Writer?
+const Writer = std.io.AnyWriter; // TODO: use std.io.Writer?
 
 const GraphicalTheme = @import("GraphicalTheme.zig");
 const Styles = GraphicalTheme.ThemeStyles;

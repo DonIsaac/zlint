@@ -9,11 +9,11 @@ const zlint = @import("zlint");
 const Source = zlint.Source;
 
 const utils = @import("../utils.zig");
-const string = utils.string;
 const Repo = utils.Repo;
 
 const REPOS_DIR = "zig-out/repos";
 
+// SAFETY: globalSetup is always run before this is read
 var repos: std.json.Parsed([]Repo) = undefined;
 
 const SemanticError = zlint.semantic.SemanticBuilder.SemanticError;

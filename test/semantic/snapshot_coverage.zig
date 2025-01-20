@@ -102,7 +102,7 @@ fn runFail(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     defer snapshot.close();
 
     const formatter = zlint.report.formatter.Graphical.unicode(alloc, false);
-    var reporter = try zlint.report.Reporter.init(@TypeOf(formatter), formatter, snapshot.writer(), alloc);
+    var reporter = try zlint.report.Reporter.init(@TypeOf(formatter), formatter, snapshot.writer().any(), alloc);
     defer reporter.deinit();
 
     // run analysis

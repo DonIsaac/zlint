@@ -12,7 +12,7 @@ const print = std.debug.print;
 
 pub fn build(src: [:0]const u8) !Semantic {
     var r = try report.Reporter.graphical(
-        std.io.getStdErr().writer(),
+        std.io.getStdErr().writer().any(),
         t.allocator,
         report.formatter.Graphical.Theme.unicodeNoColor(),
     );
