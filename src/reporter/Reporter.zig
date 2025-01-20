@@ -2,12 +2,12 @@ const Chameleon = @import("chameleon");
 
 pub const Options = struct {
     quiet: bool = false,
+    report_stats: bool = true,
 };
 
 pub const Reporter = struct {
     opts: Options = .{},
     stats: Stats = .{},
-    report_stats: bool,
 
     writer: Writer,
     writer_lock: Mutex = .{},
@@ -88,7 +88,9 @@ pub const Reporter = struct {
 
         return .{
             .writer = writer,
-            .report_stats = meta.report_statistics,
+            .opts = .{
+                .report_stats = meta.report_statistics,
+            },
             .alloc = allocator,
             .ptr = @ptrCast(fmt),
             .vtable = .{
@@ -120,7 +122,7 @@ pub const Reporter = struct {
     }
 
     pub fn printStats(self: *Reporter, duration: i64) void {
-        if (!self.report_stats) return;
+        if (!self.opts.report_stats) return;
         const yellow, const yd = comptime blk: {
             var c = Chameleon.initComptime();
             const yellow = c.yellow().createPreset();

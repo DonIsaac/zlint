@@ -15,6 +15,8 @@ quiet: bool = false,
 print_ast: bool = false,
 /// How diagnostics are formatted.
 format: formatter.Kind = .graphical,
+/// Print a summary about # of warnings and errors. Only applies for some formats.
+summary: bool = true,
 /// Instead of walking directories in cwd, read names of files to lint from stdin.
 /// If relative, paths are resolved from the cwd.
 stdin: bool = false,
@@ -29,6 +31,7 @@ pub const usage =
 const help =
     \\--print-ast <file>  Parse a file and print its AST as JSON
     \\-f, --format <fmt>  Choose an output format (default, graphical, github, gh)
+    \\--no-summary        Do not print a summary after linting
     \\-S, --stdin         Lint filepaths received from stdin (newline separated)
     \\--fix               Apply automatic fixes where possible
     \\--deny-warnings     Warnings produce a non-zero exit code
@@ -88,6 +91,8 @@ fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options 
                 }
                 return error.InvalidArgValue;
             };
+        } else if (eq(arg, "--no-summary")) {
+            opts.summary = false;
         } else if (eq(arg, "--print-ast")) {
             opts.print_ast = true;
         } else if (eq(arg, "-h") or eq(arg, "--help") or eq(arg, "--hlep") or eq(arg, "-help")) {
@@ -147,6 +152,7 @@ test parse {
         .{ "zlint --", .{} },
         .{ "zlint --print-ast", .{ .print_ast = true } },
         .{ "zlint --fix", .{ .fix = true } },
+        .{ "zlint --no-summary", .{ .summary = false } },
         .{ "zlint --verbose", .{ .verbose = true } },
         .{ "zlint -V", .{ .verbose = true } },
         .{ "zlint --verbose --print-ast", .{ .verbose = true, .print_ast = true } },

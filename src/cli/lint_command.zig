@@ -30,7 +30,8 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
 
     var reporter = try reporters.Reporter.initKind(options.format, stdout, alloc);
     defer reporter.deinit();
-    reporter.opts = .{ .quiet = options.quiet };
+    reporter.opts.quiet = options.quiet;
+    reporter.opts.report_stats = reporter.opts.report_stats and options.summary;
 
     const config = resolve_config: {
         var errors: [1]Error = undefined;
