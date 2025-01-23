@@ -5,6 +5,7 @@
 
 const std = @import("std");
 const zlint = @import("zlint");
+const gen = @import("./gen_utils.zig");
 const fs = std.fs;
 const log = std.log;
 const mem = std.mem;
@@ -15,10 +16,7 @@ const Allocator = mem.Allocator;
 
 const Rule = zlint.lint.Rule;
 
-const RULES_DIR = "src/linter/rules";
 const OUT_DIR = "docs/rules";
-/// Zig assumes files are less than 2^32 (~4GB) in size.
-const MAX = std.math.maxInt(u32);
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -34,30 +32,11 @@ pub fn main() !void {
         return err;
     };
 
-    const rules = comptime blk: {
-        const rule_decls: []const std.builtin.Type.Declaration = @typeInfo(zlint.lint.rules).Struct.decls;
-        var rule_infos: [rule_decls.len]RuleInfo = undefined;
-        var i = 0;
-        for (rule_decls) |rule_decl| {
-            const rule = @field(zlint.lint.rules, rule_decl.name);
-            const rule_meta: Rule.Meta = rule.meta;
-            var snake_case_name: [rule_meta.name.len]u8 = undefined;
-            @memcpy(&snake_case_name, rule_meta.name);
-            mem.replaceScalar(u8, &snake_case_name, '-', '_');
-            rule_infos[i] = RuleInfo{
-                .meta = rule_meta,
-                .path = RULES_DIR ++ "/" ++ snake_case_name ++ ".zig",
-            };
-            i += 1;
-        }
-        break :blk rule_infos;
-    };
-
     try root.makePath(OUT_DIR);
 
-    for (rules) |rule| {
+    for (gen.RuleInfo.all_rules) |rule| {
         log.info("Rule: {s}", .{rule.meta.name});
-        const source: [:0]u8 = try root.readFileAllocOptions(alloc, rule.path, MAX, null, @alignOf(u8), 0);
+        const source: [:0]u8 = try root.readFileAllocOptions(alloc, rule.path, gen.MAX, null, @alignOf(u8), 0);
         defer alloc.free(source);
 
         const rule_docs = docs: {
@@ -83,7 +62,7 @@ pub fn main() !void {
     log.info("Done.", .{});
 }
 
-fn generateDocFile(alloc: Allocator, rule: RuleInfo, docs: []const u8) !void {
+fn generateDocFile(alloc: Allocator, rule: gen.RuleInfo, docs: []const u8) !void {
     const outfile: fs.File = b: {
         const name = try mem.concat(alloc, u8, &[_][]const u8{ rule.meta.name, ".md" });
         defer alloc.free(name);
@@ -96,7 +75,7 @@ fn generateDocFile(alloc: Allocator, rule: RuleInfo, docs: []const u8) !void {
     try renderDocs(outfile.writer(), rule, docs);
 }
 
-fn renderDocs(writer: fs.File.Writer, rule: RuleInfo, docs: []const u8) !void {
+fn renderDocs(writer: fs.File.Writer, rule: gen.RuleInfo, docs: []const u8) !void {
     try writer.print("# `{s}`\n\n", .{rule.meta.name});
     const enabled_message = switch (rule.meta.default) {
         .off => "No",
@@ -127,8 +106,3 @@ fn renderDocs(writer: fs.File.Writer, rule: RuleInfo, docs: []const u8) !void {
         try writer.print("{s}\n", .{clean});
     }
 }
-
-const RuleInfo = struct {
-    meta: Rule.Meta,
-    path: []const u8,
-};

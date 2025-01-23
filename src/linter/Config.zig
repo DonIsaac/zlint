@@ -51,7 +51,71 @@ const std = @import("std");
 
 const RulesConfig = @import("config/rules_config.zig").RulesConfig;
 
+// =============================================================================
+
 test {
     std.testing.refAllDecls(@This());
     std.testing.refAllDecls(RulesConfig);
+}
+
+const t = std.testing;
+const print = std.debug.print;
+const json = std.json;
+const Severity = @import("../Error.zig").Severity;
+
+fn testConfig(source: []const u8, expected: RulesConfig) !void {
+    var scanner = json.Scanner.initCompleteInput(t.allocator, source);
+    defer scanner.deinit();
+    var diagnostics = json.Diagnostics{};
+
+    scanner.enableDiagnostics(&diagnostics);
+    const actual = json.parseFromTokenSource(RulesConfig, t.allocator, &scanner, .{}) catch |err| {
+        print("[{d}:{d}] {s}\n", .{ diagnostics.getLine(), diagnostics.getColumn(), source[diagnostics.line_start_cursor..diagnostics.cursor_pointer.*] });
+        return err;
+    };
+    defer actual.deinit();
+    const info = @typeInfo(RulesConfig);
+    inline for (info.Struct.fields) |field| {
+        const expected_rule_config = @field(expected, field.name);
+        const actual_rule_config = @field(actual.value, field.name);
+        // TODO: Test that configs are the same, once rule configuration is implemented.
+        t.expectEqual(expected_rule_config.severity, actual_rule_config.severity) catch |err| {
+            print("Mismatched severity for rule '{s}':\n", .{field.name});
+            print("Expected:\n\n\t{any}\n\n", .{expected});
+            print("Actual:\n\n\t{any}\n", .{actual});
+            return err;
+        };
+    }
+}
+
+test "RulesConfig.jsonParse" {
+    try testConfig("{}", RulesConfig{});
+    try testConfig(
+        \\{ "unsafe-undefined": "error" }
+    ,
+        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err } },
+    );
+    try testConfig(
+        \\{
+        \\  "unsafe-undefined": "allow",
+        \\  "homeless-try": "error"
+        \\}
+    ,
+        RulesConfig{
+            .unsafe_undefined = .{ .severity = Severity.off },
+            .homeless_try = .{ .severity = Severity.err },
+        },
+    );
+    {
+        var scanner = json.Scanner.initCompleteInput(t.allocator,
+            \\{ "no-undefined": "allow" }
+        );
+        defer scanner.deinit();
+        try t.expectError(error.UnknownField, json.parseFromTokenSource(
+            RulesConfig,
+            t.allocator,
+            &scanner,
+            .{},
+        ));
+    }
 }
