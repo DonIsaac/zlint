@@ -29,10 +29,11 @@ install dir="~/.bin":
 # Run CI checks locally. Run this before making a PR.
 ready:
     git diff --name-only --exit-code
-    just fmt
     zig build check
+    just codegen
     zig build
     just docs
+    just fmt
     zig build test
     zig build test-e2e
     git status
@@ -93,6 +94,9 @@ lint:
 
 docs:
     zig build docs
+
+codegen:
+    zig build codegen
 
 # Remove build and test artifacts
 clean:

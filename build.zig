@@ -120,6 +120,10 @@ pub fn build(b: *std.Build) void {
     const docs_rules_step = Tasks.generateRuleDocs(&l);
     docs_step.dependOn(docs_rules_step);
 
+    const codegen = b.step("codegen", "Codegen");
+    const confgen_task = Tasks.generateRulesConfig(&l);
+    codegen.dependOn(confgen_task);
+
     // check is down here because it's weird. We create mocks of each artifacts
     // that never get installed. This (allegedly) skips llvm emit.
     {
@@ -132,15 +136,24 @@ pub fn build(b: *std.Build) void {
         l.link(&check_e2e.root_module, true, .{"recover"});
         // tasks
         const check_docgen = b.addExecutable(.{ .name = "docgen", .root_source_file = b.path("tasks/docgen.zig"), .target = l.target });
+        const check_confgen = b.addExecutable(.{ .name = "confgen", .root_source_file = b.path("tasks/confgen.zig"), .target = l.target });
 
         // these compilation targets depend on zlint as a module
-        const needs_zlint = .{ check_e2e, check_docgen };
+        const needs_zlint = .{ check_e2e, check_docgen, check_confgen };
         inline for (needs_zlint) |exe_to_check| {
             exe_to_check.root_module.addImport("zlint", zlint);
         }
 
         const check = b.step("check", "Check for semantic errors");
-        const substeps = .{ check_exe, check_lib, check_test_lib, check_test_exe, check_e2e, check_docgen };
+        const substeps = .{
+            check_exe,
+            check_lib,
+            check_test_lib,
+            check_test_exe,
+            check_e2e,
+            check_docgen,
+            check_confgen,
+        };
         inline for (substeps) |c| {
             l.link(&c.root_module, false, .{});
             check.dependOn(&c.step);
@@ -166,6 +179,21 @@ const Tasks = struct {
         const docgen = l.b.step("docs:rules", "Generate lint rule documentation");
         docgen.dependOn(&bunx_prettier.step);
         return docgen;
+    }
+
+    fn generateRulesConfig(l: *Linker) *Build.Step {
+        const confgen_exe = l.b.addExecutable(.{
+            .name = "confgen",
+            .root_source_file = l.b.path("tasks/confgen.zig"),
+            .target = l.target,
+            .optimize = l.optimize,
+        });
+        const zlint = l.b.modules.get("zlint") orelse @panic("Missing module: zlint");
+        confgen_exe.root_module.addImport("zlint", zlint);
+        const confgen_run = l.b.addRunArtifact(confgen_exe);
+        const confgen = l.b.step("codegen:rules-config", "Generate RulesConfig");
+        confgen.dependOn(&confgen_run.step);
+        return confgen;
     }
     fn bunx(l: *Linker, comptime cmd: []const u8, comptime args: []const []const u8) *Build.Step.Run {
         const b = l.b;
