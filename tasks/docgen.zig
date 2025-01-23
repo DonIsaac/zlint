@@ -16,7 +16,7 @@ const Allocator = mem.Allocator;
 
 const Rule = zlint.lint.Rule;
 
-const OUT_DIR =  "docs/rules";
+const OUT_DIR = "docs/rules";
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
