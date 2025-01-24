@@ -11,6 +11,8 @@ pub const WalkState = enum { Continue, Skip, Stop };
 /// 2. the node id. Visitors do not need methods for each kind of node; missing
 /// visit methods will simply not be called.
 ///
+///     pub fn visit_fn_decl(this: *Visitor, node: Node.Index) Error!WalkState;
+///
 /// Visit methods control the walk by returning a `WalkState`. This has the
 /// following behavior:
 /// - `Continue`: keep traversing the AST as normal
@@ -24,13 +26,27 @@ pub const WalkState = enum { Continue, Skip, Stop };
 /// and the current node's id.
 pub fn Walker(Visitor: type, Error: type) type {
     const tag_info = @typeInfo(Node.Tag).Enum;
+
     const VisitFn = fn (visitor: *Visitor, node: Node.Index) Error!WalkState;
+    const VisitFullVarDeclFn = fn (visitor: *Visitor, node: Node.Index, var_decl: Ast.full.VarDecl) Error!WalkState;
+
+    const WalkerVTable = struct {
+        // SAFETY: set immediately when iterating over tag infos. Only one
+        // vtable is ever instantiated.
+        tag_table: [tag_info.fields.len]?*const VisitFn = undefined,
+
+        // special cases
+        varDecl: ?*const VisitFullVarDeclFn = null,
+    };
 
     // stores pointers to Visitor's visit methods. Each kind of node (ie each
     // variant of Node.Tag) gets a similarly named visit function. For example,
     // when visiting a `fn_proto` node, a pointer to `visit_fn_proto` gets
     // stored in the vtable at the int index for `fn_proto`.
-    comptime var vtable: [tag_info.fields.len]?*VisitFn = undefined;
+    comptime var vtable: WalkerVTable = .{};
+
+    // comptime var vtable: [tag_info.fields.len]?*const VisitFn = undefined;
+    comptime var has_any_methods = false;
     for (tag_info.fields) |field| {
         const id: usize = field.value;
         // e.g. visit_if_stmt, visit_less_than, visit_greater_than
@@ -40,30 +56,55 @@ pub fn Walker(Visitor: type, Error: type) type {
         // need to implement visitor methods for them. Visiting will simply be
         // skipped, and walking will continue as normal.
         if (!@hasDecl(Visitor, visit_fn_name)) {
-            vtable[id] = null;
+            vtable.tag_table[id] = null;
             continue;
         }
-
+        has_any_methods = true;
         const visit_fn = @field(Visitor, visit_fn_name);
         if (@typeInfo(@TypeOf(visit_fn)) != .Fn) {
             @compileError("Visitor method '" + @typeName(Visitor) ++ "." ++ visit_fn_name ++ "' must be function.");
         }
-        vtable[id] = &visit_fn;
+        vtable.tag_table[id] = &visit_fn;
+    }
+
+    // special cases
+    if (@hasDecl(Visitor, "visitVarDecl")) vtable.varDecl = Visitor.visitVarDecl;
+
+    // It would be confusing for _nothing_ to happen after a walk b/c you misspelled visit_container_field or something
+    if (!has_any_methods and
+        vtable.varDecl == null and
+        !@hasDecl(Visitor, "enterNode") and
+        !@hasDecl(Visitor, "exitNode"))
+    {
+        @compileError("Visitor '" ++ @typeName(Visitor) ++ "' has no visit methods. Is this really a visitor?");
     }
 
     return struct {
+        /// AST being walked.
         ast: *const Ast,
+        // store these to avoid repeated pointer arithmetic. Borrowed from `ast`.
+        // len isn't needed b/c we can get it from there, and lets us save 1 word
+        // per ptr.
+        tags: [*]const Node.Tag,
+        datas: [*]const Node.Data,
+
         visitor: *Visitor,
         stack: std.ArrayListUnmanaged(StackEntry) = .{},
         alloc: Allocator,
-        // visit_vtable: [tag_info.fields.len]?*VisitFn,
 
         const Self = @This();
+        const WalkError = Error || Allocator.Error;
 
         /// Initialize this walker's stack in preparation for a walk. It is
         /// recommended to use an arena for `allocator`.
         pub fn init(allocator: Allocator, ast: *const Ast, visitor: *Visitor) Allocator.Error!Self {
-            var self = Self{ .alloc = allocator, .ast = ast, .visitor = visitor };
+            var self = Self{
+                .ast = ast,
+                .tags = ast.nodes.items(.tag).ptr,
+                .datas = ast.nodes.items(.data).ptr,
+                .alloc = allocator,
+                .visitor = visitor,
+            };
             // var stackfb = std.heap.stackFallback(64, allocator);
             // const stack = stackfb.get();
             const root_decls = ast.rootDecls();
@@ -73,10 +114,6 @@ pub fn Walker(Visitor: type, Error: type) type {
                 @max(ast.nodes.len >> 4, 8 + (2 * root_decls.len)),
             );
 
-            // // push root declarations onto stack in reverse order so that nodes
-            // // are visited in a left-to-right depth first fashion
-            // const root_decls_rev: []StackEntry = try stack.alloc(StackEntry, root_decls.len);
-            // defer stack.free(root_decls_rev);
             for (0..root_decls.len) |i| {
                 const node = root_decls[root_decls.len - i - 1];
                 // entries are popped off end so exit nodes must be pushed first
@@ -95,20 +132,55 @@ pub fn Walker(Visitor: type, Error: type) type {
             if (@hasDecl(Visitor, "exitNode")) return self.visitor.exitNode(node);
         }
 
-        pub fn walk(self: *Self) Error!void {
-            const tags: []const Node.Tag = self.ast.nodes.items(.tag);
-
+        pub fn walk(self: *Self) WalkError!void {
             while (self.stack.popOrNull()) |entry| {
                 if (entry.kind == .exit) {
+                    // std.debug.print("[{}] exit: {s} ({})\n", .{
+                    //     self.stack.items.len,
+                    //     @tagName(self.tags[entry.id]),
+                    //     entry.id,
+                    // });
                     self.exitNode(entry.id);
                     continue;
                 }
                 const node = entry.id;
-                const tag = tags[node];
+                const tag = self.tags[node];
+                // std.debug.print(
+                //     "[{}] enter: {s} ({})\n",
+                //     .{ self.stack.items.len, @tagName(tag), entry.id },
+                // );
 
                 try self.enterNode(node);
 
-                const state = if (vtable[@intFromEnum(tag)]) |visit_fn|
+                simple_state: {
+                    switch (tag) {
+                        .global_var_decl,
+                        .local_var_decl,
+                        .simple_var_decl,
+                        .aligned_var_decl,
+                        => {
+                            const var_decl = self.ast.fullVarDecl(node) orelse unreachable;
+                            const state: WalkState = if (vtable.varDecl) |visitVarDecl|
+                                try visitVarDecl(self.visitor, node, var_decl)
+                            else if (vtable.tag_table[@intFromEnum(tag)]) |visitFn|
+                                try visitFn(self.visitor, node)
+                            else
+                                WalkState.Continue;
+
+                            switch (state) {
+                                .Continue => {
+                                    try self.pushFullNode(Ast.full.VarDecl.Components, var_decl.ast);
+                                },
+                                .Skip => {},
+                                .Stop => return,
+                            }
+                            continue;
+                        },
+                        else => break :simple_state,
+                    }
+                }
+
+                const state: WalkState = if (vtable.tag_table[@intFromEnum(tag)]) |visit_fn|
                     try @call(.auto, visit_fn, .{ self.visitor, node })
                 else
                     WalkState.Continue;
@@ -121,9 +193,29 @@ pub fn Walker(Visitor: type, Error: type) type {
             }
         }
 
+        /// Use comptime fuckery to push a `FullNode.Components` subtree onto
+        /// the stack in reverse order.
+        fn pushFullNode(self: *Self, Components: type, components: Components) Allocator.Error!void {
+            const info = @typeInfo(Components);
+            const fields = info.Struct.fields;
+            try self.stack.ensureUnusedCapacity(self.alloc, 2 * fields.len);
+
+            // NOTE: std.mem.reverseIterator does not work in comptime
+            inline for (0..fields.len) |i| {
+                const idx = fields.len - i - 1;
+                const field = fields[idx].name;
+                if (!std.mem.endsWith(u8, field, "token")) {
+                    const subnode: Node.Index = @field(components, field);
+                    if (subnode != Semantic.NULL_NODE) {
+                        // self.stack.appendAssumeCapacity(subnode);
+                        try self.push(subnode);
+                    }
+                }
+            }
+        }
+
         fn pushChildren(self: *Self, node: Node.Index, tag: Node.Tag) Allocator.Error!void {
-            const datas: []const Node.Data = self.ast.nodes.items(.data);
-            const data = datas[node];
+            const data = self.datas[node];
 
             switch (NodeDataKind.from(tag)) {
                 // lhs/rhs are nodes. either may be omitted
@@ -149,18 +241,18 @@ pub fn Walker(Visitor: type, Error: type) type {
                     const range = self.ast.extraData(data.rhs, Node.SubRange);
                     assert(range.end - range.start > 0);
                     const members = self.ast.extra_data[range.start..range.end];
-                    try self.pushN(members);
+                    try self.pushManyUnconditional(members);
                 },
                 .subrange_node => {
                     try self.push(data.rhs);
                     const range = self.ast.extraData(data.lhs, Node.SubRange);
                     assert(range.end - range.start > 0);
                     const members = self.ast.extra_data[range.start..range.end];
-                    try self.pushN(members);
+                    try self.pushManyUnconditional(members);
                 },
                 .subrange => {
                     const members = self.ast.extra_data[data.lhs..data.rhs];
-                    try self.pushN(members);
+                    try self.pushManyUnconditional(members);
                 },
                 // lhs/rhs both ignored
                 .unset, .token => {},
@@ -168,6 +260,7 @@ pub fn Walker(Visitor: type, Error: type) type {
             }
         }
 
+        /// Push a child node if it isn't null.
         inline fn push(self: *Self, node: Node.Index) Allocator.Error!void {
             @setRuntimeSafety(!util.IS_DEBUG);
 
@@ -181,6 +274,7 @@ pub fn Walker(Visitor: type, Error: type) type {
             try self.stack.append(self.alloc, .{ .id = node, .kind = .exit });
             return self.stack.append(self.alloc, .{ .id = node, .kind = .enter });
         }
+
         /// Push this node, assuming it is non-null
         inline fn pushUnconditional(self: *Self, node: Node.Index) Allocator.Error!void {
             self.assertInRange(node);
@@ -188,7 +282,8 @@ pub fn Walker(Visitor: type, Error: type) type {
             return self.stack.append(self.alloc, .{ .id = node, .kind = .enter });
         }
 
-        inline fn pushN(self: *Self, nodes: []const Node.Index) Allocator.Error!void {
+        /// Push many nodes, assuming none of them are null
+        inline fn pushManyUnconditional(self: *Self, nodes: []const Node.Index) Allocator.Error!void {
             try self.stack.ensureUnusedCapacity(self.alloc, 2 * nodes.len);
             var it = std.mem.reverseIterator(nodes);
             while (it.next()) |node| {
@@ -197,6 +292,9 @@ pub fn Walker(Visitor: type, Error: type) type {
                 self.stack.appendAssumeCapacity(.{ .id = node, .kind = .enter });
             }
         }
+
+        /// Sanity check that is only enabled in safe/debug builds. Inlined so
+        /// compiler can optimize away checks that aren't needed.
         inline fn assertInRange(self: *Self, node: Node.Index) void {
             const len = self.ast.nodes.len;
 
@@ -736,6 +834,7 @@ const std = @import("std");
 const util = @import("util");
 const semantic = @import("../semantic.zig");
 const mem = std.mem;
+const meta = std.meta;
 const assert = std.debug.assert;
 
 const Allocator = mem.Allocator;
@@ -778,4 +877,97 @@ test Walker {
     try walker.walk();
     try t.expectEqual(0, foo.depth);
     try t.expectEqual(16, foo.nodes_visited);
+}
+
+const XVisitor = struct {
+    // # times we've seen a variable `x`
+    seen_x: u32 = 0,
+    ast: *const Ast,
+
+    pub const Error = anyerror;
+
+    pub fn visitVarDecl(this: *XVisitor, var_decl: Node.Index, _: Ast.full.VarDecl) Error!WalkState {
+        const ident = this.ast.nodes.items(.main_token)[var_decl] + 1;
+        try std.testing.expectEqual(.identifier, this.ast.tokens.items(.tag)[ident]);
+        const name = this.ast.tokenSlice(ident);
+        if (std.mem.eql(u8, name, "x")) {
+            this.seen_x += 1;
+        }
+        return .Continue;
+    }
+
+    pub fn visit_identifier(this: *XVisitor, ident: Node.Index) Error!WalkState {
+        const name = this.ast.getNodeSource(ident);
+        if (std.mem.eql(u8, name, "x")) {
+            this.seen_x += 1;
+        }
+        return .Continue;
+    }
+};
+
+test "Walker calls generic tag visitors if special cases aren't present" {
+    const TestVisitor = struct {
+        seen_var_decl: bool = false,
+
+        pub const Error = error{};
+        pub fn visit_simple_var_decl(self: *@This(), _: Node.Index) Error!WalkState {
+            self.seen_var_decl = true;
+            return .Continue;
+        }
+    };
+
+    var ast = try Ast.parse(t.allocator, "const x = 1;", .zig);
+    defer ast.deinit(t.allocator);
+    var visitor: TestVisitor = .{};
+    var walker = try Walker(TestVisitor, TestVisitor.Error).init(t.allocator, &ast, &visitor);
+    defer walker.deinit();
+
+    try walker.walk();
+    try t.expect(visitor.seen_var_decl);
+}
+
+fn testXSeenTimes(expected: u32, src: [:0]const u8) !void {
+    const allocator = std.testing.allocator;
+
+    var ast = try Ast.parse(allocator, src, .zig);
+    defer ast.deinit(allocator);
+    var visitor: XVisitor = .{ .ast = &ast };
+    var walker = try Walker(XVisitor, XVisitor.Error).init(std.testing.allocator, &ast, &visitor);
+    defer walker.deinit();
+
+    try walker.walk();
+    try std.testing.expectEqual(expected, visitor.seen_x);
+}
+
+test "where's waldo, but its `x`" {
+    try testXSeenTimes(1,
+        \\fn foo() void {
+        \\  const x = 2;
+        \\}
+    );
+    try testXSeenTimes(1,
+        \\fn foo() void {
+        \\  // force .block instead of .block_two
+        \\  const a = 1;
+        \\  const b = 1;
+        \\  const c = 1;
+        \\  const d = 1;
+        \\
+        \\  const x = 2;
+        \\}
+    );
+    // std.debug.print("\n\n\n\n\n\n", .{});
+    try testXSeenTimes(1, "const y = x + 1;");
+    try testXSeenTimes(1, "const y = a + (x + 1);");
+    try testXSeenTimes(1, "foo(x);");
+    try testXSeenTimes(1, "x.y.z");
+    try testXSeenTimes(1, "y.x");
+    try testXSeenTimes(1, "x.?");
+    try testXSeenTimes(1, "x.*");
+    // try testXSeenTimes(3,
+    //     \\fn foo(x: u32) void {
+    //     \\  const a = 1 + (2 - (3 / (4 * x)));
+    //     \\  const b = @max(a, x);
+    //     \\}
+    // );
 }
