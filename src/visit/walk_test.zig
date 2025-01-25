@@ -79,7 +79,6 @@ test "Walker calls generic tag visitors if special cases aren't present" {
     try t.expect(visitor.seen_var_decl);
 }
 
-
 // =============================================================================
 
 const XVisitor = struct {
