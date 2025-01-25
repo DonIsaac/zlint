@@ -58,34 +58,6 @@ test Walker {
     try t.expectEqual(16, foo.nodes_visited);
 }
 
-// =============================================================================
-
-const XVisitor = struct {
-    // # times we've seen a variable `x`
-    seen_x: u32 = 0,
-    ast: *const Ast,
-
-    pub const Error = anyerror;
-
-    pub fn visitVarDecl(this: *XVisitor, var_decl: Node.Index, _: *const Ast.full.VarDecl) Error!WalkState {
-        const ident = this.ast.nodes.items(.main_token)[var_decl] + 1;
-        try std.testing.expectEqual(.identifier, this.ast.tokens.items(.tag)[ident]);
-        const name = this.ast.tokenSlice(ident);
-        if (std.mem.eql(u8, name, "x")) {
-            this.seen_x += 1;
-        }
-        return .Continue;
-    }
-
-    pub fn visit_identifier(this: *XVisitor, ident: Node.Index) Error!WalkState {
-        const name = this.ast.getNodeSource(ident);
-        if (std.mem.eql(u8, name, "x")) {
-            this.seen_x += 1;
-        }
-        return .Continue;
-    }
-};
-
 test "Walker calls generic tag visitors if special cases aren't present" {
     const TestVisitor = struct {
         seen_var_decl: bool = false,
@@ -107,6 +79,35 @@ test "Walker calls generic tag visitors if special cases aren't present" {
     try t.expect(visitor.seen_var_decl);
 }
 
+
+// =============================================================================
+
+const XVisitor = struct {
+    // # times we've seen a variable `x`
+    seen_x: u32 = 0,
+    ast: *const Ast,
+
+    pub const Error = anyerror;
+
+    pub fn visitVarDecl(this: *XVisitor, var_decl: Node.Index, _: *const Ast.full.VarDecl) Error!WalkState {
+        const ident = this.ast.nodes.items(.main_token)[var_decl] + 1;
+        try t.expectEqual(.identifier, this.ast.tokens.items(.tag)[ident]);
+        const name = this.ast.tokenSlice(ident);
+        if (std.mem.eql(u8, name, "x")) {
+            this.seen_x += 1;
+        }
+        return .Continue;
+    }
+
+    pub fn visit_identifier(this: *XVisitor, ident: Node.Index) Error!WalkState {
+        const name = this.ast.getNodeSource(ident);
+        if (std.mem.eql(u8, name, "x")) {
+            this.seen_x += 1;
+        }
+        return .Continue;
+    }
+};
+
 fn testXSeenTimes(expected: u32, src: [:0]const u8) !void {
     const allocator = std.testing.allocator;
 
@@ -121,6 +122,7 @@ fn testXSeenTimes(expected: u32, src: [:0]const u8) !void {
 }
 
 test "where's waldo, but its `x`" {
+    try testXSeenTimes(1, "const x = 1;");
     try testXSeenTimes(1,
         \\fn foo() void {
         \\  const x = 2;
@@ -137,14 +139,24 @@ test "where's waldo, but its `x`" {
         \\  const x = 2;
         \\}
     );
-    // std.debug.print("\n\n\n\n\n\n", .{});
     try testXSeenTimes(1, "const y = x + 1;");
     try testXSeenTimes(1, "const y = a + (x + 1);");
-    try testXSeenTimes(1, "foo(x);");
+    try testXSeenTimes(1, "(1 + (2 - (3 / (4 * (1 + 1 + 1 + x)))));");
     try testXSeenTimes(1, "x.y.z");
-    try testXSeenTimes(1, "y.x");
+    try testXSeenTimes(0, "y.x"); // members are not identifiers. This may change in the future.
+    try testXSeenTimes(0, "y.x.z");
     try testXSeenTimes(1, "x.?");
     try testXSeenTimes(1, "x.*");
+    try testXSeenTimes(0, "pub fn x() void {}"); // fn names aren't identifiers rn.
+    try testXSeenTimes(1, "x()");
+    try testXSeenTimes(1, "foo(x);");
+    try testXSeenTimes(1, "fn y() void { return x; }");
+    try testXSeenTimes(1, "fn main() void { defer x; }");
+    try testXSeenTimes(1, "fn main() void { errdefer x; }");
+    try testXSeenTimes(1, "comptime { _ = x; }");
+    try testXSeenTimes(1, "fn main() void { if(x) {} }");
+    try testXSeenTimes(1, "fn main() void { while(x) {} }");
+    try testXSeenTimes(1, "fn main() void { for(x) {} }");
     // try testXSeenTimes(3,
     //     \\fn foo(x: u32) void {
     //     \\  const a = 1 + (2 - (3 / (4 * x)));

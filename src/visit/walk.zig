@@ -109,8 +109,8 @@ pub fn Walker(Visitor: type, Error: type) type {
     }
 
     // "full node" visitors
-    inline for (@typeInfo(WalkerVTable).Struct.decls) |decl| {
-        const name = decl.name;
+    inline for (@typeInfo(WalkerVTable).Struct.fields) |field| {
+        const name = field.name;
         if (!std.mem.eql(u8, name, "tag_table")) {
             if (@hasDecl(Visitor, name)) {
                 @field(vtable, name) = @field(Visitor, name);
