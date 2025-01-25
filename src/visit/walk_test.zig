@@ -1,6 +1,4 @@
 const std = @import("std");
-const semantic = @import("../semantic.zig");
-const mem = std.mem;
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
@@ -49,6 +47,7 @@ test Walker {
 
     var ast = try std.zig.Ast.parse(t.allocator, src, .zig);
     defer ast.deinit(t.allocator);
+    try t.expectEqual(0, ast.errors.len);
     var foo = Foo{};
     var walker = try FooWalker.init(t.allocator, &ast, &foo);
     defer walker.deinit();
@@ -156,6 +155,8 @@ test "where's waldo, but its `x`" {
     try testXSeenTimes(1, "fn main() void { if(x) {} }");
     try testXSeenTimes(1, "fn main() void { while(x) {} }");
     try testXSeenTimes(1, "fn main() void { for(x) {} }");
+    try testXSeenTimes(1, "const x = struct{};");
+    try testXSeenTimes(1, "const Foo = struct{ pub const y = 1; pub const z = 2; pub const x = 3;};");
     // try testXSeenTimes(3,
     //     \\fn foo(x: u32) void {
     //     \\  const a = 1 + (2 - (3 / (4 * x)));
