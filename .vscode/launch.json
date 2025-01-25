@@ -10,7 +10,8 @@
             "request": "launch",
             "program": "./zig-out/bin/zlint",
             "cwd": "${workspaceRoot}",
-            "preLaunchTask": "build"
+            "preLaunchTask": "build",
+            "postRunCommands": ["command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
         },
         {
             "name": "zlint",
@@ -18,7 +19,8 @@
             "request": "launch",
             "program": "./zig-out/bin/zlint",
             "cwd": "${workspaceRoot}",
-            "preLaunchTask": "build -Dsingle-threaded"
+            "preLaunchTask": "build -Dsingle-threaded",
+            "postRunCommands": ["command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
         },
         {
             "name": "zlint --print-ast ${file}",
@@ -28,7 +30,8 @@
             "program": "${workspaceRoot}/zig-out/bin/zlint",
             "cwd": "${workspaceRoot}",
             "stdio": "${workspaceRoot}/tmp/ast.json",
-            "preLaunchTask": "pre print-ast"
+            "preLaunchTask": "pre print-ast",
+            "postRunCommands": ["command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
         },
         {
             "name": "test-e2e",
@@ -36,7 +39,8 @@
             "request": "launch",
             "program": "./zig-out/bin/test-e2e",
             "cwd": "${workspaceRoot}",
-            "preLaunchTask": "build -Dsingle-threaded"
+            "preLaunchTask": "build -Dsingle-threaded",
+            "postRunCommands": ["command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
         },
         {
             "name": "test",
@@ -44,7 +48,8 @@
             "request": "launch",
             "program": "./zig-out/bin/test",
             "cwd": "${workspaceRoot}",
-            "preLaunchTask": "build -Dsingle-threaded"
+            "preLaunchTask": "build -Dsingle-threaded",
+            "postRunCommands": ["command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
         },
         {
             "name": "test-utils",
@@ -52,7 +57,8 @@
             "request": "launch",
             "program": "./zig-out/bin/test-utils",
             "cwd": "${workspaceRoot}",
-            "preLaunchTask": "build -Dsingle-threaded"
+            "preLaunchTask": "build -Dsingle-threaded",
+            "postRunCommands": ["command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
         },
         // {
         //     "name": "zig test [file]",

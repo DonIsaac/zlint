@@ -1,3 +1,23 @@
+// Copyright (c) 2025 Don Isaac
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 pub const WalkState = enum { Continue, Skip, Stop };
 
 /// Traverses an AST in a depth-first manner.
@@ -28,15 +48,36 @@ pub fn Walker(Visitor: type, Error: type) type {
     const tag_info = @typeInfo(Node.Tag).Enum;
 
     const VisitFn = fn (visitor: *Visitor, node: Node.Index) Error!WalkState;
-    const VisitFullVarDeclFn = fn (visitor: *Visitor, node: Node.Index, var_decl: Ast.full.VarDecl) Error!WalkState;
+    const VisitFull = struct {
+        fn VisitFull(Full: type) type {
+            return fn (visitor: *Visitor, node: Node.Index, var_decl: *const Full) Error!WalkState;
+        }
+    }.VisitFull;
+    // const VisitFullVarDeclFn = fn (visitor: *Visitor, node: Node.Index, var_decl: Ast.full.VarDecl) Error!WalkState;
+    // const VisitFullFnProto
 
     const WalkerVTable = struct {
         // SAFETY: set immediately when iterating over tag infos. Only one
         // vtable is ever instantiated.
         tag_table: [tag_info.fields.len]?*const VisitFn = undefined,
 
-        // special cases
-        varDecl: ?*const VisitFullVarDeclFn = null,
+        // "full node" visitors
+        visitVarDecl: ?*const VisitFull(full.VarDecl) = null,
+        visitAssignDestructure: ?*const VisitFull(full.AssignDestructure) = null,
+        visitIf: ?*const VisitFull(full.If) = null,
+        visitWhile: ?*const VisitFull(full.While) = null,
+        visitFor: ?*const VisitFull(full.For) = null,
+        visitFnProto: ?*const VisitFull(full.FnProto) = null,
+        visitContainerField: ?*const VisitFull(full.ContainerField) = null,
+        visitStructInit: ?*const VisitFull(full.StructInit) = null,
+        visitArrayInit: ?*const VisitFull(full.ArrayInit) = null,
+        visitArrayType: ?*const VisitFull(full.ArrayType) = null,
+        visitPtrType: ?*const VisitFull(full.PtrType) = null,
+        visitSlice: ?*const VisitFull(full.Slice) = null,
+        visitContainerDecl: ?*const VisitFull(full.ContainerDecl) = null,
+        visitSwitchCase: ?*const VisitFull(full.SwitchCase) = null,
+        visitAsm: ?*const VisitFull(full.Asm) = null,
+        visitCall: ?*const VisitFull(full.Call) = null,
     };
 
     // stores pointers to Visitor's visit methods. Each kind of node (ie each
@@ -67,16 +108,23 @@ pub fn Walker(Visitor: type, Error: type) type {
         vtable.tag_table[id] = &visit_fn;
     }
 
-    // special cases
-    if (@hasDecl(Visitor, "visitVarDecl")) vtable.varDecl = Visitor.visitVarDecl;
+    // "full node" visitors
+    inline for (@typeInfo(WalkerVTable).Struct.decls) |decl| {
+        const name = decl.name;
+        if (!std.mem.eql(u8, name, "tag_table")) {
+            if (@hasDecl(Visitor, name)) {
+                @field(vtable, name) = @field(Visitor, name);
+            }
+            has_any_methods = true;
+        }
+    }
 
     // It would be confusing for _nothing_ to happen after a walk b/c you misspelled visit_container_field or something
     if (!has_any_methods and
-        vtable.varDecl == null and
         !@hasDecl(Visitor, "enterNode") and
         !@hasDecl(Visitor, "exitNode"))
     {
-        @compileError("Visitor '" ++ @typeName(Visitor) ++ "' has no visit methods. Is this really a visitor?");
+        @compileError("Visitor '" ++ @typeName(Visitor) ++ "' has no visit methods. Did you forget to make them `pub`?");
     }
 
     return struct {
@@ -133,82 +181,239 @@ pub fn Walker(Visitor: type, Error: type) type {
         }
 
         pub fn walk(self: *Self) WalkError!void {
+            // Used by some full AST node getters. The meaning of this node depends on each getter.
+            // Since this is re-used, care must be taken to avoid storing a reference to (now-clobbered) data.
+            //
+            // The most at-risk case is visitors storing references to full nodes
+            // after specialized visitor methods return.
+            //
+            // W.R.T walking:
+            // - walk()'s main body only ever dispatches tag-visitor calls, which never use this buffer
+            // - walkFull() enqueues full nodes into the stack before returning. This copies
+            //   whatever's in this buffer, so it can't be clobbered.
+            //
+            var buf: [1]Node.Index = undefined;
+            var buf2: [2]Node.Index = undefined;
+
+            var i = if (comptime util.IS_DEBUG) @as(u32, 0);
+
             while (self.stack.popOrNull()) |entry| {
+                if (comptime util.IS_DEBUG) i += 1;
                 if (entry.kind == .exit) {
-                    // std.debug.print("[{}] exit: {s} ({})\n", .{
-                    //     self.stack.items.len,
-                    //     @tagName(self.tags[entry.id]),
-                    //     entry.id,
-                    // });
+                    print("[{}] exit: {s} ({})\n", .{ self.stack.items.len, @tagName(self.tags[entry.id]), entry.id });
                     self.exitNode(entry.id);
                     continue;
                 }
                 const node = entry.id;
                 const tag = self.tags[node];
-                // std.debug.print(
-                //     "[{}] enter: {s} ({})\n",
-                //     .{ self.stack.items.len, @tagName(tag), entry.id },
-                // );
+                print("[{}] enter: {s} ({})\n", .{ self.stack.items.len, @tagName(tag), entry.id });
 
                 try self.enterNode(node);
 
-                simple_state: {
-                    switch (tag) {
-                        .global_var_decl,
-                        .local_var_decl,
-                        .simple_var_decl,
-                        .aligned_var_decl,
-                        => {
-                            const var_decl = self.ast.fullVarDecl(node) orelse unreachable;
-                            const state: WalkState = if (vtable.varDecl) |visitVarDecl|
-                                try visitVarDecl(self.visitor, node, var_decl)
-                            else if (vtable.tag_table[@intFromEnum(tag)]) |visitFn|
-                                try visitFn(self.visitor, node)
-                            else
-                                WalkState.Continue;
+                // micro-optimization: avoid using`ast.fullFooNode` to 1) remove
+                // redundant switch and 2) avoid passing &buffer when possible
+                const should_stop: bool = try switch (tag) {
+                    .global_var_decl,
+                    .local_var_decl,
+                    .simple_var_decl,
+                    .aligned_var_decl,
+                    => self.walkFull(full.VarDecl, node, tag, .visitVarDecl, .fullVarDecl, .{}),
+                    // TODO: ensure `tag` is considered comptime-known
 
-                            switch (state) {
-                                .Continue => {
-                                    try self.pushFullNode(Ast.full.VarDecl.Components, var_decl.ast);
-                                },
-                                .Skip => {},
-                                .Stop => return,
-                            }
-                            continue;
-                        },
-                        else => break :simple_state,
-                    }
-                }
+                    // ast.assignDestructure
+                    .assign_destructure => self.walkFull(full.AssignDestructure, node, tag, .visitAssignDestructure, .assignDestructure, .{}),
 
-                const state: WalkState = if (vtable.tag_table[@intFromEnum(tag)]) |visit_fn|
-                    try @call(.auto, visit_fn, .{ self.visitor, node })
-                else
-                    WalkState.Continue;
+                    .if_simple, .@"if" => self.walkFull(full.If, node, tag, .visitIf, .fullIf, .{}),
+                    .while_simple, .while_cont, .@"while" => self.walkFull(full.While, node, tag, .visitWhile, .fullWhile, .{}),
+                    .for_simple, .@"for" => self.walkFull(full.For, node, tag, .visitFor, .fullFor, .{}),
 
-                switch (state) {
-                    .Continue => try self.pushChildren(node, tag),
-                    .Skip => {},
-                    .Stop => return,
-                }
+                    // ast.fullContainerField
+                    .container_field_init => self.walkFull(full.ContainerField, node, tag, .visitContainerField, .containerFieldInit, .{}),
+                    .container_field_align => self.walkFull(full.ContainerField, node, tag, .visitContainerField, .containerFieldAlign, .{}),
+                    .container_field => self.walkFull(full.ContainerField, node, tag, .visitContainerField, .containerField, .{}),
+
+                    // ast.fullFnProto
+                    .fn_proto => self.walkFull(full.FnProto, node, tag, .visitFnProto, .fnProto, .{}),
+                    .fn_proto_multi => self.walkFull(full.FnProto, node, tag, .visitFnProto, .fnProtoMulti, .{}),
+                    .fn_proto_one => self.walkFull(full.FnProto, node, tag, .visitFnProto, .fnProtoOne, .{&buf}),
+                    .fn_proto_simple => self.walkFull(full.FnProto, node, tag, .visitFnProto, .fnProtoSimple, .{&buf}),
+                    // NOTE: .fn_decl is intentionally omitted. its lhs is `.fn_proto` and rhs is `.block*`,
+                    // which get visited as expected via tag visitors + pushChildren
+
+                    // ast.fullStructInit
+                    .struct_init_one, .struct_init_one_comma => self.walkFull(full.StructInit, node, tag, .visitStructInit, .structInitOne, .{&buf}),
+                    .struct_init_dot_two, .struct_init_dot_two_comma => self.walkFull(full.StructInit, node, tag, .visitStructInit, .structInitDotTwo, .{&buf2}),
+                    .struct_init_dot, .struct_init_dot_comma => self.walkFull(full.StructInit, node, tag, .visitStructInit, .structInitDot, .{}),
+                    .struct_init, .struct_init_comma => self.walkFull(full.StructInit, node, tag, .visitStructInit, .structInit, .{}),
+
+                    // ast.fullArrayInit
+                    .array_init_one, .array_init_one_comma => self.walkFull(full.ArrayInit, node, tag, .visitArrayInit, .arrayInitOne, .{&buf}),
+                    .array_init_dot_two, .array_init_dot_two_comma => self.walkFull(full.ArrayInit, node, tag, .visitArrayInit, .arrayInitDotTwo, .{&buf2}),
+                    .array_init_dot, .array_init_dot_comma => self.walkFull(full.ArrayInit, node, tag, .visitArrayInit, .arrayInitDot, .{}),
+                    .array_init, .array_init_comma => self.walkFull(full.ArrayInit, node, tag, .visitArrayInit, .arrayInit, .{}),
+
+                    // ast.fullArrayType
+                    .array_type => self.walkFull(full.ArrayType, node, tag, .visitArrayType, .arrayType, .{}),
+                    .array_type_sentinel => self.walkFull(full.ArrayType, node, tag, .visitArrayType, .arrayTypeSentinel, .{}),
+
+                    // ast.fullPtrType
+                    .ptr_type_aligned => self.walkFull(full.PtrType, node, tag, .visitPtrType, .ptrTypeAligned, .{}),
+                    .ptr_type_sentinel => self.walkFull(full.PtrType, node, tag, .visitPtrType, .ptrTypeSentinel, .{}),
+                    .ptr_type => self.walkFull(full.PtrType, node, tag, .visitPtrType, .ptrType, .{}),
+                    .ptr_type_bit_range => self.walkFull(full.PtrType, node, tag, .visitPtrType, .ptrTypeBitRange, .{}),
+
+                    // ast.fullSlice
+                    .slice_open, .slice, .slice_sentinel => self.walkFull(full.Slice, node, tag, .visitSlice, .fullSlice, .{}),
+
+                    // ast.fullContainerDecl
+                    .root => unreachable,
+                    .container_decl,
+                    .container_decl_trailing,
+                    .container_decl_arg,
+                    .container_decl_arg_trailing,
+                    .container_decl_two,
+                    .container_decl_two_trailing,
+                    .tagged_union,
+                    .tagged_union_trailing,
+                    .tagged_union_enum_tag,
+                    .tagged_union_enum_tag_trailing,
+                    .tagged_union_two,
+                    .tagged_union_two_trailing,
+                    => self.walkFull(full.ContainerDecl, node, tag, .visitContainerDecl, .fullContainerDecl, .{&buf2}),
+
+                    // ast.fullSwitchCase
+                    .switch_case_one, .switch_case_inline_one, .switch_case, .switch_case_inline => self.walkFull(full.SwitchCase, node, tag, .visitSwitchCase, .fullSwitchCase, .{}),
+
+                    // ast.fullAsm
+                    .asm_simple, .@"asm" => self.walkFull(full.Asm, node, tag, .visitAsm, .fullAsm, .{}),
+
+                    // ast.fullCall
+                    .call, .call_comma, .async_call, .async_call_comma => self.walkFull(full.Call, node, tag, .visitCall, .callFull, .{}),
+                    .call_one, .call_one_comma, .async_call_one, .async_call_one_comma => self.walkFull(full.Call, node, tag, .visitCall, .callOne, .{&buf}),
+
+                    else => tag_visit: {
+                        const state: WalkState = if (vtable.tag_table[@intFromEnum(tag)]) |visit_fn|
+                            try @call(.auto, visit_fn, .{ self.visitor, node })
+                        else
+                            WalkState.Continue;
+
+                        switch (state) {
+                            .Continue => {
+                                try self.pushChildren(node, tag);
+                                break :tag_visit false;
+                            },
+                            .Skip => break :tag_visit false,
+                            .Stop => break :tag_visit true,
+                        }
+                    },
+                };
+                if (should_stop) return;
             }
+        }
+
+        /// Walk a "full" AST node, visiting it with one of the specialized visitors
+        /// in the vtable. Employs uncomfortable amounts of comptime fuckery.
+        ///
+        /// Returns `true` when visitors stop the walk (`WalkState.Stop`).
+        fn walkFull(
+            self: *Self,
+            /// Full AST struct definition from `Ast.full`. Assumed to have a
+            /// `Components` member type.
+            Full: type,
+            node: Node.Index,
+            tag: Node.Tag,
+            /// name of specialized visitor fn in vtable (as a `.tag`)
+            /// example: `.fnProto`
+            comptime vtable_fn_name: anytype,
+            /// Name of AST method (as a `.tag`) used to get the full node
+            /// example: `.fullFnProto`
+            comptime fullGetterName: anytype,
+            /// Arguments to pass to `fullGetter`. AST pointer and node id will
+            /// be prepended/appended (respectively). For example:
+            /// `ast.fullFnProto(&buf, node)` -> `.{&buf}`
+            args: anytype,
+        ) WalkError!bool {
+            // early checks for better error messages
+            comptime {
+                if (!@hasField(WalkerVTable, @tagName(vtable_fn_name)))
+                    @compileError(@tagName(vtable_fn_name) ++ " is not a specialized visitor fn name.");
+
+                if (!@hasDecl(Ast, @tagName(fullGetterName)))
+                    @compileError("std.zig.Ast has no method named '" ++ @tagName(fullGetterName) ++ "'.");
+            }
+
+            const visit_full_fn: ?*const VisitFull(Full) = @field(vtable, @tagName(vtable_fn_name));
+
+            // e.g.: const fn_proto = self.ast.fullFnProto(&buf, node)
+            const full_args = .{self.ast.*} ++ args ++ .{node};
+            const fullGetter = @field(Ast, @tagName(fullGetterName));
+            // handle heterogenous return signatures
+            const info = @typeInfo(@TypeOf(fullGetter));
+            const full_node: Full = if (comptime @typeInfo(info.Fn.return_type.?) == .Optional)
+                @call(.auto, fullGetter, full_args) orelse unreachable
+            else
+                @call(.auto, fullGetter, full_args);
+
+            // Call the full visitor if one exists. Fall back to tag visitors.
+            // Either way, the full node is still traversed correctly.
+            const state: WalkState = if (visit_full_fn) |visitFullFn|
+                try visitFullFn(self.visitor, node, &full_node)
+            else if (vtable.tag_table[@intFromEnum(tag)]) |visitTagFn|
+                try visitTagFn(self.visitor, node)
+            else
+                WalkState.Continue;
+
+            return switch (state) {
+                .Continue => blk: {
+                    try self.pushFullNode(Full.Components, node, full_node.ast);
+                    break :blk false;
+                },
+                .Skip => false,
+                .Stop => true,
+            };
         }
 
         /// Use comptime fuckery to push a `FullNode.Components` subtree onto
         /// the stack in reverse order.
-        fn pushFullNode(self: *Self, Components: type, components: Components) Allocator.Error!void {
+        fn pushFullNode(self: *Self, Components: type, own_id: Node.Index, components: Components) Allocator.Error!void {
             const info = @typeInfo(Components);
             const fields = info.Struct.fields;
+            // @compileLog(fields);
             try self.stack.ensureUnusedCapacity(self.alloc, 2 * fields.len);
 
             // NOTE: std.mem.reverseIterator does not work in comptime
             inline for (0..fields.len) |i| {
                 const idx = fields.len - i - 1;
-                const field = fields[idx].name;
-                if (!std.mem.endsWith(u8, field, "token")) {
-                    const subnode: Node.Index = @field(components, field);
-                    if (subnode != Semantic.NULL_NODE) {
-                        // self.stack.appendAssumeCapacity(subnode);
-                        try self.push(subnode);
+                const field = fields[idx];
+                const is_token = comptime mem.endsWith(u8, field.name, "_token") or
+                    mem.eql(u8, field.name, "lparen") or
+                    mem.eql(u8, field.name, "rparen") or
+                    mem.eql(u8, field.name, "lbrace") or
+                    mem.eql(u8, field.name, "rbrace");
+
+                if (!is_token) {
+                    const subnode: field.type = @field(components, field.name);
+                    switch (@TypeOf(subnode)) {
+                        []const Node.Index, []Node.Index => {
+                            try self.stack.ensureUnusedCapacity(self.alloc, 2 * subnode.len);
+                            for (0..subnode.len) |j| {
+                                const el: Node.Index = subnode[subnode.len - j - 1];
+                                util.assert(el != own_id, "Cycle detected on node {d}", .{ own_id });
+                                try self.push(el);
+                            }
+                        },
+                        u32 => if (subnode != Semantic.NULL_NODE) {
+                            if (comptime std.mem.eql(u8, field.name, "proto_node")) {
+                                if (own_id != subnode) try self.push(subnode);
+                            } else {
+                                util.assert(subnode != own_id, "Cycle detected on node {d}", .{ own_id });
+                                try self.push(subnode);
+                            }
+                        },
+                        bool => {},
+                        else => |Unsupported| {
+                            @compileError(@typeName(Components) ++ "." ++ field.name ++ " has unsupported type " ++ @typeName(Unsupported) ++ ".");
+                        },
                     }
                 }
             }
@@ -256,7 +461,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                 },
                 // lhs/rhs both ignored
                 .unset, .token => {},
-                else => @panic("todo"),
+                else => |kind| std.debug.panic("todo: {s} ({s})", .{ @tagName(kind), @tagName(tag) }),
             }
         }
 
@@ -830,144 +1035,29 @@ const NodeDataKind = enum {
     }
 };
 
+// toggle debug printing in walk(). Dont commit PRs with this still set to `true`.
+const DEBUG_PRINT = false;
+inline fn print(comptime fmt: []const u8, args: anytype) void {
+    comptime if (!DEBUG_PRINT) return;
+    std.debug.print(fmt ++ "\n", args);
+}
+comptime {
+    if (@import("builtin").mode != .Debug) assert(DEBUG_PRINT == false);
+}
+
 const std = @import("std");
 const util = @import("util");
 const semantic = @import("../semantic.zig");
 const mem = std.mem;
-const meta = std.meta;
 const assert = std.debug.assert;
 
 const Allocator = mem.Allocator;
 const Ast = std.zig.Ast;
+const full = Ast.full;
 const Node = Ast.Node;
 // const NodeIndex = Ast.Node.Index;
 const Semantic = semantic.Semantic;
 
-const t = std.testing;
-test Walker {
-    const src =
-        \\const std = @import("std");
-        \\fn foo() void {
-        \\  const x = 1;
-        \\  std.debug.print("{d}\n", .{x});
-        \\}
-    ;
-
-    const Foo = struct {
-        depth: u32 = 0,
-        nodes_visited: u32 = 0,
-        const Self = @This();
-        fn enterNode(self: *Self, _: Node.Index) !void {
-            self.depth += 1;
-            self.nodes_visited += 1;
-        }
-        fn exitNode(self: *Self, _: Node.Index) void {
-            t.expect(self.depth > 0) catch @panic("expect failed");
-            self.depth -= 1;
-        }
-    };
-    const FooWalker = Walker(Foo, anyerror);
-
-    var ast = try std.zig.Ast.parse(t.allocator, src, .zig);
-    defer ast.deinit(t.allocator);
-    var foo = Foo{};
-    var walker = try FooWalker.init(t.allocator, &ast, &foo);
-    defer walker.deinit();
-
-    try walker.walk();
-    try t.expectEqual(0, foo.depth);
-    try t.expectEqual(16, foo.nodes_visited);
-}
-
-const XVisitor = struct {
-    // # times we've seen a variable `x`
-    seen_x: u32 = 0,
-    ast: *const Ast,
-
-    pub const Error = anyerror;
-
-    pub fn visitVarDecl(this: *XVisitor, var_decl: Node.Index, _: Ast.full.VarDecl) Error!WalkState {
-        const ident = this.ast.nodes.items(.main_token)[var_decl] + 1;
-        try std.testing.expectEqual(.identifier, this.ast.tokens.items(.tag)[ident]);
-        const name = this.ast.tokenSlice(ident);
-        if (std.mem.eql(u8, name, "x")) {
-            this.seen_x += 1;
-        }
-        return .Continue;
-    }
-
-    pub fn visit_identifier(this: *XVisitor, ident: Node.Index) Error!WalkState {
-        const name = this.ast.getNodeSource(ident);
-        if (std.mem.eql(u8, name, "x")) {
-            this.seen_x += 1;
-        }
-        return .Continue;
-    }
-};
-
-test "Walker calls generic tag visitors if special cases aren't present" {
-    const TestVisitor = struct {
-        seen_var_decl: bool = false,
-
-        pub const Error = error{};
-        pub fn visit_simple_var_decl(self: *@This(), _: Node.Index) Error!WalkState {
-            self.seen_var_decl = true;
-            return .Continue;
-        }
-    };
-
-    var ast = try Ast.parse(t.allocator, "const x = 1;", .zig);
-    defer ast.deinit(t.allocator);
-    var visitor: TestVisitor = .{};
-    var walker = try Walker(TestVisitor, TestVisitor.Error).init(t.allocator, &ast, &visitor);
-    defer walker.deinit();
-
-    try walker.walk();
-    try t.expect(visitor.seen_var_decl);
-}
-
-fn testXSeenTimes(expected: u32, src: [:0]const u8) !void {
-    const allocator = std.testing.allocator;
-
-    var ast = try Ast.parse(allocator, src, .zig);
-    defer ast.deinit(allocator);
-    var visitor: XVisitor = .{ .ast = &ast };
-    var walker = try Walker(XVisitor, XVisitor.Error).init(std.testing.allocator, &ast, &visitor);
-    defer walker.deinit();
-
-    try walker.walk();
-    try std.testing.expectEqual(expected, visitor.seen_x);
-}
-
-test "where's waldo, but its `x`" {
-    try testXSeenTimes(1,
-        \\fn foo() void {
-        \\  const x = 2;
-        \\}
-    );
-    try testXSeenTimes(1,
-        \\fn foo() void {
-        \\  // force .block instead of .block_two
-        \\  const a = 1;
-        \\  const b = 1;
-        \\  const c = 1;
-        \\  const d = 1;
-        \\
-        \\  const x = 2;
-        \\}
-    );
-    // std.debug.print("\n\n\n\n\n\n", .{});
-    try testXSeenTimes(1, "const y = x + 1;");
-    try testXSeenTimes(1, "const y = a + (x + 1);");
-    try testXSeenTimes(1, "foo(x);");
-    try testXSeenTimes(1, "x.y.z");
-    try testXSeenTimes(1, "y.x");
-    try testXSeenTimes(1, "x.?");
-    try testXSeenTimes(1, "x.*");
-    // try testXSeenTimes(3,
-    //     \\fn foo(x: u32) void {
-    //     \\  const a = 1 + (2 - (3 / (4 * x)));
-    //     \\  const b = @max(a, x);
-    //     \\}
-    // );
+test {
+    _ = @import("walk_test.zig");
 }
