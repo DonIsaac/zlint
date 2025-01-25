@@ -11,4 +11,5 @@ pub const RulesConfig = struct {
     suppressed_errors: RuleConfig(rules.SuppressedErrors) = .{},
     unsafe_undefined: RuleConfig(rules.UnsafeUndefined) = .{},
     unused_decls: RuleConfig(rules.UnusedDecls) = .{},
+    must_return_ref: RuleConfig(rules.MustReturnRef) = .{},
 };

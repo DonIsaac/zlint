@@ -1,12 +1,8 @@
 const std = @import("std");
 const zlint = @import("zlint");
 const fs = std.fs;
-const log = std.log;
 const mem = std.mem;
-const path = fs.path;
-const panic = std.debug.panic;
 
-const Allocator = mem.Allocator;
 const Rule = zlint.lint.Rule;
 
 pub const RULES_DIR = "src/linter/rules";

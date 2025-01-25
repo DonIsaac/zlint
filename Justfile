@@ -111,6 +111,7 @@ new-rule name:
     else \
         echo "Please install bun to use this command."; \
     fi
+    just codegen
     zig fmt src/linter
 
 # (MacOS only) sign binaries so they can be debugged and traced with Instruments
