@@ -398,7 +398,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                             try self.stack.ensureUnusedCapacity(self.alloc, 2 * subnode.len);
                             for (0..subnode.len) |j| {
                                 const el: Node.Index = subnode[subnode.len - j - 1];
-                                util.assert(el != own_id, "Cycle detected on node {d}", .{ own_id });
+                                util.assert(el != own_id, "Cycle detected on node {d}", .{own_id});
                                 try self.push(el);
                             }
                         },
@@ -406,7 +406,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                             if (comptime std.mem.eql(u8, field.name, "proto_node")) {
                                 if (own_id != subnode) try self.push(subnode);
                             } else {
-                                util.assert(subnode != own_id, "Cycle detected on node {d}", .{ own_id });
+                                util.assert(subnode != own_id, "Cycle detected on node {d}", .{own_id});
                                 try self.push(subnode);
                             }
                         },
