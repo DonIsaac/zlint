@@ -4,6 +4,7 @@ const rules = @import("../rules.zig");
 
 pub const RulesConfig = struct {
     pub usingnamespace @import("./rules_config.methods.zig").RulesConfigMethods(@This());
+    must_return_ref: RuleConfig(rules.MustReturnRef) = .{},
     homeless_try: RuleConfig(rules.HomelessTry) = .{},
     no_catch_return: RuleConfig(rules.NoCatchReturn) = .{},
     no_return_try: RuleConfig(rules.NoReturnTry) = .{},

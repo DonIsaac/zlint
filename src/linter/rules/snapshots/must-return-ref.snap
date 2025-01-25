@@ -1,0 +1,10 @@
+  𝙭 must-return-ref: Members of type `ArenaAllocator` must be passed by reference
+   ╭─[must-return-ref.zig:7:12]
+ 6 │   pub fn getArena(self: *Foo) ArenaAllocator {
+ 7 │     return self.arena;
+   ·            ──────┬──────
+   ·                  ╰── This is a copy, not a move.
+ 8 │   }
+   ╰────
+  help: This type records its allocation size, so mutating a copy can result in a memory leak.
+
