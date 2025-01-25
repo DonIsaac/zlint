@@ -1,14 +1,49 @@
 //! ## What This Rule Does
-//! Explain what this rule checks for. Also explain why this is a problem.
+//! Disallows returning copies of types that store a `capacity`.
+//!
+//! Zig does not have move semantics. Returning a value by value copies it.
+//! Returning a copy of a struct's field that records how much memory it has
+//! allocated can easily lead to memory leaks.
+//!
+//! ```zig
+//! const std = @import("std");
+//! pub const Foo = struct {
+//!   list: std.ArrayList(u32),
+//!   pub fn getList(self: *Foo) std.ArrayList(u32) {
+//!       return self.list;
+//!   }
+//! };
+//!
+//! pub fn main() !void {
+//!   var foo: Foo = .{
+//!     .list = try std.ArrayList(u32).init(std.heap.page_allocator)
+//!   };
+//!   defer foo.list.deinit();
+//!   var list = foo.getList();
+//!   try list.append(1); // leaked!
+//! }
+//! ```
 //!
 //! ## Examples
 //!
 //! Examples of **incorrect** code for this rule:
 //! ```zig
+//! fn foo(self: *Foo) std.ArrayList(u32) {
+//!   return self.list;
+//! }
 //! ```
 //!
 //! Examples of **correct** code for this rule:
 //! ```zig
+//! // pass by reference
+//! fn foo(self: *Foo) *std.ArrayList(u32) {
+//!   return &self.list;
+//! }
+//!
+//! // new instances are fine
+//! fn foo() ArenaAllocator {
+//!   return std.mem.ArenaAllocator.init(std.heap.page_allocator);
+//! }
 //! ```
 
 const std = @import("std");
@@ -41,21 +76,17 @@ fn mustReturnRefDiagnostic(ctx: *LinterContext, type_name: []const u8, returned:
 const MustReturnRef = @This();
 pub const meta: Rule.Meta = .{
     .name = "must-return-ref",
-    .default = .err,
+    .default = .warning,
     .category = .suspicious,
 };
 
 pub fn runOnNode(_: *const MustReturnRef, wrapper: NodeWrapper, ctx: *LinterContext) void {
     if (wrapper.node.tag != .fn_decl) return;
 
-    // const nodes = ctx.ast().nodes;
-    // const tags: []const Node.Tag = nodes.items(.tag);
-
     var buf: [1]Node.Index = undefined;
     // SAFETY: fn decls always have a fn proto
     const decl = ctx.ast().fullFnProto(&buf, wrapper.idx) orelse unreachable;
     const return_type = decl.ast.return_type;
-    // const returned_tok: TokenIndex = a.getRightmostIdentifier(ctx, return_type) orelse return;
     const returned_ident = a.getRightmostIdentifier(ctx, return_type) orelse return;
     if (!types_to_check.has(returned_ident)) return;
 
@@ -140,6 +171,12 @@ test MustReturnRef {
         \\const Foo = struct {
         \\  pub fn newArena(self: *Foo) ArenaAllocator {
         \\    return createArenaSomehow();
+        \\  }
+        \\};
+        ,
+        \\const Foo = struct {
+        \\  pub fn newArena(self: *Foo) ArenaAllocator {
+        \\    return self.createArena();
         \\  }
         \\};
     };
