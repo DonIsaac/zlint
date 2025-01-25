@@ -23,6 +23,15 @@
             "postRunCommands": ["command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
         },
         {
+            "name": "zlint [bun]",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/zig-out/bin/zlint",
+            "cwd": "/Users/donisaac/Documents/projects/bun/bun",
+            // "preLaunchTask": "build -Dsingle-threaded",
+            "postRunCommands": ["command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
+        },
+        {
             "name": "zlint --print-ast ${file}",
             "type": "lldb",
             "request": "launch",
