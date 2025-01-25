@@ -13,22 +13,15 @@
 
 const std = @import("std");
 const util = @import("util");
-const _source = @import("../../source.zig");
 const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 const a = @import("../ast_utils.zig");
 const walk = @import("../../visit/walk.zig");
 
-// const Allocator = std.mem.Allocator;
 const Semantic = semantic.Semantic;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
-const TokenIndex = Ast.TokenIndex;
-const Symbol = semantic.Symbol;
-const Loc = std.zig.Loc;
-const Span = _span.Span;
-const LabeledSpan = _span.LabeledSpan;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
@@ -62,13 +55,14 @@ pub fn runOnNode(_: *const MustReturnRef, wrapper: NodeWrapper, ctx: *LinterCont
     // SAFETY: fn decls always have a fn proto
     const decl = ctx.ast().fullFnProto(&buf, wrapper.idx) orelse unreachable;
     const return_type = decl.ast.return_type;
-    const returned_tok: TokenIndex = a.getRightmostIdentifier(ctx, return_type) orelse return;
-    const returned_ident = ctx.ast().tokenSlice(returned_tok);
+    // const returned_tok: TokenIndex = a.getRightmostIdentifier(ctx, return_type) orelse return;
+    const returned_ident = a.getRightmostIdentifier(ctx, return_type) orelse return;
     if (!types_to_check.has(returned_ident)) return;
 
+    // look for member accesses in return statements
     var visitor = ReturnVisitor.new(ctx, returned_ident);
     var stackAlloc = std.heap.stackFallback(512, ctx.gpa);
-    var walker = walk.Walker(ReturnVisitor, error{}).init(
+    var walker = walk.Walker(ReturnVisitor, ReturnVisitor.VisitError).init(
         stackAlloc.get(),
         ctx.ast(),
         &visitor,
@@ -83,6 +77,8 @@ const ReturnVisitor = struct {
     datas: []const Node.Data,
     tags: []const Node.Tag,
 
+    pub const VisitError = error{};
+
     fn new(ctx: *LinterContext, typename: []const u8) ReturnVisitor {
         return .{
             .typename = typename,
@@ -92,7 +88,7 @@ const ReturnVisitor = struct {
         };
     }
 
-    pub fn visit_return(self: *ReturnVisitor, node: Node.Index) error{}!walk.WalkState {
+    pub fn visit_return(self: *ReturnVisitor, node: Node.Index) VisitError!walk.WalkState {
         const returned = self.datas[node].lhs;
         if (returned == Semantic.NULL_NODE) return .Continue; // type error
         // todo: check that leftmost ident is `this`.
@@ -159,6 +155,21 @@ test MustReturnRef {
         \\    return self.arena;
         \\  }
         \\};
+        ,
+        \\pub fn getList(self: *Foo) std.ArrayList(u32) {
+        \\  if (!self.has_list) {
+        \\    return std.ArrayList(u32).init(self.allocator);
+        \\  } else {
+        \\    return self.list;
+        \\  }
+        \\}
+        // todo: complex cases
+        // \\pub fn getArena(self: *Foo) std.ArrayList(u32) {
+        // \\  return if (!self.has_list)
+        // \\    std.ArrayList(u32).init(self.arena)
+        // \\  else
+        // \\    self.list;
+        // \\}
     };
 
     try runner

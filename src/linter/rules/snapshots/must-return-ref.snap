@@ -8,3 +8,13 @@
    ╰────
   help: This type records its allocation size, so mutating a copy can result in a memory leak.
 
+  𝙭 must-return-ref: Members of type `ArrayList` must be passed by reference
+   ╭─[must-return-ref.zig:5:12]
+ 4 │   } else {
+ 5 │     return self.list;
+   ·            ────┬────
+   ·                ╰── This is a copy, not a move.
+ 6 │   }
+   ╰────
+  help: This type records its allocation size, so mutating a copy can result in a memory leak.
+
