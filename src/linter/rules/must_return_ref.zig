@@ -73,6 +73,7 @@ pub fn runOnNode(_: *const MustReturnRef, wrapper: NodeWrapper, ctx: *LinterCont
         ctx.ast(),
         &visitor,
     ) catch @panic("oom");
+    defer walker.deinit();
     walker.walk() catch @panic("oom");
 }
 

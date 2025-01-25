@@ -460,8 +460,11 @@ pub fn Walker(Visitor: type, Error: type) type {
                     try self.pushManyUnconditional(members);
                 },
                 // lhs/rhs both ignored
-                .unset, .token => {},
-                else => |kind| std.debug.panic("todo: {s} ({s})", .{ @tagName(kind), @tagName(tag) }),
+                .unset, .token, .token_unset => {},
+                else => |kind| if (comptime util.IS_DEBUG) std.debug.panic(
+                    "todo: {s} ({s})",
+                    .{ @tagName(kind), @tagName(tag) },
+                ),
             }
         }
 
@@ -885,7 +888,7 @@ const NodeDataKind = enum {
             .@"continue" => K.token_unset,
             // `break :lhs rhs`
             // both lhs and rhs may be omitted.
-            .@"break" => K.node,
+            .@"break" => K.token_node,
             // `return lhs`. lhs can be omitted. rhs is unused.
             .@"return" => K.node_unset,
             // `fn (a: lhs) rhs`. lhs can be omitted.

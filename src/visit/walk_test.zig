@@ -157,6 +157,7 @@ test "where's waldo, but its `x`" {
     try testXSeenTimes(1, "fn main() void { for(x) {} }");
     try testXSeenTimes(1, "const x = struct{};");
     try testXSeenTimes(1, "const Foo = struct{ pub const y = 1; pub const z = 2; pub const x = 3;};");
+    try testXSeenTimes(1, "const y = blk: { break :blk x; };");
     // try testXSeenTimes(3,
     //     \\fn foo(x: u32) void {
     //     \\  const a = 1 + (2 - (3 / (4 * x)));
