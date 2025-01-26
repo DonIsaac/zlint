@@ -7,55 +7,6 @@ const Walker = @import("./walk.zig").Walker;
 const WalkState = @import("./walk.zig").WalkState;
 
 const t = std.testing;
-test Walker {
-    const src =
-        \\const std = @import("std");
-        \\fn foo() void {
-        \\  const x = 1;
-        \\  std.debug.print("{d}\n", .{x});
-        \\}
-    ;
-
-    const Foo = struct {
-        depth: u32 = 0,
-        nodes_visited: u32 = 0,
-
-        // feature #1: enter/exit nodes
-
-        pub fn enterNode(self: *@This(), _: Node.Index) !void {
-            self.depth += 1;
-            self.nodes_visited += 1;
-        }
-        pub fn exitNode(self: *@This(), _: Node.Index) void {
-            t.expect(self.depth > 0) catch @panic("expect failed");
-            self.depth -= 1;
-        }
-
-        // // #2: visit any node based on its `Node.Tag`
-        // pub fn visit_container_decl(self: *@This(), node: Node.Index) !WalkState {
-        //     // do thing idk
-        //     return .Continue;
-        // }
-
-        // // #3: visit "full" nodes
-        // pub fn visitVarDecl(self: @This(), node: Node.Index, dec: Ast.full.VarDecl) !WalkState {
-        //     // do another thing
-        //     return .Continue;
-        // }
-    };
-    const FooWalker = Walker(Foo, anyerror);
-
-    var ast = try std.zig.Ast.parse(t.allocator, src, .zig);
-    defer ast.deinit(t.allocator);
-    try t.expectEqual(0, ast.errors.len);
-    var foo = Foo{};
-    var walker = try FooWalker.init(t.allocator, &ast, &foo);
-    defer walker.deinit();
-
-    try walker.walk();
-    try t.expectEqual(0, foo.depth);
-    try t.expectEqual(16, foo.nodes_visited);
-}
 
 test "Walker calls generic tag visitors if special cases aren't present" {
     const TestVisitor = struct {

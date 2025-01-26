@@ -22,6 +22,10 @@ pub const NodeWrapper = struct {
 
 const RunOnNodeFn = *const fn (ptr: *const anyopaque, node: NodeWrapper, ctx: *LinterContext) anyerror!void;
 const RunOnSymbolFn = *const fn (ptr: *const anyopaque, symbol: Symbol.Id, ctx: *LinterContext) anyerror!void;
+const VTable = struct {
+    runOnNode: RunOnNodeFn,
+    runOnSymbol: RunOnSymbolFn,
+};
 
 /// A single lint rule.
 ///
@@ -38,8 +42,9 @@ pub const Rule = struct {
     meta: Meta,
     id: Id,
     ptr: *anyopaque,
-    runOnNodeFn: RunOnNodeFn,
-    runOnSymbolFn: RunOnSymbolFn,
+    vtable: VTable,
+    // runOnNodeFn: RunOnNodeFn,
+    // runOnSymbolFn: RunOnSymbolFn,
 
     /// Rules must have a constant with this name of type `Rule.Meta`.
     const META_FIELD_NAME = "meta";
@@ -109,17 +114,19 @@ pub const Rule = struct {
             .id = id,
             .meta = meta,
             .ptr = ptr,
-            .runOnNodeFn = gen.runOnNode,
-            .runOnSymbolFn = gen.runOnSymbol,
+            .vtable = .{
+                .runOnNode = gen.runOnNode,
+                .runOnSymbol = gen.runOnSymbol,
+            },
         };
     }
 
     pub fn runOnNode(self: *const Rule, node: NodeWrapper, ctx: *LinterContext) !void {
-        return self.runOnNodeFn(self.ptr, node, ctx);
+        return self.vtable.runOnNode(self.ptr, node, ctx);
     }
 
     pub fn runOnSymbol(self: *const Rule, symbol: Symbol.Id, ctx: *LinterContext) !void {
-        return self.runOnSymbolFn(self.ptr, symbol, ctx);
+        return self.vtable.runOnSymbol(self.ptr, symbol, ctx);
     }
 
     pub fn getIdFor(name: []const u8) ?Rule.Id {
