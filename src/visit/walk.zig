@@ -17,21 +17,31 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+//! AST walking and visiting utilities.
 
-pub const WalkState = enum { Continue, Skip, Stop };
+pub const WalkState = enum {
+    /// Keep walking as normal
+    Continue,
+    /// Keep walking, but do not walk this node's children.
+    Skip,
+    /// Stop the walk. `walker.walk()` will return.
+    Stop,
+};
 
-/// Traverses an AST in a depth-first manner.
+/// Traverses an [AST](#std.zig.Ast) in a depth-first manner.
 ///
 /// Visitors are structs (or some other container) that control the walk and
 /// optionally inspect each node as it is encountered.
 ///
 /// ## Visiting Nodes
 /// For each kind of node (e.g. `fn_decl`), `Walker` will call `Visitor`'s
-/// `visit_fn_decl` method with 1. a mutable pointer to a Visitor instance and
-/// 2. the node id. Visitors do not need methods for each kind of node; missing
+/// `visit_fn_decl` method with a mutable pointer to a `Visitor` instance and
+/// the node's id. Visitors do not need methods for each kind of node; missing
 /// visit methods will simply not be called.
 ///
-///     pub fn visit_fn_decl(this: *Visitor, node: Node.Index) Error!WalkState;
+/// ```zig
+/// pub fn visit_fn_decl(this: *Visitor, node: Node.Index) Error!WalkState;
+/// ```
 ///
 /// Visit methods control the walk by returning a `WalkState`. This has the
 /// following behavior:
@@ -180,6 +190,7 @@ pub fn Walker(Visitor: type, Error: type) type {
             if (@hasDecl(Visitor, "exitNode")) return self.visitor.exitNode(node);
         }
 
+        /// Walk over an `std.zig.Ast` with the provided `Visitor`.
         pub fn walk(self: *Self) WalkError!void {
             // Used by some full AST node getters. The meaning of this node depends on each getter.
             // Since this is re-used, care must be taken to avoid storing a reference to (now-clobbered) data.
@@ -1063,6 +1074,76 @@ const Node = Ast.Node;
 // const NodeIndex = Ast.Node.Index;
 const Semantic = semantic.Semantic;
 
+// =============================================================================
+const expectEqual = std.testing.expectEqual;
+const expect = std.testing.expect;
+
 test {
     _ = @import("walk_test.zig");
+}
+
+test Walker {
+    // This visitor has methods that get called during the walk.
+    const Foo = struct {
+        depth: u32 = 0,
+        nodes_visited: u32 = 0,
+        seen_fn_decl: bool = false,
+        seen_var_decl: bool = false,
+
+        const Error = error{};
+
+        fn enterNode(self: *@This(), _: Node.Index) !void {
+            self.depth += 1;
+            self.nodes_visited += 1;
+        }
+        fn exitNode(self: *@This(), _: Node.Index) void {
+            expect(self.depth > 0) catch @panic("expect failed");
+            self.depth -= 1;
+        }
+
+        // All nodes may be visited with a function called `visit_[tag]`,
+        // where `tag` is a variant of `Node.Tag`.
+        fn visit_fn_decl(self: *@This(), _: Node.Index) Error!WalkState {
+            self.seen_fn_decl = true;
+            return .Continue;
+        }
+
+        /// You may also visit "full" nodes. Basically, if `Ast` has a method
+        /// called `fullNodeKind`, then you can visit it with `visitNodeKind`.
+        ///
+        /// See `std.zig.Ast.full` for a list.
+        fn visitVarDecl(
+            self: *@This(),
+            _: Node.Index,
+            _: *const Ast.full.VarDecl,
+        ) Error!WalkState {
+            self.seen_var_decl = true;
+            return .Continue;
+        }
+    };
+
+    const allocator = std.testing.allocator;
+    const src: [:0]const u8 =
+        \\const std = @import("std");
+        \\fn foo() void {
+        \\  const x = 1;
+        \\  std.debug.print("{d}\n", .{x});
+        \\}
+    ;
+
+    // parse some source code into a std.zig.Ast
+    var ast = try Ast.parse(allocator, src, .zig);
+    defer ast.deinit(allocator);
+    try expectEqual(0, ast.errors.len);
+
+    // walk the AST with your visitor
+    var visitor = Foo{};
+    var walker = try Walker(Foo, Foo.Error).init(allocator, &ast, &visitor);
+    defer walker.deinit();
+    try walker.walk();
+
+    try expectEqual(0, visitor.depth);
+    try expectEqual(16, visitor.nodes_visited);
+    try expect(visitor.seen_fn_decl);
+    try expect(visitor.seen_var_decl);
 }

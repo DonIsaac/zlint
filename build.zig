@@ -29,7 +29,9 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/util.zig"),
     });
 
-    const zlint = b.addModule("zlint", .{
+    // artifacts
+    var lib = b.addStaticLibrary(.{
+        .name = "zlint",
         .root_source_file = b.path("src/root.zig"),
         .single_threaded = single_threaded,
         .target = l.target,
@@ -38,9 +40,11 @@ pub fn build(b: *std.Build) void {
         .unwind_tables = if (debug_release) true else null,
         .strip = if (debug_release) false else null,
     });
+    const zlint = &lib.root_module;
     l.link(zlint, false, .{});
+    b.modules.put(b.dupe("zlint"), zlint) catch @panic("OOM");
+    b.installArtifact(lib);
 
-    // artifacts
     const exe = b.addExecutable(.{
         .name = "zlint",
         .root_source_file = b.path("src/main.zig"),
@@ -101,28 +105,43 @@ pub fn build(b: *std.Build) void {
     const run = b.step("run", "Run zlint from the current directory");
     run.dependOn(&run_exe.step);
 
-    const run_exe_tests = b.addRunArtifact(test_exe);
-    const run_utils_tests = b.addRunArtifact(test_utils);
-    const unit_step = b.step("test", "Run unit tests");
-    unit_step.dependOn(&run_exe_tests.step);
-    unit_step.dependOn(&run_utils_tests.step);
+    // zig build test
+    {
+        const run_exe_tests = b.addRunArtifact(test_exe);
+        const run_utils_tests = b.addRunArtifact(test_utils);
+        const unit_step = b.step("test", "Run unit tests");
+        unit_step.dependOn(&run_exe_tests.step);
+        unit_step.dependOn(&run_utils_tests.step);
 
-    const run_e2e = b.addRunArtifact(e2e);
-    const e2e_step = b.step("test-e2e", "Run e2e tests");
-    e2e_step.dependOn(&run_e2e.step);
+        const run_e2e = b.addRunArtifact(e2e);
+        const e2e_step = b.step("test-e2e", "Run e2e tests");
+        e2e_step.dependOn(&run_e2e.step);
 
-    const test_all_step = b.step("test-all", "Run all tests");
-    test_all_step.dependOn(&run_exe_tests.step);
-    test_all_step.dependOn(&run_utils_tests.step);
-    test_all_step.dependOn(&run_e2e.step);
+        const test_all_step = b.step("test-all", "Run all tests");
+        test_all_step.dependOn(&run_exe_tests.step);
+        test_all_step.dependOn(&run_utils_tests.step);
+        test_all_step.dependOn(&run_e2e.step);
+    }
 
-    const docs_step = b.step("docs", "Generate documentation");
-    const docs_rules_step = Tasks.generateRuleDocs(&l);
-    docs_step.dependOn(docs_rules_step);
+    // zig build docs
+    {
+        const docs_step = b.step("docs", "Generate documentation");
+        const docs_rules_step = Tasks.generateRuleDocs(&l);
+        const lib_docs = b.addInstallDirectory(.{
+            .source_dir = lib.getEmittedDocs(),
+            .install_dir = .prefix,
+            .install_subdir = "docs",
+        });
+        docs_step.dependOn(docs_rules_step);
+        docs_step.dependOn(&lib_docs.step);
+    }
 
-    const codegen = b.step("codegen", "Codegen");
-    const confgen_task = Tasks.generateRulesConfig(&l);
-    codegen.dependOn(confgen_task);
+    // zig build codegen
+    {
+        const codegen = b.step("codegen", "Codegen");
+        const confgen_task = Tasks.generateRulesConfig(&l);
+        codegen.dependOn(confgen_task);
+    }
 
     // check is down here because it's weird. We create mocks of each artifacts
     // that never get installed. This (allegedly) skips llvm emit.

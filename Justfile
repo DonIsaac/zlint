@@ -30,9 +30,7 @@ install dir="~/.bin":
 ready:
     git diff --name-only --exit-code
     zig build check
-    just codegen
-    zig build
-    just docs
+    zig build install codegen docs:rules
     just fmt
     zig build test
     zig build test-e2e
@@ -101,7 +99,7 @@ codegen:
 # Remove build and test artifacts
 clean:
     rm -rf .zig-cache \
-        zig-out/bin zig-out/lib \
+        zig-out/bin zig-out/lib zig-out/docs \
         .coverage
 
 # Generate boilerplate code for a new rule
