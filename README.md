@@ -55,7 +55,7 @@ all default rules, only enabling the ones you choose.
 ```json
 {
   "rules": {
-    "no-undefined": "error",
+    "unsafe-undefined": "error",
     "homeless-try": "warn"
   }
 }
