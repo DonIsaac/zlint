@@ -2,8 +2,9 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 
-const Linter = @import("../../linter.zig").Linter;
-const Config = @import("../../linter.zig").Config;
+const lint = @import("../../lint.zig");
+const Linter = lint.Linter;
+const Config = lint.Config;
 const Source = @import("../../source.zig").Source;
 const Error = @import("../../Error.zig");
 const ErrorList = std.ArrayList(Error);

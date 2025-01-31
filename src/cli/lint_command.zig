@@ -1,6 +1,6 @@
 const std = @import("std");
 const walk = @import("../walk/Walker.zig");
-const _lint = @import("../linter.zig");
+const _lint = @import("../lint.zig");
 const _source = @import("../source.zig");
 const reporters = @import("../reporter.zig");
 const lint_config = @import("lint_config.zig");

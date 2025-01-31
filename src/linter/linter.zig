@@ -1,16 +1,16 @@
 const std = @import("std");
-const _source = @import("source.zig");
-const _semantic = @import("semantic.zig");
+const _source = @import("../source.zig");
+const _semantic = @import("../semantic.zig");
 
-const _rule = @import("linter/rule.zig");
-const Context = @import("linter/lint_context.zig");
-const disable_directives = @import("linter/disable_directives.zig");
+const _rule = @import("rule.zig");
+const Context = @import("lint_context.zig");
+const disable_directives = @import("disable_directives.zig");
 // const ErrorList = Context.ErrorList;
 
-const Fix = @import("linter/fix.zig").Fix;
-const Fixer = @import("linter/fix.zig").Fixer;
+const Fix = @import("fix.zig").Fix;
+const Fixer = @import("fix.zig").Fixer;
 
-const Error = @import("Error.zig");
+const Error = @import("../Error.zig");
 const Severity = Error.Severity;
 const Source = _source.Source;
 const Semantic = _semantic.Semantic;
@@ -22,10 +22,10 @@ const assert = std.debug.assert;
 const fs = std.fs;
 
 const Rule = _rule.Rule;
-const RuleSet = @import("linter/RuleSet.zig");
+const RuleSet = @import("RuleSet.zig");
 const NodeWrapper = _rule.NodeWrapper;
 
-pub const Config = @import("./linter/Config.zig");
+pub const Config = @import("Config.zig");
 
 pub const Linter = struct {
     rules: RuleSet = .{},
@@ -300,11 +300,11 @@ pub const Linter = struct {
 test {
     // ensure intellisense
     std.testing.refAllDecls(@This());
-    std.testing.refAllDecls(@import("linter/tester.zig"));
-    std.testing.refAllDecls(@import("linter/disable_directives/Parser.zig"));
-    std.testing.refAllDeclsRecursive(@import("./linter/rules.zig"));
+    std.testing.refAllDecls(@import("tester.zig"));
+    std.testing.refAllDecls(@import("disable_directives/Parser.zig"));
+    std.testing.refAllDeclsRecursive(@import("./rules.zig"));
 
     // test suites
-    _ = @import("./linter/test/disabling_rules_test.zig");
-    std.testing.refAllDeclsRecursive(@import("./linter/fix.zig"));
+    _ = @import("./test/disabling_rules_test.zig");
+    std.testing.refAllDeclsRecursive(@import("./fix.zig"));
 }
