@@ -114,7 +114,22 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
         );
         defer source.deinit();
         var pass_errors: ?std.ArrayList(Error) = null;
-        self.linter.runOnSource(&source, &pass_errors) catch |e| switch (e) {
+
+        var builder = SemanticBuilder.init(self.alloc);
+        defer builder.deinit();
+        builder.withSource(&source);
+        var semantic_result = try builder.build(source.text());
+        defer semantic_result.deinit();
+        if (semantic_result.hasErrors()) {
+            self.diagnostic.message = Cow.fmt(
+                self.alloc,
+                "Test case had semantic or parse errors\n\nError: {s}\nSource:\n{s}\n",
+                .{ builder._errors.items[0].message.borrow(), src },
+            ) catch @panic("OOM");
+        }
+        const semantic = semantic_result.value;
+
+        self.linter.runOnSource(&semantic, &source, &pass_errors) catch |e| switch (e) {
             error.OutOfMemory => return Allocator.Error.OutOfMemory,
             else => {
                 self.diagnostic.message = Cow.fmt(
@@ -160,7 +175,22 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
             self.errors.appendSlice(self.alloc, e.items) catch @panic("OOM");
             e.deinit();
         };
-        self.linter.runOnSource(&source, &fail_errors) catch |e| switch (e) {
+
+        var builder = SemanticBuilder.init(self.alloc);
+        defer builder.deinit();
+        builder.withSource(&source);
+        var semantic_result = try builder.build(source.text());
+        defer semantic_result.deinit();
+        if (semantic_result.hasErrors()) {
+            self.diagnostic.message = Cow.fmt(
+                self.alloc,
+                "Test case had semantic or parse errors\n\nError: {s}\nSource:\n{s}\n",
+                .{ builder._errors.items[0].message.borrow(), src },
+            ) catch @panic("OOM");
+        }
+
+        const semantic = semantic_result.value;
+        self.linter.runOnSource(&semantic, &source, &fail_errors) catch |e| switch (e) {
             error.OutOfMemory => return Allocator.Error.OutOfMemory,
             else => {
                 // A fail case did, in fact, fail? Good.
@@ -236,6 +266,7 @@ const Allocator = std.mem.Allocator;
 const Error = @import("../Error.zig");
 const Linter = @import("linter.zig").Linter;
 const Rule = @import("rule.zig").Rule;
+const SemanticBuilder = @import("../semantic.zig").SemanticBuilder;
 const Source = @import("../source.zig").Source;
 const GraphicalFormatter = @import("../reporter.zig").formatter.Graphical;
 

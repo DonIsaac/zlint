@@ -5,6 +5,8 @@ const ArenaAllocator = std.heap.ArenaAllocator;
 const lint = @import("../../lint.zig");
 const Linter = lint.Linter;
 const Config = lint.Config;
+const SemanticBuilder = @import("../../semantic.zig").SemanticBuilder;
+const Semantic = @import("../../semantic.zig").Semantic;
 const Source = @import("../../source.zig").Source;
 const Error = @import("../../Error.zig");
 const ErrorList = std.ArrayList(Error);
@@ -17,6 +19,7 @@ const source =
     \\  uninitialized: u32 = undefined,
     \\};
 ;
+
 fn makeSource(arena: Allocator, source_text: []const u8) !Source {
     const srctext = try arena.dupeZ(u8, source_text);
     errdefer arena.free(srctext);
@@ -46,10 +49,18 @@ test "Enabled rules have their violations reported" {
         },
     };
 
+    var builder = SemanticBuilder.init(t.allocator);
+    builder.withSource(&src);
+    defer builder.deinit();
+
+    var semantic_result = try builder.build(src.text());
+    defer semantic_result.deinit();
+    const sema = semantic_result.value;
+
     {
         var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
         defer linter.deinit();
-        linter.runOnSource(&src, &errors) catch |e| {
+        linter.runOnSource(&sema, &src, &errors) catch |e| {
             switch (e) {
                 error.OutOfMemory => return e,
                 else => {},
@@ -73,11 +84,19 @@ test "When no rules are enabled, no violations are reported" {
         errs.deinit();
     };
 
+    var builder = SemanticBuilder.init(t.allocator);
+    builder.withSource(&src);
+    defer builder.deinit();
+
+    var res = try builder.build(src.text());
+    defer res.deinit();
+    const sema = res.value;
+
     {
         var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = .{} });
 
         defer linter.deinit();
-        try linter.runOnSource(&src, &errors);
+        try linter.runOnSource(&sema, &src, &errors);
         try expectEqual(null, errors);
     }
 }
@@ -100,10 +119,18 @@ test "When a rule is configured to 'off', none of its violations are reported" {
         },
     };
 
+    var builder = SemanticBuilder.init(t.allocator);
+    builder.withSource(&src);
+    defer builder.deinit();
+
+    var res = try builder.build(src.text());
+    defer res.deinit();
+    const sema = res.value;
+
     {
         var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
         defer linter.deinit();
-        linter.runOnSource(&src, &errors) catch |e| {
+        linter.runOnSource(&sema, &src, &errors) catch |e| {
             switch (e) {
                 error.OutOfMemory => return e,
                 else => {},
@@ -139,10 +166,18 @@ test "When rules are configured but a specific rule is disabled with 'zlint-disa
         },
     };
 
+    var builder = SemanticBuilder.init(t.allocator);
+    builder.withSource(&src);
+    defer builder.deinit();
+
+    var res = try builder.build(src.text());
+    defer res.deinit();
+    const sema = res.value;
+
     {
         var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
         defer linter.deinit();
-        linter.runOnSource(&src, &errors) catch |e| {
+        linter.runOnSource(&sema, &src, &errors) catch |e| {
             switch (e) {
                 error.OutOfMemory => return e,
                 else => {},
@@ -178,10 +213,18 @@ test "When rules are configured but disabled with 'zlint-disable', nothing gets 
         },
     };
 
+    var builder = SemanticBuilder.init(t.allocator);
+    builder.withSource(&src);
+    defer builder.deinit();
+
+    var res = try builder.build(src.text());
+    defer res.deinit();
+    const sema = res.value;
+
     {
         var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
         defer linter.deinit();
-        linter.runOnSource(&src, &errors) catch |e| {
+        linter.runOnSource(&sema, &src, &errors) catch |e| {
             switch (e) {
                 error.OutOfMemory => return e,
                 else => {},
@@ -216,10 +259,18 @@ test "When the global disable directive is misplaced, violations still gets repo
         },
     };
 
+    var builder = SemanticBuilder.init(t.allocator);
+    builder.withSource(&src);
+    defer builder.deinit();
+
+    var res = try builder.build(src.text());
+    defer res.deinit();
+    const sema = res.value;
+
     {
         var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
         defer linter.deinit();
-        linter.runOnSource(&src, &errors) catch |e| {
+        linter.runOnSource(&sema, &src, &errors) catch |e| {
             switch (e) {
                 error.OutOfMemory => return e,
                 else => {},
@@ -254,11 +305,19 @@ test "When the multiple global directives are set, all rules are honored" {
         },
     };
 
+    var builder = SemanticBuilder.init(t.allocator);
+    builder.withSource(&src);
+    defer builder.deinit();
+
+    var res = try builder.build(src.text());
+    defer res.deinit();
+    const sema = res.value;
+
     {
         var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
         defer linter.deinit();
 
-        linter.runOnSource(&src, &errors) catch |e| {
+        linter.runOnSource(&sema, &src, &errors) catch |e| {
             switch (e) {
                 error.OutOfMemory => return e,
                 else => {},

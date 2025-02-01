@@ -72,33 +72,14 @@ pub const Linter = struct {
     /// before exiting.
     pub fn runOnSource(
         self: *Linter,
+        semantic: *const Semantic,
         source: *Source,
         errors: *?std.ArrayList(Error),
     ) (LintError || Allocator.Error)!void {
-        if (source.text().len == 0) return;
-        var builder = SemanticBuilder.init(self.gpa);
-        builder.withSource(source);
-        defer builder.deinit();
-
-        var semantic_result = builder.build(source.text()) catch |e| {
-            errors.* = builder._errors.toManaged(self.gpa);
-            return switch (e) {
-                error.ParseFailed => LintError.ParseFailed,
-                else => LintError.AnalysisFailed,
-            };
-        };
-        if (semantic_result.hasErrors()) {
-            errors.* = builder._errors.toManaged(self.gpa);
-            semantic_result.value.deinit();
-            return LintError.AnalysisFailed;
-        }
-        defer semantic_result.deinit();
-        const semantic = semantic_result.value;
-
         var rulebuf: [RuleSet.RULES_COUNT]Rule.WithSeverity = undefined;
-        const rules = try self.getRulesForFile(&rulebuf, &semantic) orelse return;
+        const rules = try self.getRulesForFile(&rulebuf, semantic) orelse return;
 
-        var ctx = Context.init(self.gpa, &semantic, source);
+        var ctx = Context.init(self.gpa, semantic, source);
         defer ctx.deinit();
         if (self.options.fix) ctx.fix = Fix.Meta.fix();
         const nodes = ctx.semantic.ast.nodes;

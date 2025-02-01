@@ -6,10 +6,10 @@ pub const Managed = struct {
     /// should only be set if created from an on-disk config
     path: ?[]const u8 = null,
     config: Config,
-    arena: *std.heap.ArenaAllocator,
+    arena: *ArenaAllocator,
 };
 
-pub fn intoManaged(self: Config, arena: *std.heap.ArenaAllocator, path: ?[]const u8) Managed {
+pub fn intoManaged(self: Config, arena: *ArenaAllocator, path: ?[]const u8) Managed {
     return Managed{
         .config = self,
         .arena = arena,
@@ -48,6 +48,7 @@ const all_rules = @import("rules.zig");
 const all_rule_decls = @typeInfo(all_rules).Struct.decls;
 
 const std = @import("std");
+const ArenaAllocator = std.heap.ArenaAllocator;
 
 const RulesConfig = @import("config/rules_config.zig").RulesConfig;
 
