@@ -88,7 +88,7 @@ fn tryLintFile(self: *LintService, filepath: []u8) !void {
 }
 
 /// Lint a `Source` file in a single thread.
-/// 
+///
 /// When an error is returned, the `errors` list will be populated with `Errors`
 /// describing the problems found. Not necessarily true for allocation errors.
 /// See `Linter.runOnSource` for more details.
