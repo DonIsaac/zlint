@@ -1,16 +1,14 @@
 const std = @import("std");
-const _source = @import("source.zig");
-const _semantic = @import("semantic.zig");
+const _source = @import("../source.zig");
+const _semantic = @import("../semantic.zig");
 
-const _rule = @import("linter/rule.zig");
-const Context = @import("linter/lint_context.zig");
-const disable_directives = @import("linter/disable_directives.zig");
-// const ErrorList = Context.ErrorList;
+const _rule = @import("rule.zig");
+const Context = @import("lint_context.zig");
+const disable_directives = @import("disable_directives.zig");
 
-const Fix = @import("linter/fix.zig").Fix;
-const Fixer = @import("linter/fix.zig").Fixer;
+const Fix = @import("fix.zig").Fix;
 
-const Error = @import("Error.zig");
+const Error = @import("../Error.zig");
 const Severity = Error.Severity;
 const Source = _source.Source;
 const Semantic = _semantic.Semantic;
@@ -22,16 +20,19 @@ const assert = std.debug.assert;
 const fs = std.fs;
 
 const Rule = _rule.Rule;
-const RuleSet = @import("linter/RuleSet.zig");
+const RuleSet = @import("RuleSet.zig");
 const NodeWrapper = _rule.NodeWrapper;
 
-pub const Config = @import("./linter/Config.zig");
+pub const Config = @import("Config.zig");
 
 pub const Linter = struct {
     rules: RuleSet = .{},
     gpa: Allocator,
     arena: ArenaAllocator,
     options: Options = .{},
+
+    // TODO: move diagnostic definition here or just somewhere better
+    pub const Diagnostic = Context.Diagnostic;
 
     pub fn initEmpty(gpa: Allocator) Linter {
         return Linter{ .gpa = gpa, .arena = ArenaAllocator.init(gpa) };
@@ -72,33 +73,14 @@ pub const Linter = struct {
     /// before exiting.
     pub fn runOnSource(
         self: *Linter,
+        semantic: *const Semantic,
         source: *Source,
-        errors: *?std.ArrayList(Error),
+        errors: *?std.ArrayList(Context.Diagnostic),
     ) (LintError || Allocator.Error)!void {
-        if (source.text().len == 0) return;
-        var builder = SemanticBuilder.init(self.gpa);
-        builder.withSource(source);
-        defer builder.deinit();
-
-        var semantic_result = builder.build(source.text()) catch |e| {
-            errors.* = builder._errors.toManaged(self.gpa);
-            return switch (e) {
-                error.ParseFailed => LintError.ParseFailed,
-                else => LintError.AnalysisFailed,
-            };
-        };
-        if (semantic_result.hasErrors()) {
-            errors.* = builder._errors.toManaged(self.gpa);
-            semantic_result.value.deinit();
-            return LintError.AnalysisFailed;
-        }
-        defer semantic_result.deinit();
-        const semantic = semantic_result.value;
-
         var rulebuf: [RuleSet.RULES_COUNT]Rule.WithSeverity = undefined;
-        const rules = try self.getRulesForFile(&rulebuf, &semantic) orelse return;
+        const rules = try self.getRulesForFile(&rulebuf, semantic) orelse return;
 
-        var ctx = Context.init(self.gpa, &semantic, source);
+        var ctx = Context.init(self.gpa, semantic, source);
         defer ctx.deinit();
         if (self.options.fix) ctx.fix = Fix.Meta.fix();
         const nodes = ctx.semantic.ast.nodes;
@@ -122,7 +104,7 @@ pub const Linter = struct {
                         "Rule '{s}' failed to run: {s}",
                         .{ rule.meta.name, @errorName(e) },
                     );
-                    try ctx.errors.append(.{ .err = err });
+                    ctx.report(err);
                 };
             }
         }
@@ -139,44 +121,13 @@ pub const Linter = struct {
                         "Rule '{s}' failed to run: {s}",
                         .{ rule.meta.name, @errorName(e) },
                     );
-                    try ctx.errors.append(.{ .err = err });
+                    ctx.report(err);
                 };
             }
         }
-        if (ctx.errors.items.len == 0) return;
-
-        if (!self.options.fix) {
-            const n = ctx.errors.items.len;
-            var es = try std.ArrayList(Error).initCapacity(self.gpa, n);
-            for (0..n) |i| es.appendAssumeCapacity(ctx.errors.items[i].err);
-            errors.* = es;
-            return LintError.LintingFailed;
-        }
-
-        // TODO: move logic into a linter service
-        const unfixed_errors = try self.applyFixes(&ctx, source);
-        if (unfixed_errors.items.len > 0) {
-            errors.* = unfixed_errors;
-            return LintError.LintingFailed;
-        }
-    }
-
-    fn applyFixes(self: *const Linter, ctx: *Context, source: *Source) Allocator.Error!std.ArrayList(Error) {
-        var fixer = Fixer{ .allocator = self.gpa };
-        var result = try fixer.applyFixes(ctx.source.text(), ctx.errors.items);
-        defer result.deinit(self.gpa);
-        if (result.did_fix and source.pathname != null) {
-            const pathname = source.pathname.?;
-            // create instead of open to truncate contents
-            var file = fs.cwd().createFile(pathname, .{}) catch |e| {
-                std.debug.panic("Failed to apply fixes to '{s}': {}", .{ pathname, e });
-            };
-            defer file.close();
-            file.writeAll(result.source.items) catch |e| std.debug.panic("Failed to save fixed source to '{s}': {s}", .{ pathname, @errorName(e) });
-        }
-        const managed = result.unfixed_errors.toManaged(self.gpa);
-        result.unfixed_errors = .{};
-        return managed;
+        if (ctx.diagnostics.items.len == 0) return;
+        errors.* = ctx.takeDiagnostics();
+        return error.LintingFailed;
     }
 
     /// Get the list of rules that should be run on a file. Rules disabled
@@ -298,13 +249,5 @@ pub const Linter = struct {
 };
 
 test {
-    // ensure intellisense
     std.testing.refAllDecls(@This());
-    std.testing.refAllDecls(@import("linter/tester.zig"));
-    std.testing.refAllDecls(@import("linter/disable_directives/Parser.zig"));
-    std.testing.refAllDeclsRecursive(@import("./linter/rules.zig"));
-
-    // test suites
-    _ = @import("./linter/test/disabling_rules_test.zig");
-    std.testing.refAllDeclsRecursive(@import("./linter/fix.zig"));
 }

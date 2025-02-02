@@ -38,7 +38,7 @@ ready:
 
 # Build and run the linter
 run *ARGS:
-    zig build run {{ARGS}}
+    zig build run --summary none -- {{ARGS}}
 
 # Build in debug mode
 build *ARGS:

@@ -156,9 +156,11 @@ const rule_ids: IdMap = ids: {
 
 test rule_ids {
     const t = std.testing;
-    try t.expectEqual(
-        @typeInfo(@import("./rules.zig")).Struct.decls.len,
-        rule_ids.kvs.len,
-    );
-    try t.expect(rule_ids.get("unsafe-undefined") != null);
+    comptime {
+        try t.expectEqual(
+            @typeInfo(@import("./rules.zig")).Struct.decls.len,
+            rule_ids.kvs.len,
+        );
+        try t.expect(rule_ids.get("unsafe-undefined") != null);
+    }
 }
