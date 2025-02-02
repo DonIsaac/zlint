@@ -9,7 +9,7 @@ const SemanticBuilder = @import("../../semantic.zig").SemanticBuilder;
 const Semantic = @import("../../semantic.zig").Semantic;
 const Source = @import("../../source.zig").Source;
 const Error = @import("../../Error.zig");
-const ErrorList = std.ArrayList(Error);
+const ErrorList = Linter.Diagnostic.List;
 
 const t = std.testing;
 const expectEqual = t.expectEqual;
@@ -137,7 +137,7 @@ test "When a rule is configured to 'off', none of its violations are reported" {
             }
         };
         try expectEqual(1, errors.?.items.len);
-        try expectEqual("unsafe-undefined", errors.?.items[0].code);
+        try expectEqual("unsafe-undefined", errors.?.items[0].err.code);
     }
 }
 
@@ -184,7 +184,7 @@ test "When rules are configured but a specific rule is disabled with 'zlint-disa
             }
         };
         try expectEqual(1, errors.?.items.len);
-        try expectEqual("unused-decls", errors.?.items[0].code);
+        try expectEqual("unused-decls", errors.?.items[0].err.code);
     }
 }
 

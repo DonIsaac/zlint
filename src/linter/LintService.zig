@@ -109,11 +109,55 @@ fn runOnSource(
     defer semantic_result.deinit();
     const semantic = semantic_result.value;
 
-    return self.linter.runOnSource(&semantic, source, errors);
+    var diagnostics_: ?Linter.Diagnostic.List = null;
+    defer if (diagnostics_) |*d| d.deinit();
+    self.linter.runOnSource(&semantic, source, &diagnostics_) catch |e| {
+        if (diagnostics_ == null) return e;
+        var diagnostics = diagnostics_ orelse unreachable;
+
+        // FIXME: take errors from ctx. requires using Error instead of Diagnostic
+        // when fix is false
+        if (!self.options.fix) {
+            const n = diagnostics.items.len;
+            util.assert(n > 0, "Linter should never assign an empty error list when problems are reported", .{});
+            util.assert(self.allocator.ptr == diagnostics.allocator.ptr, "diagnostics used a different allocator than one used to make errors", .{});
+            var es = try std.ArrayList(Error).initCapacity(self.allocator, n);
+            for (0..n) |i| es.appendAssumeCapacity(diagnostics.items[i].err);
+            errors.* = es;
+            return LintError.LintingFailed;
+        }
+
+        // TODO: move logic into a linter service
+        const unfixed_errors = try self.applyFixes(&diagnostics, source);
+        if (unfixed_errors.items.len > 0) {
+            errors.* = unfixed_errors;
+            return LintError.LintingFailed;
+        }
+    };
 }
+
+fn applyFixes(self: *const LintService, diagnostics: *Linter.Diagnostic.List, source: *Source) Allocator.Error!std.ArrayList(Error) {
+    var fixer = Fixer{ .allocator = self.allocator };
+    var result = try fixer.applyFixes(source.text(), diagnostics.items);
+    defer result.deinit(self.allocator);
+    if (result.did_fix and source.pathname != null) {
+        const pathname = source.pathname.?;
+        // create instead of open to truncate contents
+        var file = fs.cwd().createFile(pathname, .{}) catch |e| {
+            std.debug.panic("Failed to apply fixes to '{s}': {}", .{ pathname, e });
+        };
+        defer file.close();
+        file.writeAll(result.source.items) catch |e| std.debug.panic("Failed to save fixed source to '{s}': {s}", .{ pathname, @errorName(e) });
+    }
+    const managed = result.unfixed_errors.toManaged(self.allocator);
+    result.unfixed_errors = .{};
+    return managed;
+}
+
 const LintError = Linter.LintError;
 
 const std = @import("std");
+const util = @import("util");
 const mem = std.mem;
 const fs = std.fs;
 const path = std.fs.path;
@@ -126,6 +170,8 @@ const Allocator = std.mem.Allocator;
 const Linter = @import("linter.zig").Linter;
 const Config = @import("Config.zig");
 const Source = @import("../source.zig").Source;
+const Fix = @import("fix.zig").Fix;
+const Fixer = @import("fix.zig").Fixer;
 const Error = @import("../Error.zig");
 const Semantic = @import("../semantic.zig").Semantic;
 const SemanticBuilder = @import("../semantic.zig").SemanticBuilder;

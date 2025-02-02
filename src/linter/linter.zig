@@ -8,7 +8,6 @@ const disable_directives = @import("disable_directives.zig");
 // const ErrorList = Context.ErrorList;
 
 const Fix = @import("fix.zig").Fix;
-const Fixer = @import("fix.zig").Fixer;
 
 const Error = @import("../Error.zig");
 const Severity = Error.Severity;
@@ -32,6 +31,9 @@ pub const Linter = struct {
     gpa: Allocator,
     arena: ArenaAllocator,
     options: Options = .{},
+
+    // TODO: move diagnostic definition here or just somewhere better
+    pub const Diagnostic = Context.Diagnostic;
 
     pub fn initEmpty(gpa: Allocator) Linter {
         return Linter{ .gpa = gpa, .arena = ArenaAllocator.init(gpa) };
@@ -74,7 +76,7 @@ pub const Linter = struct {
         self: *Linter,
         semantic: *const Semantic,
         source: *Source,
-        errors: *?std.ArrayList(Error),
+        errors: *?std.ArrayList(Context.Diagnostic),
     ) (LintError || Allocator.Error)!void {
         var rulebuf: [RuleSet.RULES_COUNT]Rule.WithSeverity = undefined;
         const rules = try self.getRulesForFile(&rulebuf, semantic) orelse return;
@@ -125,39 +127,8 @@ pub const Linter = struct {
             }
         }
         if (ctx.errors.items.len == 0) return;
-
-        if (!self.options.fix) {
-            const n = ctx.errors.items.len;
-            var es = try std.ArrayList(Error).initCapacity(self.gpa, n);
-            for (0..n) |i| es.appendAssumeCapacity(ctx.errors.items[i].err);
-            errors.* = es;
-            return LintError.LintingFailed;
-        }
-
-        // TODO: move logic into a linter service
-        const unfixed_errors = try self.applyFixes(&ctx, source);
-        if (unfixed_errors.items.len > 0) {
-            errors.* = unfixed_errors;
-            return LintError.LintingFailed;
-        }
-    }
-
-    fn applyFixes(self: *const Linter, ctx: *Context, source: *Source) Allocator.Error!std.ArrayList(Error) {
-        var fixer = Fixer{ .allocator = self.gpa };
-        var result = try fixer.applyFixes(ctx.source.text(), ctx.errors.items);
-        defer result.deinit(self.gpa);
-        if (result.did_fix and source.pathname != null) {
-            const pathname = source.pathname.?;
-            // create instead of open to truncate contents
-            var file = fs.cwd().createFile(pathname, .{}) catch |e| {
-                std.debug.panic("Failed to apply fixes to '{s}': {}", .{ pathname, e });
-            };
-            defer file.close();
-            file.writeAll(result.source.items) catch |e| std.debug.panic("Failed to save fixed source to '{s}': {s}", .{ pathname, @errorName(e) });
-        }
-        const managed = result.unfixed_errors.toManaged(self.gpa);
-        result.unfixed_errors = .{};
-        return managed;
+        errors.* = ctx.takeDiagnostics();
+        return error.LintingFailed;
     }
 
     /// Get the list of rules that should be run on a file. Rules disabled

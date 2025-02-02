@@ -3,7 +3,7 @@
 semantic: *const Semantic,
 gpa: Allocator,
 /// Errors collected by lint rules
-errors: ErrorList,
+errors: Diagnostic.List,
 
 /// this slice is 'static (in data segment) and should never be free'd
 curr_rule_name: string = "",
@@ -21,7 +21,7 @@ pub fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context 
     return Context{
         .semantic = semantic,
         .gpa = gpa,
-        .errors = ErrorList.init(gpa),
+        .errors = Diagnostic.List.init(gpa),
         .source = source,
     };
 }
@@ -34,6 +34,12 @@ pub inline fn updateForRule(self: *Context, rule: *const Rule.WithSeverity) void
     self.curr_rule_name = rule.rule.meta.name;
     self.curr_severity = rule.severity;
     self.curr_fix_capabilities = rule.rule.meta.fix;
+}
+
+pub fn takeDiagnostics(self: *Context) Diagnostic.List {
+    const errors = self.errors;
+    self.errors = Diagnostic.List.init(self.gpa);
+    return errors;
 }
 
 // ============================== SHORTHANDS ===============================
@@ -228,10 +234,14 @@ pub fn deinit(self: *Context) void {
 pub const Diagnostic = struct {
     err: Error,
     fix: ?Fix = null,
-};
 
-// TODO: add comptime check to use `std.ArrayList(Error)` when not fixing
-pub const ErrorList = std.ArrayList(Diagnostic);
+    pub fn deinit(self: *Diagnostic, allocator: Allocator) void {
+        self.err.deinit(allocator);
+        self.* = undefined;
+    }
+    // TODO: add comptime check to use `std.ArrayList(Error)` when not fixing
+    pub const List = std.ArrayList(Diagnostic);
+};
 
 const Context = @This();
 
