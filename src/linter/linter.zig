@@ -250,13 +250,5 @@ pub const Linter = struct {
 };
 
 test {
-    // ensure intellisense
     std.testing.refAllDecls(@This());
-    std.testing.refAllDecls(@import("tester.zig"));
-    std.testing.refAllDecls(@import("disable_directives/Parser.zig"));
-    std.testing.refAllDeclsRecursive(@import("./rules.zig"));
-
-    // test suites
-    _ = @import("./test/disabling_rules_test.zig");
-    std.testing.refAllDeclsRecursive(@import("./fix.zig"));
 }

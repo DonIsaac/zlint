@@ -54,8 +54,9 @@ pub fn parseArgv(alloc: Allocator, err: ?*Error) ParseError!Options {
 }
 
 fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options {
-    var opts = Options{};
     var argv = args_iter;
+    var opts = Options{};
+    errdefer opts.deinit(alloc);
 
     // skip binary name
     _ = argv.next() orelse return opts;
@@ -132,8 +133,9 @@ const Allocator = std.mem.Allocator;
 const formatter = @import("../reporter.zig").formatter;
 const Error = @import("../Error.zig");
 
+const t = std.testing;
+
 test parse {
-    const t = std.testing;
     const List = std.ArrayListUnmanaged(util.string);
     const Case = std.meta.Tuple(&[_]type{ []const u8, Options });
 
@@ -167,7 +169,8 @@ test parse {
     for (test_cases) |test_case| {
         const argv = std.mem.splitScalar(u8, test_case[0], ' ');
         const expected: Options = test_case[1];
-        const opts = try parse(std.heap.page_allocator, argv, null);
+        var opts = try parse(t.allocator, argv, null);
+        defer opts.deinit(t.allocator);
 
         try t.expectEqual(expected.verbose, opts.verbose);
         try t.expectEqual(expected.print_ast, opts.print_ast);
@@ -179,4 +182,15 @@ test parse {
             );
         }
     }
+}
+
+test "invalid --format" {
+    var err: Error = undefined;
+    const argv = std.mem.splitScalar(u8, "zlint --format this-is-not-a-valid-format", ' ');
+    defer err.deinit(t.allocator);
+    try t.expectError(
+        error.InvalidArgValue,
+        parse(t.allocator, argv, &err),
+    );
+    try t.expect(std.mem.indexOf(u8, err.message.borrow(), "Invalid format name") != null);
 }

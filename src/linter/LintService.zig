@@ -24,7 +24,7 @@ pub fn init(
     errdefer linter.deinit();
     const pool = try allocator.create(Thread.Pool);
     errdefer allocator.destroy(pool);
-    try Thread.Pool.init(pool, Thread.Pool.Options{ .n_jobs = options.n_threads, .allocator = allocator });
+    try pool.init(Thread.Pool.Options{ .n_jobs = options.n_threads, .allocator = allocator });
 
     return .{
         .linter = linter,
@@ -41,6 +41,10 @@ pub fn deinit(self: *LintService) void {
     self.allocator.destroy(self.pool);
     // NOTE: threads must be joined first
     self.linter.deinit();
+}
+
+pub inline fn rulesCount(self: *LintService) usize {
+    return self.linter.rules.rules.items.len;
 }
 
 /// `filepath` must be an owned allocation on the heap, and gets moved into the
@@ -72,7 +76,7 @@ fn tryLintFile(self: *LintService, filepath: []u8) !void {
     defer source.deinit();
     var errors: ?std.ArrayList(Error) = null;
 
-    self.runOnSource(&source, &errors) catch |err| {
+    self.lintSource(&source, &errors) catch |err| {
         if (errors) |e| {
             self.reporter.reportErrors(e);
         } else {
@@ -83,7 +87,12 @@ fn tryLintFile(self: *LintService, filepath: []u8) !void {
     self.reporter.stats.recordSuccess();
 }
 
-fn runOnSource(
+/// Lint a `Source` file in a single thread.
+/// 
+/// When an error is returned, the `errors` list will be populated with `Errors`
+/// describing the problems found. Not necessarily true for allocation errors.
+/// See `Linter.runOnSource` for more details.
+pub fn lintSource(
     self: *LintService,
     source: *Source,
     errors: *?std.ArrayList(Error),
@@ -110,6 +119,8 @@ fn runOnSource(
     const semantic = semantic_result.value;
 
     var diagnostics_: ?Linter.Diagnostic.List = null;
+    // NOTE: errors are moved into reporter, so only the list itself gets
+    // destroyed (not the errors it contains.)
     defer if (diagnostics_) |*d| d.deinit();
     self.linter.runOnSource(&semantic, source, &diagnostics_) catch |e| {
         if (diagnostics_ == null) return e;
@@ -127,7 +138,6 @@ fn runOnSource(
             return LintError.LintingFailed;
         }
 
-        // TODO: move logic into a linter service
         const unfixed_errors = try self.applyFixes(&diagnostics, source);
         if (unfixed_errors.items.len > 0) {
             errors.* = unfixed_errors;
@@ -140,15 +150,18 @@ fn applyFixes(self: *const LintService, diagnostics: *Linter.Diagnostic.List, so
     var fixer = Fixer{ .allocator = self.allocator };
     var result = try fixer.applyFixes(source.text(), diagnostics.items);
     defer result.deinit(self.allocator);
+
     if (result.did_fix and source.pathname != null) {
         const pathname = source.pathname.?;
         // create instead of open to truncate contents
+        // TODO: handle errors here instead of panicking
         var file = fs.cwd().createFile(pathname, .{}) catch |e| {
             std.debug.panic("Failed to apply fixes to '{s}': {}", .{ pathname, e });
         };
         defer file.close();
         file.writeAll(result.source.items) catch |e| std.debug.panic("Failed to save fixed source to '{s}': {s}", .{ pathname, @errorName(e) });
     }
+
     const managed = result.unfixed_errors.toManaged(self.allocator);
     result.unfixed_errors = .{};
     return managed;
