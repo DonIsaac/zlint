@@ -7,6 +7,7 @@ filename: string,
 passes: std.ArrayListUnmanaged([:0]const u8) = .{},
 /// Test cases that should produce at least one violation when linted.
 fails: std.ArrayListUnmanaged([:0]const u8) = .{},
+fixes: std.ArrayListUnmanaged(FixCase) = .{},
 /// Violation diagnostics collected by pass and fail cases.
 diagnostics: std.ArrayListUnmanaged(Linter.Diagnostic) = .{},
 diagnostic: TestDiagnostic = .{},
@@ -25,8 +26,23 @@ const TestError = error{
     PassFailed,
     /// Expected violations, but none were found.
     FailPassed,
+    /// Expected fixable violations, but none were produced
+    FixPassed,
+    /// After applying fixes, unfixed violations remained
+    FixFailed,
+    /// After applying fixes, the fixed source code did not match the expected
+    /// result.
+    FixMismatch,
 };
 pub const LintTesterError = SnapshotError || TestError;
+
+pub const FixCase = struct {
+    src: [:0]const u8,
+    expected: [:0]const u8,
+    /// What kind of fix should have been provided. Leave this as `null` if you
+    /// don't care.
+    kind: ?Fix.Kind = null,
+};
 
 pub fn init(alloc: Allocator, rule: Rule) RuleTester {
     const filename = std.mem.concat(alloc, u8, &[_]string{ rule.meta.name, ".zig" }) catch @panic("OOM");
@@ -81,6 +97,14 @@ pub fn withFail(self: *RuleTester, comptime fail: []const [:0]const u8) *RuleTes
     return self;
 }
 
+pub fn withFix(self: *RuleTester, comptime fix: []const FixCase) *RuleTester {
+    self.fixes.appendSlice(self.alloc, fix) catch |e| {
+        const name = self.rule.meta.name;
+        panic("Failed to add fix cases to RuleTester for {s}: {s}", .{ name, @errorName(e) });
+    };
+    return self;
+}
+
 pub fn run(self: *RuleTester) !void {
     self.runImpl() catch |e| {
         const msg = self.diagnostic.message.borrow();
@@ -100,104 +124,48 @@ pub fn run(self: *RuleTester) !void {
         }
     };
 }
+
 fn runImpl(self: *RuleTester) LintTesterError!void {
     // Run pass cases
     var i: usize = 0;
     for (self.passes.items) |src| {
         defer i += 1;
 
-        // TODO: support static strings in Source w/o leaking memory.
-        var source = try Source.fromString(
-            self.alloc,
-            try self.alloc.dupeZ(u8, src),
-            try self.alloc.dupe(u8, self.filename),
-        );
-        defer source.deinit();
-        var pass_errors: ?Linter.Diagnostic.List = null;
+        var pass_errors = self.newList();
+        defer pass_errors.deinit();
 
-        var builder = SemanticBuilder.init(self.alloc);
-        defer builder.deinit();
-        builder.withSource(&source);
-        var semantic_result = try builder.build(source.text());
-        defer semantic_result.deinit();
-        if (semantic_result.hasErrors()) {
-            self.diagnostic.message = Cow.fmt(
-                self.alloc,
-                "Test case had semantic or parse errors\n\nError: {s}\nSource:\n{s}\n",
-                .{ builder._errors.items[0].message.borrow(), src },
-            ) catch @panic("OOM");
-        }
-        const semantic = semantic_result.value;
-
-        self.linter.runOnSource(&semantic, &source, &pass_errors) catch |e| switch (e) {
-            error.OutOfMemory => return Allocator.Error.OutOfMemory,
-            else => {
+        self.lint(src, i, &pass_errors) catch |e| {
+            if (self.diagnostic.message.borrow().len == 0) {
                 self.diagnostic.message = Cow.fmt(
                     self.alloc,
-                    "Pass test case #{d} failed: {s}\n\nSource:\n{s}\n",
+                    "Expected test case #{d} to pass: {s}\n\n{s}",
                     .{ i + 1, @errorName(e), src },
                 ) catch @panic("OOM");
-                if (pass_errors) |errors| {
-                    defer errors.deinit();
-                    try self.diagnostics.appendSlice(self.alloc, errors.items);
-                }
-                return LintTesterError.PassFailed;
-            },
-        };
-
-        if (pass_errors) |errors| {
-            defer errors.deinit();
-            try self.diagnostics.appendSlice(self.alloc, errors.items);
-            if (errors.items.len > 0) {
-                self.diagnostic.message = Cow.fmt(
-                    self.alloc,
-                    "Expected test case #{d} to pass:\n\n{s}",
-                    .{ i + 1, src },
-                ) catch @panic("OOM");
-                return LintTesterError.PassFailed;
             }
-        }
+            try self.diagnostics.appendSlice(self.alloc, pass_errors.items);
+            return LintTesterError.PassFailed;
+        };
     }
 
     // Run fail cases
     i = 0;
     for (self.fails.items) |src| {
         defer i += 1;
-        // TODO: support static strings in Source w/o leaking memory.
-        var source = try Source.fromString(
-            self.alloc,
-            try self.alloc.dupeZ(u8, src),
-            try self.alloc.dupe(u8, self.filename),
-        );
-        defer source.deinit();
-        var fail_errors: ?Linter.Diagnostic.List = null;
-        defer if (fail_errors) |e| {
-            self.diagnostics.appendSlice(self.alloc, e.items) catch @panic("OOM");
-            e.deinit();
+
+        var fail_errors = self.newList();
+        defer fail_errors.deinit();
+
+        self.lint(src, i, &fail_errors) catch |e| {
+            try self.diagnostics.appendSlice(self.alloc, fail_errors.items);
+            switch (e) {
+                error.LintingFailed => continue,
+                else => {
+                    return e;
+                },
+            }
         };
 
-        var builder = SemanticBuilder.init(self.alloc);
-        defer builder.deinit();
-        builder.withSource(&source);
-        var semantic_result = try builder.build(source.text());
-        defer semantic_result.deinit();
-        if (semantic_result.hasErrors()) {
-            self.diagnostic.message = Cow.fmt(
-                self.alloc,
-                "Test case had semantic or parse errors\n\nError: {s}\nSource:\n{s}\n",
-                .{ builder._errors.items[0].message.borrow(), src },
-            ) catch @panic("OOM");
-        }
-
-        const semantic = semantic_result.value;
-        self.linter.runOnSource(&semantic, &source, &fail_errors) catch |e| switch (e) {
-            error.OutOfMemory => return Allocator.Error.OutOfMemory,
-            else => {
-                // A fail case did, in fact, fail? Good.
-                continue;
-            },
-        };
-        if (fail_errors == null or fail_errors.?.items.len == 0) {
+        if (fail_errors.items.len == 0) {
             self.diagnostic.message = Cow.fmt(
                 self.alloc,
                 "Expected test case #{d} to fail:\n\n{s}",
@@ -207,7 +175,127 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
         }
     }
 
+    // Run fix cases
+    i = 0;
+    self.linter.options.fix = true;
+    for (self.fixes.items) |case| {
+        defer i += 1;
+
+        var fix_errors = self.newList();
+        defer fix_errors.deinit();
+
+        self.lint(case.src, i, &fix_errors) catch |e| {
+            if (e != error.LintingFailed) {
+                try self.diagnostics.appendSlice(self.alloc, fix_errors.items);
+                if (self.diagnostic.message.borrow().len == 0) {
+                    self.diagnostic.message = Cow.fmt(
+                        self.alloc,
+                        "Expected test case #{d} to provide fixable diagnsotics: {s}\n\n{s}",
+                        .{ i + 1, @errorName(e), case.src },
+                    ) catch @panic("OOM");
+                }
+                return e;
+            }
+
+            var fixer: Fixer = .{ .allocator = self.alloc };
+            var fixed = try fixer.applyFixes(case.src, fix_errors.items);
+            const unfixed = fixed.unfixed_errors.items;
+
+            // TODO: check fix kind.
+
+            if (unfixed.len > 0) {
+                defer if (fixed.did_fix) fixed.source.deinit(self.alloc);
+                try self.diagnostics.ensureUnusedCapacity(self.alloc, unfixed.len);
+                for (unfixed) |err| {
+                    self.diagnostics.appendAssumeCapacity(.{ .err = err });
+                }
+                self.diagnostic.message = Cow.fmt(
+                    self.alloc,
+                    "Expected case #{d} to produce only fixable violations, but some violations remained after fixing.\n\n{s}",
+                    .{ i + 1, case.src },
+                ) catch @panic("OOM");
+                return error.FixFailed;
+            }
+            defer fixed.deinit(self.alloc);
+            if (!fixed.did_fix) {
+                self.diagnostic.message = Cow.fmt(
+                    self.alloc,
+                    "Expected case #{d} to fix rule violations, but no fixes were applied.\n\n{s}",
+                    .{ i + 1, case.src },
+                ) catch @panic("OOM");
+                return error.FixMismatch;
+            }
+
+            if (!std.mem.eql(u8, case.expected, fixed.source.items)) {
+                self.diagnostic.message = Cow.fmt(
+                    self.alloc,
+                    "Fixed source code in case #{d} did not match the expected text.\n\nExpected:\n{s}\n\nActual:\n{s}",
+                    .{ i + 1, case.expected, fixed.source.items },
+                ) catch @panic("OOM");
+                return error.FixMismatch;
+            }
+
+            continue;
+        };
+
+        self.diagnostic.message = Cow.fmt(
+            self.alloc,
+            "Expected case #{d} to produce fixable violations, but linting passed.\n\n{s}",
+            .{ i + 1, case.src },
+        ) catch @panic("OOM");
+        return error.FixPassed;
+    }
+
     try self.saveSnapshot();
+}
+
+fn lint(
+    self: *RuleTester,
+    src: [:0]const u8,
+    test_id: usize,
+    errors: *Linter.Diagnostic.List,
+) (Linter.LintError || SemanticBuilder.SemanticError || Allocator.Error)!void {
+    // TODO: support static strings in Source w/o leaking memory.
+    var source = try Source.fromString(
+        self.alloc,
+        try self.alloc.dupeZ(u8, src),
+        try self.alloc.dupe(u8, self.filename),
+    );
+    defer source.deinit();
+
+    var builder = SemanticBuilder.init(self.alloc);
+    defer builder.deinit();
+    builder.withSource(&source);
+
+    var semantic_result = builder.build(source.text()) catch |e| {
+        try errors.ensureUnusedCapacity(builder._errors.items.len);
+        for (builder._errors.items) |err| {
+            errors.appendAssumeCapacity(.{ .err = err });
+        }
+        return e;
+    };
+
+    // defer semantic_result.deinit();
+    if (semantic_result.hasErrors()) {
+        defer semantic_result.value.deinit();
+        defer semantic_result.errors.deinit(self.alloc);
+        self.diagnostic.message = Cow.fmt(
+            self.alloc,
+            "Test case #{} had semantic or parse errors\n\nSource:\n{s}\n",
+            .{ test_id, src },
+        ) catch @panic("OOM");
+
+        try errors.ensureUnusedCapacity(builder._errors.items.len);
+        for (semantic_result.errors.items) |err| {
+            errors.appendAssumeCapacity(.{ .err = err });
+        }
+
+        return error.AnalysisFailed;
+    }
+    defer semantic_result.deinit();
+    const semantic = semantic_result.value;
+
+    return self.linter.runOnSource(&semantic, &source, @ptrCast(errors));
 }
 
 fn saveSnapshot(self: *RuleTester) SnapshotError!void {
@@ -238,11 +326,16 @@ fn saveSnapshot(self: *RuleTester) SnapshotError!void {
     }
 }
 
+inline fn newList(self: *RuleTester) Linter.Diagnostic.List {
+    return Linter.Diagnostic.List.init(self.alloc);
+}
+
 pub fn deinit(self: *RuleTester) void {
     self.linter.deinit();
     self.alloc.free(self.filename);
     self.passes.deinit(self.alloc);
     self.fails.deinit(self.alloc);
+    self.fixes.deinit(self.alloc);
     self.diagnostic.message.deinit(self.alloc);
 
     for (0..self.diagnostics.items.len) |i| {
@@ -266,6 +359,8 @@ const Allocator = std.mem.Allocator;
 const Error = @import("../Error.zig");
 const Linter = @import("linter.zig").Linter;
 const Rule = @import("rule.zig").Rule;
+const Fix = @import("fix.zig").Fix;
+const Fixer = @import("fix.zig").Fixer;
 const SemanticBuilder = @import("../semantic.zig").SemanticBuilder;
 const Source = @import("../source.zig").Source;
 const GraphicalFormatter = @import("../reporter.zig").formatter.Graphical;
