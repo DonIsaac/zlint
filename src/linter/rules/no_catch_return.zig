@@ -213,8 +213,38 @@ test NoCatchReturn {
         ,
     };
 
+    const fix = &[_]RuleTester.FixCase{
+        .{
+            .src =
+            \\fn foo() !void {
+            \\  bar() catch |e| return e;
+            \\}
+            ,
+            .expected =
+            \\fn foo() !void {
+            \\  try bar();
+            \\}
+            ,
+        },
+        .{
+            .src =
+            \\fn foo() !void {
+            \\  bar() catch |e| {
+            \\    return e;
+            \\  };
+            \\}
+            ,
+            .expected =
+            \\fn foo() !void {
+            \\  try bar();
+            \\}
+            ,
+        },
+    };
+
     try runner
         .withPass(pass)
         .withFail(fail)
+        .withFix(fix)
         .run();
 }
