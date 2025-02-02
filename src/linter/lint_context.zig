@@ -3,7 +3,7 @@
 semantic: *const Semantic,
 gpa: Allocator,
 /// Errors collected by lint rules
-errors: Diagnostic.List,
+diagnostics: Diagnostic.List,
 
 /// this slice is 'static (in data segment) and should never be free'd
 curr_rule_name: string = "",
@@ -21,7 +21,7 @@ pub fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context 
     return Context{
         .semantic = semantic,
         .gpa = gpa,
-        .errors = Diagnostic.List.init(gpa),
+        .diagnostics = Diagnostic.List.init(gpa),
         .source = source,
     };
 }
@@ -37,8 +37,8 @@ pub inline fn updateForRule(self: *Context, rule: *const Rule.WithSeverity) void
 }
 
 pub fn takeDiagnostics(self: *Context) Diagnostic.List {
-    const errors = self.errors;
-    self.errors = Diagnostic.List.init(self.gpa);
+    const errors = self.diagnostics;
+    self.diagnostics = Diagnostic.List.init(self.gpa);
     return errors;
 }
 
@@ -195,7 +195,7 @@ fn _report(self: *Context, diagnostic_: Diagnostic) void {
     e.source = self.source.contents.clone();
     e.severity = self.curr_severity;
     // TODO: handle errors better
-    self.errors.append(d) catch @panic("Cannot add new error: Out of memory");
+    self.diagnostics.append(d) catch @panic("Cannot add new error: Out of memory");
 }
 
 /// Find the comment block ending on the line before the given token.
@@ -226,7 +226,7 @@ pub fn commentsBefore(self: *const Context, token: Ast.TokenIndex) ?[]const u8 {
 }
 
 pub fn deinit(self: *Context) void {
-    self.errors.deinit();
+    self.diagnostics.deinit();
     // SAFETY: todo: allow undefined in deinit()
     self.* = undefined;
 }

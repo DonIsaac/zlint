@@ -5,7 +5,6 @@ const _semantic = @import("../semantic.zig");
 const _rule = @import("rule.zig");
 const Context = @import("lint_context.zig");
 const disable_directives = @import("disable_directives.zig");
-// const ErrorList = Context.ErrorList;
 
 const Fix = @import("fix.zig").Fix;
 
@@ -105,7 +104,7 @@ pub const Linter = struct {
                         "Rule '{s}' failed to run: {s}",
                         .{ rule.meta.name, @errorName(e) },
                     );
-                    try ctx.errors.append(.{ .err = err });
+                    ctx.report(err);
                 };
             }
         }
@@ -122,11 +121,11 @@ pub const Linter = struct {
                         "Rule '{s}' failed to run: {s}",
                         .{ rule.meta.name, @errorName(e) },
                     );
-                    try ctx.errors.append(.{ .err = err });
+                    ctx.report(err);
                 };
             }
         }
-        if (ctx.errors.items.len == 0) return;
+        if (ctx.diagnostics.items.len == 0) return;
         errors.* = ctx.takeDiagnostics();
         return error.LintingFailed;
     }

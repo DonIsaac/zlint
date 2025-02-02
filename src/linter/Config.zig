@@ -21,12 +21,8 @@ pub const DEFAULT: Config = .{
     .rules = DEFAULT_RULES_CONFIG,
 };
 
-// default rules config lives here b/c I plan on generating rules_config.zig
-// later.
-
+// default rules config lives here b/c RulesConfig is auto-generated
 const DEFAULT_RULES_CONFIG: RulesConfig = blk: {
-    // var ruleset: [all_rule_decls.len]Rule = undefined;
-    // var i = 0;
     var config: RulesConfig = .{};
 
     for (all_rule_decls) |decl| {
