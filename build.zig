@@ -38,6 +38,7 @@ pub fn build(b: *std.Build) void {
         .optimize = l.optimize,
         .error_tracing = if (debug_release) true else null,
         .unwind_tables = if (debug_release) true else null,
+        .omit_frame_pointer = if (debug_release) false else null,
         .strip = if (debug_release) false else null,
     });
     const zlint = &lib.root_module;
@@ -53,8 +54,10 @@ pub fn build(b: *std.Build) void {
         .optimize = l.optimize,
         .error_tracing = if (debug_release) true else null,
         .unwind_tables = if (debug_release) true else null,
+        .omit_frame_pointer = if (debug_release) false else null,
         .strip = if (debug_release) false else null,
     });
+    // exe.want_lto
     l.link(&exe.root_module, false, .{});
     b.installArtifact(exe);
 

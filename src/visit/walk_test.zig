@@ -1,4 +1,5 @@
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
@@ -7,6 +8,8 @@ const Walker = @import("./walk.zig").Walker;
 const WalkState = @import("./walk.zig").WalkState;
 
 const t = std.testing;
+const expect = t.expect;
+const expectEqual = t.expectEqual;
 
 test "Walker calls generic tag visitors if special cases aren't present" {
     const TestVisitor = struct {
@@ -109,6 +112,8 @@ test "where's waldo, but its `x`" {
     try testXSeenTimes(1, "const x = struct{};");
     try testXSeenTimes(1, "const Foo = struct{ pub const y = 1; pub const z = 2; pub const x = 3;};");
     try testXSeenTimes(1, "const y = blk: { break :blk x; };");
+    try testXSeenTimes(1, "const y = &[_]const u8{\"foo\", x}");
+
     try testXSeenTimes(1,
         \\fn main() void {
         \\  if (a) {
@@ -118,10 +123,82 @@ test "where's waldo, but its `x`" {
         \\  }
         \\}
     );
+
     // try testXSeenTimes(3,
     //     \\fn foo(x: u32) void {
     //     \\  const a = 1 + (2 - (3 / (4 * x)));
     //     \\  const b = @max(a, x);
     //     \\}
     // );
+}
+
+// =============================================================================
+
+const CountVisitor = struct {
+    nodes_visited: u32 = 0,
+    depth: u32 = 0,
+    kinds_seen: std.AutoHashMapUnmanaged(Node.Tag, u32) = .{},
+    tags: []const Node.Tag,
+    allocator: Allocator = t.allocator,
+
+    pub const Error = Allocator.Error;
+    pub fn enterNode(self: *CountVisitor, node: Node.Index) Error!void {
+        self.depth += 1;
+        self.nodes_visited += 1;
+        const tag = self.tags[node];
+        const existing = self.kinds_seen.get(tag) orelse 0;
+        try self.kinds_seen.put(self.allocator, tag, existing + 1);
+    }
+
+    pub fn exitNode(self: *CountVisitor, _: Node.Index) void {
+        expect(self.depth > 0) catch @panic("expect failed");
+        self.depth -= 1;
+    }
+    fn deinit(self: *CountVisitor) void {
+        self.kinds_seen.deinit(self.allocator);
+    }
+};
+
+fn testNodeCount(src: [:0]const u8, expected: u32, expected_tag_counts: anytype) !void {
+    const allocator = std.testing.allocator;
+
+    var ast = try Ast.parse(allocator, src, .zig);
+    defer ast.deinit(allocator);
+    var visitor: CountVisitor = .{ .tags = ast.nodes.items(.tag) };
+    defer visitor.deinit();
+    var walker = try Walker(CountVisitor, CountVisitor.Error).init(std.testing.allocator, &ast, &visitor);
+    defer walker.deinit();
+
+    try walker.walk();
+    try std.testing.expectEqual(expected, visitor.nodes_visited);
+    try std.testing.expectEqual(0, visitor.depth);
+
+    for (expected_tag_counts) |e| {
+        const tag: Node.Tag = e[0];
+        const expected_tag_count: u32 = e[1];
+        const actual = visitor.kinds_seen.get(tag) orelse 0;
+        expectEqual(expected_tag_count, actual) catch |err| {
+            std.debug.print(
+                "Expected {d} nodes of type {s}, but found {d}",
+                .{ expected_tag_count, @tagName(tag), actual },
+            );
+            return err;
+        };
+    }
+}
+
+test "node counts" {
+    try testNodeCount("const x = 1;", 2, .{});
+    try testNodeCount("const x: u32 = 1;", 3, .{});
+    try testNodeCount(
+        \\fn foo() Foo {
+        \\  return Foo{ .a = 1, .b = 2 };
+        \\}
+    ,
+        9,
+        .{},
+    );
+    // try testNodeCount(1,
+    // "const "
+    // )
 }

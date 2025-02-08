@@ -397,15 +397,13 @@ pub fn Walker(Visitor: type, Error: type) type {
                 const idx = fields.len - i - 1;
                 const field = fields[idx];
                 const is_token = comptime mem.endsWith(u8, field.name, "_token") or
-                    mem.eql(u8, field.name, "lparen") or
-                    mem.eql(u8, field.name, "rparen") or
-                    mem.eql(u8, field.name, "lbrace") or
-                    mem.eql(u8, field.name, "rbrace");
+                    token_names.has(field.name);
 
                 if (!is_token) {
                     const subnode: field.type = @field(components, field.name);
                     switch (@TypeOf(subnode)) {
-                        []const Node.Index, []Node.Index => {
+                        []const Node.Index, []Node.Index => if (comptime !std.mem.eql(u8, field.name, "params")) {
+                            // []const Node.Index, []Node.Index => {
                             try self.stack.ensureUnusedCapacity(self.alloc, 2 * subnode.len);
                             for (0..subnode.len) |j| {
                                 const el: Node.Index = subnode[subnode.len - j - 1];
@@ -429,6 +427,15 @@ pub fn Walker(Visitor: type, Error: type) type {
                 }
             }
         }
+
+        const token_names = std.StaticStringMap(void).initComptime(.{
+            .{"lparen"},
+            .{"rparen"},
+            .{"lbrace"},
+            .{"rbrace"},
+            .{"lbracket"},
+            .{"rbracket"},
+        });
 
         fn pushChildren(self: *Self, node: Node.Index, tag: Node.Tag) Allocator.Error!void {
             const data = self.datas[node];
@@ -471,7 +478,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                     try self.pushManyUnconditional(members);
                 },
                 // lhs/rhs both ignored
-                .unset, .token, .token_unset => {},
+                .unset, .token, .token_unset, .unset_token => {},
                 else => |kind| if (comptime util.IS_DEBUG) std.debug.panic(
                     "todo: {s} ({s})",
                     .{ @tagName(kind), @tagName(tag) },
@@ -484,11 +491,15 @@ pub fn Walker(Visitor: type, Error: type) type {
             @setRuntimeSafety(!util.IS_DEBUG);
 
             if (node == Semantic.NULL_NODE) return;
-            util.assert(
-                node < self.ast.nodes.len,
-                "Received out-of-bounds node (id: {d}, nodes.len: {d})",
-                .{ node, self.ast.nodes.len },
-            );
+            if (comptime util.IS_DEBUG) {
+                if (node >= self.ast.nodes.len) {
+                    self.printStack();
+                    std.debug.panic(
+                        "Received out-of-bounds node (id: {d}, nodes.len: {d},)",
+                        .{ node, self.ast.nodes.len },
+                    );
+                }
+            }
 
             try self.stack.append(self.alloc, .{ .id = node, .kind = .exit });
             return self.stack.append(self.alloc, .{ .id = node, .kind = .enter });
@@ -518,9 +529,35 @@ pub fn Walker(Visitor: type, Error: type) type {
             const len = self.ast.nodes.len;
 
             util.assert(node != Semantic.NULL_NODE, "Tried to push null node onto stack", .{});
-            {
-                @setRuntimeSafety(!util.IS_DEBUG);
-                util.assert(node < len, "Tried to push out-of-bounds node (id: {d}, nodes.len: {d}). It's likely a token or extra_data index.", .{ node, len });
+            if (comptime util.IS_DEBUG) {
+                if (node >= len) {
+                    print("Tried to push out-of-bounds node (id: {d}, nodes.len: {d}). It's likely a token or extra_data index.", .{ node, len });
+                    self.printStack();
+                    @panic("node index out of bounds");
+                }
+                self.checkForVisitLoop(node);
+            }
+        }
+
+        fn checkForVisitLoop(self: *const Self, node: Node.Index) void {
+            @setCold(true);
+            for (self.stack.items) |seen| {
+                if (seen.kind == .exit) continue;
+                if (seen.id == node) {
+                    print("\nFound a loop while walking an AST: Node {d} is already being visited.\n", .{node});
+                    print("Stack:\n", .{});
+                    self.printStack();
+                    @panic("Tried to visit the same node twice.");
+                }
+            }
+        }
+
+        fn printStack(self: *const Self) void {
+            const tags: []const Node.Tag = self.ast.nodes.items(.tag);
+            print("Stack:\n", .{});
+            for (self.stack.items) |el| {
+                if (el.kind == .exit) continue;
+                print("- {d}: {s}\n", .{ el.id, @tagName(tags[el.id]) });
             }
         }
 
