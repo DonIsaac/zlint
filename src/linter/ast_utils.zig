@@ -18,3 +18,17 @@ pub fn getRightmostIdentifier(ctx: *Context, id: Node.Index) ?[]const u8 {
         else => null,
     };
 }
+
+pub fn isInTest(ctx: *const Context, node: Node.Index) bool {
+    const tags: []const Node.Tag = ctx.ast().nodes.items(.tag);
+    var parents = ctx.links().iterParentIds(node);
+
+    while (parents.next()) |parent| {
+        // NOTE: container and fn decls may be nested within a test.
+        switch (tags[parent]) {
+            .test_decl => return true,
+            else => continue,
+        }
+    }
+    return false;
+}

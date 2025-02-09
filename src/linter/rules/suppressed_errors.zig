@@ -47,6 +47,11 @@
 //! const z = foo() catch null;
 //! // Writer errors may be safely ignored
 //! writer.print("{}", .{5}) catch {};
+//!
+//! // suppression is allowed in tests
+//! test foo {
+//!   foo() catch {};
+//! }
 //! ```
 
 const std = @import("std");
@@ -54,6 +59,7 @@ const util = @import("util");
 const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
+const a = @import("../ast_utils.zig");
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
@@ -114,6 +120,7 @@ pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterC
             // `catch {}`
             if (stmts.lhs == NULL_NODE) {
                 if (isSuppressingWriterError(ctx, caught)) return;
+                if (a.isInTest(ctx, wrapper.idx)) return;
                 const body_span = ast.nodeToSpan(catch_body);
                 const catch_keyword_start: u32 = ast.tokens.items(.start)[node.main_token];
                 const span = Span.new(catch_keyword_start, body_span.end);
@@ -123,6 +130,7 @@ pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterC
             switch (tags[stmts.lhs]) {
                 .unreachable_literal => {
                     if (isSuppressingWriterError(ctx, caught)) return;
+                    if (a.isInTest(ctx, wrapper.idx)) return;
                     const span = ast.nodeToSpan(stmts.lhs);
                     ctx.report(unreachableDiagnostic(ctx, .{ .start = span.start, .end = span.end }));
                 },
@@ -131,6 +139,7 @@ pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterC
         },
         .unreachable_literal => {
             if (isSuppressingWriterError(ctx, caught)) return;
+            if (a.isInTest(ctx, wrapper.idx)) return;
             // lexeme() exists
             const unreachable_token = ast.nodes.items(.main_token)[catch_body];
             const start: u32 = ast.tokens.items(.start)[unreachable_token];
@@ -234,6 +243,16 @@ test SuppressedErrors {
         \\fn foo(bar: *Foo) void {
         \\  bar.baz.writeAll("") catch {};
         \\}
+        ,
+        // suppression in tests is allowed
+        \\test bar {
+        \\  bar() catch {};
+        \\}
+        ,
+        \\test bar {
+        \\  bar() catch unreachable;
+        \\}
+        ,
     };
 
     const fail = &[_][:0]const u8{
