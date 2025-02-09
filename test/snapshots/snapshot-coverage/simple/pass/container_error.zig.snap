@@ -20,7 +20,7 @@
       "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["variable", "const", "error"], 
+      "flags": ["variable","const","error"], 
       "references": [
         
       ], 
@@ -34,7 +34,7 @@
       "token": 7, 
       "declNode": "error_set_decl", 
       "scope": util.id.NominalId(u32)(1), 
-      "flags": ["member", "error"], 
+      "flags": ["member","error"], 
       "references": [
         
       ], 
@@ -48,7 +48,7 @@
       "token": 5, 
       "declNode": "error_set_decl", 
       "scope": util.id.NominalId(u32)(1), 
-      "flags": ["member", "error"], 
+      "flags": ["member","error"], 
       "references": [
         
       ], 

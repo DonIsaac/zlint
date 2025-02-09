@@ -20,7 +20,7 @@
       "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         
       ], 
@@ -57,7 +57,7 @@
     "children": [
       {
         "id": util.id.NominalId(u32)(1), 
-        "flags": ["block", "comptime"], 
+        "flags": ["block","comptime"], 
         "bindings": {
           "y": 2, 
           

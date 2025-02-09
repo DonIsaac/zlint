@@ -52,20 +52,7 @@ pub const Flags = packed struct(FLAGS_REPR) {
     // Padding.
     _: u2 = 0,
 
-    const Flag = std.meta.FieldEnum(Flags);
-
-    pub fn eq(self: Flags, other: Flags) bool {
-        const a: FLAGS_REPR = @bitCast(self);
-        const b: FLAGS_REPR = @bitCast(other);
-        return a == b;
-    }
-
-    pub fn merge(self: Flags, other: Flags) Flags {
-        const a: FLAGS_REPR = @bitCast(self);
-        const b: FLAGS_REPR = @bitCast(other);
-
-        return @bitCast(a | b);
-    }
+    pub usingnamespace util.Bitflags(Flags);
 
     /// Enable or disable a flag, returning the modified set.
     ///
@@ -81,33 +68,10 @@ pub const Flags = packed struct(FLAGS_REPR) {
     /// // original is not modified
     /// t.expectEqual(Flags{.read = true}, read);
     /// ```
-    pub fn with(self: Flags, comptime flag: Flag, enabled: bool) Flags {
+    pub fn with(self: Flags, comptime flag: Flags.Flag, enabled: bool) Flags {
         var copy = self;
         @field(copy, @tagName(flag)) = enabled;
         return copy;
-    }
-
-    pub fn set(self: *Flags, other: Flags, comptime enabled: bool) void {
-        const a: FLAGS_REPR = @bitCast(self.*);
-        const b: FLAGS_REPR = @bitCast(other);
-
-        if (enabled) {
-            self.* = @bitCast(a | b);
-        } else {
-            self.* = @bitCast(a & ~b);
-        }
-    }
-
-    pub fn contains(self: Flags, other: Flags) bool {
-        const a: FLAGS_REPR = @bitCast(self);
-        const b: FLAGS_REPR = @bitCast(other);
-        return (a & b) == b;
-    }
-
-    pub fn intersects(self: Flags, other: Flags) bool {
-        const a: FLAGS_REPR = @bitCast(self);
-        const b: FLAGS_REPR = @bitCast(other);
-        return (a | b) > 0;
     }
 
     /// `true` if the referenced symbol is having its value read.
@@ -191,6 +155,7 @@ pub const Flags = packed struct(FLAGS_REPR) {
 };
 
 const std = @import("std");
+const util = @import("util");
 const _ast = @import("ast.zig");
 const NominalId = @import("util").NominalId;
 

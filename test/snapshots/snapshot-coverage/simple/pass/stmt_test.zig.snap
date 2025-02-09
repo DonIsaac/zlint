@@ -20,7 +20,7 @@
       "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["call"]}, 
         {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["call"]}, 
@@ -53,7 +53,7 @@
       "token": 11, 
       "declNode": "identifier", 
       "scope": util.id.NominalId(u32)(1), 
-      "flags": ["const", "fn_param"], 
+      "flags": ["const","fn_param"], 
       "references": [
         {"symbol":3,"scope":2,"node":"identifier","identifier":"a","flags":["read"]}, 
         
@@ -68,7 +68,7 @@
       "token": 15, 
       "declNode": "identifier", 
       "scope": util.id.NominalId(u32)(1), 
-      "flags": ["const", "fn_param"], 
+      "flags": ["const","fn_param"], 
       "references": [
         {"symbol":4,"scope":2,"node":"identifier","identifier":"b","flags":["read"]}, 
         
@@ -100,7 +100,7 @@
         "children": [
           {
             "id": util.id.NominalId(u32)(2), 
-            "flags": ["function", "block"], 
+            "flags": ["function","block"], 
             "bindings": {
               
             }, 
@@ -111,7 +111,7 @@
         
       }, {
         "id": util.id.NominalId(u32)(3), 
-        "flags": ["block", "comptime", "test"], 
+        "flags": ["block","comptime","test"], 
         "bindings": {
           
         }, 
@@ -119,7 +119,7 @@
         
       }, {
         "id": util.id.NominalId(u32)(4), 
-        "flags": ["block", "comptime", "test"], 
+        "flags": ["block","comptime","test"], 
         "bindings": {
           
         }, 

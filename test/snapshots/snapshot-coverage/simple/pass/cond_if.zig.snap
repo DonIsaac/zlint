@@ -20,7 +20,7 @@
       "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":1,"scope":6,"node":"identifier","identifier":"std","flags":["call"]}, 
         {"symbol":1,"scope":20,"node":"identifier","identifier":"std","flags":["call"]}, 
@@ -37,7 +37,7 @@
       "token": 9, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":2,"scope":0,"node":"identifier","identifier":"builtin","flags":["read"]}, 
         {"symbol":2,"scope":13,"node":"identifier","identifier":"builtin","flags":["read"]}, 
@@ -53,7 +53,7 @@
       "token": 17, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         
       ], 
@@ -101,7 +101,7 @@
       "token": 76, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(9), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":6,"scope":9,"node":"identifier","identifier":"pow","flags":["read"]}, 
         
@@ -144,7 +144,7 @@
       "token": 129, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(18), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":9,"scope":18,"node":"identifier","identifier":"res","flags":["read"]}, 
         
@@ -159,7 +159,7 @@
       "token": 142, 
       "declNode": "block_two_semicolon", 
       "scope": util.id.NominalId(u32)(19), 
-      "flags": ["payload", "const"], 
+      "flags": ["payload","const"], 
       "references": [
         {"symbol":10,"scope":20,"node":"identifier","identifier":"x","flags":["read"]}, 
         
@@ -174,7 +174,7 @@
       "token": 162, 
       "declNode": "block_two_semicolon", 
       "scope": util.id.NominalId(u32)(21), 
-      "flags": ["payload", "const"], 
+      "flags": ["payload","const"], 
       "references": [
         {"symbol":11,"scope":22,"node":"identifier","identifier":"err","flags":["read"]}, 
         
@@ -224,7 +224,7 @@
         "children": [
           {
             "id": util.id.NominalId(u32)(4), 
-            "flags": ["function", "block"], 
+            "flags": ["function","block"], 
             "bindings": {
               "i": 5, 
               
@@ -308,7 +308,7 @@
         "children": [
           {
             "id": util.id.NominalId(u32)(13), 
-            "flags": ["function", "block"], 
+            "flags": ["function","block"], 
             "bindings": {
               
             }, 
@@ -322,7 +322,7 @@
                 "children": [
                   {
                     "id": util.id.NominalId(u32)(15), 
-                    "flags": ["block", "comptime"], 
+                    "flags": ["block","comptime"], 
                     "bindings": {
                       
                     }, 
@@ -354,7 +354,7 @@
         "children": [
           {
             "id": util.id.NominalId(u32)(18), 
-            "flags": ["function", "block"], 
+            "flags": ["function","block"], 
             "bindings": {
               "res": 9, 
               

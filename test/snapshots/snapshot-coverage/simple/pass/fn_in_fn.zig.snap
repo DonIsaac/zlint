@@ -34,7 +34,7 @@
       "token": 4, 
       "declNode": "identifier", 
       "scope": util.id.NominalId(u32)(1), 
-      "flags": ["const", "fn_param"], 
+      "flags": ["const","fn_param"], 
       "references": [
         {"symbol":2,"scope":2,"node":"identifier","identifier":"a","flags":["read"]}, 
         
@@ -49,7 +49,7 @@
       "token": 11, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(2), 
-      "flags": ["variable", "const", "struct"], 
+      "flags": ["variable","const","struct"], 
       "references": [
         {"symbol":3,"scope":2,"node":"identifier","identifier":"inner","flags":["call"]}, 
         
@@ -78,7 +78,7 @@
       "token": 18, 
       "declNode": "identifier", 
       "scope": util.id.NominalId(u32)(4), 
-      "flags": ["const", "fn_param"], 
+      "flags": ["const","fn_param"], 
       "references": [
         {"symbol":5,"scope":5,"node":"identifier","identifier":"b","flags":["read"]}, 
         
@@ -108,7 +108,7 @@
         "children": [
           {
             "id": util.id.NominalId(u32)(2), 
-            "flags": ["function", "block"], 
+            "flags": ["function","block"], 
             "bindings": {
               "inner": 3, 
               
@@ -116,7 +116,7 @@
             "children": [
               {
                 "id": util.id.NominalId(u32)(3), 
-                "flags": ["struct", "block"], 
+                "flags": ["struct","block"], 
                 "bindings": {
                   "bar": 4, 
                   
@@ -132,7 +132,7 @@
                     "children": [
                       {
                         "id": util.id.NominalId(u32)(5), 
-                        "flags": ["function", "block"], 
+                        "flags": ["function","block"], 
                         "bindings": {
                           
                         }, 
