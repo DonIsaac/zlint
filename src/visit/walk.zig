@@ -447,11 +447,11 @@ pub fn Walker(Visitor: type, Error: type) type {
                 const is_token = comptime mem.endsWith(u8, field.name, "_token") or
                     token_names.has(field.name);
 
-                const is_specific_undesireable_node = comptime Components == full.FnProto.Components and
+                const is_specific_undesirable_node = comptime Components == full.FnProto.Components and
                     (std.mem.eql(u8, field.name, "proto_node") or
                     std.mem.eql(u8, field.name, "params"));
 
-                if (!is_token and !is_specific_undesireable_node) {
+                if (!is_token and !is_specific_undesirable_node) {
                     const subnode: field.type = @field(components, field.name);
                     switch (@TypeOf(subnode)) {
                         []const Node.Index, []Node.Index => {
