@@ -39,15 +39,38 @@ pub const WalkState = enum {
 /// the node's id. Visitors do not need methods for each kind of node; missing
 /// visit methods will simply not be called.
 ///
+/// For example:
 /// ```zig
 /// pub fn visit_fn_decl(this: *Visitor, node: Node.Index) Error!WalkState;
 /// ```
+///
+/// Some nodes have a "full" representation in the AST, as defined by
+/// [Ast.full].  Like tag visitors, full node visitors are called with a mutable
+/// pointer to the visitor and the node id. However, they also receive a pointer
+/// to the full node. T They are named `visitFullNodeName`. In general, if there
+/// is a `full.NodeName` struct in [Ast.full], there will be a corresponding
+/// `visitNodeName` method in the visitor.
+///
+/// For example:
+/// ```zig
+/// pub fn visitFnProto(this: *Visitor, node: Node.Index, fn_proto: *const Ast.full.FnProto) Error!WalkState;
+/// ```
+///
+/// A couple of important notes and caveats:
+/// - Full node visitors are called _instead_ of tag visitors. If you have a `visitFnProto` method,
+///   `visit_fn_proto` will not be called.
+/// - Zig's parser does not create a unique node for function parameters. However,
+///   they are still visited with `visitFnParam`. This does not apply to`
+///   arguments passed to function call expressions.
+///
+/// ## Controlling the Walk
 ///
 /// Visit methods control the walk by returning a `WalkState`. This has the
 /// following behavior:
 /// - `Continue`: keep traversing the AST as normal
 /// - `Skip`: do not stop traversal, but do not visit this node's children
 /// - `Stop`: halt traversal. This is effectively `return`.
+///
 ///
 /// ## Hooks
 /// Visitors may optionally have an `enterNode` and/or `exitNode` method. These
@@ -78,6 +101,7 @@ pub fn Walker(Visitor: type, Error: type) type {
         visitWhile: ?*const VisitFull(full.While) = null,
         visitFor: ?*const VisitFull(full.For) = null,
         visitFnProto: ?*const VisitFull(full.FnProto) = null,
+        visitFnParam: ?*const VisitFull(full.FnProto.Param) = null,
         visitContainerField: ?*const VisitFull(full.ContainerField) = null,
         visitStructInit: ?*const VisitFull(full.StructInit) = null,
         visitArrayInit: ?*const VisitFull(full.ArrayInit) = null,
@@ -374,14 +398,38 @@ pub fn Walker(Visitor: type, Error: type) type {
             else
                 WalkState.Continue;
 
-            return switch (state) {
-                .Continue => blk: {
-                    try self.pushFullNode(Full.Components, node, full_node.ast);
-                    break :blk false;
-                },
-                .Skip => false,
-                .Stop => true,
-            };
+            switch (state) {
+                .Continue => try self.pushFullNode(Full.Components, node, full_node.ast),
+                .Skip => return false,
+                .Stop => return true,
+            }
+
+            // fn params don't have their own node. We need to hack in a visit()
+            // for them. Even though params is typed as []const Node.Index, it
+            // really isn't. Attempts to visit them as-is often leads to infinite
+            // recursion.
+            if (comptime Full == full.FnProto) {
+                const Item = Node.Index;
+                var temp = std.heap.stackFallback(8 * @sizeOf(Item), self.alloc);
+                var parambuf = std.ArrayList(Item).init(temp.get());
+                defer parambuf.deinit();
+                try parambuf.ensureTotalCapacityPrecise(8);
+
+                var it: full.FnProto.Iterator = full_node.iterate(self.ast);
+                while (it.next()) |param| {
+                    if (comptime vtable.visitFnParam) |visitFnParam| {
+                        switch (try visitFnParam(self.visitor, node, param)) {
+                            .Continue => {},
+                            .Skip => continue,
+                            .Stop => return true,
+                        }
+                    }
+                    if (param.type_expr != Semantic.NULL_NODE) try parambuf.append(param.type_expr);
+                }
+                std.mem.reverse(Item, parambuf.items);
+                try self.pushManyUnconditional(parambuf.items);
+            }
+            return false;
         }
 
         /// Use comptime fuckery to push a `FullNode.Components` subtree onto
@@ -397,28 +445,29 @@ pub fn Walker(Visitor: type, Error: type) type {
                 const idx = fields.len - i - 1;
                 const field = fields[idx];
                 const is_token = comptime mem.endsWith(u8, field.name, "_token") or
-                    mem.eql(u8, field.name, "lparen") or
-                    mem.eql(u8, field.name, "rparen") or
-                    mem.eql(u8, field.name, "lbrace") or
-                    mem.eql(u8, field.name, "rbrace");
+                    token_names.has(field.name);
 
-                if (!is_token) {
+                const is_specific_undesirable_node = comptime Components == full.FnProto.Components and
+                    (std.mem.eql(u8, field.name, "proto_node") or
+                    std.mem.eql(u8, field.name, "params"));
+
+                if (!is_token and !is_specific_undesirable_node) {
                     const subnode: field.type = @field(components, field.name);
                     switch (@TypeOf(subnode)) {
                         []const Node.Index, []Node.Index => {
-                            try self.stack.ensureUnusedCapacity(self.alloc, 2 * subnode.len);
+                            try self.ensureStackCapacity(subnode.len);
                             for (0..subnode.len) |j| {
                                 const el: Node.Index = subnode[subnode.len - j - 1];
                                 util.assert(el != own_id, "Cycle detected on node {d}", .{own_id});
-                                try self.push(el);
+                                self.push(el, .{ .assume_capacity = true });
                             }
                         },
                         u32 => if (subnode != Semantic.NULL_NODE) {
                             if (comptime std.mem.eql(u8, field.name, "proto_node")) {
-                                if (own_id != subnode) try self.push(subnode);
+                                if (own_id != subnode) try self.push(subnode, .{ .maybe_null = false });
                             } else {
                                 util.assert(subnode != own_id, "Cycle detected on node {d}", .{own_id});
-                                try self.push(subnode);
+                                try self.push(subnode, .{ .maybe_null = false });
                             }
                         },
                         bool => {},
@@ -430,37 +479,48 @@ pub fn Walker(Visitor: type, Error: type) type {
             }
         }
 
+        const token_names = std.StaticStringMap(void).initComptime(.{
+            .{"lparen"},
+            .{"rparen"},
+            .{"lbrace"},
+            .{"rbrace"},
+            .{"lbracket"},
+            .{"rbracket"},
+        });
+
         fn pushChildren(self: *Self, node: Node.Index, tag: Node.Tag) Allocator.Error!void {
             const data = self.datas[node];
 
             switch (NodeDataKind.from(tag)) {
                 // lhs/rhs are nodes. either may be omitted
                 .node => {
-                    try self.push(data.rhs);
-                    try self.push(data.lhs);
+                    try self.ensureStackCapacity(2);
+                    self.push(data.rhs, .{ .assume_capacity = true });
+                    self.push(data.lhs, .{ .assume_capacity = true });
                 },
                 // lhs/rhs are definitely-present nodes
                 .node_unconditional => {
-                    try self.pushUnconditional(data.rhs);
-                    try self.pushUnconditional(data.lhs);
+                    try self.ensureStackCapacity(2);
+                    self.push(data.rhs, .{ .assume_capacity = true });
+                    self.push(data.lhs, .{ .assume_capacity = true });
                 },
                 // only lhs is a node; rhs is ignored
                 .node_token, .node_unset => {
-                    try self.push(data.lhs);
+                    try self.push(data.lhs, .{});
                 },
                 // only rhs is a node, lhs is ignored
                 .token_node, .unset_node => {
-                    try self.push(data.rhs);
+                    try self.push(data.rhs, .{});
                 },
                 .node_subrange => {
-                    try self.push(data.lhs);
+                    try self.push(data.lhs, .{});
                     const range = self.ast.extraData(data.rhs, Node.SubRange);
                     assert(range.end - range.start > 0);
                     const members = self.ast.extra_data[range.start..range.end];
                     try self.pushManyUnconditional(members);
                 },
                 .subrange_node => {
-                    try self.push(data.rhs);
+                    try self.push(data.rhs, .{});
                     const range = self.ast.extraData(data.lhs, Node.SubRange);
                     assert(range.end - range.start > 0);
                     const members = self.ast.extra_data[range.start..range.end];
@@ -471,7 +531,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                     try self.pushManyUnconditional(members);
                 },
                 // lhs/rhs both ignored
-                .unset, .token, .token_unset => {},
+                .unset, .token, .token_unset, .unset_token => {},
                 else => |kind| if (comptime util.IS_DEBUG) std.debug.panic(
                     "todo: {s} ({s})",
                     .{ @tagName(kind), @tagName(tag) },
@@ -479,31 +539,30 @@ pub fn Walker(Visitor: type, Error: type) type {
             }
         }
 
-        /// Push a child node if it isn't null.
-        inline fn push(self: *Self, node: Node.Index) Allocator.Error!void {
-            @setRuntimeSafety(!util.IS_DEBUG);
-
-            if (node == Semantic.NULL_NODE) return;
-            util.assert(
-                node < self.ast.nodes.len,
-                "Received out-of-bounds node (id: {d}, nodes.len: {d})",
-                .{ node, self.ast.nodes.len },
-            );
-
-            try self.stack.append(self.alloc, .{ .id = node, .kind = .exit });
-            return self.stack.append(self.alloc, .{ .id = node, .kind = .enter });
-        }
-
-        /// Push this node, assuming it is non-null
-        inline fn pushUnconditional(self: *Self, node: Node.Index) Allocator.Error!void {
-            self.assertInRange(node);
-            try self.stack.append(self.alloc, .{ .id = node, .kind = .exit });
-            return self.stack.append(self.alloc, .{ .id = node, .kind = .enter });
+        const PushOpts = struct { maybe_null: bool = true, assume_capacity: bool = false };
+        /// Push a child node onto the stack.
+        /// - `maybe_null`: if true, the node will not be pushed if it is null. When false,
+        ///   a runtime safety check is performed to ensure the node is not null.
+        /// - `assume_capacity`: if true, the stack's capacity is assumed to be sufficient
+        ///   for the new node, and this method will use `appendAssumeCapacity`. Useful for
+        ///   pushing many nodes at once.
+        inline fn push(self: *Self, node: Node.Index, comptime opts: PushOpts) if (opts.assume_capacity) void else Allocator.Error!void {
+            if (comptime opts.maybe_null) {
+                if (node == Semantic.NULL_NODE) return;
+            }
+            if (comptime util.RUNTIME_SAFETY) self.assertInRange(node);
+            if (comptime opts.assume_capacity) {
+                self.stack.appendAssumeCapacity(.{ .id = node, .kind = .exit });
+                self.stack.appendAssumeCapacity(.{ .id = node, .kind = .enter });
+            } else {
+                try self.stack.append(self.alloc, .{ .id = node, .kind = .exit });
+                return self.stack.append(self.alloc, .{ .id = node, .kind = .enter });
+            }
         }
 
         /// Push many nodes, assuming none of them are null
         inline fn pushManyUnconditional(self: *Self, nodes: []const Node.Index) Allocator.Error!void {
-            try self.stack.ensureUnusedCapacity(self.alloc, 2 * nodes.len);
+            try self.ensureStackCapacity(nodes.len);
             var it = std.mem.reverseIterator(nodes);
             while (it.next()) |node| {
                 self.assertInRange(node);
@@ -512,15 +571,49 @@ pub fn Walker(Visitor: type, Error: type) type {
             }
         }
 
+        /// Ensure unused capacity for `node_count` new nodes.
+        inline fn ensureStackCapacity(self: *Self, node_count: usize) Allocator.Error!void {
+            try self.stack.ensureUnusedCapacity(self.alloc, 2 * node_count);
+        }
+
         /// Sanity check that is only enabled in safe/debug builds. Inlined so
         /// compiler can optimize away checks that aren't needed.
         inline fn assertInRange(self: *Self, node: Node.Index) void {
-            const len = self.ast.nodes.len;
-
             util.assert(node != Semantic.NULL_NODE, "Tried to push null node onto stack", .{});
-            {
-                @setRuntimeSafety(!util.IS_DEBUG);
-                util.assert(node < len, "Tried to push out-of-bounds node (id: {d}, nodes.len: {d}). It's likely a token or extra_data index.", .{ node, len });
+
+            if (comptime util.RUNTIME_SAFETY) {
+                if (node >= self.ast.nodes.len) {
+                    print(
+                        "Tried to push out-of-bounds node (id: {d}, nodes.len: {d}). It's likely a token or extra_data index.",
+                        .{ node, self.ast.nodes.len },
+                    );
+                    self.printStack();
+                    @panic("node index out of bounds");
+                }
+            }
+
+            if (comptime util.IS_DEBUG) self.checkForVisitLoop(node);
+        }
+
+        fn checkForVisitLoop(self: *const Self, node: Node.Index) void {
+            @setCold(true);
+            for (self.stack.items) |seen| {
+                if (seen.kind == .exit) continue;
+                if (seen.id == node) {
+                    print("\nFound a loop while walking an AST: Node {d} is already being visited.\n", .{node});
+                    print("Stack:\n", .{});
+                    self.printStack();
+                    @panic("Tried to visit the same node twice.");
+                }
+            }
+        }
+
+        fn printStack(self: *const Self) void {
+            const tags: []const Node.Tag = self.ast.nodes.items(.tag);
+            print("Stack:\n", .{});
+            for (self.stack.items) |el| {
+                if (el.kind == .exit) continue;
+                print("- {d}: {s}\n", .{ el.id, @tagName(tags[el.id]) });
             }
         }
 
@@ -1071,7 +1164,6 @@ const Allocator = mem.Allocator;
 const Ast = std.zig.Ast;
 const full = Ast.full;
 const Node = Ast.Node;
-// const NodeIndex = Ast.Node.Index;
 const Semantic = semantic.Semantic;
 
 // =============================================================================
