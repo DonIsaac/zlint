@@ -20,7 +20,7 @@
       "token": 0, 
       "declNode": "container_field_init", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["member", "struct"], 
+      "flags": ["member","struct"], 
       "references": [
         
       ], 
@@ -34,7 +34,7 @@
       "token": 4, 
       "declNode": "container_field_init", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["member", "struct"], 
+      "flags": ["member","struct"], 
       "references": [
         
       ], 
@@ -48,7 +48,7 @@
       "token": 14, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":3,"scope":1,"node":"identifier","identifier":"Foo","flags":["type"]}, 
         {"symbol":3,"scope":2,"node":"identifier","identifier":"Foo","flags":["read"]}, 
@@ -95,7 +95,7 @@
         "children": [
           {
             "id": util.id.NominalId(u32)(2), 
-            "flags": ["function", "block"], 
+            "flags": ["function","block"], 
             "bindings": {
               
             }, 

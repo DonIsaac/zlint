@@ -122,32 +122,9 @@ pub const Flags = packed struct(FLAGS_REPR) {
     s_union: bool = false,
     _: u2 = 0,
 
-    pub const Flag = std.meta.FieldEnum(Flags);
     pub const s_container: Flags = .{ .s_struct = true, .s_enum = true, .s_union = true, .s_error = true };
 
-    pub inline fn merge(self: Flags, other: Flags) Flags {
-        const a: FLAGS_REPR = @bitCast(self);
-        const b: FLAGS_REPR = @bitCast(other);
-        return @bitCast(a | b);
-    }
-
-    pub inline fn set(self: *Flags, flags: Flags, comptime enable: bool) void {
-        const a: FLAGS_REPR = @bitCast(self.*);
-        const b: FLAGS_REPR = @bitCast(flags);
-
-        if (enable) {
-            self.* = @bitCast(a | b);
-        } else {
-            self.* = @bitCast(a & ~b);
-        }
-    }
-
-    /// Returns `true` if any flags in `other` are also enabled in `self`.
-    pub fn intersects(self: Flags, other: Flags) bool {
-        const a: FLAGS_REPR = @bitCast(self);
-        const b: FLAGS_REPR = @bitCast(other);
-        return a & b != 0;
-    }
+    pub usingnamespace util.Bitflags(Flags);
 };
 
 /// Stores symbols created and referenced within a Zig program.

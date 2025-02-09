@@ -20,7 +20,7 @@
       "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["variable", "const", "struct"], 
+      "flags": ["variable","const","struct"], 
       "references": [
         {"symbol":1,"scope":3,"node":"identifier","identifier":"Writer","flags":["type"]}, 
         {"symbol":1,"scope":8,"node":"identifier","identifier":"Writer","flags":["read"]}, 
@@ -36,7 +36,7 @@
       "token": 5, 
       "declNode": "container_field_init", 
       "scope": util.id.NominalId(u32)(1), 
-      "flags": ["member", "struct"], 
+      "flags": ["member","struct"], 
       "references": [
         
       ], 
@@ -50,7 +50,7 @@
       "token": 10, 
       "declNode": "container_field_init", 
       "scope": util.id.NominalId(u32)(1), 
-      "flags": ["member", "struct"], 
+      "flags": ["member","struct"], 
       "references": [
         
       ], 
@@ -64,7 +64,7 @@
       "token": 16, 
       "declNode": "ptr_type_aligned", 
       "scope": util.id.NominalId(u32)(2), 
-      "flags": ["const", "fn_param", "struct"], 
+      "flags": ["const","fn_param","struct"], 
       "references": [
         
       ], 
@@ -78,7 +78,7 @@
       "token": 21, 
       "declNode": "ptr_type_aligned", 
       "scope": util.id.NominalId(u32)(2), 
-      "flags": ["const", "fn_param", "struct"], 
+      "flags": ["const","fn_param","struct"], 
       "references": [
         
       ], 
@@ -106,7 +106,7 @@
       "token": 35, 
       "declNode": "root", 
       "scope": util.id.NominalId(u32)(3), 
-      "flags": ["const", "fn_param"], 
+      "flags": ["const","fn_param"], 
       "references": [
         {"symbol":7,"scope":4,"node":"identifier","identifier":"ptr","flags":["read"]}, 
         {"symbol":7,"scope":4,"node":"identifier","identifier":"ptr","flags":["read"]}, 
@@ -122,7 +122,7 @@
       "token": 42, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(4), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":8,"scope":4,"node":"identifier","identifier":"T","flags":["read"]}, 
         {"symbol":8,"scope":7,"node":"identifier","identifier":"T","flags":["type"]}, 
@@ -138,7 +138,7 @@
       "token": 50, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(4), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":9,"scope":7,"node":"identifier","identifier":"ptr_info","flags":["call"]}, 
         
@@ -153,7 +153,7 @@
       "token": 58, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(4), 
-      "flags": ["variable", "const", "struct"], 
+      "flags": ["variable","const","struct"], 
       "references": [
         {"symbol":10,"scope":4,"node":"identifier","identifier":"gen","flags":["read"]}, 
         
@@ -182,7 +182,7 @@
       "token": 66, 
       "declNode": "ptr_type_aligned", 
       "scope": util.id.NominalId(u32)(6), 
-      "flags": ["const", "fn_param"], 
+      "flags": ["const","fn_param"], 
       "references": [
         {"symbol":12,"scope":7,"node":"identifier","identifier":"pointer","flags":["read"]}, 
         
@@ -197,7 +197,7 @@
       "token": 71, 
       "declNode": "ptr_type_aligned", 
       "scope": util.id.NominalId(u32)(6), 
-      "flags": ["const", "fn_param"], 
+      "flags": ["const","fn_param"], 
       "references": [
         {"symbol":13,"scope":7,"node":"identifier","identifier":"data","flags":["read"]}, 
         
@@ -212,7 +212,7 @@
       "token": 83, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(7), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":14,"scope":7,"node":"identifier","identifier":"self","flags":["read"]}, 
         
@@ -241,7 +241,7 @@
       "token": 134, 
       "declNode": "identifier", 
       "scope": util.id.NominalId(u32)(8), 
-      "flags": ["const", "fn_param"], 
+      "flags": ["const","fn_param"], 
       "references": [
         {"symbol":16,"scope":9,"node":"identifier","identifier":"self","flags":["call"]}, 
         {"symbol":16,"scope":9,"node":"identifier","identifier":"self","flags":["read"]}, 
@@ -257,7 +257,7 @@
       "token": 138, 
       "declNode": "ptr_type_aligned", 
       "scope": util.id.NominalId(u32)(8), 
-      "flags": ["const", "fn_param"], 
+      "flags": ["const","fn_param"], 
       "references": [
         {"symbol":17,"scope":9,"node":"identifier","identifier":"data","flags":["read"]}, 
         
@@ -279,7 +279,7 @@
     "children": [
       {
         "id": util.id.NominalId(u32)(1), 
-        "flags": ["struct", "block"], 
+        "flags": ["struct","block"], 
         "bindings": {
           "ptr": 2, 
           "writeAllFn": 3, 
@@ -308,7 +308,7 @@
             "children": [
               {
                 "id": util.id.NominalId(u32)(4), 
-                "flags": ["function", "block"], 
+                "flags": ["function","block"], 
                 "bindings": {
                   "T": 8, 
                   "ptr_info": 9, 
@@ -318,7 +318,7 @@
                 "children": [
                   {
                     "id": util.id.NominalId(u32)(5), 
-                    "flags": ["struct", "block"], 
+                    "flags": ["struct","block"], 
                     "bindings": {
                       "writeAll": 11, 
                       
@@ -335,7 +335,7 @@
                         "children": [
                           {
                             "id": util.id.NominalId(u32)(7), 
-                            "flags": ["function", "block"], 
+                            "flags": ["function","block"], 
                             "bindings": {
                               "self": 14, 
                               
@@ -365,7 +365,7 @@
             "children": [
               {
                 "id": util.id.NominalId(u32)(9), 
-                "flags": ["function", "block"], 
+                "flags": ["function","block"], 
                 "bindings": {
                   
                 }, 

@@ -20,7 +20,7 @@
       "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":1,"scope":0,"node":"identifier","identifier":"std","flags":["read"]}, 
         {"symbol":1,"scope":2,"node":"identifier","identifier":"std","flags":["read"]}, 
@@ -38,7 +38,7 @@
       "token": 9, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":2,"scope":2,"node":"identifier","identifier":"Managed","flags":["call"]}, 
         {"symbol":2,"scope":2,"node":"identifier","identifier":"Managed","flags":["call"]}, 
@@ -69,7 +69,7 @@
       "token": 31, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(2), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":4,"scope":2,"node":"identifier","identifier":"allocator","flags":["read"]}, 
         {"symbol":4,"scope":2,"node":"identifier","identifier":"allocator","flags":["read"]}, 
@@ -157,7 +157,7 @@
       "token": 153, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(2), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":9,"scope":2,"node":"identifier","identifier":"as","flags":["read"]}, 
         {"symbol":9,"scope":2,"node":"identifier","identifier":"as","flags":["read"]}, 
@@ -189,7 +189,7 @@
         "children": [
           {
             "id": util.id.NominalId(u32)(2), 
-            "flags": ["function", "block"], 
+            "flags": ["function","block"], 
             "bindings": {
               "allocator": 4, 
               "a": 5, 

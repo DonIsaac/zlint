@@ -20,7 +20,7 @@
       "token": 2, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["variable", "const", "enum"], 
+      "flags": ["variable","const","enum"], 
       "references": [
         {"symbol":1,"scope":2,"node":"identifier","identifier":"Foo","flags":["read"]}, 
         {"symbol":1,"scope":3,"node":"identifier","identifier":"Foo","flags":["read"]}, 
@@ -36,7 +36,7 @@
       "token": 6, 
       "declNode": "container_field_init", 
       "scope": util.id.NominalId(u32)(1), 
-      "flags": ["member", "enum"], 
+      "flags": ["member","enum"], 
       "references": [
         
       ], 
@@ -50,7 +50,7 @@
       "token": 8, 
       "declNode": "container_field_init", 
       "scope": util.id.NominalId(u32)(1), 
-      "flags": ["member", "enum"], 
+      "flags": ["member","enum"], 
       "references": [
         
       ], 
@@ -64,7 +64,7 @@
       "token": 10, 
       "declNode": "container_field_init", 
       "scope": util.id.NominalId(u32)(1), 
-      "flags": ["member", "enum"], 
+      "flags": ["member","enum"], 
       "references": [
         
       ], 
@@ -78,7 +78,7 @@
       "token": 14, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(1), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         
       ], 
@@ -106,7 +106,7 @@
       "token": 24, 
       "declNode": "identifier", 
       "scope": util.id.NominalId(u32)(2), 
-      "flags": ["const", "fn_param"], 
+      "flags": ["const","fn_param"], 
       "references": [
         {"symbol":7,"scope":3,"node":"identifier","identifier":"self","flags":["read"]}, 
         
@@ -128,7 +128,7 @@
     "children": [
       {
         "id": util.id.NominalId(u32)(1), 
-        "flags": ["enum", "block"], 
+        "flags": ["enum","block"], 
         "bindings": {
           "a": 2, 
           "b": 3, 
@@ -148,7 +148,7 @@
             "children": [
               {
                 "id": util.id.NominalId(u32)(3), 
-                "flags": ["function", "block"], 
+                "flags": ["function","block"], 
                 "bindings": {
                   
                 }, 
