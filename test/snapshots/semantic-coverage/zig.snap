@@ -1,6 +1,9 @@
-Passed: 97.56447% (2724/2792)
-Panics: 0% (0/2792)
+Passed: 97.31774% (2830/2908)
+Panics: 0.034387894% (1/2908)
 
+doc/langref/destructuring_mixed.zig: error.FullMismatch
+doc/langref/destructuring_to_existing.zig: error.FullMismatch
+doc/langref/destructuring_vectors.zig: error.FullMismatch
 doc/langref/invalid_doc-comment.zig: error.AnalysisFailed
 doc/langref/test_switch_continue.zig: error.AnalysisFailed
 doc/langref/test_switch_dispatch_loop.zig: error.AnalysisFailed
@@ -10,19 +13,25 @@ lib/compiler/aro/aro/Parser.zig: error.FullMismatch
 lib/compiler/aro/aro/Tree.zig: error.FullMismatch
 lib/compiler/aro/aro/Type.zig: error.FullMismatch
 lib/compiler/aro/aro/text_literal.zig: error.FullMismatch
+lib/compiler/resinator/source_mapping.zig: error.AnalysisFailed
 lib/std/Progress.zig: error.FullMismatch
 lib/std/Target/Query.zig: error.FullMismatch
 lib/std/crypto/tls/Client.zig: error.AnalysisFailed
 lib/std/os/linux/IoUring.zig: error.FullMismatch
 lib/std/zig/tokenizer.zig: error.AnalysisFailed
 src/Sema.zig: error.FullMismatch
-src/Zcu.zig: error.FullMismatch
+src/arch/wasm/Emit.zig: error.AnalysisFailed
+src/arch/x86_64/CodeGen.zig: error.FullMismatch
 src/link/Dwarf.zig: error.FullMismatch
 src/link/Elf/Atom.zig: error.FullMismatch
+src/link/Wasm/Flush.zig: error.FullMismatch
+src/link/Wasm/Object.zig: error.FullMismatch
 src/main.zig: error.FullMismatch
+src/print_value.zig: error.AnalysisFailed
 test/behavior/destructure.zig: error.FullMismatch
 test/behavior/switch.zig: error.AnalysisFailed
 test/behavior/switch_loop.zig: error.AnalysisFailed
+test/behavior/x86_64/math.zig: error.AnalysisFailed
 test/cases/compile_errors/Issue_6823_dont_allow_._to_be_followed_by_.zig: error.AnalysisFailed
 test/cases/compile_errors/assign_to_constant_destructure.zig: error.FullMismatch
 test/cases/compile_errors/attempted_double_ampersand.zig: error.AnalysisFailed
@@ -69,3 +78,4 @@ test/cases/compile_errors/non-extern_function_with_var_args.zig: error.AnalysisF
 test/cases/compile_errors/normal_string_with_newline.zig: error.AnalysisFailed
 test/cases/compile_errors/reject_extern_function_definitions_with_body.zig: error.AnalysisFailed
 test/cases/compile_errors/runtime_condition_comptime_type_in_destructure.zig: error.FullMismatch
+test/cases/compile_errors/tab_inside_string.zig: error.Panic

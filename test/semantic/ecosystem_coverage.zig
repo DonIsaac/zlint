@@ -17,8 +17,10 @@ const REPOS_DIR = "zig-out/repos";
 var repos: std.json.Parsed([]Repo) = undefined;
 
 const SemanticError = zlint.semantic.SemanticBuilder.SemanticError;
+var is_tty: bool = false;
 
 pub fn globalSetup(alloc: Allocator) !void {
+    is_tty = std.io.getStdErr().isTty();
     var repos_dir_fd = fs.cwd().openDir(REPOS_DIR, .{}) catch |e| {
         switch (e) {
             error.FileNotFound => {
@@ -36,10 +38,18 @@ pub fn globalTeardown(_: Allocator) void {
     repos.deinit();
 }
 
+fn isTTY_() bool {
+    return std.io.getStdErr().isTTY();
+}
+
 fn testSemantic(alloc: Allocator, source: *const Source) !void {
     {
         const p = source.pathname orelse "<missing>";
-        print("ecosystem coverage: {s}\n", .{p});
+        print("ecosystem coverage: {s}", .{p});
+        if (is_tty)
+            print("                                                                                      \r", .{})
+        else
+            print("\n", .{});
     }
     var builder = zlint.semantic.SemanticBuilder.init(alloc);
     defer builder.deinit();
