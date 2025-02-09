@@ -1,10 +1,21 @@
-Passed: 98.43049% (439/446)
-Panics: 0% (0/446)
+Passed: 96.18644% (454/472)
+Panics: 0% (0/472)
 
+src/bake/DevServer.zig: error.AnalysisFailed
+src/bun.js/api/server.zig: error.AnalysisFailed
+src/bun.js/api/server/HTMLBundle.zig: error.AnalysisFailed
+src/bun.js/test/expect.zig: error.FullMismatch
 src/bun.js/webcore/request.zig: error.FullMismatch
 src/bun.js/webcore/streams.zig: error.FullMismatch
 src/cli/pack_command.zig: error.FullMismatch
+src/css/css_parser.zig: error.FullMismatch
+src/css/small_list.zig: error.FullMismatch
+src/css/values/number.zig: error.FullMismatch
+src/install/bun.lock.zig: error.FullMismatch
 src/install/extract_tarball.zig: error.FullMismatch
 src/install/install.zig: error.FullMismatch
+src/install/lockfile.zig: error.FullMismatch
 src/install/npm.zig: error.FullMismatch
+src/shell/interpreter.zig: error.FullMismatch
 src/string.zig: error.FullMismatch
+src/sys.zig: error.FullMismatch
