@@ -57,4 +57,9 @@ const y = foo() catch {
 const z = foo() catch null;
 // Writer errors may be safely ignored
 writer.print("{}", .{5}) catch {};
+
+// suppression is allowed in tests
+test foo {
+  foo() catch {};
+}
 ```
