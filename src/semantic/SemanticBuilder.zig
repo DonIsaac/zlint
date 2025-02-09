@@ -1146,7 +1146,7 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     // defer self.exitScope();
     try self.visit(data.rhs);
     util.assert(
-        self._next_block_scope_flags.eq(.{}),
+        self._next_block_scope_flags.eql(.{}),
         "Function body scope flags were not reset. This means the body was not a block node.",
         .{},
     );

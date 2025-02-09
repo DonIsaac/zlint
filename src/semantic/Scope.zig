@@ -36,53 +36,9 @@ pub const Flags = packed struct(FLAGS_REPR) {
     // Padding
     _: u6 = 0,
 
-    pub const Flag = std.meta.FieldEnum(Flags);
     pub const s_container = Flags{ .s_struct = true, .s_enum = true, .s_union = true, .s_error = true };
 
-    /// Merge all `true`-valued flags in `self` and `other`. Neither argument is
-    /// mutated.
-    ///
-    /// ## Example
-    /// ```zig
-    /// const Scope = @import("zlint").semantic.Scope;
-    /// const block = Scope.Flags{ .s_block = true };
-    /// const top = Scope.Flags { .s_top = true };
-    /// const empty = Scope.Flags{};
-    /// try std.testing.expectEqual(ScopeFlags{ .s_top = true, .s_block = true }, block.merge(top));
-    /// try std.testing.expectEqual(block, block.merge(empty));
-    /// try std.testing.expectEqual(block, block.merge(block));
-    /// ```
-    pub inline fn merge(self: Flags, other: Flags) Flags {
-        const a: FLAGS_REPR = @bitCast(self);
-        const b: FLAGS_REPR = @bitCast(other);
-        return @bitCast(a | b);
-    }
-
-    pub inline fn set(self: *Flags, flags: Flags, comptime enable: bool) void {
-        const a: FLAGS_REPR = @bitCast(self.*);
-        const b: FLAGS_REPR = @bitCast(flags);
-
-        if (enable) {
-            self.* = @bitCast(a | b);
-        } else {
-            self.* = @bitCast(a & ~b);
-        }
-    }
-
-    /// Returns `true` if two sets of flags have exactly the same flags
-    /// enabled/diabled.
-    pub fn eq(self: Flags, other: Flags) bool {
-        const a: FLAGS_REPR = @bitCast(self);
-        const b: FLAGS_REPR = @bitCast(other);
-        return a == b;
-    }
-
-    /// Returns `true` if any flags in `other` are also enabled in `self`.
-    pub fn intersects(self: Flags, other: Flags) bool {
-        const a: FLAGS_REPR = @bitCast(self);
-        const b: FLAGS_REPR = @bitCast(other);
-        return a & b != 0;
-    }
+    pub usingnamespace util.Bitflags(Flags);
 
     /// Returns `true` if this scope can have fields (e.g. a struct).
     pub inline fn isContainer(self: Flags) bool {
@@ -265,8 +221,8 @@ test "Flags.merge" {
     const a = Flags{ .s_block = true };
 
     var result = a.merge(.{ .s_enum = true });
-    try t.expect(expected.eq(result));
+    try t.expect(expected.eql(result));
 
     result = a.merge(.{ .s_enum = true, .s_comptime = true });
-    try t.expect(!expected.eq(result));
+    try t.expect(!expected.eql(result));
 }

@@ -26,37 +26,39 @@ pub fn printSymbolTable(self: *SemanticPrinter) !void {
 }
 
 fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: *const Semantic.SymbolTable) !void {
-    try self.printer.pushObject();
-    defer self.printer.pop();
+    const p = self.printer;
+    try p.pushObject();
+    defer p.pop();
 
-    try self.printer.pPropStr("name", symbol.name);
-    try self.printer.pPropStr("debugName", symbol.debug_name);
-    try self.printer.pProp("token", "{any}", if (symbol.token.unwrap()) |t| t.int() else null);
+    try p.pPropStr("name", symbol.name);
+    try p.pPropStr("debugName", symbol.debug_name);
+    try p.pProp("token", "{any}", if (symbol.token.unwrap()) |t| t.int() else null);
     const decl = self.semantic.ast.nodes.items(.tag)[symbol.decl];
-    try self.printer.pPropWithNamespacedValue("declNode", decl);
-    try self.printer.pProp("scope", "{d}", symbol.scope);
+    try p.pPropWithNamespacedValue("declNode", decl);
+    try p.pProp("scope", "{d}", symbol.scope);
     {
-        try self.printer.pPropName("flags");
-        try self.printFlags(Symbol.Flags, symbol.flags);
-        try self.printer.pIndent();
+        try p.pPropName("flags");
+        try p.pJson(symbol.flags);
+        p.pComma();
+        try p.pIndent();
     }
 
     {
-        try self.printer.pPropName("references");
-        try self.printer.pushArray(true);
+        try p.pPropName("references");
+        try p.pushArray(true);
         defer {
-            self.printer.pop();
-            self.printer.pIndent() catch @panic("print failed");
+            p.pop();
+            p.pIndent() catch @panic("print failed");
         }
         for (symbol.references.items) |ref_id| {
             try self.printReference(ref_id);
-            self.printer.pComma();
-            try self.printer.pIndent();
+            p.pComma();
+            try p.pIndent();
         }
     }
 
-    try self.printer.pPropJson("members", @as([]u32, @ptrCast(symbols.getMembers(symbol.id).items)));
-    try self.printer.pPropJson("exports", @as([]u32, @ptrCast(symbols.getExports(symbol.id).items)));
+    try p.pPropJson("members", @as([]u32, @ptrCast(symbols.getMembers(symbol.id).items)));
+    try p.pPropJson("exports", @as([]u32, @ptrCast(symbols.getExports(symbol.id).items)));
 }
 
 pub fn printUnresolvedReferences(self: *SemanticPrinter) !void {
@@ -125,7 +127,8 @@ fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {
     try p.pProp("id", "{d}", scope.id);
 
     try p.pPropName("flags");
-    try self.printFlags(Scope.Flags, scope.flags);
+    try p.pJson(scope.flags);
+    p.pComma();
     try p.pIndent();
 
     {
@@ -166,28 +169,6 @@ fn printStrIf(p: *Printer, str: []const u8, cond: bool) !void {
     try p.pString(str);
     p.pComma();
     try p.pIndent();
-}
-
-fn printFlags(self: *SemanticPrinter, T: type, flags: T) !void {
-    const p = self.printer;
-    try p.pushArray(false);
-    defer p.popNoIndent();
-    const fields = std.meta.fields(T);
-    var first = true;
-
-    inline for (fields) |field| {
-        const f = @field(flags, field.name);
-        if (@TypeOf(f) != bool) continue;
-        var name: []const u8 = field.name;
-        // "s_block" -> "block". less noisy.
-        if (std.mem.startsWith(u8, name, "s_")) name = name[2..];
-        // only print flags that are present.
-        if (f) {
-            if (!first) p.pComma();
-            try p.pString(name);
-            first = false;
-        }
-    }
 }
 
 const PrintableReference = struct {

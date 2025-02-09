@@ -20,7 +20,7 @@
       "token": 1, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["call"]}, 
         
@@ -49,7 +49,7 @@
       "token": 20, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         
       ], 
@@ -63,7 +63,7 @@
       "token": 31, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(0), 
-      "flags": ["variable", "const", "struct"], 
+      "flags": ["variable","const","struct"], 
       "references": [
         {"symbol":4,"scope":2,"node":"identifier","identifier":"Foo","flags":["read"]}, 
         
@@ -78,7 +78,7 @@
       "token": 35, 
       "declNode": "container_field_init", 
       "scope": util.id.NominalId(u32)(1), 
-      "flags": ["member", "struct"], 
+      "flags": ["member","struct"], 
       "references": [
         
       ], 
@@ -92,7 +92,7 @@
       "token": 42, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(1), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         
       ], 
@@ -120,7 +120,7 @@
       "token": 51, 
       "declNode": "ptr_type_aligned", 
       "scope": util.id.NominalId(u32)(2), 
-      "flags": ["const", "fn_param"], 
+      "flags": ["const","fn_param"], 
       "references": [
         {"symbol":8,"scope":3,"node":"identifier","identifier":"self","flags":["read"]}, 
         
@@ -145,7 +145,7 @@
     "children": [
       {
         "id": util.id.NominalId(u32)(1), 
-        "flags": ["struct", "block"], 
+        "flags": ["struct","block"], 
         "bindings": {
           "foo": 5, 
           "Bar": 6, 
@@ -163,7 +163,7 @@
             "children": [
               {
                 "id": util.id.NominalId(u32)(3), 
-                "flags": ["function", "block"], 
+                "flags": ["function","block"], 
                 "bindings": {
                   
                 }, 

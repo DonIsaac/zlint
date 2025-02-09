@@ -34,7 +34,7 @@
       "token": 7, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(2), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":2,"scope":2,"node":"identifier","identifier":"x","flags":["read"]}, 
         
@@ -107,7 +107,7 @@
       "token": 47, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(9), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":7,"scope":9,"node":"identifier","identifier":"a","flags":["read"]}, 
         
@@ -151,7 +151,7 @@
       "token": 70, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(12), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":10,"scope":12,"node":"identifier","identifier":"b","flags":["read"]}, 
         
@@ -166,7 +166,7 @@
       "token": 75, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(12), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":11,"scope":12,"node":"identifier","identifier":"c","flags":["read"]}, 
         
@@ -181,7 +181,7 @@
       "token": 80, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(12), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":12,"scope":12,"node":"identifier","identifier":"d","flags":["read"]}, 
         
@@ -196,7 +196,7 @@
       "token": 85, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(12), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":13,"scope":12,"node":"identifier","identifier":"e","flags":["read"]}, 
         
@@ -211,7 +211,7 @@
       "token": 90, 
       "declNode": "simple_var_decl", 
       "scope": util.id.NominalId(u32)(12), 
-      "flags": ["variable", "const"], 
+      "flags": ["variable","const"], 
       "references": [
         {"symbol":14,"scope":12,"node":"identifier","identifier":"f","flags":["read"]}, 
         
@@ -243,7 +243,7 @@
         "children": [
           {
             "id": util.id.NominalId(u32)(2), 
-            "flags": ["function", "block"], 
+            "flags": ["function","block"], 
             "bindings": {
               "x": 2, 
               
@@ -272,7 +272,7 @@
         "children": [
           {
             "id": util.id.NominalId(u32)(5), 
-            "flags": ["function", "block"], 
+            "flags": ["function","block"], 
             "bindings": {
               "y": 4, 
               
@@ -301,7 +301,7 @@
         "children": [
           {
             "id": util.id.NominalId(u32)(8), 
-            "flags": ["function", "block"], 
+            "flags": ["function","block"], 
             "bindings": {
               "z": 6, 
               
@@ -331,7 +331,7 @@
         "children": [
           {
             "id": util.id.NominalId(u32)(11), 
-            "flags": ["function", "block"], 
+            "flags": ["function","block"], 
             "bindings": {
               "a": 9, 
               
