@@ -40,7 +40,7 @@ curl -fsSL https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/task
 Clone this repo and compile the project with Zig.
 
 ```sh
-zig build --release=safe
+zig build -Doptimize=ReleaseSafe
 ```
 
 ## ⚡️ Lint Rules
