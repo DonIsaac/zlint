@@ -76,6 +76,11 @@ pub fn spanT(self: *const Context, token_id: Ast.TokenIndex) LabeledSpan {
     return LabeledSpan.unlabeled(s.start, s.end);
 }
 
+pub fn spanL(self: *const Context, line: Line) LabeledSpan {
+    _ = self;
+    return LabeledSpan.unlabeled(line.start, line.end);
+}
+
 pub inline fn labelN(
     self: *const Context,
     node_id: Ast.Node.Index,
@@ -258,6 +263,7 @@ const Error = @import("../Error.zig");
 const Severity = Error.Severity;
 const LabeledSpan = @import("../span.zig").LabeledSpan;
 const Rule = _rule.Rule;
+const Line = _rule.Line;
 const Semantic = _semantic.Semantic;
 const Source = _source.Source;
 const string = util.string;

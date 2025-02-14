@@ -22,6 +22,7 @@ const fs = std.fs;
 const Rule = _rule.Rule;
 const RuleSet = @import("RuleSet.zig");
 const NodeWrapper = _rule.NodeWrapper;
+const Line = _rule.Line;
 
 pub const Config = @import("Config.zig");
 
@@ -116,6 +117,31 @@ pub const Linter = struct {
             var symbols = ctx.semantic.symbols.iter();
             while (symbols.next()) |symbol| {
                 rule.runOnSymbol(symbol, &ctx) catch |e| {
+                    const err = try Error.fmt(
+                        self.gpa,
+                        "Rule '{s}' failed to run: {s}",
+                        .{ rule.meta.name, @errorName(e) },
+                    );
+                    ctx.report(err);
+                };
+            }
+        }
+
+        // Check each line
+        for (rules) |rule_with_severity| {
+            const rule = rule_with_severity.rule;
+            ctx.updateForRule(&rule_with_severity);
+            var line_start_idx: u32 = 0;
+            var lines = std.mem.tokenizeSequence(u8, source.text(), "\n");
+            while (lines.next()) |line| {
+                const line_end_idx = line_start_idx + @as(u32, @intCast(line.len));
+                const line_data = Line{
+                    .text = line,
+                    .start = line_start_idx,
+                    .end = line_end_idx,
+                };
+                line_start_idx = line_end_idx;
+                rule.runOnLine(line_data, &ctx) catch |e| {
                     const err = try Error.fmt(
                         self.gpa,
                         "Rule '{s}' failed to run: {s}",

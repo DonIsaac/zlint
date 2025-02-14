@@ -131,6 +131,12 @@ pub fn runOnSymbol(_: *const ${StructName}, symbol: Symbol.Id, ctx: *LinterConte
     @panic("TODO: implement runOnSymbol, or remove it if not needed");
 }
 
+pub fn runOnLine(_: *const ${StructName}, line: Line, ctx: *LinterContext) void {
+    _ = symbol;
+    _ = ctx;
+    @panic("TODO: implement runOnLine, or remove it if not needed");
+}
+
 // Used by the Linter to register the rule so it can be run.
 pub fn rule(self: *${StructName}) Rule {
     return Rule.init(self);

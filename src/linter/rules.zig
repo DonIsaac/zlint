@@ -6,3 +6,4 @@ pub const SuppressedErrors = @import("./rules/suppressed_errors.zig");
 pub const UnsafeUndefined = @import("./rules/unsafe_undefined.zig");
 pub const UnusedDecls = @import("./rules/unused_decls.zig");
 pub const MustReturnRef = @import("./rules/must_return_ref.zig");
+pub const LineLength = @import("./rules/line_length.zig");
