@@ -21,13 +21,17 @@ pub const meta: Rule.Meta = .{
     .default = .warning,
 };
 
-pub fn lineLengthDiagnostic(ctx: *LinterContext) Error {
-    return ctx.diagnostic("line length is too big.", .{});
+pub fn lineLengthDiagnostic(ctx: *LinterContext, line: Line) Error {
+    return ctx.diagnosticf(
+        "line length of {} is too big.",
+        .{line.text.len},
+        .{ctx.spanL(line)},
+    );
 }
 
 pub fn runOnLine(_: *const LineLength, line: Line, ctx: *LinterContext) void {
     if (line.text.len < 120) return;
-    ctx.report(lineLengthDiagnostic(ctx));
+    ctx.report(lineLengthDiagnostic(ctx, line));
 }
 
 pub fn rule(self: *LineLength) Rule {
