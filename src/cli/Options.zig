@@ -22,6 +22,8 @@ summary: bool = true,
 stdin: bool = false,
 /// enable auto fixes
 fix: bool = false,
+/// Like `--fix`, but also enable potentially dangerous fixes.
+fix_dangerously: bool = false,
 /// Positional arguments
 args: std.ArrayListUnmanaged(util.string) = .{},
 
@@ -34,6 +36,7 @@ const help =
     \\--no-summary        Do not print a summary after linting
     \\-S, --stdin         Lint filepaths received from stdin (newline separated)
     \\--fix               Apply automatic fixes where possible
+    \\--fix-dangerously   Like --fix, but also enable potentially dangerous fixes
     \\--deny-warnings     Warnings produce a non-zero exit code
     \\-q, --quiet         Only display error diagnostics
     \\-V, --verbose       Enable verbose logging   
