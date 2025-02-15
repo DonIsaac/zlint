@@ -3,6 +3,7 @@ pub const LintService = @import("linter/LintService.zig");
 pub const Config = @import("linter/Config.zig");
 pub const Rule = @import("linter/rule.zig").Rule;
 pub const rules = @import("linter/rules.zig");
+pub const Fix = @import("linter/fix.zig").Fix;
 
 test {
     const std = @import("std");
