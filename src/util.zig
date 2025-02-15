@@ -11,6 +11,7 @@ pub const stringMut = []u8;
 
 pub const RUNTIME_SAFETY = builtin.mode != .ReleaseFast;
 pub const IS_DEBUG = builtin.mode == .Debug;
+pub const IS_TEST = builtin.is_test;
 pub const IS_WINDOWS = builtin.target.os.tag == .windows;
 pub const NEWLINE = if (IS_WINDOWS) "\r\n" else "\n";
 

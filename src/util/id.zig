@@ -118,10 +118,19 @@ pub fn NominalId(TRepr: type) type {
             none = max,
             _,
 
+            pub const ZERO: Optional = @enumFromInt(0);
             pub const MAX = max - 1;
 
             pub inline fn new(value: ?Repr) Optional {
                 return if (value == null or value.? == max) Optional.none else @enumFromInt(value.?);
+            }
+
+            /// Increment this id.
+            ///
+            /// ## Panics
+            /// If incrementing `self` overflows past the max valid optional id.
+            pub inline fn inc(self: Id) Id {
+                return Optional.tryFrom(self.int() + 1) orelse unreachable;
             }
 
             /// Get this id in its integer representation.

@@ -33,6 +33,7 @@ pub const Source = struct {
             .gpa = gpa,
         };
     }
+
     /// Create a source file directly from a string. Takes ownership of both
     /// `contents` and `pathname`.
     ///
