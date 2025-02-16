@@ -663,11 +663,21 @@ fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
 /// };            //     It is added to Foo's member table.
 /// ```
 fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.ContainerField) !void {
+    // This is a tuple field, e.g. `a` in `const Foo = struct { a, b };`
+    if (field.ast.tuple_like and self.currentContainerSymbolFlags().s_struct) {
+        // Current assumption. If this fails, it's a skill issue
+        if (comptime util.IS_DEBUG) assert(field.ast.align_expr == NULL_NODE);
+
+        try self.visitType(field.ast.type_expr);
+        try self.visit(field.ast.value_expr);
+        return;
+    }
+
     const main_token = self.AST().nodes.items(.main_token)[node_id];
     // main_token points to the field name
     // NOTE: container fields are always public
-    // TODO: record type annotations
     const identifier = self.expectToken(main_token, .identifier);
+
     _ = try self.declareMemberSymbol(.{
         .identifier = identifier,
         .flags = .{

@@ -1,0 +1,148 @@
+{
+  "symbols": [
+    {
+      "name": "", 
+      "debugName": "@This()", 
+      "token": null, 
+      "declNode": "root", 
+      "scope": util.id.NominalId(u32)(0), 
+      "flags": ["const"], 
+      "references": [
+        
+      ], 
+      "members": [1,2,3,5,6], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "x", 
+      "debugName": "", 
+      "token": 1, 
+      "declNode": "simple_var_decl", 
+      "scope": util.id.NominalId(u32)(0), 
+      "flags": ["variable","const"], 
+      "references": [
+        {"symbol":1,"scope":1,"node":"identifier","identifier":"x","flags":["type"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "Foo", 
+      "debugName": "", 
+      "token": 6, 
+      "declNode": "simple_var_decl", 
+      "scope": util.id.NominalId(u32)(0), 
+      "flags": ["variable","const","struct"], 
+      "references": [
+        {"symbol":2,"scope":0,"node":"identifier","identifier":"Foo","flags":["type"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "Namespace", 
+      "debugName": "", 
+      "token": 18, 
+      "declNode": "simple_var_decl", 
+      "scope": util.id.NominalId(u32)(0), 
+      "flags": ["variable","const","struct"], 
+      "references": [
+        {"symbol":3,"scope":3,"node":"identifier","identifier":"Namespace","flags":["type"]}, 
+        
+      ], 
+      "members": [4], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "Member", 
+      "debugName": "", 
+      "token": 23, 
+      "declNode": "simple_var_decl", 
+      "scope": util.id.NominalId(u32)(2), 
+      "flags": ["variable","const"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "Bar", 
+      "debugName": "", 
+      "token": 30, 
+      "declNode": "simple_var_decl", 
+      "scope": util.id.NominalId(u32)(0), 
+      "flags": ["variable","const","struct"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "f", 
+      "debugName": "", 
+      "token": 40, 
+      "declNode": "simple_var_decl", 
+      "scope": util.id.NominalId(u32)(0), 
+      "flags": ["variable","const"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "unresolvedReferences": [],
+  "scopes": {
+    "id": util.id.NominalId(u32)(0), 
+    "flags": ["top"], 
+    "bindings": {
+      "@This()": 0, 
+      "x": 1, 
+      "Foo": 2, 
+      "Namespace": 3, 
+      "Bar": 5, 
+      "f": 6, 
+      
+    }, 
+    "children": [
+      {
+        "id": util.id.NominalId(u32)(1), 
+        "flags": ["struct","block"], 
+        "bindings": {
+          
+        }, 
+        "children": [], 
+        
+      }, {
+        "id": util.id.NominalId(u32)(2), 
+        "flags": ["struct","block"], 
+        "bindings": {
+          "Member": 4, 
+          
+        }, 
+        "children": [], 
+        
+      }, {
+        "id": util.id.NominalId(u32)(3), 
+        "flags": ["struct","block"], 
+        "bindings": {
+          
+        }, 
+        "children": [], 
+        
+      }, 
+    ], 
+    
+  }, 
+}
