@@ -20,9 +20,11 @@ pub const NodeWrapper = struct {
     }
 };
 
+const RunOnceFn = *const fn (ptr: *const anyopaque, ctx: *LinterContext) anyerror!void;
 const RunOnNodeFn = *const fn (ptr: *const anyopaque, node: NodeWrapper, ctx: *LinterContext) anyerror!void;
 const RunOnSymbolFn = *const fn (ptr: *const anyopaque, symbol: Symbol.Id, ctx: *LinterContext) anyerror!void;
 const VTable = struct {
+    runOnce: RunOnceFn,
     runOnNode: RunOnNodeFn,
     runOnSymbol: RunOnSymbolFn,
 };
@@ -96,6 +98,12 @@ pub const Rule = struct {
         const id = comptime rule_ids.get(meta.name) orelse @compileError("Could not find an id for rule '" ++ meta.name ++ "'.");
 
         const gen = struct {
+            pub fn runOnce(pointer: *const anyopaque, ctx: *LinterContext) anyerror!void {
+                if (@hasDecl(ptr_info.child, "runOnce")) {
+                    const self: T = @ptrCast(@constCast(pointer));
+                    return ptr_info.child.runOnce(self, ctx);
+                }
+            }
             pub fn runOnNode(pointer: *const anyopaque, node: NodeWrapper, ctx: *LinterContext) anyerror!void {
                 if (@hasDecl(ptr_info.child, "runOnNode")) {
                     const self: T = @ptrCast(@constCast(pointer));
@@ -115,16 +123,24 @@ pub const Rule = struct {
             .meta = meta,
             .ptr = ptr,
             .vtable = .{
+                .runOnce = gen.runOnce,
                 .runOnNode = gen.runOnNode,
                 .runOnSymbol = gen.runOnSymbol,
             },
         };
     }
 
+    /// Run once per linted file
+    pub fn runOnce(self: *const Rule, ctx: *LinterContext) anyerror!void {
+        return self.vtable.runOnce(self.ptr, ctx);
+    }
+
+    /// Run on each node in the AST
     pub fn runOnNode(self: *const Rule, node: NodeWrapper, ctx: *LinterContext) !void {
         return self.vtable.runOnNode(self.ptr, node, ctx);
     }
 
+    /// Run on each declared symbol in the symbol table
     pub fn runOnSymbol(self: *const Rule, symbol: Symbol.Id, ctx: *LinterContext) !void {
         return self.vtable.runOnSymbol(self.ptr, symbol, ctx);
     }
