@@ -20,7 +20,7 @@ pub fn init(
     options: Options,
 ) !LintService {
     errdefer config.arena.deinit();
-    var linter = try Linter.init(allocator, config);
+    var linter = try Linter.initWithOptions(allocator, config, .{ .fix = options.fix });
     errdefer linter.deinit();
     const pool = try allocator.create(Thread.Pool);
     errdefer allocator.destroy(pool);

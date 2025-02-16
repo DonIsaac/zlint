@@ -71,6 +71,9 @@ fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options 
         }
         if (eq(arg, "--fix")) {
             opts.fix = true;
+        } else if (eq(arg, "--fix-dangerously")) {
+            opts.fix_dangerously = true;
+            opts.fix = true;
         } else if (eq(arg, "-q") or eq(arg, "--quiet")) {
             opts.quiet = true;
         } else if (eq(arg, "-V") or eq(arg, "--verbose")) {

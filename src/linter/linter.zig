@@ -39,6 +39,9 @@ pub const Linter = struct {
     }
 
     pub fn init(gpa: Allocator, config: Config.Managed) !Linter {
+        return initWithOptions(gpa, config, .{});
+    }
+    pub fn initWithOptions(gpa: Allocator, config: Config.Managed, options: Options) !Linter {
         var arena = ArenaAllocator.init(gpa);
         errdefer arena.deinit();
         var ruleset = RuleSet{};
@@ -47,6 +50,7 @@ pub const Linter = struct {
             .rules = ruleset,
             .gpa = gpa,
             .arena = arena,
+            .options = options,
         };
         return linter;
     }
@@ -82,7 +86,8 @@ pub const Linter = struct {
 
         var ctx = Context.init(self.gpa, semantic, source);
         defer ctx.deinit();
-        if (self.options.fix) ctx.fix = Fix.Meta.fix();
+        // if (self.options.fix) ctx.fix = Fix.Meta.safe_fix;
+        ctx.fix = self.options.fix;
         const nodes = ctx.semantic.ast.nodes;
         assert(nodes.len < std.math.maxInt(u32));
 
@@ -244,7 +249,7 @@ pub const Linter = struct {
     };
 
     pub const Options = struct {
-        fix: bool = false,
+        fix: Fix.Meta = Fix.Meta.disabled,
     };
 };
 

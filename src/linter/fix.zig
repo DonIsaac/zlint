@@ -20,19 +20,10 @@ pub const Fix = struct {
             .kind = Kind.none,
             .dangerous = false,
         };
-
-        pub inline fn fix() Meta {
-            return Meta{ .kind = Kind.fix, .dangerous = false };
-        }
-        pub inline fn suggestion() Meta {
-            return Meta{ .kind = Kind.suggestion, .dangerous = false };
-        }
-        pub inline fn dangerousFix() Meta {
-            return Meta{ .kind = Kind.fix, .dangerous = true };
-        }
-        pub inline fn dangerousSuggestion() Meta {
-            return Meta{ .kind = Kind.suggestion, .dangerous = true };
-        }
+        pub const dangerous_fix: Meta = .{ .kind = Kind.fix, .dangerous = true };
+        pub const safe_fix: Meta = .{ .kind = Kind.fix, .dangerous = false };
+        pub const dangerous_suggestion: Meta = .{ .kind = Kind.suggestion, .dangerous = true };
+        pub const safe_suggestion: Meta = .{ .kind = Kind.suggestion, .dangerous = false };
 
         pub fn isDisabled(self: Meta) bool {
             // TODO: check output assembly, check if `@bitcast(self) == 0` is faster.
