@@ -468,6 +468,23 @@ test "Reference flags - `x` - tagged unions" {
     }});
 }
 
+test "Reference flags - `x` - enums" {
+    try testRefsOnX(&[_]RefTestCase{
+        .{
+            \\const x = u32;
+            \\const Foo = enum(x) { a, b };
+            ,
+            .{ .type = true },
+        },
+        .{
+            \\const x = 1;
+            \\const Foo = enum { a = 1, b = x };
+            ,
+            .{ .read = true },
+        },
+    });
+}
+
 test "symbols referenced before their declaration" {
     const sources = [_][:0]const u8{
         \\const y = x;
