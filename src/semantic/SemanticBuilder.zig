@@ -819,9 +819,15 @@ fn visitAssignDestructure(
 fn visitIdentifier(self: *SemanticBuilder, node_id: NodeIndex) !void {
     const main_tokens = self.AST().nodes.items(.main_token);
     const identifier = try self.assertToken(main_tokens[node_id], .identifier);
+    const identifier_name = self.tokenSlice(identifier);
+
+    // I think we can do this? Not sure about `_` enum members, but those shouldn't
+    // hit this path.
+    if (identifier_name.len == 1 and identifier_name[0] == '_') return;
+
     const symbol = self._semantic.resolveBinding(
         self.currentScope(),
-        self.tokenSlice(identifier),
+        identifier_name,
         .{ .exclude = .{ .s_member = true } },
     );
 
