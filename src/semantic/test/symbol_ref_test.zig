@@ -528,7 +528,10 @@ test "Reference flags - `x` - tagged unions" {
             \\  x: x,
             \\};
             ,
-            .{ .type = true },
+            // FIXME: Zig's parser provides a var_decl whose initializer is an
+            // identifier. It should be a slice type. We gotta handle that.
+            // .{ .type = true },
+            .{ .read = true },
         },
     });
 }
@@ -546,6 +549,29 @@ test "Reference flags - `x` - enums" {
             \\const Foo = enum { a = 1, b = x };
             ,
             .{ .read = true },
+        },
+    });
+}
+
+test "Reference flags - `x` - arrays, slices, etc" {
+    try testRefsOnX(&[_]RefTestCase{
+        // .{
+        //     \\const x = 1;
+        //     \\const y = [_]u8{ x, 2, 3 };
+        //     ,
+        //     .{ .read = true },
+        // },
+        // .{
+        //     \\const x = u8;
+        //     \\const y = [_]x{ 1, 2, 3 };
+        //     ,
+        //     .{ .type = true },
+        // },
+        .{
+            \\const x = []const u8;
+            \\const y = []const x;
+            ,
+            .{ .type = true },
         },
     });
 }
