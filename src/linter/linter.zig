@@ -50,7 +50,7 @@ pub const Linter = struct {
             .rules = ruleset,
             .gpa = gpa,
             .arena = arena,
-            .options = options, 
+            .options = options,
         };
         return linter;
     }
