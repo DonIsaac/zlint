@@ -95,7 +95,14 @@ pub const Linter = struct {
         for (rules) |rule_with_severity| {
             const rule = rule_with_severity.rule;
             ctx.updateForRule(&rule_with_severity);
-            rule.runOnce(ctx);
+            rule.runOnce(&ctx) catch |e| {
+                const err = try Error.fmt(
+                    self.gpa,
+                    "Rule '{s}' failed to run: {s}",
+                    .{ rule.meta.name, @errorName(e) },
+                );
+                ctx.report(err);
+            };
         }
 
         // Check each node in the AST
