@@ -169,6 +169,11 @@ test UnusedDecls {
         \\const module = @import("module.zig");
         \\usingnamespace module;
         ,
+        \\const Bar = @import("Foo.zig");
+        \\pub const Thing = union(enum) {
+        \\  Foo,
+        \\  Bar: Bar, 
+        \\};
     };
 
     const fail = &[_][:0]const u8{

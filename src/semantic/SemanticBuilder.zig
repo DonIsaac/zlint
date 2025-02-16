@@ -819,7 +819,11 @@ fn visitAssignDestructure(
 fn visitIdentifier(self: *SemanticBuilder, node_id: NodeIndex) !void {
     const main_tokens = self.AST().nodes.items(.main_token);
     const identifier = try self.assertToken(main_tokens[node_id], .identifier);
-    const symbol = self._semantic.resolveBinding(self.currentScope(), self.tokenSlice(identifier));
+    const symbol = self._semantic.resolveBinding(
+        self.currentScope(),
+        self.tokenSlice(identifier),
+        .{ .exclude = .{ .s_member = true } },
+    );
 
     _ = try self.recordReference(.{
         .node = node_id,

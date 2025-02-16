@@ -506,9 +506,6 @@ test "Reference flags - `x` - tuples" {
 }
 
 test "Reference flags - `x` - tagged unions" {
-    const x = 1;
-    _ = x;
-    std.debug.print("here\n", .{});
     try testRefsOnX(&[_]RefTestCase{
         .{
             \\const x = u32;
@@ -521,6 +518,15 @@ test "Reference flags - `x` - tagged unions" {
         .{
             \\const x = enum { a, b };
             \\const Foo = union(x) { a: u32, b: i32 };
+            ,
+            .{ .type = true },
+        },
+        .{
+            \\const x = u32;
+            \\const Foo = union(enum) {
+            \\  y,
+            \\  x: x,
+            \\};
             ,
             .{ .type = true },
         },
