@@ -573,6 +573,14 @@ test "Reference flags - `x` - arrays, slices, etc" {
             // .{ .type = true },
             .{ .read = true },
         },
+        .{
+            \\const x = u8;
+            \\const y = [_][_]u8{
+            \\  [_]x{ 1, 2, 3 },
+            \\};
+            ,
+            .{ .type = true },
+        },
     });
 }
 
