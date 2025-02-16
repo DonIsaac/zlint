@@ -559,13 +559,43 @@ fn visitContainer(self: *SemanticBuilder, node: NodeIndex, container: full.Conta
     const main_tokens: []const TokenIndex = self.AST().nodes.items(.main_token);
     const tags: []const Token.Tag = self.AST().tokens.items(.tag);
 
-    const scope_flags: Scope.Flags, const symbol_flags: Symbol.Flags = switch (tags[main_tokens[node]]) {
+    const main_token = main_tokens[node];
+    const container_tag = tags[main_tokens[node]];
+    const scope_flags: Scope.Flags, var symbol_flags: Symbol.Flags = switch (container_tag) {
         .keyword_enum => .{ .{ .s_enum = true }, .{ .s_enum = true } },
         .keyword_struct => .{ .{ .s_struct = true }, .{ .s_struct = true } },
         .keyword_union => .{ .{ .s_union = true }, .{ .s_union = true } },
         // e.g. opaque
         else => .{ .{}, .{} },
     };
+
+    // const Foo = packed struct { ... }
+    //             ^^^^^^
+    if (container.layout_token) |layout_token| switch (tags[layout_token]) {
+        // TODO: extern/packed enums are not allowed. Report it.
+        .keyword_extern => symbol_flags.s_extern = true,
+        else => {},
+    };
+
+    // packed structs, tagged unions, and enums may specify a representation type.
+    // We need to record a type reference for it.
+    // TODO: check if extern containers are banned from having a representation type.
+    // if so, report it.
+    if (container.ast.enum_token == null) {
+        const maybe_ident = main_token + 2;
+        if (tags[main_token + 1] == .l_paren and // w/o this, enum { x } triggers on x
+            tags[maybe_ident] == .identifier and
+            tags[maybe_ident + 1] != .period)
+        {
+            const prev = self.takeReferenceFlags();
+            defer self._curr_reference_flags = prev;
+            _ = try self.recordReference(.{
+                .flags = .{ .type = true },
+                .node = node,
+                .token = maybe_ident,
+            });
+        }
+    }
 
     self.currentContainerSymbolFlags().set(symbol_flags, true);
     self._curr_symbol_flags.set(symbol_flags, true);
@@ -1442,9 +1472,13 @@ inline fn takeReferenceFlags(self: *SemanticBuilder) Reference.Flags {
 }
 
 const CreateReference = struct {
+    /// Defaults to current node
     node: ?NodeIndex = null,
     token: ?TokenIndex = null,
+    /// Defaults to current scope
     scope: ?Scope.Id = null,
+    /// If `null`, will be added to unresolved reference list. The builder will
+    /// attempt to resolve it later, as it progresses with the walk.
     symbol: ?Symbol.Id = null,
     flags: Reference.Flags = .{},
 };
