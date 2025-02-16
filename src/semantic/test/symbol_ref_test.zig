@@ -363,6 +363,16 @@ test "Reference flags - `x` - type annotations" {
             ,
             .{ .type = true },
         },
+        // anonymous container definitions
+        .{
+            \\const x = u32;
+            \\const y = i32;
+            \\const Foo = struct {
+            \\  a: struct { x, y },
+            \\};
+            ,
+            .{ .type = true },
+        },
     });
 }
 
@@ -441,6 +451,54 @@ test "Reference flags - `x` - structs" {
         .{
             \\const x = struct {};
             \\const y = x{};
+            ,
+            .{ .read = true },
+        },
+    });
+}
+
+test "Reference flags - `x` - tuples" {
+    try testRefsOnX(&[_]RefTestCase{
+        // tuple declarations
+        .{
+            \\const x = u8;
+            \\const Foo = struct { x, u32 };
+            ,
+            .{ .type = true },
+        },
+        .{
+            \\const x = struct {
+            \\  const y = u8;
+            \\};
+            \\const Foo = struct { x.y, u32 };
+            ,
+            .{ .type = true },
+        },
+        .{
+            \\const x = u32;
+            \\const Foo = struct { *x, u32 };
+            ,
+            .{ .type = true },
+        },
+        .{
+            \\const x = 1;
+            \\const Foo = struct { u32 = x, u32 };
+            ,
+            .{ .read = true },
+        },
+        // TODO: bind member expressions
+        // .{
+        //     \\const y = struct {
+        //     \\  const x = u8;
+        //     \\};
+        //     \\const Foo = struct { y.x, u32 };
+        //     ,
+        //     .{ .type = true },
+        // },
+        .{
+            \\const x = 1;
+            \\const Foo = struct { u32, u32 };
+            \\const f = Foo{ x, 1 };
             ,
             .{ .read = true },
         },
