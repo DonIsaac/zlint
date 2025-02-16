@@ -181,11 +181,21 @@ test UnusedDecls {
     const fix = &[_]RuleTester.FixCase{
         .{ .src = "const x = 1;", .expected = "" },
         .{ .src = "const std = @import(\"std\");", .expected = "" },
+        .{ .src = "const x = struct {\na: u32,\n};", .expected = "" },
         .{ .src = 
         \\//! This module does a thing
         \\const std = @import("std");
         , .expected = 
         \\//! This module does a thing
+        \\
+        },
+        .{ .src = 
+        \\pub const used = 1;
+        \\const unused = struct {
+        \\  a: u32 = 1
+        \\};
+        , .expected = 
+        \\pub const used = 1;
         \\
         },
     };

@@ -65,8 +65,14 @@ pub inline fn links(self: *const Context) *const Semantic.NodeLinks {
 
 pub fn spanN(self: *const Context, node_id: Ast.Node.Index) LabeledSpan {
     // TODO: inline
-    const s = self.semantic.ast.nodeToSpan(node_id);
-    return LabeledSpan.unlabeled(s.start, s.end);
+    const ast_ = self.semantic.ast;
+    const tok_locations: []const Semantic.Token.Loc = self.semantic.tokens.items(.loc);
+
+    const first = ast_.firstToken(node_id);
+    const last = ast_.lastToken(node_id);
+    const first_start = tok_locations[first].start;
+    const last_end = tok_locations[last].end;
+    return LabeledSpan.unlabeled(@intCast(first_start), @intCast(last_end));
 }
 
 pub fn spanT(self: *const Context, token_id: Ast.TokenIndex) LabeledSpan {
