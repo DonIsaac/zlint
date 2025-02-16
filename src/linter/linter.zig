@@ -91,6 +91,20 @@ pub const Linter = struct {
         const nodes = ctx.semantic.ast.nodes;
         assert(nodes.len < std.math.maxInt(u32));
 
+        // Some rules do special checks and just need access to the source once.
+        for (rules) |rule_with_severity| {
+            const rule = rule_with_severity.rule;
+            ctx.updateForRule(&rule_with_severity);
+            rule.runOnce(&ctx) catch |e| {
+                const err = try Error.fmt(
+                    self.gpa,
+                    "Rule '{s}' failed to run: {s}",
+                    .{ rule.meta.name, @errorName(e) },
+                );
+                ctx.report(err);
+            };
+        }
+
         // Check each node in the AST
         // Note: rules are in outer loop for better cache locality. Nodes are
         // stored in an arena, so iterating has good cache-hit characteristics.
