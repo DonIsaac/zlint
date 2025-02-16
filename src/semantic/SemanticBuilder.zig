@@ -583,7 +583,10 @@ fn visitContainer(self: *SemanticBuilder, node: NodeIndex, container: full.Conta
     // if so, report it.
     if (container.ast.enum_token == null) {
         const maybe_ident = main_token + 2;
-        if (tags[maybe_ident] == .identifier and tags[maybe_ident + 1] != .period) {
+        if (tags[main_token + 1] == .l_paren and // w/o this, enum { x } triggers on x
+            tags[maybe_ident] == .identifier and
+            tags[maybe_ident + 1] != .period)
+        {
             const prev = self.takeReferenceFlags();
             defer self._curr_reference_flags = prev;
             _ = try self.recordReference(.{
