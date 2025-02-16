@@ -452,20 +452,21 @@ test "Reference flags - `x` - tagged unions" {
     _ = x;
     std.debug.print("here\n", .{});
     try testRefsOnX(&[_]RefTestCase{
-    // .{
-    //     \\const x = u32;
-    //     \\const Foo = union(enum) {
-    //     \\  a: x
-    //     \\};
-    //     ,
-    //     .{ .type = true },
-    // },
-    .{
-        \\const x = enum { a, b };
-        \\const Foo = union(x) { a: u32, b: i32 };
-        ,
-        .{ .type = true },
-    }});
+        .{
+            \\const x = u32;
+            \\const Foo = union(enum) {
+            \\  a: x
+            \\};
+            ,
+            .{ .type = true },
+        },
+        .{
+            \\const x = enum { a, b };
+            \\const Foo = union(x) { a: u32, b: i32 };
+            ,
+            .{ .type = true },
+        },
+    });
 }
 
 test "Reference flags - `x` - enums" {
