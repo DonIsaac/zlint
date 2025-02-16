@@ -870,6 +870,7 @@ fn visitPtrType(self: *SemanticBuilder, ptr: full.PtrType) !void {
 // =============================================================================
 
 fn visitArrayInit(self: *SemanticBuilder, _: NodeIndex, arr: full.ArrayInit) !void {
+    try self.visitType(arr.ast.type_expr);
     for (arr.ast.elements) |el| {
         try self.visit(el);
     }
