@@ -62,6 +62,10 @@ test "Symbol flags - container declarations" {
             .{ .s_struct = true, .s_variable = true, .s_const = true },
         },
         .{
+            "const x = extern struct { y: u32 };",
+            .{ .s_struct = true, .s_extern = true, .s_variable = true, .s_const = true },
+        },
+        .{
             "const x = enum { y };",
             .{ .s_enum = true, .s_variable = true, .s_const = true },
         },

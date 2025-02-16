@@ -424,7 +424,7 @@ test "Reference flags - `x` - indexes and slices" {
     });
 }
 
-test "Reference flags - `x` - containers" {
+test "Reference flags - `x` - structs" {
     try testRefsOnX(&[_]RefTestCase{
         .{
             \\const x = 1;
@@ -433,12 +433,39 @@ test "Reference flags - `x` - containers" {
             .{ .read = true },
         },
         .{
+            \\const x = u8;
+            \\const Foo = packed struct(x) { a: bool, _: u7 };
+            ,
+            .{ .type = true },
+        },
+        .{
             \\const x = struct {};
             \\const y = x{};
             ,
             .{ .read = true },
         },
     });
+}
+
+test "Reference flags - `x` - tagged unions" {
+    const x = 1;
+    _ = x;
+    std.debug.print("here\n", .{});
+    try testRefsOnX(&[_]RefTestCase{
+    // .{
+    //     \\const x = u32;
+    //     \\const Foo = union(enum) {
+    //     \\  a: x
+    //     \\};
+    //     ,
+    //     .{ .type = true },
+    // },
+    .{
+        \\const x = enum { a, b };
+        \\const Foo = union(x) { a: u32, b: i32 };
+        ,
+        .{ .type = true },
+    }});
 }
 
 test "symbols referenced before their declaration" {
