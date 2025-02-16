@@ -2,6 +2,7 @@
 
 [![codecov](https://codecov.io/gh/DonIsaac/zlint/graph/badge.svg?token=5bDT3yGZt8)](https://codecov.io/gh/DonIsaac/zlint)
 [![CI](https://github.com/DonIsaac/zlint/actions/workflows/ci.yaml/badge.svg)](https://github.com/DonIsaac/zlint/actions/workflows/ci.yaml)
+[![Discord](https://img.shields.io/static/v1?logo=discord&label=discord&message=Join&color=blue)](https://discord.gg/UcB7HjJxcG)
 
 An opinionated linter for the Zig programming language.
 
@@ -31,9 +32,8 @@ curl -fsSL https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/task
 ```
 
 > [!WARNING]
-> - Pre-built binaries are not available for Alpine Linux (or any other MUSL-based distro).
->   Please build from source.
-> - This installation script does not work on Windows. Please download the binary manually.
+> This installation script does not work on Windows. Please download Windows
+> binaries directly from the releases page.
 
 ### 🔨 Building from Source
 
