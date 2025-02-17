@@ -66,6 +66,23 @@ test "inserting at start of file" {
     }
 }
 
+test "deleting full lines" {
+    var fixer = fix.Fixer{ .allocator = t.allocator };
+
+    const source = "const x = 1;";
+
+    var res = try fixer.applyFixes(source, toDiagnostic([_]fix.Fix{
+        fix.Fix{
+            .span = Span.new(0, source.len),
+            .replacement = Cow.static(""),
+        },
+    }));
+    defer res.deinit(t.allocator);
+
+    try expect(res.did_fix);
+    try expectEqualStrings("", res.source.items);
+}
+
 test "deleting a section" {
     var fixer = fix.Fixer{ .allocator = t.allocator };
     const src = "const x = 1; const y = 2; const z = 3;";

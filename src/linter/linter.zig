@@ -40,6 +40,9 @@ pub const Linter = struct {
     }
 
     pub fn init(gpa: Allocator, config: Config.Managed) !Linter {
+        return initWithOptions(gpa, config, .{});
+    }
+    pub fn initWithOptions(gpa: Allocator, config: Config.Managed, options: Options) !Linter {
         var arena = ArenaAllocator.init(gpa);
         errdefer arena.deinit();
         var ruleset = RuleSet{};
@@ -48,6 +51,7 @@ pub const Linter = struct {
             .rules = ruleset,
             .gpa = gpa,
             .arena = arena,
+            .options = options,
         };
         return linter;
     }
@@ -83,9 +87,24 @@ pub const Linter = struct {
 
         var ctx = Context.init(self.gpa, semantic, source);
         defer ctx.deinit();
-        if (self.options.fix) ctx.fix = Fix.Meta.fix();
+        // if (self.options.fix) ctx.fix = Fix.Meta.safe_fix;
+        ctx.fix = self.options.fix;
         const nodes = ctx.semantic.ast.nodes;
         assert(nodes.len < std.math.maxInt(u32));
+
+        // Some rules do special checks and just need access to the source once.
+        for (rules) |rule_with_severity| {
+            const rule = rule_with_severity.rule;
+            ctx.updateForRule(&rule_with_severity);
+            rule.runOnce(&ctx) catch |e| {
+                const err = try Error.fmt(
+                    self.gpa,
+                    "Rule '{s}' failed to run: {s}",
+                    .{ rule.meta.name, @errorName(e) },
+                );
+                ctx.report(err);
+            };
+        }
 
         // Check each node in the AST
         // Note: rules are in outer loop for better cache locality. Nodes are
@@ -117,31 +136,6 @@ pub const Linter = struct {
             var symbols = ctx.semantic.symbols.iter();
             while (symbols.next()) |symbol| {
                 rule.runOnSymbol(symbol, &ctx) catch |e| {
-                    const err = try Error.fmt(
-                        self.gpa,
-                        "Rule '{s}' failed to run: {s}",
-                        .{ rule.meta.name, @errorName(e) },
-                    );
-                    ctx.report(err);
-                };
-            }
-        }
-
-        // Check each line
-        for (rules) |rule_with_severity| {
-            const rule = rule_with_severity.rule;
-            ctx.updateForRule(&rule_with_severity);
-            var line_start_idx: u32 = 0;
-            var lines = std.mem.tokenizeSequence(u8, source.text(), "\n");
-            while (lines.next()) |line| {
-                const line_end_idx = line_start_idx + @as(u32, @intCast(line.len));
-                const line_data = Line{
-                    .text = line,
-                    .start = line_start_idx,
-                    .end = line_end_idx,
-                };
-                line_start_idx = line_end_idx;
-                rule.runOnLine(line_data, &ctx) catch |e| {
                     const err = try Error.fmt(
                         self.gpa,
                         "Rule '{s}' failed to run: {s}",
@@ -270,7 +264,7 @@ pub const Linter = struct {
     };
 
     pub const Options = struct {
-        fix: bool = false,
+        fix: Fix.Meta = Fix.Meta.disabled,
     };
 };
 

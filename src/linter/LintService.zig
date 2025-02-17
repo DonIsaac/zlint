@@ -1,7 +1,7 @@
 const LintService = @This();
 
 pub const Options = struct {
-    fix: bool = false,
+    fix: Fix.Meta = Fix.Meta.disabled,
     /// Defaults to # of CPUs
     n_threads: ?u32 = null,
 };
@@ -20,7 +20,7 @@ pub fn init(
     options: Options,
 ) !LintService {
     errdefer config.arena.deinit();
-    var linter = try Linter.init(allocator, config);
+    var linter = try Linter.initWithOptions(allocator, config, .{ .fix = options.fix });
     errdefer linter.deinit();
     const pool = try allocator.create(Thread.Pool);
     errdefer allocator.destroy(pool);
@@ -128,7 +128,7 @@ pub fn lintSource(
 
         // FIXME: take errors from ctx. requires using Error instead of Diagnostic
         // when fix is false
-        if (!self.options.fix) {
+        if (self.options.fix.isDisabled()) {
             const n = diagnostics.items.len;
             util.assert(n > 0, "Linter should never assign an empty error list when problems are reported", .{});
             util.assert(self.allocator.ptr == diagnostics.allocator.ptr, "diagnostics used a different allocator than one used to make errors", .{});

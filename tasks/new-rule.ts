@@ -118,6 +118,13 @@ pub const meta: Rule.Meta = .{
     .category = .correctness,
 };
 
+// Runs once per source file. Useful for unique checks
+pub fn runOnce(_: *const ${StructName}, ctx: *LinterContext) void {
+    _ = wrapper;
+    _ = ctx;
+    @panic("TODO: implement runOnce, or remove it if not needed");
+}
+
 // Runs on each node in the AST. Useful for syntax-based rules.
 pub fn runOnNode(_: *const ${StructName}, wrapper: NodeWrapper, ctx: *LinterContext) void {
     _ = wrapper;
@@ -129,12 +136,6 @@ pub fn runOnSymbol(_: *const ${StructName}, symbol: Symbol.Id, ctx: *LinterConte
     _ = symbol;
     _ = ctx;
     @panic("TODO: implement runOnSymbol, or remove it if not needed");
-}
-
-pub fn runOnLine(_: *const ${StructName}, line: Line, ctx: *LinterContext) void {
-    _ = symbol;
-    _ = ctx;
-    @panic("TODO: implement runOnLine, or remove it if not needed");
 }
 
 // Used by the Linter to register the rule so it can be run.

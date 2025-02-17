@@ -70,13 +70,28 @@ pub fn getBinding(self: *const Semantic, scope_id: Scope.Id, name: []const u8) ?
     return null;
 }
 
+const BindingQuery = struct {
+    /// Symbols that have these flags will be skipped.
+    exclude: Symbol.Flags = .{},
+};
+
 /// Find an in-scope symbol bound to an identifier name.
 ///
 /// To only find symbols declared within a scope, use `getBinding`.
-pub fn resolveBinding(self: *const Semantic, scope_id: Scope.Id, name: []const u8) ?Symbol.Id {
+pub fn resolveBinding(
+    self: *const Semantic,
+    scope_id: Scope.Id,
+    name: []const u8,
+    query: BindingQuery,
+) ?Symbol.Id {
+    const flags: []const Symbol.Flags = self.symbols.symbols.items(.flags);
     var it = self.scopes.iterParents(scope_id);
     while (it.next()) |scope| {
-        if (self.getBinding(scope, name)) |binding| return binding;
+        if (self.getBinding(scope, name)) |binding| {
+            if (query.exclude.isEmpty()) return binding;
+            const flag = flags[binding.into(usize)];
+            if (!flag.contains(query.exclude)) return binding;
+        }
     }
     return null;
 }

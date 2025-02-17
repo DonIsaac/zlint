@@ -16,6 +16,7 @@ const WalkState = walk.WalkState;
 const Error = @import("../Error.zig");
 
 const LintService = _lint.LintService;
+const Fix = _lint.Fix;
 const Options = @import("../cli/Options.zig");
 
 pub fn lint(alloc: Allocator, options: Options) !u8 {
@@ -45,12 +46,17 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
     const start = std.time.milliTimestamp();
 
     {
+        const fix = if (options.fix or options.fix_dangerously) Fix.Meta{
+            .kind = .fix,
+            .dangerous = options.fix_dangerously,
+        } else Fix.Meta.disabled;
+
         // TODO: use options to specify number of threads (if provided)
         var service = try LintService.init(
             alloc,
             &reporter,
             config,
-            .{ .fix = options.fix },
+            .{ .fix = fix },
         );
         defer service.deinit();
 

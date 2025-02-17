@@ -55,11 +55,16 @@ test "Symbol flags - variable declarations" {
         },
     });
 }
+
 test "Symbol flags - container declarations" {
     try testFlags(&[_]TestCase{
         .{
             "const x = struct { y: u32 };",
             .{ .s_struct = true, .s_variable = true, .s_const = true },
+        },
+        .{
+            "const x = extern struct { y: u32 };",
+            .{ .s_struct = true, .s_extern = true, .s_variable = true, .s_const = true },
         },
         .{
             "const x = enum { y };",
@@ -68,6 +73,10 @@ test "Symbol flags - container declarations" {
         .{
             "const x = union(enum) { y };",
             .{ .s_union = true, .s_variable = true, .s_const = true },
+        },
+        .{
+            "const x = extern union { x: Foo, y: Bar };",
+            .{ .s_union = true, .s_extern = true, .s_variable = true, .s_const = true },
         },
     });
 }

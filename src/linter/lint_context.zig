@@ -65,8 +65,14 @@ pub inline fn links(self: *const Context) *const Semantic.NodeLinks {
 
 pub fn spanN(self: *const Context, node_id: Ast.Node.Index) LabeledSpan {
     // TODO: inline
-    const s = self.semantic.ast.nodeToSpan(node_id);
-    return LabeledSpan.unlabeled(s.start, s.end);
+    const ast_ = self.semantic.ast;
+    const tok_locations: []const Semantic.Token.Loc = self.semantic.tokens.items(.loc);
+
+    const first = ast_.firstToken(node_id);
+    const last = ast_.lastToken(node_id);
+    const first_start = tok_locations[first].start;
+    const last_end = tok_locations[last].end;
+    return LabeledSpan.unlabeled(@intCast(first_start), @intCast(last_end));
 }
 
 pub fn spanT(self: *const Context, token_id: Ast.TokenIndex) LabeledSpan {
@@ -78,7 +84,7 @@ pub fn spanT(self: *const Context, token_id: Ast.TokenIndex) LabeledSpan {
 
 pub fn spanL(self: *const Context, line: Line) LabeledSpan {
     _ = self;
-    return LabeledSpan.unlabeled(line.start, line.end);
+    return LabeledSpan.unlabeled(line.offset, line.offset + line.len());
 }
 
 pub inline fn labelN(
@@ -263,7 +269,7 @@ const Error = @import("../Error.zig");
 const Severity = Error.Severity;
 const LabeledSpan = @import("../span.zig").LabeledSpan;
 const Rule = _rule.Rule;
-const Line = _rule.Line;
+const Line = @import("../reporter/formatters/GraphicalFormatter.zig").Line;
 const Semantic = _semantic.Semantic;
 const Source = _source.Source;
 const string = util.string;

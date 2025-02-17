@@ -48,10 +48,15 @@
 const std = @import("std");
 const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
+const _fix = @import("../fix.zig");
+const _span = @import("../../span.zig");
 
+const Span = _span.Span;
 const Symbol = semantic.Symbol;
 const Scope = semantic.Scope;
+const Node = semantic.Ast.Node;
 const LinterContext = @import("../lint_context.zig");
+const Fix = _fix.Fix;
 const Rule = _rule.Rule;
 
 // Rule metadata
@@ -61,12 +66,13 @@ pub const meta: Rule.Meta = .{
     .default = .warning,
     // TODO: set the category to an appropriate value
     .category = .correctness,
+    .fix = Fix.Meta.dangerous_fix,
 };
 
 pub fn runOnSymbol(_: *const UnusedDecls, symbol: Symbol.Id, ctx: *LinterContext) void {
     const s = symbol.into(usize);
-    const slice = ctx.symbols().symbols.slice();
-    const references: []const semantic.Reference.Id = slice.items(.references)[s].items;
+    const symbols = ctx.symbols().symbols.slice();
+    const references: []const semantic.Reference.Id = symbols.items(.references)[s].items;
     // TODO: ignore write references
     // TODO: check for references by variables that are themselves unused. for
     // example, both `foo` and `bar` should be reported:
@@ -76,11 +82,11 @@ pub fn runOnSymbol(_: *const UnusedDecls, symbol: Symbol.Id, ctx: *LinterContext
     //
     if (references.len > 0) return;
 
-    const visibility: Symbol.Visibility = slice.items(.visibility)[s];
+    const visibility: Symbol.Visibility = symbols.items(.visibility)[s];
     if (visibility == .public) return;
 
-    const flags: Symbol.Flags = slice.items(.flags)[s];
-    const name = slice.items(.name)[s];
+    const flags: Symbol.Flags = symbols.items(.flags)[s];
+    const name = symbols.items(.name)[s];
 
     // TODO:
     //  1) member references (`foo.bar`) are not currently resolved
@@ -97,20 +103,46 @@ pub fn runOnSymbol(_: *const UnusedDecls, symbol: Symbol.Id, ctx: *LinterContext
     // TODO: since references on container members are not yet recorded, there
     // are too many false positives for non-root constants. Once such references
     // are reliably resolved, remove this check.
-    const scope: Scope.Id = slice.items(.scope)[s];
+    const scope: Scope.Id = symbols.items(.scope)[s];
     if (!scope.eql(semantic.Semantic.ROOT_SCOPE_ID)) return;
 
     if (flags.s_variable and flags.s_const) {
-        ctx.report(ctx.diagnosticf(
-            "variable '{s}' is declared but never used.",
-            .{name},
-            .{ctx.spanT(slice.items(.token)[s].unwrap().?.int())},
-        ));
+        const span = ctx.spanT(symbols.items(.token)[s].unwrap().?.int());
+        const fixer = UnusedDeclsFixer.init(ctx, symbol);
+        ctx.reportWithFix(
+            fixer,
+            ctx.diagnosticf(
+                "variable '{s}' is declared but never used.",
+                .{name},
+                .{span},
+            ),
+            &UnusedDeclsFixer.removeDecl,
+        );
         return;
     }
 }
 
-// Used by the Linter to register the rule so it can be run.
+const UnusedDeclsFixer = struct {
+    span: Span,
+
+    fn init(ctx: *const LinterContext, symbol: Symbol.Id) UnusedDeclsFixer {
+        if (ctx.fix.isDisabled()) return .{ .span = Span.EMPTY };
+        // NOTE: if we cover more kinds of symbols in the future, this may cover
+        // something we don't want (e.g. decl node for fn params is the fn proto).
+        // Fine for now since we only report top-level vars.
+        const decl: Node.Index = ctx.symbols().symbols.items(.decl)[symbol.int()];
+        var span = ctx.spanN(decl).span;
+        const text = ctx.source.text();
+        if (span.end < text.len and text[span.end] == ';') span.end += 1;
+
+        return .{ .span = span };
+    }
+
+    fn removeDecl(self: UnusedDeclsFixer, b: Fix.Builder) anyerror!Fix {
+        return b.delete(self.span);
+    }
+};
+
 pub fn rule(self: *UnusedDecls) Rule {
     return Rule.init(self);
 }
@@ -137,19 +169,45 @@ test UnusedDecls {
         \\const module = @import("module.zig");
         \\usingnamespace module;
         ,
+        \\const Bar = @import("Foo.zig");
+        \\pub const Thing = union(enum) {
+        \\  Foo,
+        \\  Bar: Bar, 
+        \\};
     };
 
-    // Code your rule should fail on
     const fail = &[_][:0]const u8{
-        // TODO: add test cases
         "const x = 1;",
         \\const std = @import("std"); const Allocator = std.mem.Allocator;
         ,
         "extern const x: usize;",
     };
 
+    const fix = &[_]RuleTester.FixCase{
+        .{ .src = "const x = 1;", .expected = "" },
+        .{ .src = "const std = @import(\"std\");", .expected = "" },
+        .{ .src = "const x = struct {\na: u32,\n};", .expected = "" },
+        .{ .src = 
+        \\//! This module does a thing
+        \\const std = @import("std");
+        , .expected = 
+        \\//! This module does a thing
+        \\
+        },
+        .{ .src = 
+        \\pub const used = 1;
+        \\const unused = struct {
+        \\  a: u32 = 1
+        \\};
+        , .expected = 
+        \\pub const used = 1;
+        \\
+        },
+    };
+
     try runner
         .withPass(pass)
         .withFail(fail)
+        .withFix(fix)
         .run();
 }

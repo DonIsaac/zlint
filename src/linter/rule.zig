@@ -20,19 +20,13 @@ pub const NodeWrapper = struct {
     }
 };
 
-pub const Line = struct {
-    text: []const u8,
-    start: u32,
-    end: u32,
-};
-
+const RunOnceFn = *const fn (ptr: *const anyopaque, ctx: *LinterContext) anyerror!void;
 const RunOnNodeFn = *const fn (ptr: *const anyopaque, node: NodeWrapper, ctx: *LinterContext) anyerror!void;
 const RunOnSymbolFn = *const fn (ptr: *const anyopaque, symbol: Symbol.Id, ctx: *LinterContext) anyerror!void;
-const RunOnLineFn = *const fn (ptr: *const anyopaque, line: Line, ctx: *LinterContext) anyerror!void;
 const VTable = struct {
+    runOnce: RunOnceFn,
     runOnNode: RunOnNodeFn,
     runOnSymbol: RunOnSymbolFn,
-    runOnLine: RunOnLineFn,
 };
 
 /// A single lint rule.
@@ -40,9 +34,9 @@ const VTable = struct {
 /// ## Creating Rules
 /// Rules are structs (or anything else that can have methods) that have 1 or
 /// more of the following methods:
+/// - `runOnce(*self, *ctx)`
 /// - `runOnNode(*self, node, *ctx)`
 /// - `runOnSymbol(*self, symbol, *ctx)`
-/// - `runOnLine(*self, line, *ctx)`
 /// `Rule` provides a uniform interface to `Linter`. `Rule.init` will look for
 /// those methods and, if they exist, stores pointers to them. These then get
 /// used by the `Linter` to check for violations.
@@ -52,9 +46,9 @@ pub const Rule = struct {
     id: Id,
     ptr: *anyopaque,
     vtable: VTable,
+    // runOnceFn: RunOnceFn,
     // runOnNodeFn: RunOnNodeFn,
     // runOnSymbolFn: RunOnSymbolFn,
-    // runOnLineFn: RunOnLineFn,
 
     /// Rules must have a constant with this name of type `Rule.Meta`.
     const META_FIELD_NAME = "meta";
@@ -78,6 +72,7 @@ pub const Rule = struct {
         suspicious,
         restriction,
         pedantic,
+        style,
     };
 
     pub const WithSeverity = struct {
@@ -106,6 +101,12 @@ pub const Rule = struct {
         const id = comptime rule_ids.get(meta.name) orelse @compileError("Could not find an id for rule '" ++ meta.name ++ "'.");
 
         const gen = struct {
+            pub fn runOnce(pointer: *const anyopaque, ctx: *LinterContext) anyerror!void {
+                if (@hasDecl(ptr_info.child, "runOnce")) {
+                    const self: T = @ptrCast(@constCast(pointer));
+                    return ptr_info.child.runOnce(self, ctx);
+                }
+            }
             pub fn runOnNode(pointer: *const anyopaque, node: NodeWrapper, ctx: *LinterContext) anyerror!void {
                 if (@hasDecl(ptr_info.child, "runOnNode")) {
                     const self: T = @ptrCast(@constCast(pointer));
@@ -118,12 +119,6 @@ pub const Rule = struct {
                     return ptr_info.child.runOnSymbol(self, symbol, ctx);
                 }
             }
-            pub fn runOnLine(pointer: *const anyopaque, line: Line, ctx: *LinterContext) anyerror!void {
-                if (@hasDecl(ptr_info.child, "runOnLine")) {
-                    const self: T = @ptrCast(@constCast(pointer));
-                    return ptr_info.child.runOnLine(self, line, ctx);
-                }
-            }
         };
 
         return .{
@@ -131,23 +126,26 @@ pub const Rule = struct {
             .meta = meta,
             .ptr = ptr,
             .vtable = .{
+                .runOnce = gen.runOnce,
                 .runOnNode = gen.runOnNode,
                 .runOnSymbol = gen.runOnSymbol,
-                .runOnLine = gen.runOnLine,
             },
         };
     }
 
+    /// Run once per linted file
+    pub fn runOnce(self: *const Rule, ctx: *LinterContext) anyerror!void {
+        return self.vtable.runOnce(self.ptr, ctx);
+    }
+
+    /// Run on each node in the AST
     pub fn runOnNode(self: *const Rule, node: NodeWrapper, ctx: *LinterContext) !void {
         return self.vtable.runOnNode(self.ptr, node, ctx);
     }
 
+    /// Run on each declared symbol in the symbol table
     pub fn runOnSymbol(self: *const Rule, symbol: Symbol.Id, ctx: *LinterContext) !void {
         return self.vtable.runOnSymbol(self.ptr, symbol, ctx);
-    }
-
-    pub fn runOnLine(self: *const Rule, line: Line, ctx: *LinterContext) !void {
-        return self.vtable.runOnLine(self.ptr, line, ctx);
     }
 
     pub fn getIdFor(name: []const u8) ?Rule.Id {

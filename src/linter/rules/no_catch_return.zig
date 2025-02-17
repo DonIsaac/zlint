@@ -59,7 +59,7 @@ pub const meta: Rule.Meta = .{
     .name = "no-catch-return",
     .category = .pedantic,
     .default = .warning,
-    .fix = Fix.Meta.fix(),
+    .fix = Fix.Meta.safe_fix,
 };
 
 fn noCatchReturnDiagnostic(ctx: *LinterContext, return_node: Node.Index) Error {

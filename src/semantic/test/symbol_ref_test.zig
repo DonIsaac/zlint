@@ -363,6 +363,16 @@ test "Reference flags - `x` - type annotations" {
             ,
             .{ .type = true },
         },
+        // anonymous container definitions
+        .{
+            \\const x = u32;
+            \\const y = i32;
+            \\const Foo = struct {
+            \\  a: struct { x, y },
+            \\};
+            ,
+            .{ .type = true },
+        },
     });
 }
 
@@ -424,7 +434,7 @@ test "Reference flags - `x` - indexes and slices" {
     });
 }
 
-test "Reference flags - `x` - containers" {
+test "Reference flags - `x` - structs" {
     try testRefsOnX(&[_]RefTestCase{
         .{
             \\const x = 1;
@@ -433,10 +443,143 @@ test "Reference flags - `x` - containers" {
             .{ .read = true },
         },
         .{
+            \\const x = u8;
+            \\const Foo = packed struct(x) { a: bool, _: u7 };
+            ,
+            .{ .type = true },
+        },
+        .{
             \\const x = struct {};
             \\const y = x{};
             ,
             .{ .read = true },
+        },
+    });
+}
+
+test "Reference flags - `x` - tuples" {
+    try testRefsOnX(&[_]RefTestCase{
+        // tuple declarations
+        .{
+            \\const x = u8;
+            \\const Foo = struct { x, u32 };
+            ,
+            .{ .type = true },
+        },
+        .{
+            \\const x = struct {
+            \\  const y = u8;
+            \\};
+            \\const Foo = struct { x.y, u32 };
+            ,
+            .{ .type = true },
+        },
+        .{
+            \\const x = u32;
+            \\const Foo = struct { *x, u32 };
+            ,
+            .{ .type = true },
+        },
+        .{
+            \\const x = 1;
+            \\const Foo = struct { u32 = x, u32 };
+            ,
+            .{ .read = true },
+        },
+        // TODO: bind member expressions
+        // .{
+        //     \\const y = struct {
+        //     \\  const x = u8;
+        //     \\};
+        //     \\const Foo = struct { y.x, u32 };
+        //     ,
+        //     .{ .type = true },
+        // },
+        .{
+            \\const x = 1;
+            \\const Foo = struct { u32, u32 };
+            \\const f = Foo{ x, 1 };
+            ,
+            .{ .read = true },
+        },
+    });
+}
+
+test "Reference flags - `x` - tagged unions" {
+    try testRefsOnX(&[_]RefTestCase{
+        .{
+            \\const x = u32;
+            \\const Foo = union(enum) {
+            \\  a: x
+            \\};
+            ,
+            .{ .type = true },
+        },
+        .{
+            \\const x = enum { a, b };
+            \\const Foo = union(x) { a: u32, b: i32 };
+            ,
+            .{ .type = true },
+        },
+        .{
+            \\const x = u32;
+            \\const Foo = union(enum) {
+            \\  y,
+            \\  x: x,
+            \\};
+            ,
+            .{ .type = true },
+        },
+    });
+}
+
+test "Reference flags - `x` - enums" {
+    try testRefsOnX(&[_]RefTestCase{
+        .{
+            \\const x = u32;
+            \\const Foo = enum(x) { a, b };
+            ,
+            .{ .type = true },
+        },
+        .{
+            \\const x = 1;
+            \\const Foo = enum { a = 1, b = x };
+            ,
+            .{ .read = true },
+        },
+    });
+}
+
+test "Reference flags - `x` - arrays, slices, etc" {
+    try testRefsOnX(&[_]RefTestCase{
+        .{
+            \\const x = 1;
+            \\const y = [_]u8{ x, 2, 3 };
+            ,
+            .{ .read = true },
+        },
+        .{
+            \\const x = u8;
+            \\const y = [_]x{ 1, 2, 3 };
+            ,
+            .{ .type = true },
+        },
+        .{
+            \\const x = []const u8;
+            \\const y = []const x;
+            ,
+            // FIXME: Zig's parser provides a var_decl whose initializer is an
+            // identifier. It should be a slice type. We gotta handle that.
+            // .{ .type = true },
+            .{ .read = true },
+        },
+        .{
+            \\const x = u8;
+            \\const y = [_][_]u8{
+            \\  [_]x{ 1, 2, 3 },
+            \\};
+            ,
+            .{ .type = true },
         },
     });
 }

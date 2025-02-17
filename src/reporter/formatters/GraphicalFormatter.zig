@@ -406,7 +406,7 @@ fn eatNewlineAfter(src: []const u8, i: *u32) void {
     }
 }
 
-const Line = struct {
+pub const Line = struct {
     /// 1-indexed line number. 0 used for omitted/null lines.
     num: u32,
     /// byte offset of the start of the line

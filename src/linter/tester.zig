@@ -113,12 +113,12 @@ pub fn run(self: *RuleTester) !void {
         try stderr.writeByte('\n');
 
         switch (e) {
-            TestError.PassFailed => {
+            TestError.PassFailed, error.AnalysisFailed => {
                 for (self.diagnostics.items) |diagnostic| {
                     try self.fmt.format(&stderr, diagnostic.err);
                     try stderr.writeByte('\n');
                 }
-                return TestError.FailPassed;
+                return e;
             },
             else => return e,
         }
@@ -177,7 +177,7 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
 
     // Run fix cases
     i = 0;
-    self.linter.options.fix = true;
+    self.linter.options.fix = Fix.Meta.safe_fix;
     for (self.fixes.items) |case| {
         defer i += 1;
 
