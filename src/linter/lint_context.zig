@@ -84,7 +84,7 @@ pub fn spanT(self: *const Context, token_id: Ast.TokenIndex) LabeledSpan {
 
 pub fn spanL(self: *const Context, line: Line) LabeledSpan {
     _ = self;
-    return LabeledSpan.unlabeled(line.offset, line.offset + line.len());
+    return LabeledSpan.unlabeled(line.offset, line.len());
 }
 
 pub inline fn labelN(
@@ -260,6 +260,7 @@ const std = @import("std");
 const mem = std.mem;
 const util = @import("util");
 const _rule = @import("rule.zig");
+const _span = @import("../span.zig");
 const _source = @import("../source.zig");
 const _semantic = @import("../semantic.zig");
 
@@ -269,7 +270,7 @@ const Error = @import("../Error.zig");
 const Severity = Error.Severity;
 const LabeledSpan = @import("../span.zig").LabeledSpan;
 const Rule = _rule.Rule;
-const Line = @import("../reporter/formatters/GraphicalFormatter.zig").Line;
+const Line = _span.Line;
 const Semantic = _semantic.Semantic;
 const Source = _source.Source;
 const string = util.string;

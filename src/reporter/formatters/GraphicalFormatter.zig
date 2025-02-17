@@ -406,21 +406,6 @@ fn eatNewlineAfter(src: []const u8, i: *u32) void {
     }
 }
 
-pub const Line = struct {
-    /// 1-indexed line number. 0 used for omitted/null lines.
-    num: u32,
-    /// byte offset of the start of the line
-    offset: u32,
-    /// String contents of the line. Can be used to get the line's length.
-    contents: []const u8,
-
-    pub const EMPTY = Line{ .num = 0, .offset = 0, .contents = "" };
-
-    pub inline fn len(self: Line) u32 {
-        return @intCast(self.contents.len);
-    }
-};
-
 const ContextInfo = struct {
     span: LabeledSpan,
     location: Location,
@@ -484,6 +469,7 @@ const _span = @import("../../span.zig");
 const Span = _span.Span;
 const LabeledSpan = _span.LabeledSpan;
 const Location = _span.Location;
+const Line = _span.Line;
 
 const Error = @import("../../Error.zig");
 

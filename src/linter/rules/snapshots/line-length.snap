@@ -1,25 +1,24 @@
   𝙭 line-length: line length of 196 characters is too big.
-   ╭─[line-length.zig:2:39]
- 1 │ const std = @import("std");
+   ╭─[line-length.zig:3:53]
  2 │ fn foo() std.mem.Allocator.Error!void {
-  // ok so this is a super unnecessary line that is artificially being made long through this self-referential comment thats keeps on going until hitting a number of columns that violates the rule
-   ·                                       ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- 3 │   _ = try std.heap.page_allocator.alloc(u8, 8);
+ 3 │   // ok so this is a super unnecessary line that is artificially being made long through this self-referential comment thats keeps on going until hitting a number of columns that violates the rule
+   ·                                                     ────────────────────────────────────────────────────────────────────────────
+ 4 │   _ = try std.heap.page_allocator.alloc(u8, 8);
    ╰────
 
   𝙭 line-length: line length of 126 characters is too big.
-   ╭─[line-length.zig:1:28]
- 1 │ const longStructDeclarationInOneLine = struct { max_length: u32 = 120, a: usize = 123, b: usize = 12354, c: usize = 1234352 };
-   ·                            ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- 2 │ fn reallyExtraVerboseFunctionNameToThePointOfBeingACodeSmellAndProbablyAHintThatYouCanGetAwayWithAnotherNameOrSplittingThisIntoSeveralFunctions() u32 {
+   ╭─[line-length.zig:2:93]
+ 1 │ const std = @import("std");
+ 2 │ const longStructDeclarationInOneLine = struct { max_length: u32 = 120, a: usize = 123, b: usize = 12354, c: usize = 1234352 };
+   ·                                                                                             ──────
+ 3 │ fn reallyExtraVerboseFunctionNameToThePointOfBeingACodeSmellAndProbablyAHintThatYouCanGetAwayWithAnotherNameOrSplittingThisIntoSeveralFunctions() u32 {
    ╰────
 
   𝙭 line-length: line length of 151 characters is too big.
-   ╭─[line-length.zig:2:126]
+   ╭─[line-length.zig:2:93]
  1 │ const std = @import("std");
  2 │ const longStructDeclarationInOneLine = struct { max_length: u32 = 120, a: usize = 123, b: usize = 12354, c: usize = 1234352 };
-fn reallyExtraVerboseFunctionNameToThePointOfBeingACodeSmellAndProbablyAHintThatYouCanGetAwayWithAnotherNameOrSplittingThisIntoSeveralFunctions() u32 {
-   ·                                                                                                                              ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- 3 │     return 123;
+   ·                                                                                             ───────────────────────────────
+ 3 │ fn reallyExtraVerboseFunctionNameToThePointOfBeingACodeSmellAndProbablyAHintThatYouCanGetAwayWithAnotherNameOrSplittingThisIntoSeveralFunctions() u32 {
    ╰────
 

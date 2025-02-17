@@ -31,17 +31,19 @@ const std = @import("std");
 const util = @import("util");
 const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
+const span = @import("../../span.zig");
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const Scope = semantic.Scope;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
-const Line = @import("../../reporter/formatters/GraphicalFormatter.zig").Line;
+const Line = span.Line;
 const NodeWrapper = _rule.NodeWrapper;
 const Symbol = semantic.Symbol;
 const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
+const LabeledSpan = span.LabeledSpan;
 
 const Self = @This();
 pub const meta: Rule.Meta = .{
@@ -60,14 +62,15 @@ pub fn lineLengthDiagnostic(ctx: *LinterContext, line: Line) Error {
 
 pub fn runOnce(_: *const Self, ctx: *LinterContext) void {
     var line_start_idx: u32 = 0;
-    var lines = std.mem.tokenizeSequence(u8, ctx.source.text(), "\n");
-    var i: u32 = 0;
+    var lines = std.mem.splitSequence(u8, ctx.source.text(), "\n");
+    var i: u32 = 1;
+    const threshold: u32 = 120;
     while (lines.next()) |line| : (i += 1) {
-        if (line.len > 120) {
+        if (line.len > threshold) {
             const line_data = Line{
-                .num = i + 1,
+                .num = i,
                 .contents = line,
-                .offset = line_start_idx,
+                .offset = threshold,
             };
             ctx.report(lineLengthDiagnostic(ctx, line_data));
         }
@@ -88,7 +91,6 @@ test Self {
     defer runner.deinit();
 
     const pass = &[_][:0]const u8{
-        // TODO: add test cases
         \\const std = @import("std");
         \\fn foo() std.mem.Allocator.Error!void {
         \\  _ = try std.heap.page_allocator.alloc(u8, 8);
@@ -107,7 +109,6 @@ test Self {
     };
 
     const fail = &[_][:0]const u8{
-        // TODO: add test cases
         \\const std = @import("std");
         \\fn foo() std.mem.Allocator.Error!void {
         \\  // ok so this is a super unnecessary line that is artificially being made long through this self-referential comment thats keeps on going until hitting a number of columns that violates the rule

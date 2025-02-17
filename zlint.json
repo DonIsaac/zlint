@@ -1,0 +1,7 @@
+{
+	"rules": {
+		"unused-decls": "error",
+		"no-catch-return": "error",
+		"unsafe-undefined": "error"
+	}
+}
