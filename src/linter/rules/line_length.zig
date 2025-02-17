@@ -7,7 +7,7 @@
 //! Examples of **incorrect** code for this rule (with a threshold of 120 columns):
 //! ```zig
 //! const std = @import("std");
-//! const longStructDeclaractionInOneLine = struct { max_length: u32 = 120, a: usize = 123, b: usize = 12354, c: usize = 1234352 };
+//! const longStructDeclarationInOneLine = struct { max_length: u32 = 120, a: usize = 123, b: usize = 12354, c: usize = 1234352 };
 //! fn reallyExtraVerboseFunctionNameToThePointOfBeingACodeSmellAndProbablyAHintThatYouCanGetAwayWithAnotherNameOrSplittingThisIntoSeveralFunctions() u32 {
 //!     return 123;
 //! }
@@ -115,7 +115,7 @@ test Self {
         \\}
         ,
         \\const std = @import("std");
-        \\const longStructDeclaractionInOneLine = struct { max_length: u32 = 120, a: usize = 123, b: usize = 12354, c: usize = 1234352 };
+        \\const longStructDeclarationInOneLine = struct { max_length: u32 = 120, a: usize = 123, b: usize = 12354, c: usize = 1234352 };
         \\fn reallyExtraVerboseFunctionNameToThePointOfBeingACodeSmellAndProbablyAHintThatYouCanGetAwayWithAnotherNameOrSplittingThisIntoSeveralFunctions() u32 {
         \\    return 123;
         \\}
