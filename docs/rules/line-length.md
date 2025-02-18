@@ -20,7 +20,7 @@ fn reallyExtraVerboseFunctionNameToThePointOfBeingACodeSmellAndProbablyAHintThat
 }
 ```
 
-Examples of **correct** code for this rule:
+Examples of **correct** code for this rule (with a threshold of 120 columns):
 
 ```zig
 const std = @import("std");

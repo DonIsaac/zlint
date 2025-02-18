@@ -24,7 +24,7 @@ pub fn RuleConfig(RuleImpl: type) type {
             return Self{ .severity = severity, .rule_impl = rule_impl };
         }
         pub fn rule(self: *Self) Rule {
-            const rule_impl: *RuleImpl = @ptrCast(@constCast(self.rule_impl));
+            const rule_impl: *RuleImpl = @ptrCast(@alignCast(@constCast(self.rule_impl)));
             return rule_impl.rule();
         }
     };

@@ -103,7 +103,7 @@ pub const Rule = struct {
         const gen = struct {
             pub fn runOnce(pointer: *const anyopaque, ctx: *LinterContext) anyerror!void {
                 if (@hasDecl(ptr_info.child, "runOnce")) {
-                    const self: T = @ptrCast(@constCast(pointer));
+                    const self: T = @ptrCast(@alignCast(@constCast(pointer)));
                     return ptr_info.child.runOnce(self, ctx);
                 }
             }
