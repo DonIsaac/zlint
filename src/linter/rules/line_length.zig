@@ -60,21 +60,30 @@ pub fn lineLengthDiagnostic(ctx: *LinterContext, line: Line) Error {
     );
 }
 
+pub const LineLength = struct {
+    max_length: u32 = 120,
+};
+pub var config: LineLength = LineLength{};
+
+pub fn getLineLength() u32 {
+    return config.max_length;
+}
+
 pub fn runOnce(_: *const Self, ctx: *LinterContext) void {
     var line_start_idx: u32 = 0;
     var lines = std.mem.splitSequence(u8, ctx.source.text(), "\n");
     var i: u32 = 1;
-    const threshold: u32 = 120;
+    const threshold: u32 = getLineLength();
     while (lines.next()) |line| : (i += 1) {
         if (line.len > threshold) {
             const line_data = Line{
                 .num = i,
                 .contents = line,
-                .offset = threshold,
+                .offset = line_start_idx,
             };
             ctx.report(lineLengthDiagnostic(ctx, line_data));
         }
-        line_start_idx += @as(u32, @intCast(line.len));
+        line_start_idx += @as(u32, @intCast(line.len)) + 1;
     }
 }
 

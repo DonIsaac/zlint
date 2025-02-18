@@ -84,7 +84,7 @@ pub fn spanT(self: *const Context, token_id: Ast.TokenIndex) LabeledSpan {
 
 pub fn spanL(self: *const Context, line: Line) LabeledSpan {
     _ = self;
-    return LabeledSpan.unlabeled(line.offset, line.len());
+    return LabeledSpan.unlabeled(line.offset, line.offset + line.len());
 }
 
 pub inline fn labelN(
