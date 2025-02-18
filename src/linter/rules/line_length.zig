@@ -27,6 +27,7 @@
 //! }
 //! ```
 
+const builtin = @import("builtin");
 const std = @import("std");
 const util = @import("util");
 const semantic = @import("../../semantic.zig");
@@ -44,6 +45,8 @@ const Symbol = semantic.Symbol;
 const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
 const LabeledSpan = span.LabeledSpan;
+
+const NEWLINE = if (builtin.target.os.tag == .windows) "\r\n" else "\n";
 
 const Self = @This();
 pub const meta: Rule.Meta = .{
@@ -71,7 +74,7 @@ pub fn getLineLength() u32 {
 
 pub fn runOnce(_: *const Self, ctx: *LinterContext) void {
     var line_start_idx: u32 = 0;
-    var lines = std.mem.splitSequence(u8, ctx.source.text(), "\n");
+    var lines = std.mem.splitSequence(u8, ctx.source.text(), NEWLINE);
     var i: u32 = 1;
     const threshold: u32 = getLineLength();
     while (lines.next()) |line| : (i += 1) {
@@ -79,7 +82,7 @@ pub fn runOnce(_: *const Self, ctx: *LinterContext) void {
         if (line.len > threshold) {
             ctx.report(lineLengthDiagnostic(ctx, line_start_idx, threshold, line_length));
         }
-        line_start_idx += line_length + 1;
+        line_start_idx += line_length + @as(u32, @intCast(NEWLINE.len));
     }
 }
 
