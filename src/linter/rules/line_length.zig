@@ -52,11 +52,11 @@ pub const meta: Rule.Meta = .{
     .default = .off,
 };
 
-pub fn lineLengthDiagnostic(ctx: *LinterContext, line: Line) Error {
+pub fn lineLengthDiagnostic(ctx: *LinterContext, line_start: u32, threshold: u32, line_length: u32) Error {
     return ctx.diagnosticf(
         "line length of {} characters is too big.",
-        .{line.len()},
-        .{ctx.spanL(line)},
+        .{line_length},
+        .{LabeledSpan.unlabeled(line_start + threshold, line_start + line_length)},
     );
 }
 
@@ -75,15 +75,11 @@ pub fn runOnce(_: *const Self, ctx: *LinterContext) void {
     var i: u32 = 1;
     const threshold: u32 = getLineLength();
     while (lines.next()) |line| : (i += 1) {
+        const line_length = @as(u32, @intCast(line.len));
         if (line.len > threshold) {
-            const line_data = Line{
-                .num = i,
-                .contents = line,
-                .offset = line_start_idx,
-            };
-            ctx.report(lineLengthDiagnostic(ctx, line_data));
+            ctx.report(lineLengthDiagnostic(ctx, line_start_idx, threshold, line_length));
         }
-        line_start_idx += @as(u32, @intCast(line.len)) + 1;
+        line_start_idx += line_length + 1;
     }
 }
 
