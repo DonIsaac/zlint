@@ -13,7 +13,7 @@
 //! }
 //! ```
 //!
-//! Examples of **correct** code for this rule:
+//! Examples of **correct** code for this rule (with a threshold of 120 columns):
 //! ```zig
 //! const std = @import("std");
 //! const longStructInMultipleLines = struct {
@@ -46,8 +46,6 @@ const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
 const LabeledSpan = span.LabeledSpan;
 
-const NEWLINE = if (builtin.target.os.tag == .windows) "\r\n" else "\n";
-
 const Self = @This();
 pub const meta: Rule.Meta = .{
     .name = "line-length",
@@ -74,7 +72,7 @@ pub fn getLineLength() u32 {
 
 pub fn runOnce(_: *const Self, ctx: *LinterContext) void {
     var line_start_idx: u32 = 0;
-    var lines = std.mem.splitSequence(u8, ctx.source.text(), NEWLINE);
+    var lines = std.mem.splitSequence(u8, ctx.source.text(), util.NEWLINE);
     var i: u32 = 1;
     const threshold: u32 = getLineLength();
     while (lines.next()) |line| : (i += 1) {
@@ -82,7 +80,7 @@ pub fn runOnce(_: *const Self, ctx: *LinterContext) void {
         if (line.len > threshold) {
             ctx.report(lineLengthDiagnostic(ctx, line_start_idx, threshold, line_length));
         }
-        line_start_idx += line_length + @as(u32, @intCast(NEWLINE.len));
+        line_start_idx += line_length + @as(u32, @intCast(util.NEWLINE.len));
     }
 }
 
