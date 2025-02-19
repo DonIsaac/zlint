@@ -255,7 +255,6 @@ const std = @import("std");
 const mem = std.mem;
 const util = @import("util");
 const _rule = @import("rule.zig");
-const _span = @import("../span.zig");
 const _source = @import("../source.zig");
 const _semantic = @import("../semantic.zig");
 

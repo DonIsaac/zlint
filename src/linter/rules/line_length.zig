@@ -29,11 +29,9 @@
 
 const std = @import("std");
 const util = @import("util");
-const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
 const span = @import("../../span.zig");
 
-const Ast = std.zig.Ast;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
 const Error = @import("../../Error.zig");

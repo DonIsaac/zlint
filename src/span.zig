@@ -138,21 +138,6 @@ test "Span.shiftLeft" {
     try t.expectEqual(Span.new(5, 7), span); // original span is not mutated
 }
 
-pub const Line = struct {
-    /// 1-indexed line number. 0 used for omitted/null lines.
-    num: u32,
-    /// byte offset of the start of the line
-    offset: u32,
-    /// String contents of the line. Can be used to get the line's length.
-    contents: []const u8,
-
-    pub const EMPTY = Line{ .num = 0, .offset = 0, .contents = "" };
-
-    pub inline fn len(self: Line) u32 {
-        return @intCast(self.contents.len);
-    }
-};
-
 pub const LabeledSpan = struct {
     span: Span,
     label: ?util.Cow(false) = null,

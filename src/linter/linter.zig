@@ -12,6 +12,7 @@ const Error = @import("../Error.zig");
 const Severity = Error.Severity;
 const Source = _source.Source;
 const Semantic = _semantic.Semantic;
+const SemanticBuilder = _semantic.SemanticBuilder;
 
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
