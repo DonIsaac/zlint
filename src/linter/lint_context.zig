@@ -265,7 +265,6 @@ const Error = @import("../Error.zig");
 const Severity = Error.Severity;
 const LabeledSpan = @import("../span.zig").LabeledSpan;
 const Rule = _rule.Rule;
-const Line = _span.Line;
 const Semantic = _semantic.Semantic;
 const Source = _source.Source;
 const string = util.string;

@@ -27,7 +27,6 @@
 //! }
 //! ```
 
-const builtin = @import("builtin");
 const std = @import("std");
 const util = @import("util");
 const semantic = @import("../../semantic.zig");
@@ -35,14 +34,9 @@ const _rule = @import("../rule.zig");
 const span = @import("../../span.zig");
 
 const Ast = std.zig.Ast;
-const Node = Ast.Node;
-const Scope = semantic.Scope;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
-const NodeWrapper = _rule.NodeWrapper;
-const Symbol = semantic.Symbol;
 const Error = @import("../../Error.zig");
-const Cow = util.Cow(false);
 const LabeledSpan = span.LabeledSpan;
 
 max_length: u32 = 120,
