@@ -22,6 +22,7 @@ const walk = @import("../../visit/walk.zig");
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
+const Token = Semantic.Token;
 const TokenIndex = Ast.TokenIndex;
 const Symbol = semantic.Symbol;
 const Semantic = semantic.Semantic;
@@ -134,21 +135,32 @@ pub fn runOnSymbol(_: *const UselessErrorReturn, symbol: Symbol.Id, ctx: *Linter
 }
 
 const Visitor = struct {
-    curr_return: Node.Index = Semantic.NULL_NODE,
-    first_catch: Node.Index = Semantic.NULL_NODE,
-    /// seen `return foo()`;
-    seen_return_call: bool = false,
-    seen_error_value: bool = false,
-    /// seen a `try` block
-    seen_try: bool = false,
     ast: *const Ast,
+
+    // state
+    curr_return: Node.Index = Semantic.NULL_NODE,
+    curr_err: ?struct {
+        payload: TokenIndex,
+        catch_node: Node.Index,
+    } = null,
+
+    seen_return_call: bool = false, // seen `return foo()`;
+    seen_error_value: bool = false, // seen `error.Foo`
+    seen_try: bool = false, //         seen a try expression
+    seen_return_err: bool = false, //  seen return of err payload variable
+
+    /// location of first `catch` block found. used for error reporting.
+    first_catch: Node.Index = Semantic.NULL_NODE,
 
     inline fn inReturn(self: *const Visitor) bool {
         return self.curr_return != Semantic.NULL_NODE;
     }
 
     inline fn hasFallible(self: *const Visitor) bool {
-        return self.seen_return_call or self.seen_error_value or self.seen_try;
+        return self.seen_return_call or
+            self.seen_error_value or
+            self.seen_try or
+            self.seen_return_err;
     }
 
     pub fn enterNode(self: *Visitor, node: Node.Index) void {
@@ -163,6 +175,8 @@ const Visitor = struct {
             // TODO: @branchHint(.unlikely) after 0.14 is released
             util.debugAssert(node != Semantic.NULL_NODE, "null node should never be visited", .{});
             self.curr_return = Semantic.NULL_NODE;
+        } else if (self.curr_err) |err| {
+            if (err.catch_node == node) self.curr_err = null;
         }
     }
 
@@ -171,33 +185,55 @@ const Visitor = struct {
         return .Stop;
     }
 
-    pub fn visit_catch(self: *Visitor, node: Node.Index) error{}!walk.WalkState {
-        if (self.first_catch == Semantic.NULL_NODE) {
-            self.first_catch = node;
-        }
-        return .Continue;
-    }
-
     pub fn visit_error_value(self: *Visitor, _: Node.Index) error{}!walk.WalkState {
         if (self.inReturn()) {
             self.seen_error_value = true;
             return .Stop;
-        } else {
-            return .Continue;
         }
+        return .Continue;
+    }
+
+    pub fn visit_catch(self: *Visitor, node: Node.Index) error{}!walk.WalkState {
+        if (self.first_catch == Semantic.NULL_NODE) {
+            self.first_catch = node;
+        }
+
+        const data: Node.Data = self.ast.nodes.items(.data)[node];
+        const fallback_first: TokenIndex = self.ast.firstToken(data.rhs);
+        const main_token = self.ast.nodes.items(.main_token)[node];
+        const tok_tags: []const Token.Tag = self.ast.tokens.items(.tag);
+        if (tok_tags[fallback_first -| 1] == .pipe) {
+            const payload = main_token + 2;
+            if (comptime util.IS_DEBUG) std.debug.assert(tok_tags[payload] == .identifier);
+            self.curr_err = .{ .payload = payload, .catch_node = node };
+        }
+
+        return .Continue;
+    }
+
+    pub fn visit_identifier(self: *Visitor, node: Node.Index) error{}!walk.WalkState {
+        if (!self.inReturn()) return .Continue;
+
+        const curr_err = self.curr_err orelse return .Continue;
+        const ident_token = self.ast.nodes.items(.main_token)[node];
+        const payload_name = self.ast.tokenSlice(curr_err.payload);
+        const ident_name = self.ast.tokenSlice(ident_token);
+        if (std.mem.eql(u8, payload_name, ident_name)) {
+            self.seen_error_value = true;
+            return .Stop;
+        }
+
+        return .Continue;
     }
 
     pub fn visitCall(self: *Visitor, _: Node.Index, _: *const Ast.full.Call) error{}!walk.WalkState {
-        if (self.curr_return == Semantic.NULL_NODE) {
-            return .Continue;
-        } else {
-            self.seen_return_call = true;
-            return .Stop;
-        }
+        if (self.curr_return == Semantic.NULL_NODE) return .Continue;
+
+        self.seen_return_call = true;
+        return .Stop;
     }
 };
 
-// Used by the Linter to register the rule so it can be run.
 pub fn rule(self: *UselessErrorReturn) Rule {
     return Rule.init(self);
 }
@@ -210,16 +246,13 @@ test UselessErrorReturn {
     var runner = RuleTester.init(t.allocator, useless_error_return.rule());
     defer runner.deinit();
 
-    // Code your rule should pass on
     const pass = &[_][:0]const u8{
         "fn foo() void { return; }",
+        "fn foo() !void { return error.Oops; }",
+        "fn foo() !void { bar() catch |e| return e; }",
         \\const std = @import("std");
         \\fn newList() ![]u8 { return std.heap.page_allocator.alloc(u8, 4); }
         \\fn foo() !void { return newList(); }
-        ,
-        \\fn positive(n: i32) !void {
-        \\  if (n < 0) return error.NegativeNumber;
-        \\}
         ,
         // TODO
 
@@ -231,7 +264,6 @@ test UselessErrorReturn {
         // \\}
     };
 
-    // Code your rule should fail on
     const fail = &[_][:0]const u8{
         "fn foo() !void { return; }",
         \\const std = @import("std");
