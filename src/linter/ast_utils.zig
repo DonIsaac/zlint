@@ -60,7 +60,7 @@ pub fn getErrorUnion(ast: *const Ast, node: Node.Index) Node.Index {
     const tags: []const Node.Tag = ast.nodes.items(.tag);
     return switch (tags[node]) {
         .root => NULL_NODE,
-        .error_union, .merge_error_sets => node,
+        .error_union, .merge_error_sets, .error_set_decl => node,
         .if_simple => getErrorUnion(ast, ast.nodes.items(.data)[node].rhs),
         .@"if" => blk: {
             const ifnode = ast.ifFull(node);

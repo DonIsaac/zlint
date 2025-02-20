@@ -96,7 +96,8 @@ pub fn runOnSymbol(_: *const UselessErrorReturn, symbol: Symbol.Id, ctx: *Linter
     if (tag != .fn_decl) return; // could be .fn_proto for e.g. fn types
 
     // skip declarations w/o a body (e.g. extern fns)
-    const data: Node.Data = nodes.items(.data)[decl];
+    const datas: []const Node.Data = nodes.items(.data);
+    const data: Node.Data = datas[decl];
     const body = data.rhs;
     if (!a.isBlock(tags, body)) return;
 
@@ -106,7 +107,18 @@ pub fn runOnSymbol(_: *const UselessErrorReturn, symbol: Symbol.Id, ctx: *Linter
     // SAFETY: LHS of a fn_decl is always some variant of fn_proto
     const fn_proto = ctx.ast().fullFnProto(&buf, data.lhs) orelse unreachable;
     util.debugAssert(fn_proto.ast.return_type != Semantic.NULL_NODE, "fns always have a return type", .{});
-    if (!a.hasErrorUnion(ctx.ast(), fn_proto.ast.return_type)) return;
+    const err_type = a.unwrapNode(a.getErrorUnion(ctx.ast(), fn_proto.ast.return_type)) orelse return;
+
+    // allow for `error{}!ty` return types
+    // len check is a hack b/c something is returning a token index when it
+    // should be a node index
+    if (err_type < ctx.ast().nodes.len and tags[err_type] == .error_union) {
+        const left = datas[err_type].lhs;
+        if (tags[left] == .error_set_decl) {
+            const maybe_lbrace = datas[left].rhs -| 1;
+            if (ctx.ast().tokens.items(.tag)[maybe_lbrace] == .l_brace) return;
+        }
+    }
 
     // 3. look for fail-y things
     var visitor = Visitor{ .ast = ctx.ast() };
@@ -254,6 +266,7 @@ test UselessErrorReturn {
         \\fn newList() ![]u8 { return std.heap.page_allocator.alloc(u8, 4); }
         \\fn foo() !void { return newList(); }
         ,
+        "fn foo() error{}!void { }",
         // TODO
 
         // \\fn foo() !void {
