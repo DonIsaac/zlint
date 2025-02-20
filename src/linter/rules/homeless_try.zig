@@ -64,6 +64,7 @@ const std = @import("std");
 const util = @import("util");
 const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
+const a = @import("../ast_utils.zig");
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
@@ -137,7 +138,7 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
     const proto: Ast.full.FnProto = ctx.ast().fullFnProto(&buf, decl_node) orelse @panic(".fn_decl nodes always have a full fn proto available.");
     const return_type = proto.ast.return_type;
 
-    if (hasErrorUnion(ctx.ast(), return_type)) return;
+    if (a.hasErrorUnion(ctx.ast(), return_type)) return;
 
     var e = ctx.diagnostic(
         "`try` cannot be used in functions that do not return errors.",
@@ -152,24 +153,6 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
     const return_type_src = ctx.ast().getNodeSource(return_type);
     e.help = Cow.fmt(ctx.gpa, "Change the return type to `!{s}`.", .{return_type_src}) catch @panic("OOM");
     ctx.report(e);
-}
-
-fn hasErrorUnion(ast: *const Ast, node: Node.Index) bool {
-    const tags: []const Node.Tag = ast.nodes.items(.tag);
-    return switch (tags[node]) {
-        .root => false,
-        .error_union, .merge_error_sets => true,
-        .if_simple => hasErrorUnion(ast, ast.nodes.items(.data)[node].rhs),
-        .@"if" => blk: {
-            const ifnode = ast.ifFull(node);
-            break :blk hasErrorUnion(ast, ifnode.ast.then_expr) or hasErrorUnion(ast, ifnode.ast.else_expr);
-        },
-        else => blk: {
-            const tok_tags: []const std.zig.Token.Tag = ast.tokens.items(.tag);
-            const prev_tok = ast.firstToken(node) -| 1;
-            break :blk tok_tags[prev_tok] == .bang;
-        },
-    };
 }
 
 // Used by the Linter to register the rule so it can be run.

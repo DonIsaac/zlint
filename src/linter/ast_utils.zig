@@ -1,7 +1,11 @@
 const Context = @import("./lint_context.zig");
 const semantic = @import("../semantic.zig");
 const Semantic = semantic.Semantic;
-const Node = semantic.Ast.Node;
+const Ast = semantic.Ast;
+const Node = Ast.Node;
+const Token = Semantic.Token;
+
+const NULL_NODE = Semantic.NULL_NODE;
 
 /// - `foo` -> `foo`
 /// - `foo.bar` -> `bar`
@@ -31,4 +35,46 @@ pub fn isInTest(ctx: *const Context, node: Node.Index) bool {
         }
     }
     return false;
+}
+
+pub fn isBlock(tags: []const Node.Tag, node: Node.Index) bool {
+    return switch (tags[node]) {
+        .block, .block_semicolon, .block_two, .block_two_semicolon => true,
+        else => false,
+    };
+}
+
+/// Check if some type node is or has an error union.
+///
+/// Examples where this returns true:
+/// ```zig
+/// !void
+/// Allocator.Error!u32
+/// if (cond) !void else void
+/// ```
+pub fn hasErrorUnion(ast: *const Ast, node: Node.Index) bool {
+    return getErrorUnion(ast, node) != NULL_NODE;
+}
+
+pub fn getErrorUnion(ast: *const Ast, node: Node.Index) Node.Index {
+    const tags: []const Node.Tag = ast.nodes.items(.tag);
+    return switch (tags[node]) {
+        .root => NULL_NODE,
+        .error_union, .merge_error_sets => node,
+        .if_simple => getErrorUnion(ast, ast.nodes.items(.data)[node].rhs),
+        .@"if" => blk: {
+            const ifnode = ast.ifFull(node);
+            break :blk unwrapNode(getErrorUnion(ast, ifnode.ast.then_expr)) orelse getErrorUnion(ast, ifnode.ast.else_expr);
+        },
+        else => blk: {
+            const tok_tags: []const Token.Tag = ast.tokens.items(.tag);
+            const prev_tok = ast.firstToken(node) -| 1;
+            break :blk if (tok_tags[prev_tok] == .bang) prev_tok else NULL_NODE;
+        },
+    };
+}
+
+/// Returns `null` if `node` is the null node. Identity function otherwise.
+pub inline fn unwrapNode(node: Node.Index) ?Node.Index {
+    return if (node == NULL_NODE) null else node;
 }

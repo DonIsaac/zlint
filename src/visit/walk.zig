@@ -242,6 +242,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                 const node = entry.id;
                 const tag = self.tags[node];
                 print("[{}] enter: {s} ({})\n", .{ self.stack.items.len, @tagName(tag), entry.id });
+                print("{s}\n", .{self.ast.getNodeSource(entry.id)});
 
                 try self.enterNode(node);
 
