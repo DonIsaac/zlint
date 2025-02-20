@@ -20,6 +20,7 @@ const _span = @import("../../span.zig");
 const a = @import("../ast_utils.zig");
 const walk = @import("../../visit/walk.zig");
 
+const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const Token = Semantic.Token;
@@ -35,6 +36,7 @@ const NodeWrapper = _rule.NodeWrapper;
 
 const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
+const assert = std.debug.assert;
 
 // Rule metadata
 const UselessErrorReturn = @This();
@@ -71,7 +73,7 @@ fn suppressesErrorsDiagnostic(
         .{fn_name},
         .{
             ctx.labelT(fn_identifier, "'{s}' is declared here", .{fn_name}),
-            ctx.labelT(main_tokens[catch_node], "It suppresses errors here", .{}),
+            ctx.labelT(main_tokens[catch_node], "It catches errors here", .{}),
         },
     );
     e.help = Cow.static("Use `try` to propagate errors to the caller.");
@@ -121,14 +123,17 @@ pub fn runOnSymbol(_: *const UselessErrorReturn, symbol: Symbol.Id, ctx: *Linter
     }
 
     // 3. look for fail-y things
-    var visitor = Visitor{ .ast = ctx.ast() };
+    // var visitor = Visitor{ .ast = ctx.ast(), .err_stack = std.ArrayList.init(Allocator.heap()) };
+    var visitorfb = std.heap.stackFallback(8, ctx.gpa);
+    var visitor = Visitor.init(ctx.ast(), visitorfb.get());
+    defer visitor.err_stack.deinit();
     {
         var arena = std.heap.ArenaAllocator.init(ctx.gpa);
         defer arena.deinit();
         var stackfb = std.heap.stackFallback(512, arena.allocator());
         const alloc = stackfb.get();
 
-        var walker = walk.Walker(Visitor, error{}).init(alloc, ctx.ast(), &visitor) catch @panic("OOM");
+        var walker = walk.Walker(Visitor, Visitor.VisitError).init(alloc, ctx.ast(), &visitor) catch @panic("OOM");
         // walker.deinit() not needed b/c arena
         walker.walk() catch @panic("Walk failed");
 
@@ -151,10 +156,7 @@ const Visitor = struct {
 
     // state
     curr_return: Node.Index = Semantic.NULL_NODE,
-    curr_err: ?struct {
-        payload: TokenIndex,
-        catch_node: Node.Index,
-    } = null,
+    err_stack: std.ArrayList(ErrState),
 
     seen_return_call: bool = false, // seen `return foo()`;
     seen_error_value: bool = false, // seen `error.Foo`
@@ -164,8 +166,26 @@ const Visitor = struct {
     /// location of first `catch` block found. used for error reporting.
     first_catch: Node.Index = Semantic.NULL_NODE,
 
+    const ErrState = struct {
+        // may be `null` if catch has no payload
+        payload: TokenIndex,
+        catch_node: Node.Index,
+    };
+    const VisitError = Allocator.Error;
+
+    fn init(ast: *const Ast, alloc: Allocator) Visitor {
+        return Visitor{
+            .ast = ast,
+            .err_stack = std.ArrayList(ErrState).init(alloc),
+        };
+    }
+
     inline fn inReturn(self: *const Visitor) bool {
         return self.curr_return != Semantic.NULL_NODE;
+    }
+
+    inline fn inCatch(self: *const Visitor) bool {
+        return self.err_stack.items.len > 0;
     }
 
     inline fn hasFallible(self: *const Visitor) bool {
@@ -187,17 +207,19 @@ const Visitor = struct {
             // TODO: @branchHint(.unlikely) after 0.14 is released
             util.debugAssert(node != Semantic.NULL_NODE, "null node should never be visited", .{});
             self.curr_return = Semantic.NULL_NODE;
-        } else if (self.curr_err) |err| {
-            if (err.catch_node == node) self.curr_err = null;
+        } else if (self.err_stack.getLastOrNull()) |err| {
+            if (err.catch_node == node) {
+                _ = self.err_stack.pop();
+            }
         }
     }
 
-    pub fn visit_try(self: *Visitor, _: Node.Index) error{}!walk.WalkState {
+    pub fn visit_try(self: *Visitor, _: Node.Index) VisitError!walk.WalkState {
         self.seen_try = true;
         return .Stop;
     }
 
-    pub fn visit_error_value(self: *Visitor, _: Node.Index) error{}!walk.WalkState {
+    pub fn visit_error_value(self: *Visitor, _: Node.Index) VisitError!walk.WalkState {
         if (self.inReturn()) {
             self.seen_error_value = true;
             return .Stop;
@@ -205,7 +227,21 @@ const Visitor = struct {
         return .Continue;
     }
 
-    pub fn visit_catch(self: *Visitor, node: Node.Index) error{}!walk.WalkState {
+    pub fn visit_switch_case_one(self: *Visitor, node: Node.Index) VisitError!walk.WalkState {
+        if (!self.inCatch()) return .Continue;
+        // LHS being null means `else` branch
+        if (self.ast.nodes.items(.data)[node].lhs != Semantic.NULL_NODE) return .Continue;
+        const tok_tags: []const Token.Tag = self.ast.tokens.items(.tag);
+        const main_tok: TokenIndex = self.ast.nodes.items(.main_token)[node];
+        if (tok_tags[main_tok + 1] != .pipe) return .Continue;
+        const identifier = main_tok + 2;
+        if (comptime util.IS_DEBUG)
+            assert(self.ast.tokens.items(.tag)[identifier] == .identifier);
+        try self.err_stack.append(.{ .catch_node = node, .payload = identifier });
+        return .Continue;
+    }
+
+    pub fn visit_catch(self: *Visitor, node: Node.Index) VisitError!walk.WalkState {
         if (self.first_catch == Semantic.NULL_NODE) {
             self.first_catch = node;
         }
@@ -217,28 +253,33 @@ const Visitor = struct {
         if (tok_tags[fallback_first -| 1] == .pipe) {
             const payload = main_token + 2;
             if (comptime util.IS_DEBUG) std.debug.assert(tok_tags[payload] == .identifier);
-            self.curr_err = .{ .payload = payload, .catch_node = node };
+            try self.err_stack.append(.{ .payload = payload, .catch_node = node });
         }
+        // else {
+
+        //     try self.err_stack.append(.{ .payload = 0, .catch_node = node });
+        // }
 
         return .Continue;
     }
 
-    pub fn visit_identifier(self: *Visitor, node: Node.Index) error{}!walk.WalkState {
+    pub fn visit_identifier(self: *Visitor, node: Node.Index) VisitError!walk.WalkState {
         if (!self.inReturn()) return .Continue;
 
-        const curr_err = self.curr_err orelse return .Continue;
-        const ident_token = self.ast.nodes.items(.main_token)[node];
-        const payload_name = self.ast.tokenSlice(curr_err.payload);
-        const ident_name = self.ast.tokenSlice(ident_token);
-        if (std.mem.eql(u8, payload_name, ident_name)) {
-            self.seen_error_value = true;
-            return .Stop;
+        for (self.err_stack.items) |curr_err| {
+            const ident_token = self.ast.nodes.items(.main_token)[node];
+            const payload_name = self.ast.tokenSlice(curr_err.payload);
+            const ident_name = self.ast.tokenSlice(ident_token);
+            if (std.mem.eql(u8, payload_name, ident_name)) {
+                self.seen_error_value = true;
+                return .Stop;
+            }
         }
 
         return .Continue;
     }
 
-    pub fn visitCall(self: *Visitor, _: Node.Index, _: *const Ast.full.Call) error{}!walk.WalkState {
+    pub fn visitCall(self: *Visitor, _: Node.Index, _: *const Ast.full.Call) VisitError!walk.WalkState {
         if (self.curr_return == Semantic.NULL_NODE) return .Continue;
 
         self.seen_return_call = true;
@@ -258,9 +299,19 @@ test UselessErrorReturn {
     var runner = RuleTester.init(t.allocator, useless_error_return.rule());
     defer runner.deinit();
 
+    const debug = &[_][:0]const u8{
+        \\fn foo() !void {
+        \\  bar() catch |err| switch (err) {
+        \\    error.OutOfMemory => @panic("OOM"),
+        \\    else => |e| return e,
+        \\  };
+        \\}
+    };
+
     const pass = &[_][:0]const u8{
         "fn foo() void { return; }",
         "fn foo() !void { return error.Oops; }",
+        "fn foo() !void { return bar(); }",
         "fn foo() !void { bar() catch |e| return e; }",
         \\const std = @import("std");
         \\fn newList() ![]u8 { return std.heap.page_allocator.alloc(u8, 4); }
@@ -269,12 +320,12 @@ test UselessErrorReturn {
         "fn foo() error{}!void { }",
         // TODO
 
-        // \\fn foo() !void {
-        // \\  bar() catch |e| switch (e) {
-        // \\    error.OutOfMemory => @panic("OOM"),
-        // \\    else => |e| return e,
-        // \\  };
-        // \\}
+        \\fn foo() !void {
+        \\  bar() catch |err| switch (err) {
+        \\    error.OutOfMemory => @panic("OOM"),
+        \\    else => |e| return e,
+        \\  };
+        \\}
     };
 
     const fail = &[_][:0]const u8{
@@ -289,7 +340,11 @@ test UselessErrorReturn {
         \\};
     };
 
+    // _ = pass;
+    // _ = fail;
+
     try runner
+    .withPass(debug)
         .withPass(pass)
         .withFail(fail)
         .run();

@@ -14,7 +14,7 @@
    ·             ╰── 'init' is declared here
  4 │     const new = allocator.create(Foo) catch @panic("OOM");
    ·                                       ──┬──
-   ·                                         ╰── It suppresses errors here
+   ·                                         ╰── It catches errors here
    ╰────
   help: Use `try` to propagate errors to the caller.
 
