@@ -28,7 +28,6 @@
 //! ```
 
 const std = @import("std");
-const util = @import("util");
 const _rule = @import("../rule.zig");
 const span = @import("../../span.zig");
 
@@ -54,15 +53,24 @@ pub fn lineLengthDiagnostic(ctx: *LinterContext, line_start: u32, line_length: u
     );
 }
 
+pub fn getNewlineOffset(line: []const u8) u32 {
+    if (line.len > 1 and line[line.len - 2] == '\r') {
+        return 2;
+    }
+    return 1;
+}
+
 pub fn runOnce(self: *const LineLength, ctx: *LinterContext) void {
     var line_start_idx: u32 = 0;
-    var lines = std.mem.splitSequence(u8, ctx.source.text(), util.NEWLINE);
+    var lines = std.mem.splitSequence(u8, ctx.source.text(), "\n");
+    const newline_offset = getNewlineOffset(lines.first());
+    lines.reset();
     while (lines.next()) |line| {
         const line_length = @as(u32, @intCast(line.len));
         if (line.len > self.max_length) {
             ctx.report(lineLengthDiagnostic(ctx, line_start_idx, line_length));
         }
-        line_start_idx += line_length + @as(u32, @intCast(util.NEWLINE.len));
+        line_start_idx += line_length + newline_offset;
     }
 }
 
