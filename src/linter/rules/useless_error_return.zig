@@ -42,7 +42,6 @@ const assert = std.debug.assert;
 const UselessErrorReturn = @This();
 pub const meta: Rule.Meta = .{
     .name = "useless-error-return",
-    // TODO: set the category to an appropriate value
     .category = .suspicious,
     .default = .warning,
 };
@@ -169,7 +168,9 @@ const Visitor = struct {
     const ErrState = struct {
         // may be `null` if catch has no payload
         payload: TokenIndex,
-        catch_node: Node.Index,
+        /// Node that produced the error payload. usually a catch, but
+        /// can be a switch case when switching over errors.
+        node: Node.Index,
     };
     const VisitError = Allocator.Error;
 
@@ -208,7 +209,7 @@ const Visitor = struct {
             util.debugAssert(node != Semantic.NULL_NODE, "null node should never be visited", .{});
             self.curr_return = Semantic.NULL_NODE;
         } else if (self.err_stack.getLastOrNull()) |err| {
-            if (err.catch_node == node) {
+            if (err.node == node) {
                 _ = self.err_stack.pop();
             }
         }
@@ -227,18 +228,34 @@ const Visitor = struct {
         return .Continue;
     }
 
+    /// look for switches over error payloads and push them into the error stack
+    ///
+    /// ```zig
+    /// catch |e| switch (e)
+    ///   // ...
+    ///   else => |e| someExpression,
+    /// //         ^
+    /// }
+    /// ```
     pub fn visit_switch_case_one(self: *Visitor, node: Node.Index) VisitError!walk.WalkState {
         if (!self.inCatch()) return .Continue;
         // LHS being null means `else` branch
         if (self.ast.nodes.items(.data)[node].lhs != Semantic.NULL_NODE) return .Continue;
+
         const tok_tags: []const Token.Tag = self.ast.tokens.items(.tag);
+
         const main_tok: TokenIndex = self.ast.nodes.items(.main_token)[node];
         if (tok_tags[main_tok + 1] != .pipe) return .Continue;
+
         const identifier = main_tok + 2;
-        if (comptime util.IS_DEBUG)
-            assert(self.ast.tokens.items(.tag)[identifier] == .identifier);
-        try self.err_stack.append(.{ .catch_node = node, .payload = identifier });
+        if (comptime util.IS_DEBUG) assert(tok_tags[identifier] == .identifier);
+        try self.err_stack.append(ErrState{ .node = node, .payload = identifier });
+
         return .Continue;
+    }
+
+    pub fn visit_switch_case_one_inline(self: *Visitor, node: Node.Index) VisitError!walk.WalkState {
+        return self.visit_switch_case_one(self, node);
     }
 
     pub fn visit_catch(self: *Visitor, node: Node.Index) VisitError!walk.WalkState {
@@ -248,17 +265,15 @@ const Visitor = struct {
 
         const data: Node.Data = self.ast.nodes.items(.data)[node];
         const fallback_first: TokenIndex = self.ast.firstToken(data.rhs);
-        const main_token = self.ast.nodes.items(.main_token)[node];
+
         const tok_tags: []const Token.Tag = self.ast.tokens.items(.tag);
+        const main_token = self.ast.nodes.items(.main_token)[node];
+        // look for `catch |e|`, add `e` to the stack
         if (tok_tags[fallback_first -| 1] == .pipe) {
             const payload = main_token + 2;
             if (comptime util.IS_DEBUG) std.debug.assert(tok_tags[payload] == .identifier);
-            try self.err_stack.append(.{ .payload = payload, .catch_node = node });
+            try self.err_stack.append(ErrState{ .payload = payload, .node = node });
         }
-        // else {
-
-        //     try self.err_stack.append(.{ .payload = 0, .catch_node = node });
-        // }
 
         return .Continue;
     }
@@ -299,27 +314,17 @@ test UselessErrorReturn {
     var runner = RuleTester.init(t.allocator, useless_error_return.rule());
     defer runner.deinit();
 
-    const debug = &[_][:0]const u8{
-        \\fn foo() !void {
-        \\  bar() catch |err| switch (err) {
-        \\    error.OutOfMemory => @panic("OOM"),
-        \\    else => |e| return e,
-        \\  };
-        \\}
-    };
-
     const pass = &[_][:0]const u8{
         "fn foo() void { return; }",
         "fn foo() !void { return error.Oops; }",
         "fn foo() !void { return bar(); }",
         "fn foo() !void { bar() catch |e| return e; }",
+        "fn foo(x: bool) !void { return if (x) error.Oops else {};  }",
         \\const std = @import("std");
         \\fn newList() ![]u8 { return std.heap.page_allocator.alloc(u8, 4); }
         \\fn foo() !void { return newList(); }
         ,
         "fn foo() error{}!void { }",
-        // TODO
-
         \\fn foo() !void {
         \\  bar() catch |err| switch (err) {
         \\    error.OutOfMemory => @panic("OOM"),
@@ -340,11 +345,7 @@ test UselessErrorReturn {
         \\};
     };
 
-    // _ = pass;
-    // _ = fail;
-
     try runner
-    .withPass(debug)
         .withPass(pass)
         .withFail(fail)
         .run();
