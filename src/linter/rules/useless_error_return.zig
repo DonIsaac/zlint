@@ -324,13 +324,15 @@ test UselessErrorReturn {
         \\fn newList() ![]u8 { return std.heap.page_allocator.alloc(u8, 4); }
         \\fn foo() !void { return newList(); }
         ,
-        "fn foo() error{}!void { }",
         \\fn foo() !void {
         \\  bar() catch |err| switch (err) {
         \\    error.OutOfMemory => @panic("OOM"),
         \\    else => |e| return e,
         \\  };
         \\}
+        ,
+        // functions explicitly returning empty error sets are allowed
+        "fn foo() error{}!void { }",
     };
 
     const fail = &[_][:0]const u8{
