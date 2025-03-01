@@ -449,7 +449,7 @@ test UselessErrorReturn {
         \\fn foo() Error!void { return Error.Oops; }
         ,
         \\const SomethingBad = error { FooError };
-        \\fn foo() !void { return SomethingBad.Oops; }
+        \\fn foo() !void { return SomethingBad.FooError; }
         ,
         \\const std = @import("std");
         \\fn newList() ![]u8 { return std.heap.page_allocator.alloc(u8, 4); }

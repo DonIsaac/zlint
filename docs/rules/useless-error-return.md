@@ -2,7 +2,7 @@
 
 > Category: suspicious
 >
-> Enabled by default?: Yes (warning)
+> Enabled by default?: No
 
 ## What This Rule Does
 
