@@ -171,12 +171,11 @@ const LintError = Linter.LintError;
 
 const std = @import("std");
 const util = @import("util");
-const mem = std.mem;
+
 const fs = std.fs;
-const path = std.fs.path;
+
 const reporters = @import("../reporter.zig");
 const walk = @import("../walk/Walker.zig");
-const WalkState = walk.WalkState;
 
 const Thread = std.Thread;
 const Allocator = std.mem.Allocator;
@@ -186,5 +185,5 @@ const Source = @import("../source.zig").Source;
 const Fix = @import("fix.zig").Fix;
 const Fixer = @import("fix.zig").Fixer;
 const Error = @import("../Error.zig");
-const Semantic = @import("../semantic.zig").Semantic;
+
 const SemanticBuilder = @import("../semantic.zig").SemanticBuilder;

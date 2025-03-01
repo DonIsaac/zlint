@@ -120,7 +120,6 @@ pub const meta: Rule.Meta = .{
 
 // Runs once per source file. Useful for unique checks
 pub fn runOnce(_: *const ${StructName}, ctx: *LinterContext) void {
-    _ = wrapper;
     _ = ctx;
     @panic("TODO: implement runOnce, or remove it if not needed");
 }

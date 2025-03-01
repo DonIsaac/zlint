@@ -117,11 +117,11 @@ const Span = @import("../span.zig").Span;
 
 const _ast = @import("./ast.zig");
 const _tokenizer = @import("./tokenizer.zig");
-const TokenList = _tokenizer.TokenList;
 const CommentList = _tokenizer.CommentList;
 const TokenIndex = _ast.TokenIndex;
 
 pub const Token = _tokenizer.Token;
+pub const TokenList = _tokenizer.TokenList;
 
 pub const NodeLinks = @import("NodeLinks.zig");
 pub const Scope = @import("Scope.zig");

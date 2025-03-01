@@ -57,8 +57,8 @@
             "request": "launch",
             "program": "./zig-out/bin/test",
             "cwd": "${workspaceRoot}",
-            // "preLaunchTask": "build -Dsingle-threaded",
-            // "postRunCommands": ["command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
+            "preLaunchTask": "build -Dsingle-threaded",
+            "postRunCommands": ["command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
         },
         {
             "name": "test-utils",

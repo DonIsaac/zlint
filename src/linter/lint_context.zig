@@ -48,6 +48,9 @@ pub fn takeDiagnostics(self: *Context) Diagnostic.List {
 pub fn ast(self: *const Context) *const Ast {
     return &self.semantic.ast;
 }
+pub fn tokens(self: *const Context) *const Semantic.TokenList.Slice {
+    return &self.semantic.tokens;
+}
 
 pub inline fn scopes(self: *const Context) *const Semantic.ScopeTree {
     return &self.semantic.scopes;

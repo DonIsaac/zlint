@@ -6,9 +6,9 @@ const lint = @import("../../lint.zig");
 const Linter = lint.Linter;
 const Config = lint.Config;
 const SemanticBuilder = @import("../../semantic.zig").SemanticBuilder;
-const Semantic = @import("../../semantic.zig").Semantic;
+
 const Source = @import("../../source.zig").Source;
-const Error = @import("../../Error.zig");
+
 const ErrorList = Linter.Diagnostic.List;
 
 const t = std.testing;

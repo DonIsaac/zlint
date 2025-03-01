@@ -1,0 +1,29 @@
+  𝙭 useless-error-return: Function 'foo' has an error union return type but never returns an error.
+   ╭─[useless-error-return.zig:1:4]
+ 1 │ fn foo() !void { return; }
+   ·    ─┬─
+   ·     ╰── 'foo' is declared here
+   ╰────
+  help: Remove the error union return type.
+
+  𝙭 useless-error-return: Function 'init' has an error union return type but suppresses all its errors.
+   ╭─[useless-error-return.zig:3:10]
+ 2 │ pub const Foo = struct {
+ 3 │   pub fn init(allocator: std.mem.Allocator) !Foo {
+   ·          ───┬───
+   ·             ╰── 'init' is declared here
+ 4 │     const new = allocator.create(Foo) catch @panic("OOM");
+   ·                                       ──┬──
+   ·                                         ╰── It catches errors here
+   ╰────
+  help: Use `try` to propagate errors to the caller.
+
+  𝙭 useless-error-return: Function 'foo' has an error union return type but never returns an error.
+   ╭─[useless-error-return.zig:1:4]
+ 1 │ fn foo() !void {
+   ·    ─┬─
+   ·     ╰── 'foo' is declared here
+ 2 │   const e = bar();
+   ╰────
+  help: Remove the error union return type.
+

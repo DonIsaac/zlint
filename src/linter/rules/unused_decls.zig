@@ -174,6 +174,16 @@ test UnusedDecls {
         \\  Foo,
         \\  Bar: Bar, 
         \\};
+        ,
+        \\test "Thing" {
+        \\  const Choices = enum { a, b };
+        \\  var c: Choices = .a;
+        \\  const x = switch (c) {
+        \\    .a => 1,
+        \\    .b => &thing,
+        \\  };
+        \\}
+        \\const thing = struct {};
     };
 
     const fail = &[_][:0]const u8{

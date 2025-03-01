@@ -2,10 +2,9 @@ const std = @import("std");
 const json = std.json;
 const meta = std.meta;
 const mem = std.mem;
-const rules = @import("../rules.zig");
 
 const Allocator = std.mem.Allocator;
-const RuleConfig = @import("rule_config.zig").RuleConfig;
+
 const assert = std.debug.assert;
 
 const ParseError = json.ParseError(json.Scanner);

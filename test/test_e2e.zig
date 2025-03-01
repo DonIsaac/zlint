@@ -1,5 +1,5 @@
 const test_runner = @import("harness/runner.zig");
-const TestRunner = test_runner.TestRunner;
+
 
 // Allows recovery from panics in test cases. Errors get saved to that suite's
 // snapshot file, and testing continues.
