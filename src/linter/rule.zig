@@ -34,6 +34,7 @@ const VTable = struct {
 /// ## Creating Rules
 /// Rules are structs (or anything else that can have methods) that have 1 or
 /// more of the following methods:
+/// - `runOnce(*self, *ctx)`
 /// - `runOnNode(*self, node, *ctx)`
 /// - `runOnSymbol(*self, symbol, *ctx)`
 /// `Rule` provides a uniform interface to `Linter`. `Rule.init` will look for
@@ -45,6 +46,7 @@ pub const Rule = struct {
     id: Id,
     ptr: *anyopaque,
     vtable: VTable,
+    // runOnceFn: RunOnceFn,
     // runOnNodeFn: RunOnNodeFn,
     // runOnSymbolFn: RunOnSymbolFn,
 
@@ -70,6 +72,7 @@ pub const Rule = struct {
         suspicious,
         restriction,
         pedantic,
+        style,
     };
 
     pub const WithSeverity = struct {
@@ -100,7 +103,7 @@ pub const Rule = struct {
         const gen = struct {
             pub fn runOnce(pointer: *const anyopaque, ctx: *LinterContext) anyerror!void {
                 if (@hasDecl(ptr_info.child, "runOnce")) {
-                    const self: T = @ptrCast(@constCast(pointer));
+                    const self: T = @ptrCast(@alignCast(@constCast(pointer)));
                     return ptr_info.child.runOnce(self, ctx);
                 }
             }
