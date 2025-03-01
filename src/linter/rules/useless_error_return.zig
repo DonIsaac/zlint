@@ -108,7 +108,19 @@ pub fn runOnSymbol(_: *const UselessErrorReturn, symbol: Symbol.Id, ctx: *Linter
     // SAFETY: LHS of a fn_decl is always some variant of fn_proto
     const fn_proto = ctx.ast().fullFnProto(&buf, data.lhs) orelse unreachable;
     util.debugAssert(fn_proto.ast.return_type != Semantic.NULL_NODE, "fns always have a return type", .{});
-    const err_type = a.unwrapNode(a.getErrorUnion(ctx.ast(), fn_proto.ast.return_type)) orelse return;
+    const err_type: Node.Index = a.unwrapNode(a.getErrorUnion(ctx.ast(), fn_proto.ast.return_type)) orelse return;
+    const err_ident: ?[]const u8 = switch (tags[err_type]) {
+        .error_union => blk: {
+            const error_expr = a.unwrapNode(datas[err_type].lhs) orelse break :blk null;
+            break :blk switch (tags[error_expr]) {
+                .identifier => ctx.ast().getNodeSource(error_expr),
+                .field_access => ctx.semantic.tokenSlice(datas[error_expr].rhs), // rhs is token idx
+                .error_set_decl => ctx.semantic.tokenSlice(nodes.items(.main_token)[error_expr]),
+                else => null,
+            };
+        },
+        else => null,
+    };
 
     // allow for `error{}!ty` return types
     // len check is a hack b/c something is returning a token index when it
@@ -124,7 +136,7 @@ pub fn runOnSymbol(_: *const UselessErrorReturn, symbol: Symbol.Id, ctx: *Linter
     // 3. look for fail-y things
     // var visitor = Visitor{ .ast = ctx.ast(), .err_stack = std.ArrayList.init(Allocator.heap()) };
     var visitorfb = std.heap.stackFallback(8, ctx.gpa);
-    var visitor = Visitor.init(ctx.ast(), visitorfb.get());
+    var visitor = Visitor.init(ctx.ast(), err_ident, visitorfb.get());
     defer visitor.err_stack.deinit();
     {
         var arena = std.heap.ArenaAllocator.init(ctx.gpa);
@@ -157,13 +169,38 @@ const Visitor = struct {
     curr_return: Node.Index = Semantic.NULL_NODE,
     err_stack: std.ArrayList(ErrState),
 
-    seen_return_call: bool = false, // seen `return foo()`;
-    seen_error_value: bool = false, // seen `error.Foo`
-    seen_try: bool = false, //         seen a try expression
-    seen_return_err: bool = false, //  seen return of err payload variable
+    /// Known name of error type.
+    ///
+    /// ```zig
+    /// fn foo() Error!void { ... }
+    /// //       ^^^^^
+    /// ```
+    ///
+    /// This is the rightmost identifier for member expressions. We make a
+    /// best-effort attempt to find this. it may also not be present (`!void`)
+    err_name: ?[]const u8,
+
+    seen: Seen = .{},
 
     /// location of first `catch` block found. used for error reporting.
     first_catch: Node.Index = Semantic.NULL_NODE,
+
+    const Seen = packed struct {
+        return_call: bool = false, // `return foo()`;
+        error_value: bool = false, // `error.Foo`
+        @"try": bool = false, // try expression
+        return_err: bool = false, // return of err payload variable
+        container_field_named_error: bool = false, // MyStruct.SomeError
+        known_error_struct_access: bool = false, // `fn foo() SomeError!anytype { return SomeError.DoesNotLookLikeError; }
+
+        const Repr = @typeInfo(Seen).Struct.backing_integer orelse {
+            @compileError("packed structs should have backing integer");
+        };
+
+        inline fn seenAny(self: Seen) bool {
+            return @as(Repr, @bitCast(self)) > 0;
+        }
+    };
 
     const ErrState = struct {
         // may be `null` if catch has no payload
@@ -174,9 +211,10 @@ const Visitor = struct {
     };
     const VisitError = Allocator.Error;
 
-    fn init(ast: *const Ast, alloc: Allocator) Visitor {
+    fn init(ast: *const Ast, err_name: ?[]const u8, alloc: Allocator) Visitor {
         return Visitor{
             .ast = ast,
+            .err_name = err_name,
             .err_stack = std.ArrayList(ErrState).init(alloc),
         };
     }
@@ -190,10 +228,7 @@ const Visitor = struct {
     }
 
     inline fn hasFallible(self: *const Visitor) bool {
-        return self.seen_return_call or
-            self.seen_error_value or
-            self.seen_try or
-            self.seen_return_err;
+        return self.seen.seenAny();
     }
 
     pub fn enterNode(self: *Visitor, node: Node.Index) void {
@@ -216,13 +251,13 @@ const Visitor = struct {
     }
 
     pub fn visit_try(self: *Visitor, _: Node.Index) VisitError!walk.WalkState {
-        self.seen_try = true;
+        self.seen.@"try" = true;
         return .Stop;
     }
 
     pub fn visit_error_value(self: *Visitor, _: Node.Index) VisitError!walk.WalkState {
         if (self.inReturn()) {
-            self.seen_error_value = true;
+            self.seen.error_value = true;
             return .Stop;
         }
         return .Continue;
@@ -283,10 +318,10 @@ const Visitor = struct {
 
         for (self.err_stack.items) |curr_err| {
             const ident_token = self.ast.nodes.items(.main_token)[node];
-            const payload_name = self.ast.tokenSlice(curr_err.payload);
+            const payload_name = self.ast.tokenSlice(curr_err.payload); // fixme: this re-tokenizes
             const ident_name = self.ast.tokenSlice(ident_token);
             if (std.mem.eql(u8, payload_name, ident_name)) {
-                self.seen_error_value = true;
+                self.seen.error_value = true;
                 return .Stop;
             }
         }
@@ -294,10 +329,52 @@ const Visitor = struct {
         return .Continue;
     }
 
+    pub fn visit_field_access(self: *Visitor, node: Node.Index) VisitError!walk.WalkState {
+        if (!self.inReturn()) return .Continue;
+
+        const nodes = self.ast.nodes;
+        const datas: []const Node.Data = nodes.items(.data);
+        const data: Node.Data = datas[node]; // lhs.a, a is token idx
+
+        const field_name = self.ast.tokenSlice(data.rhs); // todo: this re-tokenizes
+        if (std.ascii.endsWithIgnoreCase(field_name, "error")) {
+            self.seen.container_field_named_error = true;
+            return .Stop;
+        }
+
+        const err_name = self.err_name orelse return .Continue;
+
+        const obj = data.lhs;
+        switch (@as(Node.Tag, nodes.items(.tag)[obj])) {
+            .identifier => {
+                const ident = self.ast.getNodeSource(obj);
+                if (std.mem.eql(u8, err_name, ident)) {
+                    self.seen.known_error_struct_access = true;
+                    return .Stop;
+                }
+            },
+            .container_field => {
+                // `SomeNamespace.SomeStruct.SomeError` <-- and we saw SomeError in return signature
+                const rhs = datas[obj].rhs;
+                if (std.mem.eql(
+                    u8,
+                    // self.ast.tokenSlice(nodes.items(.main_token)),
+                    self.ast.tokenSlice(rhs),
+                    err_name,
+                )) {
+                    self.seen.known_error_struct_access = true;
+                    return .Stop;
+                }
+            },
+            else => {},
+        }
+        return .Continue;
+    }
+
     pub fn visitCall(self: *Visitor, _: Node.Index, _: *const Ast.full.Call) VisitError!walk.WalkState {
         if (self.curr_return == Semantic.NULL_NODE) return .Continue;
 
-        self.seen_return_call = true;
+        self.seen.return_call = true;
         return .Stop;
     }
 };
@@ -314,12 +391,20 @@ test UselessErrorReturn {
     var runner = RuleTester.init(t.allocator, useless_error_return.rule());
     defer runner.deinit();
 
+    const debug = &[_][:0]const u8{
+        \\const Error = error { Oops };
+        \\fn foo() Error!void { return Error.Oops; }
+    };
+
     const pass = &[_][:0]const u8{
         "fn foo() void { return; }",
         "fn foo() !void { return error.Oops; }",
         "fn foo() !void { return bar(); }",
         "fn foo() !void { bar() catch |e| return e; }",
         "fn foo(x: bool) !void { return if (x) error.Oops else {};  }",
+        \\const Error = error { Oops };
+        \\fn foo() Error!void { return Error.Oops; }
+        ,
         \\const std = @import("std");
         \\fn newList() ![]u8 { return std.heap.page_allocator.alloc(u8, 4); }
         \\fn foo() !void { return newList(); }
@@ -345,9 +430,18 @@ test UselessErrorReturn {
         \\    return new;
         \\  }
         \\};
+        ,
+        \\fn foo() !void {
+        \\  const e = bar();
+        \\  return e;
+        \\}
     };
 
+    _ = debug;
+    // _ = pass;
+    // _ = fail;
     try runner
+    // .withPass(debug)
         .withPass(pass)
         .withFail(fail)
         .run();

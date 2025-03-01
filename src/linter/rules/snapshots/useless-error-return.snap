@@ -18,3 +18,12 @@
    ╰────
   help: Use `try` to propagate errors to the caller.
 
+  𝙭 useless-error-return: Function 'foo' has an error union return type but never returns an error.
+   ╭─[useless-error-return.zig:1:4]
+ 1 │ fn foo() !void {
+   ·    ─┬─
+   ·     ╰── 'foo' is declared here
+ 2 │   const e = bar();
+   ╰────
+  help: Remove the error union return type.
+

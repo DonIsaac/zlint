@@ -69,7 +69,7 @@ pub fn getErrorUnion(ast: *const Ast, node: Node.Index) Node.Index {
         else => blk: {
             const tok_tags: []const Token.Tag = ast.tokens.items(.tag);
             const prev_tok = ast.firstToken(node) -| 1;
-            break :blk if (tok_tags[prev_tok] == .bang) prev_tok else NULL_NODE;
+            break :blk if (tok_tags[prev_tok] == .bang) node else NULL_NODE;
         },
     };
 }
