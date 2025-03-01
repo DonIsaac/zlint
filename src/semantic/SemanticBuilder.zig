@@ -1231,7 +1231,7 @@ inline fn visitCall(self: *SemanticBuilder, _: NodeIndex, call: full.Call) !void
 // =========================================================================
 
 fn enterRoot(self: *SemanticBuilder) !void {
-    @setCold(true);
+    @branchHint(.cold);
 
     // initialize root scope
     // NOTE: root scope is entered differently to avoid unnecessary null checks
@@ -1821,7 +1821,7 @@ inline fn assertCtx(self: *const SemanticBuilder, condition: bool, comptime fmt:
 }
 
 fn debugNodeStack(self: *const SemanticBuilder) void {
-    @setCold(true);
+    @branchHint(.cold);
     const ast = self.AST();
 
     print("Node stack:\n", .{});
@@ -1846,7 +1846,7 @@ fn debugNodeStack(self: *const SemanticBuilder) void {
 }
 
 fn printSymbolStack(self: *const SemanticBuilder) void {
-    @setCold(true);
+    @branchHint(.cold);
     const symbols = &self._semantic.symbols;
     const names: []string = symbols.symbols.items(.name);
 
@@ -1859,7 +1859,7 @@ fn printSymbolStack(self: *const SemanticBuilder) void {
 }
 
 fn printScopeStack(self: *const SemanticBuilder) void {
-    @setCold(true);
+    @branchHint(.cold);
     const scopes = &self._semantic.scopes;
 
     print("Scope stack:\n", .{});

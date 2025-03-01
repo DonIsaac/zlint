@@ -78,7 +78,7 @@ pub const WalkState = enum {
 /// visit methods, these are also passed a mutable pointer to a Visitor instance
 /// and the current node's id.
 pub fn Walker(Visitor: type, Error: type) type {
-    const tag_info = @typeInfo(Node.Tag).Enum;
+    const tag_info = @typeInfo(Node.Tag).@"enum";
 
     const VisitFn = fn (visitor: *Visitor, node: Node.Index) Error!WalkState;
     const VisitFull = struct {
@@ -136,14 +136,14 @@ pub fn Walker(Visitor: type, Error: type) type {
         }
         has_any_methods = true;
         const visit_fn = @field(Visitor, visit_fn_name);
-        if (@typeInfo(@TypeOf(visit_fn)) != .Fn) {
+        if (@typeInfo(@TypeOf(visit_fn)) != .@"fn") {
             @compileError("Visitor method '" + @typeName(Visitor) ++ "." ++ visit_fn_name ++ "' must be function.");
         }
         vtable.tag_table[id] = &visit_fn;
     }
 
     // "full node" visitors
-    inline for (@typeInfo(WalkerVTable).Struct.fields) |field| {
+    inline for (@typeInfo(WalkerVTable).@"struct".fields) |field| {
         const name = field.name;
         if (!std.mem.eql(u8, name, "tag_table")) {
             if (@hasDecl(Visitor, name)) {
@@ -232,7 +232,7 @@ pub fn Walker(Visitor: type, Error: type) type {
 
             var i = if (comptime util.IS_DEBUG) @as(u32, 0);
 
-            while (self.stack.popOrNull()) |entry| {
+            while (self.stack.pop()) |entry| {
                 if (comptime util.IS_DEBUG) i += 1;
                 if (entry.kind == .exit) {
                     print("[{}] exit: {s} ({})\n", .{ self.stack.items.len, @tagName(self.tags[entry.id]), entry.id });
@@ -385,7 +385,7 @@ pub fn Walker(Visitor: type, Error: type) type {
             const fullGetter = @field(Ast, @tagName(fullGetterName));
             // handle heterogenous return signatures
             const info = @typeInfo(@TypeOf(fullGetter));
-            const full_node: Full = if (comptime @typeInfo(info.Fn.return_type.?) == .Optional)
+            const full_node: Full = if (comptime @typeInfo(info.@"fn".return_type.?) == .optional)
                 @call(.auto, fullGetter, full_args) orelse unreachable
             else
                 @call(.auto, fullGetter, full_args);
@@ -437,7 +437,7 @@ pub fn Walker(Visitor: type, Error: type) type {
         /// the stack in reverse order.
         fn pushFullNode(self: *Self, Components: type, own_id: Node.Index, components: Components) Allocator.Error!void {
             const info = @typeInfo(Components);
-            const fields = info.Struct.fields;
+            const fields = info.@"struct".fields;
             // @compileLog(fields);
             try self.stack.ensureUnusedCapacity(self.alloc, 2 * fields.len);
 
@@ -597,7 +597,7 @@ pub fn Walker(Visitor: type, Error: type) type {
         }
 
         fn checkForVisitLoop(self: *const Self, node: Node.Index) void {
-            @setCold(true);
+            @branchHint(.cold);
             for (self.stack.items) |seen| {
                 if (seen.kind == .exit) continue;
                 if (seen.id == node) {
