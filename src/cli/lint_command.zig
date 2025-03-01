@@ -10,8 +10,7 @@ const mem = std.mem;
 const path = std.fs.path;
 
 const Allocator = std.mem.Allocator;
-const Source = _source.Source;
-const Thread = std.Thread;
+
 const WalkState = walk.WalkState;
 const Error = @import("../Error.zig");
 

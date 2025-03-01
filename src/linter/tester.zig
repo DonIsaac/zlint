@@ -356,7 +356,7 @@ const fs = std.fs;
 const util = @import("util");
 
 const Allocator = std.mem.Allocator;
-const Error = @import("../Error.zig");
+
 const Linter = @import("linter.zig").Linter;
 const Rule = @import("rule.zig").Rule;
 const Fix = @import("fix.zig").Fix;

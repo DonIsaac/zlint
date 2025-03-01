@@ -12,12 +12,10 @@ const Error = @import("../Error.zig");
 const Severity = Error.Severity;
 const Source = _source.Source;
 const Semantic = _semantic.Semantic;
-const SemanticBuilder = _semantic.SemanticBuilder;
 
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const assert = std.debug.assert;
-const fs = std.fs;
 
 const Rule = _rule.Rule;
 const RuleSet = @import("RuleSet.zig");

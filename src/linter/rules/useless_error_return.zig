@@ -13,7 +13,7 @@
 
 const std = @import("std");
 const util = @import("util");
-const _source = @import("../../source.zig");
+
 const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
@@ -27,12 +27,9 @@ const Token = Semantic.Token;
 const TokenIndex = Ast.TokenIndex;
 const Symbol = semantic.Symbol;
 const Semantic = semantic.Semantic;
-const Loc = std.zig.Loc;
-const Span = _span.Span;
-const LabeledSpan = _span.LabeledSpan;
+
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
-const NodeWrapper = _rule.NodeWrapper;
 
 const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
