@@ -86,7 +86,7 @@ const UselessErrorReturn = @This();
 pub const meta: Rule.Meta = .{
     .name = "useless-error-return",
     .category = .suspicious,
-    .default = .warning,
+    .default = .off, // TODO: change to .warning when we're its stable
 };
 
 fn neverErrorsDiagnostic(
