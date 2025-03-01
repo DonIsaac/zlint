@@ -1,6 +1,9 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const Build = std.Build;
 const Module = std.Build.Module;
+
+const v14 = builtin.zig_version.minor >= 14;
 
 pub fn build(b: *std.Build) void {
     // default to -freference-trace, but respect -fnoreference-trace
@@ -37,11 +40,14 @@ pub fn build(b: *std.Build) void {
         .target = l.target,
         .optimize = l.optimize,
         .error_tracing = if (debug_release) true else null,
-        .unwind_tables = if (debug_release) true else null,
+        .unwind_tables = if (debug_release)
+            if (v14) .sync else true
+        else
+            null,
         .omit_frame_pointer = if (debug_release) false else null,
         .strip = if (debug_release) false else null,
     });
-    const zlint = &lib.root_module;
+    const zlint: *Build.Module = if (comptime v14) lib.root_module else &lib.root_module;
     l.link(zlint, false, .{});
     b.modules.put(b.dupe("zlint"), zlint) catch @panic("OOM");
     b.installArtifact(lib);
@@ -53,12 +59,15 @@ pub fn build(b: *std.Build) void {
         .target = l.target,
         .optimize = l.optimize,
         .error_tracing = if (debug_release) true else null,
-        .unwind_tables = if (debug_release) true else null,
+        .unwind_tables = if (debug_release)
+            if (v14) .sync else true
+        else
+            null,
         .omit_frame_pointer = if (debug_release) false else null,
         .strip = if (debug_release) false else null,
     });
     // exe.want_lto
-    l.link(&exe.root_module, false, .{});
+    l.link(if (v14) exe.root_module else &exe.root_module, false, .{});
     b.installArtifact(exe);
 
     const e2e = b.addExecutable(.{
@@ -68,12 +77,19 @@ pub fn build(b: *std.Build) void {
         .target = l.target,
         .optimize = l.optimize,
         .error_tracing = if (debug_release) true else null,
-        .unwind_tables = if (debug_release) true else null,
+        .unwind_tables = if (debug_release)
+            if (v14) .sync else true
+        else
+            null,
         .strip = if (debug_release) false else null,
     });
     // util and chameleon omitted
     e2e.root_module.addImport("zlint", zlint);
-    l.link(&e2e.root_module, true, .{ "smart-pointers", "recover" });
+    l.link(
+        if (comptime v14) e2e.root_module else &e2e.root_module,
+        true,
+        .{ "smart-pointers", "recover" },
+    );
 
     b.installArtifact(e2e);
 
@@ -85,7 +101,11 @@ pub fn build(b: *std.Build) void {
         .error_tracing = if (debug_release) true else null,
         .strip = if (debug_release) false else null,
     });
-    l.link(&test_exe.root_module, true, .{});
+    l.link(
+        if (comptime v14) test_exe.root_module else &test_exe.root_module,
+        true,
+        .{},
+    );
     b.installArtifact(test_exe);
 
     const test_utils = b.addTest(.{
@@ -155,7 +175,11 @@ pub fn build(b: *std.Build) void {
         const check_test_lib = b.addTest(.{ .root_source_file = b.path("src/root.zig") });
         const check_test_exe = b.addTest(.{ .root_source_file = b.path("src/main.zig") });
         const check_e2e = b.addExecutable(.{ .name = "test-e2e", .root_source_file = b.path("test/test_e2e.zig"), .target = l.target });
-        l.link(&check_e2e.root_module, true, .{"recover"});
+        if (v14) {
+            l.link(check_e2e.root_module, true, .{"recover"});
+        } else {
+            l.link(&check_e2e.root_module, true, .{"recover"});
+        }
         // tasks
         const check_docgen = b.addExecutable(.{ .name = "docgen", .root_source_file = b.path("tasks/docgen.zig"), .target = l.target });
         const check_confgen = b.addExecutable(.{ .name = "confgen", .root_source_file = b.path("tasks/confgen.zig"), .target = l.target });
@@ -177,7 +201,11 @@ pub fn build(b: *std.Build) void {
             check_confgen,
         };
         inline for (substeps) |c| {
-            l.link(&c.root_module, false, .{});
+            if (comptime v14) {
+                l.link(c.root_module, false, .{});
+            } else {
+                l.link(&c.root_module, false, .{});
+            }
             check.dependOn(&c.step);
         }
     }
