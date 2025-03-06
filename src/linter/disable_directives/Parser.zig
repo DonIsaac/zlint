@@ -26,7 +26,6 @@ const MIN_LEN: u32 = "//zlint-disable".len;
 const STACK_FALLBACK_SIZE: usize = 2048;
 
 pub fn new(source: []const u8) DisableDirectivesParser {
-    assert(source.len > 0);
     // SAFETY: initialized at beginning of parsed(). These are private fields
     // that shouldn't be accessed externally: fuck around with abstraction
     // leaks and find out.
