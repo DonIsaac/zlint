@@ -25,8 +25,7 @@ const Error = @import("../../Error.zig");
 const EmptyFile = @This();
 pub const meta: Rule.Meta = .{
     .name = "empty-file",
-    // TODO: set the category to an appropriate value
-    .category = .correctness,
+    .category = .style,
 };
 
 pub fn emptyFileDiagnostic(ctx: *LinterContext) Error {
@@ -74,7 +73,6 @@ test EmptyFile {
 
     // Code your rule should pass on
     const pass = &[_][:0]const u8{
-        // TODO: add test cases
         \\// non-empty file
         \\fn exampleFunction() void {
         \\}
