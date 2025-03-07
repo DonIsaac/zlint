@@ -6,10 +6,6 @@
 
 An opinionated linter for the Zig programming language.
 
-> [!WARNING]
-> This project is still under construction. It is usable and useful,
-> but many features have not been implemented yet.
-
 ## ✨ Features
 
 - 🔍 **Custom Analysis**. ZLint has its own semantic analyzer, heavily inspired
