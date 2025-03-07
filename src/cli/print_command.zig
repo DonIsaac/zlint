@@ -45,4 +45,6 @@ pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source) !void {
     try semantic_printer.printSymbolTable();
     try printer.pPropName("scopes");
     try semantic_printer.printScopeTree();
+    try printer.pPropName("modules");
+    try semantic_printer.printModuleRecord();
 }

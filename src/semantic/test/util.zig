@@ -56,4 +56,8 @@ pub fn debugSemantic(semantic: *const Semantic) !void {
     print("\n\nScopes:\n\n", .{});
     try sp.printScopeTree();
     print("\n\n", .{});
+
+    print("\n\nModules:\n\n", .{});
+    try sp.printModuleRecord();
+    print("\n\n", .{});
 }

@@ -21,3 +21,5 @@ tmp/
 .tmp/
 temp/
 *.tmp
+
+vendor
