@@ -72,6 +72,10 @@
     }, 
   ], 
   "unresolvedReferences": [],
+  "modules": {
+    "imports": [
+    ], 
+  }, 
   "scopes": {
     "id": util.id.NominalId(u32)(0), 
     "flags": ["top"], 

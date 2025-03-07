@@ -75,6 +75,8 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     defer printer.deinit();
 
     try printer.pushObject();
+    defer printer.pop();
+
     try printer.pPropName("symbols");
     try sem_printer.printSymbolTable();
     try printer.pIndent();
@@ -83,9 +85,12 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     try sem_printer.printUnresolvedReferences();
     try printer.pIndent();
 
+    try printer.pPropName("modules");
+    try sem_printer.printModuleRecord();
+    try printer.pIndent();
+
     try printer.pPropName("scopes");
     try sem_printer.printScopeTree();
-    printer.pop();
 
     return;
 }

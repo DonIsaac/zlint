@@ -374,7 +374,8 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             const call = ast.callOne(&buf, node_id);
             return self.visitCall(node_id, call);
         },
-        .builtin_call, .builtin_call_comma => return self.visitRecursiveSlice(node_id),
+        .builtin_call, .builtin_call_comma => return self.visitBuiltinCall(node_id, true),
+        .builtin_call_two, .builtin_call_two_comma => return self.visitBuiltinCall(node_id, false),
 
         // control flow
 
@@ -1226,6 +1227,19 @@ inline fn visitCall(self: *SemanticBuilder, _: NodeIndex, call: full.Call) !void
         }
     }
 }
+
+inline fn visitBuiltinCall(self: *SemanticBuilder, node: NodeIndex, comptime is_slice: bool) !void {
+    const nodes = self.AST().nodes;
+
+    const builtin = try self.assertToken(nodes.items(.main_token)[node], .builtin);
+    const builtin_name = self.tokenSlice(builtin);
+    if (!is_slice and mem.eql(u8, builtin_name, "@import")) {
+        try self.recordImport(node);
+    }
+
+    return if (is_slice) self.visitRecursiveSlice(node) else self.visitRecursive(node);
+}
+
 // =========================================================================
 // ======================== SCOPE/SYMBOL MANAGEMENT ========================
 // =========================================================================
@@ -1664,6 +1678,32 @@ const ReferenceStack = struct {
 };
 
 // =========================================================================
+// ================================ MODULES ================================
+// =========================================================================
+
+fn recordImport(self: *SemanticBuilder, node: NodeIndex) Allocator.Error!void {
+    const nodes = self.AST().nodes;
+    const tags: []const Node.Tag = nodes.items(.tag);
+
+    const specifier_node: NodeIndex = nodes.items(.data)[node].lhs;
+    if (tags[specifier_node] != .string_literal) {
+        var e = Error.newStatic("@import specifiers must be string literals.");
+        const loc: Token.Loc = self._semantic.tokens.items(.loc)[specifier_node];
+        try e.labels.append(self._gpa, LabeledSpan.unlabeled(@intCast(loc.start), @intCast(loc.end)));
+        try self._errors.append(self._gpa, e);
+    }
+
+    var specifier = self.tokenSlice(nodes.items(.main_token)[specifier_node]);
+    specifier = std.mem.trim(u8, specifier, "\"");
+    const is_file = specifier.len > 4 and specifier[specifier.len - 4] == '.';
+    try self._semantic.modules.imports.append(self._gpa, ModuleRecord.ImportEntry{
+        .specifier = specifier,
+        .node = node,
+        .kind = if (is_file) .file else .module,
+    });
+}
+
+// =========================================================================
 // ============================ RANDOM GETTERS =============================
 // =========================================================================
 
@@ -1878,6 +1918,7 @@ const Scope = Semantic.Scope;
 const Symbol = Semantic.Symbol;
 const NodeLinks = Semantic.NodeLinks;
 const Reference = Semantic.Reference;
+const ModuleRecord = Semantic.ModuleRecord;
 
 const std = @import("std");
 const mem = std.mem;
@@ -1909,9 +1950,10 @@ const stringSlice = util.stringSlice;
 
 const t = std.testing;
 test {
-    t.refAllDecls(@import("test/symbol_ref_test.zig"));
-    t.refAllDecls(@import("test/symbol_decl_test.zig"));
+    t.refAllDecls(@import("test/modules_test.zig"));
     t.refAllDecls(@import("test/scope_flags_test.zig"));
+    t.refAllDecls(@import("test/symbol_decl_test.zig"));
+    t.refAllDecls(@import("test/symbol_ref_test.zig"));
 }
 test "Struct/enum fields are bound bound to the struct/enums's member table" {
     const alloc = std.testing.allocator;

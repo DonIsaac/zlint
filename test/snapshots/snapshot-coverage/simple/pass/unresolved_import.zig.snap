@@ -30,6 +30,16 @@
     }, 
   ], 
   "unresolvedReferences": [],
+  "modules": {
+    "imports": [
+      {
+        "specifier": "this/file/doesnotexist.zig", 
+        "node": 3, 
+        "kind": "file", 
+        
+      }, 
+    ], 
+  }, 
   "scopes": {
     "id": util.id.NominalId(u32)(0), 
     "flags": ["top"], 
