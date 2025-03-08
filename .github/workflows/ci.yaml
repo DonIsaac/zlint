@@ -135,8 +135,8 @@ jobs:
         if: ${{ matrix.target.os == 'linux' }}
         run: |
           mkdir -p ./.coverage
-          test-bins=$(test test-utils)
-          for test in $test-bins; do
+          test_bins=(test test-utils)
+          for test in $test_bins; do
             chmod +x zig-out/bin/$test
             kcov --include-path=src,test, ./.coverage/$test zig-out/bin/$test
           done
