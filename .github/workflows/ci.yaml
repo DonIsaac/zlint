@@ -64,9 +64,7 @@ jobs:
       - run: zig fmt src test/harness tasks build.zig build.zig.zon
       # - run: zig build check -Dtarget=${{ matrix.arch }}-${{ matrix.os }} -Dversion=${{ github.ref_name }}
       - run: |
-          just build \
-            -Dtarget=${{ matrix.arch }}-${{ matrix.os }} \
-            -Dversion=${{ github.ref_name }}
+          just build -Dtarget=${{ matrix.arch }}-${{ matrix.os }} 
 
       # upload artifacts
       - name: Upload build artifacts
