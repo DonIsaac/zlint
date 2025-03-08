@@ -107,17 +107,27 @@ pub const Reporter = struct {
     pub fn reportErrorSlice(self: *Reporter, alloc: std.mem.Allocator, errors: []Error) void {
         self.stats.recordErrors(errors);
         if (errors.len == 0) return;
-        self.writer_lock.lock();
-        defer self.writer_lock.unlock();
+
+        var stackalloc = std.heap.stackFallback(1024, alloc);
+        const allocator = stackalloc.get();
+
+        var string_writer = StringWriter.initCapacity(256, allocator) catch @panic("OOM");
+        defer string_writer.buf.deinit();
 
         for (errors) |err| {
             var e = err;
-            defer e.deinit(alloc);
+            defer e.deinit(allocator);
             if (self.opts.quiet and err.severity != .err) continue;
-            var w = self.writer.writer().any();
-            self.vtable.format(self.ptr, &w, err) catch @panic("Failed to write error.");
+            var w = string_writer.writer().any();
+            self.vtable.format(self.ptr, &w, err) catch |fmt_err| {
+                std.debug.panic("Failed to write error: {any}", .{fmt_err});
+            };
             w.writeByte('\n') catch @panic("failed to write newline.");
         }
+
+        self.writer_lock.lock();
+        defer self.writer_lock.unlock();
+        _ = self.writer.write(string_writer.slice()) catch @panic("failed to write diagnostics to buffer");
     }
 
     pub fn printStats(self: *Reporter, duration: i64) void {
@@ -215,11 +225,12 @@ const Stats = struct {
 const std = @import("std");
 const io = std.io;
 const util = @import("util");
-const Error = @import("../Error.zig");
-const Allocator = std.mem.Allocator;
 const formatters = @import("./formatter.zig");
-const FormatError = formatters.FormatError;
 const Chameleon = @import("chameleon");
+const Error = @import("../Error.zig");
+const StringWriter = @import("./StringWriter.zig");
+const Allocator = std.mem.Allocator;
+const FormatError = formatters.FormatError;
 
 const AtomicUsize = std.atomic.Value(usize);
 const Mutex = std.Thread.Mutex;
@@ -227,4 +238,5 @@ const Writer = std.io.AnyWriter;
 
 test {
     std.testing.refAllDecls(@This());
+    std.testing.refAllDecls(@import("Queue.zig"));
 }
