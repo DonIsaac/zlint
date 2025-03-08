@@ -61,7 +61,7 @@ jobs:
 
       # Build
       - run: zig build --fetch
-      - run: just lint
+      - run: zig fmt src test/harness tasks build.zig build.zig.zon
       - run: just check
       - run: |
           just build \
