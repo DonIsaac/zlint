@@ -12,7 +12,7 @@ pub inline fn slice(self: *const StringWriter) []const u8 {
     return self.buf.items;
 }
 
-pub fn writer(self: *StringWriter) Writer  {
+pub fn writer(self: *StringWriter) Writer {
     return Writer{ .context = self };
 }
 
