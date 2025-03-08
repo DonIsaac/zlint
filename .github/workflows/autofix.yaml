@@ -12,7 +12,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
 env:
-  ZIG_VERSION: 0.13.0
+  ZIG_VERSION: 0.14.0
 
 jobs:
   autofix:
