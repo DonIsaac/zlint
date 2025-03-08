@@ -48,7 +48,7 @@ jobs:
     name: Build
     strategy:
       matrix:
-        os: [ubuntu, macos, windows]
+        os: [linux, macos, windows]
         arch: [x86_64, aarch64]
     runs-on: ubuntu-latest
     steps:
@@ -93,21 +93,27 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y kcov
       # determine architecture
-      - name: Get CPU architecture
-        id: arch
+      - name: Get platform information
+        id: cpu
         run: |
           arch=$(uname -m)
           if [[ "$arch" == "arm64" ]]; then
-            echo "architecture=aarch64" >> $GITHUB_ENV
+            echo "arch=aarch64" >> $GITHUB_ENV
           else
-            echo "architecture=x86_64" >> $GITHUB_ENV
+            echo "arch=x86_64" >> $GITHUB_ENV
+          fi
+
+          if [[ ${{ matrix.os }} == 'windows' ]]; then
+            echo "os=linux" >> $GITHUB_ENV
+          else
+            echo "os=${{ matrix.os }}" >> $GITHUB_ENV
           fi
 
       # download compiled artifacts from build-debug for target platform
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: zlint-${{ matrix.os }}-${{ steps.arch.outputs.architecture }}
+          name: zlint-${{ steps.cpu.outputs.os }}-${{ steps.cpu.outputs.arch }}
           path: zig-out/bin
           merge-multiple: true
 
