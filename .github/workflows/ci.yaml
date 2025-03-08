@@ -68,9 +68,11 @@ jobs:
 
       # Build
       - run: zig build --fetch
-      - run: zig fmt src test/harness tasks build.zig build.zig.zon
+      - name: zig fmt
+        run: zig fmt src test/harness tasks build.zig build.zig.zon
       # - run: zig build check -Dtarget=${{ matrix.arch }}-${{ matrix.os }} -Dversion=${{ github.ref_name }}
-      - run: |
+      - name: zig build
+        run: |
           just build -Dtarget=${{ matrix.target.arch }}-${{ matrix.target.os }} 
 
       # upload artifacts
@@ -117,15 +119,15 @@ jobs:
           path: zig-out/bin
           merge-multiple: true
 
-      - run: ls -lA zig-out/bin
+      - run: |
+          ls -lAF zig-out
+          ls -lAF zig-out/bin
+          ls -lAF zig-out/bin/zlint || true
 
-        # env:
-        #   arch: ${{ steps.arch.outputs.architecture }}
-        # with:
-        #   name: zlint-${{ matrix.os }}-${{ env.arch }}-${{ github.ref }}
       - name: Test
         if: ${{ matrix.target.os != 'linux' }}
         run: |
+          ch
           ./zig-out/bin/test
           ./zig-out/bin/test-utils
 
