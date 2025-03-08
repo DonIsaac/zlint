@@ -116,7 +116,7 @@ pub const Reporter = struct {
 
         for (errors) |err| {
             var e = err;
-            defer e.deinit(allocator);
+            defer e.deinit(alloc);
             if (self.opts.quiet and err.severity != .err) continue;
             var w = string_writer.writer().any();
             self.vtable.format(self.ptr, &w, err) catch |fmt_err| {
