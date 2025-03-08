@@ -1,12 +1,15 @@
 //! ## What This Rule Does
-//! This rule would check for empty .zig files in the project.
-//! A file should be deemed empty if it has no content (zero bytes) or only whitespace characters.
+//! This rule checks for empty .zig files in the project.
+//! A file should be deemed empty if it has no content (zero bytes) or only comments and whitespace characters,
 //! as defined by the standard library in [`std.ascii.whitespace`](https://ziglang.org/documentation/master/std/#std.ascii.whitespace).
 //!
 //! ## Examples
 //!
 //! Examples of **incorrect** code for this rule:
+//!
+//!
 //! ```zig
+//! // an "empty" file is actually a file without meaningful code: just comments (doc or normal) or whitespace
 //! ```
 //!
 //! Examples of **correct** code for this rule:
@@ -17,6 +20,7 @@
 
 const std = @import("std");
 const _rule = @import("../rule.zig");
+const util = @import("util");
 
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
@@ -28,35 +32,27 @@ const EmptyFile = @This();
 pub const meta: Rule.Meta = .{
     .name = "empty-file",
     .category = .style,
+    .default = .warning,
 };
 
-pub fn emptyFileDiagnostic(ctx: *LinterContext) Error {
+pub fn fileDiagnosticWithMessage(ctx: *LinterContext, msg: util.string) Error {
     const filename = ctx.source.pathname orelse "anonymous source file";
-    return ctx.diagnosticf(
-        "{s} is completely empty",
-        .{filename},
-        .{},
-    );
-}
-
-pub fn whitespaceFileDiagnostic(ctx: *LinterContext) Error {
-    const filename = ctx.source.pathname orelse "anonymous source file";
-    return ctx.diagnosticf(
-        "{s} only contains whitespace",
-        .{filename},
-        .{},
-    );
+    return ctx.diagnosticf("{s} {s}", .{ filename, msg }, .{});
 }
 
 // Runs once per source file. Useful for unique checks
 pub fn runOnce(_: *const EmptyFile, ctx: *LinterContext) void {
     const source = ctx.source.text();
+    var message: ?util.string = null;
     if (source.len == 0) {
-        ctx.report(emptyFileDiagnostic(ctx));
-        return;
+        message = "has zero bytes";
+    } else if (std.mem.indexOfNone(u8, source, &std.ascii.whitespace) == null) {
+        message = "contains only whitespace";
+    } else if (ctx.ast().nodes.len == 1) {
+        message = "is empty";
     }
-    if (std.mem.indexOfNone(u8, source, &std.ascii.whitespace) == null) {
-        ctx.report(whitespaceFileDiagnostic(ctx));
+    if (message) |msg| {
+        ctx.report(fileDiagnosticWithMessage(ctx, msg));
     }
 }
 
@@ -78,6 +74,10 @@ test EmptyFile {
         \\// non-empty file
         \\fn exampleFunction() void {
         \\}
+        ,
+        \\// anything that is not a comment or whitespace will turn
+        \\// this into a non-empty file
+        \\var x = 0;
     };
 
     // Code your rule should fail on
@@ -91,8 +91,20 @@ test EmptyFile {
         ,
         // space
         \\    
+        ,
         // tabs
         \\             
+        ,
+        \\// only a comment
+        ,
+        \\//! only a doc comment
+        ,
+        \\//! a doc comment
+        \\// but with a normal comment just below!
+        ,
+        \\// only a comment with some whitespace
+        \\                       
+        \\
     };
 
     try runner

@@ -2,12 +2,12 @@
 
 > Category: style
 >
-> Enabled by default?: No
+> Enabled by default?: Yes (warning)
 
 ## What This Rule Does
 
-This rule would check for empty .zig files in the project.
-A file should be deemed empty if it has no content (zero bytes) or only whitespace characters.
+This rule checks for empty .zig files in the project.
+A file should be deemed empty if it has no content (zero bytes) or only comments and whitespace characters,
 as defined by the standard library in [`std.ascii.whitespace`](https://ziglang.org/documentation/master/std/#std.ascii.whitespace).
 
 ## Examples
@@ -15,7 +15,7 @@ as defined by the standard library in [`std.ascii.whitespace`](https://ziglang.o
 Examples of **incorrect** code for this rule:
 
 ```zig
-
+// an "empty" file is actually a file without meaningful code: just comments (doc or normal) or whitespace
 ```
 
 Examples of **correct** code for this rule:
