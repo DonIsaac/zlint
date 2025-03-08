@@ -73,7 +73,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
           compression-level: 2 # binaries don't compress well
-          name: zlint-${{ matrix.os }}-${{ matrix.arch}}-${{ github.ref }}
+          name: zlint-${{ matrix.os }}-${{ matrix.arch}}-${{ github.run_id }}
           path: zig-out/bin/**
           overwrite: true
 
@@ -83,6 +83,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu, macos, windows]
+      fail-fast: false
     runs-on: ${{ matrix.os }}-latest
     steps:
       - name: Install kcov
@@ -111,7 +112,7 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: zlint-${{ steps.cpu.outputs.os }}-${{ steps.cpu.outputs.arch }}
+          name: zlint-${{ steps.cpu.outputs.os }}-${{ steps.cpu.outputs.arch }}-${{ github.run_id }}
           path: zig-out/bin
           merge-multiple: true
 
