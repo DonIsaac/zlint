@@ -300,6 +300,16 @@
     {"symbol":null,"scope":6,"node":"identifier","identifier":"ent","flags":["read"]}, 
     
   ], 
+  "modules": {
+    "imports": [
+      {
+        "specifier": "std", 
+        "node": 3, 
+        "kind": "module", 
+        
+      }, 
+    ], 
+  }, 
   "scopes": {
     "id": util.id.NominalId(u32)(0), 
     "flags": ["top"], 

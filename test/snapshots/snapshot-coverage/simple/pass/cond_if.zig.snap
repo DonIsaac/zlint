@@ -185,6 +185,22 @@
     }, 
   ], 
   "unresolvedReferences": [],
+  "modules": {
+    "imports": [
+      {
+        "specifier": "std", 
+        "node": 3, 
+        "kind": "module", 
+        
+      }, , 
+      {
+        "specifier": "builtin", 
+        "node": 6, 
+        "kind": "module", 
+        
+      }, 
+    ], 
+  }, 
   "scopes": {
     "id": util.id.NominalId(u32)(0), 
     "flags": ["top"], 
