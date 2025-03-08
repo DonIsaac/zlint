@@ -1834,10 +1834,10 @@ fn debugNodeStack(self: *const SemanticBuilder) void {
         const loc = ast.tokenLocation(token_offset, main_token);
         const snippet =
             if (source.len > 48) mem.concat(
-            self._gpa,
-            u8,
-            &[_]string{ source[0..32], " ... ", source[(source.len - 16)..source.len] },
-        ) catch @panic("Out of memory") else source;
+                self._gpa,
+                u8,
+                &[_]string{ source[0..32], " ... ", source[(source.len - 16)..source.len] },
+            ) catch @panic("Out of memory") else source;
         print("  - [{d}, {d}:{d}] {any} - {s}\n", .{ id, loc.line, loc.column, tag, snippet });
         if (!mem.eql(u8, source, snippet)) {
             self._gpa.free(snippet);

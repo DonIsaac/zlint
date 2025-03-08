@@ -450,7 +450,7 @@ pub fn Walker(Visitor: type, Error: type) type {
 
                 const is_specific_undesirable_node = comptime Components == full.FnProto.Components and
                     (std.mem.eql(u8, field.name, "proto_node") or
-                    std.mem.eql(u8, field.name, "params"));
+                        std.mem.eql(u8, field.name, "params"));
 
                 if (!is_token and !is_specific_undesirable_node) {
                     const subnode: field.type = @field(components, field.name);
