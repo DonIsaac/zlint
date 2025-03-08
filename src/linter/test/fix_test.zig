@@ -143,11 +143,11 @@ test "replacing a section" {
 
     {
         var res = try fixer.applyFixes(src, toDiagnostic([_]fix.Fix{
-        // comptime builder.replace(Span.new(0, 12), Cow.static("const a = 4;")),
-        .{
-            .span = Span.new(0, 12),
-            .replacement = Cow.static("const a = 4;"),
-        }}));
+            // comptime builder.replace(Span.new(0, 12), Cow.static("const a = 4;")),
+            .{
+                .span = Span.new(0, 12),
+                .replacement = Cow.static("const a = 4;"),
+            }}));
         defer res.deinit(t.allocator);
         try expect(res.did_fix);
         try expectEqualStrings("const a = 4; const y = 2; const z = 3;", res.source.items);
