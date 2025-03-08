@@ -30,7 +30,7 @@
             .hash = "smart_pointers-0.0.3-NPos2MOwAABoujUzLcVLofXqRAgYWLc5pG-TKDhyK0cq",
         },
         .chameleon = .{
-            .url = "git+https://github.com/DonIsaac/chameleon/archive/7c7477fa76da53c2791f9e1f860481f64140ccbc.zip",
+            .url = "https://github.com/DonIsaac/chameleon/archive/7c7477fa76da53c2791f9e1f860481f64140ccbc.zip",
             .hash = "chameleon-3.0.0-bqfnCfhtAAAAxXGw5t9odkb4ayCTTqOcPvL-TgSMUacF",
         },
         .recover = .{
