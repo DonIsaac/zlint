@@ -11,16 +11,24 @@ const Options = @import("./cli/Options.zig");
 const print_cmd = @import("cli/print_command.zig");
 const lint_cmd = @import("cli/lint_command.zig");
 
+// in debug builds, include more information for debugging memory leaks,
+// double-frees, etc.
+const DebugAllocator = std.heap.GeneralPurposeAllocator(.{
+    .never_unmap = util.IS_DEBUG,
+    .retain_metadata = util.IS_DEBUG,
+});
+const ReleaseAllocator = std.heap.SmpAllocator;
+const GeneralPurposeAllocator = if (util.IS_DEBUG) DebugAllocator else ReleaseAllocator;
+var debug_allocator = DebugAllocator.init;
 pub fn main() !u8 {
-    // in debug builds, include more information for debugging memory leaks,
-    // double-frees, etc.
-    var gpa = std.heap.GeneralPurposeAllocator(.{
-        .never_unmap = util.IS_DEBUG,
-        .retain_metadata = util.IS_DEBUG,
-    }){};
+    const alloc = if (comptime util.IS_DEBUG)
+        debug_allocator.allocator()
+    else
+        std.heap.smp_allocator;
 
-    defer _ = gpa.deinit();
-    const alloc = gpa.allocator();
+    defer if (comptime util.IS_DEBUG) {
+        _ = debug_allocator.deinit();
+    };
     var stack = std.heap.stackFallback(16, alloc);
     const stack_alloc = stack.get();
 
