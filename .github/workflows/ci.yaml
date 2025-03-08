@@ -73,7 +73,6 @@ jobs:
       - uses: mlugg/setup-zig@v1
         with:
           version: ${{ env.ZIG_VERSION }}
-      - run: rm -rf ~/.cache/zig
       - run: zig build --fetch
       - run: zig build
       - uses: DonIsaac/zlint-action@v0
