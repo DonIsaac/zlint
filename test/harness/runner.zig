@@ -8,8 +8,8 @@ const panic = std.debug.panic;
 const print = std.debug.print;
 
 const TestAllocator = std.heap.GeneralPurposeAllocator(.{
-    .never_unmap = true,
-    .retain_metadata = true,
+    // .never_unmap = true,
+    // .retain_metadata = true,
 });
 
 var gpa = TestAllocator{};
