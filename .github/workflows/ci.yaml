@@ -44,12 +44,13 @@ jobs:
       # Run checks
       - run: just check
 
-  test:
-    name: Test
+  build-debug:
+    name: Build
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+        os: [ubuntu, macos, windows]
+        arch: [x86_64, aarch64]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       # Install tooling
@@ -57,9 +58,100 @@ jobs:
       - uses: mlugg/setup-zig@v1
         with:
           version: ${{ env.ZIG_VERSION }}
-      # Run tests
+
+      # Build
       - run: zig build --fetch
-      - run: zig build test --summary all -freference-trace --color on
+      - run: just lint
+      - run: just check
+      - run: |
+          just build \
+            -Dtarget=${{ matrix.arch }}-${{ matrix.os }} \
+            -Dversion=${{ github.ref_name }}
+
+      # upload artifacts
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 2 # binaries don't compress well
+          name: zlint-${{ matrix.os }}-${{ matrix.arch}}-${{ github.ref }}
+          path: zig-out/bin/**
+          overwrite: true
+
+  test:
+    name: Test
+    needs: build-debug
+    strategy:
+      matrix:
+        os: [ubuntu, macos, windows]
+    runs-on: ${{ matrix.os }}-latest
+    steps:
+      - name: Install kcov
+        if: ${{ matrix.os == 'ubuntu' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y kcov
+      # determine architecture
+      - name: Get CPU architecture
+        id: arch
+        run: |
+          arch=$(uname -m)
+          if [[ "$arch" == "arm64" ]]; then
+            echo "architecture=aarch64" >> $GITHUB_ENV
+          else
+            echo "architecture=x86_64" >> $GITHUB_ENV
+          fi
+
+      # download compiled artifacts from build-debug for target platform
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: zlint-${{ matrix.os }}-${{ steps.arch.outputs.architecture }}
+          path: zig-out/bin
+          merge-multiple: true
+
+        # env:
+        #   arch: ${{ steps.arch.outputs.architecture }}
+        # with:
+        #   name: zlint-${{ matrix.os }}-${{ env.arch }}-${{ github.ref }}
+      - name: Test
+        if: ${{ matrix.os != 'ubuntu' }}
+        run: |
+          ./zig-out/bin/test
+          ./zig-out/bin/test-utils
+
+      - name: Test with Coverage
+        if: ${{ matrix.os == 'ubuntu' }}
+        run: |
+          mkdir -p ./.coverage
+          kcov --include-path=src,test, ./.coverage/test zig-out/bin/test 
+          kcov --include-path=src,test, ./.coverage/test-utils zig-out/bin/test-utils
+          kcov --merge ./.coverage/unit-test ./.coverage/test ./.coverage/test-utils
+      - name: Upload Coverage
+        if: ${{ matrix.os == 'ubuntu' }}
+        uses: codecov/codecov-action@v4
+        with:
+          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+
+  # test:
+  #   name: Test
+  #   strategy:
+  #     matrix:
+  #       os: [ubuntu-latest, macos-latest, windows-latest]
+  #   runs-on: ${{ matrix.os }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     # Install tooling
+  #     - uses: extractions/setup-just@v2
+  #     - uses: mlugg/setup-zig@v1
+  #       with:
+  #         version: ${{ env.ZIG_VERSION }}
+  #     # Run tests
+  #     - run: zig build --fetch
+  #     - run: zig build test --summary all -freference-trace --color on
 
   # https://imgflip.com/i/9eygz0
   lint:
