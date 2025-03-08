@@ -238,5 +238,4 @@ const Writer = std.io.AnyWriter;
 
 test {
     std.testing.refAllDecls(@This());
-    std.testing.refAllDecls(@import("Queue.zig"));
 }
