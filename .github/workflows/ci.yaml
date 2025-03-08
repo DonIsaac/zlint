@@ -48,8 +48,15 @@ jobs:
     name: Build
     strategy:
       matrix:
-        os: [linux, macos, windows]
-        arch: [x86_64, aarch64]
+        target:
+        - os: linux
+          arch: x86_64
+        - os: macos
+          arch: aarch64
+        - os: windows
+          arch: x86_64
+        # os: [linux, macos, windows]
+        # arch: [x86_64, aarch64]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -64,7 +71,7 @@ jobs:
       - run: zig fmt src test/harness tasks build.zig build.zig.zon
       # - run: zig build check -Dtarget=${{ matrix.arch }}-${{ matrix.os }} -Dversion=${{ github.ref_name }}
       - run: |
-          just build -Dtarget=${{ matrix.arch }}-${{ matrix.os }} 
+          just build -Dtarget=${{ matrix.target.arch }}-${{ matrix.target.os }} 
 
       # upload artifacts
       - name: Upload build artifacts
@@ -73,7 +80,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
           compression-level: 2 # binaries don't compress well
-          name: zlint-${{ matrix.os }}-${{ matrix.arch}}-${{ github.run_id }}
+          name: zlint-${{ matrix.target.os }}-${{ matrix.target.arch }}-${{ github.run_id }}
           path: zig-out/bin/**
           overwrite: true
 
@@ -84,40 +91,24 @@ jobs:
       matrix:
       # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners
         target:
-          - runner: ubuntu
+          # kcov isn't available via apt-get on ubuntu-latest
+          - runner: ubuntu-22.04
             os: linux
             arch: x86_64
-          - runner: macos
+          - runner: macos-latest
             os: macos
             arch: aarch64
-          - runner: windows
+          - runner: windows-latest
             os: windows
             arch: x86_64
       fail-fast: false
-    runs-on: ${{ matrix.target.runner }}-latest
+    runs-on: ${{ matrix.target.runner }}
     steps:
       - name: Install kcov
         if: ${{ matrix.target.os == 'linux' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y kcov
-      # determine architecture
-      # - name: Get platform information
-      #   id: cpu
-      #   run: |
-      #     arch=$(uname -m)
-      #     if [[ "$arch" == "arm64" ]]; then
-      #       echo "arch=aarch64" >> $GITHUB_ENV
-      #     else
-      #       echo "arch=x86_64" >> $GITHUB_ENV
-      #     fi
-
-      #     if [[ ${{ matrix.os }} == 'windows' ]]; then
-      #       echo "os=linux" >> $GITHUB_ENV
-      #     else
-      #       echo "os=${{ matrix.os }}" >> $GITHUB_ENV
-      #     fi
-
       # download compiled artifacts from build-debug for target platform
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -125,6 +116,8 @@ jobs:
           name: zlint-${{ matrix.target.os }}-${{ matrix.target.arch }}-${{ github.run_id }}
           path: zig-out/bin
           merge-multiple: true
+
+      - run: ls -lA zig-out/bin
 
         # env:
         #   arch: ${{ steps.arch.outputs.architecture }}
@@ -149,24 +142,6 @@ jobs:
         with:
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
-
-
-  # test:
-  #   name: Test
-  #   strategy:
-  #     matrix:
-  #       os: [ubuntu-latest, macos-latest, windows-latest]
-  #   runs-on: ${{ matrix.os }}
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     # Install tooling
-  #     - uses: extractions/setup-just@v2
-  #     - uses: mlugg/setup-zig@v1
-  #       with:
-  #         version: ${{ env.ZIG_VERSION }}
-  #     # Run tests
-  #     - run: zig build --fetch
-  #     - run: zig build test --summary all -freference-trace --color on
 
   # https://imgflip.com/i/9eygz0
   lint:
