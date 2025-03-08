@@ -82,37 +82,47 @@ jobs:
     needs: build-debug
     strategy:
       matrix:
-        os: [ubuntu, macos, windows]
+      # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners
+        target:
+          - runner: ubuntu
+            os: linux
+            arch: x86_64
+          - runner: macos
+            os: macos
+            arch: aarch64
+          - runner: windows
+            os: windows
+            arch: x86_64
       fail-fast: false
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.target.runner }}-latest
     steps:
       - name: Install kcov
-        if: ${{ matrix.os == 'ubuntu' }}
+        if: ${{ matrix.target.os == 'linux' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y kcov
       # determine architecture
-      - name: Get platform information
-        id: cpu
-        run: |
-          arch=$(uname -m)
-          if [[ "$arch" == "arm64" ]]; then
-            echo "arch=aarch64" >> $GITHUB_ENV
-          else
-            echo "arch=x86_64" >> $GITHUB_ENV
-          fi
+      # - name: Get platform information
+      #   id: cpu
+      #   run: |
+      #     arch=$(uname -m)
+      #     if [[ "$arch" == "arm64" ]]; then
+      #       echo "arch=aarch64" >> $GITHUB_ENV
+      #     else
+      #       echo "arch=x86_64" >> $GITHUB_ENV
+      #     fi
 
-          if [[ ${{ matrix.os }} == 'windows' ]]; then
-            echo "os=linux" >> $GITHUB_ENV
-          else
-            echo "os=${{ matrix.os }}" >> $GITHUB_ENV
-          fi
+      #     if [[ ${{ matrix.os }} == 'windows' ]]; then
+      #       echo "os=linux" >> $GITHUB_ENV
+      #     else
+      #       echo "os=${{ matrix.os }}" >> $GITHUB_ENV
+      #     fi
 
       # download compiled artifacts from build-debug for target platform
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: zlint-${{ steps.cpu.outputs.os }}-${{ steps.cpu.outputs.arch }}-${{ github.run_id }}
+          name: zlint-${{ matrix.target.os }}-${{ matrix.target.arch }}-${{ github.run_id }}
           path: zig-out/bin
           merge-multiple: true
 
@@ -121,20 +131,20 @@ jobs:
         # with:
         #   name: zlint-${{ matrix.os }}-${{ env.arch }}-${{ github.ref }}
       - name: Test
-        if: ${{ matrix.os != 'ubuntu' }}
+        if: ${{ matrix.target.os != 'linux' }}
         run: |
           ./zig-out/bin/test
           ./zig-out/bin/test-utils
 
       - name: Test with Coverage
-        if: ${{ matrix.os == 'ubuntu' }}
+        if: ${{ matrix.target.os == 'linux' }}
         run: |
           mkdir -p ./.coverage
           kcov --include-path=src,test, ./.coverage/test zig-out/bin/test 
           kcov --include-path=src,test, ./.coverage/test-utils zig-out/bin/test-utils
           kcov --merge ./.coverage/unit-test ./.coverage/test ./.coverage/test-utils
       - name: Upload Coverage
-        if: ${{ matrix.os == 'ubuntu' }}
+        if: ${{ matrix.target.os == 'linux' }}
         uses: codecov/codecov-action@v4
         with:
           verbose: true
