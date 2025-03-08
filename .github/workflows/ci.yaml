@@ -133,9 +133,13 @@ jobs:
         if: ${{ matrix.target.os == 'linux' }}
         run: |
           mkdir -p ./.coverage
-          kcov --include-path=src,test, ./.coverage/test zig-out/bin/test 
-          kcov --include-path=src,test, ./.coverage/test-utils zig-out/bin/test-utils
-          kcov --merge ./.coverage/unit-test ./.coverage/test ./.coverage/test-utils
+          test-bins=$(test test-utils)
+          for test in $test-bins; do
+            chmod +x zig-out/bin/$test
+            kcov --include-path=src,test, ./.coverage/$test zig-out/bin/$test
+          done
+
+          kcov --merge ./.coverage/unit-test $(ls ./coverage)
       - name: Upload Coverage
         if: ${{ matrix.target.os == 'linux' }}
         uses: codecov/codecov-action@v4
