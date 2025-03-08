@@ -1,9 +1,6 @@
-Passed: 96.18644% (454/472)
+Passed: 96.82204% (457/472)
 Panics: 0% (0/472)
 
-src/bake/DevServer.zig: error.AnalysisFailed
-src/bun.js/api/server.zig: error.AnalysisFailed
-src/bun.js/api/server/HTMLBundle.zig: error.AnalysisFailed
 src/bun.js/test/expect.zig: error.FullMismatch
 src/bun.js/webcore/request.zig: error.FullMismatch
 src/bun.js/webcore/streams.zig: error.FullMismatch

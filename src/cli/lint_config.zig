@@ -143,7 +143,7 @@ fn getReportForParseError(
         else => |err| @errorName(err),
     };
     var err = Error{
-        .message = Cow.borrowed(message),
+        .message = Cow.initBorrowed(message),
         .code = "invalid-config",
     };
 

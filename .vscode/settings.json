@@ -1,6 +1,7 @@
 {
     "zig.zls.enableBuildOnSave": true,
     "zig.zls.buildOnSaveStep": "check",
+    "zls.zigExePath": "./vendor/zig14/zig",
     "files.exclude": {
         ".coverage": true,
         ".zig-cache": true,

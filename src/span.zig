@@ -67,7 +67,7 @@ pub const Span = struct {
             else => |T| {
                 const info = @typeInfo(T);
                 switch (info) {
-                    .Struct, .Enum => {
+                    .@"struct", .@"enum" => {
                         if (@hasField(T, "span")) {
                             return Span.from(@field(value, "span"));
                         }

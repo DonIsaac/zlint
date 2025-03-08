@@ -85,7 +85,7 @@ pub const Rule = struct {
         const ptr_info = comptime blk: {
             const info = @typeInfo(T);
             break :blk switch (info) {
-                .Pointer => info.Pointer,
+                .pointer => |p| p,
                 else => @compileLog("Rule.init takes a pointer to a rule implementation, found an " ++ @tagName(info)),
             };
         };
@@ -159,7 +159,7 @@ const IdMap = std.StaticStringMap(Rule.Id);
 const rule_ids: IdMap = ids: {
     const Type = std.builtin.Type;
     const AllRules = @import("./rules.zig");
-    const RuleDecls: []const Type.Declaration = @typeInfo(AllRules).Struct.decls;
+    const RuleDecls: []const Type.Declaration = @typeInfo(AllRules).@"struct".decls;
     var ids: [RuleDecls.len]struct { []const u8, Rule.Id } = undefined;
     for (RuleDecls, 0..) |decl, i| {
         const RuleImpl = @field(AllRules, decl.name);
@@ -177,7 +177,7 @@ test rule_ids {
     const t = std.testing;
     comptime {
         try t.expectEqual(
-            @typeInfo(@import("./rules.zig")).Struct.decls.len,
+            @typeInfo(@import("./rules.zig")).@"struct".decls.len,
             rule_ids.kvs.len,
         );
         try t.expect(rule_ids.get("unsafe-undefined") != null);

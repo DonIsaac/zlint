@@ -1245,7 +1245,7 @@ inline fn visitBuiltinCall(self: *SemanticBuilder, node: NodeIndex, comptime is_
 // =========================================================================
 
 fn enterRoot(self: *SemanticBuilder) !void {
-    @setCold(true);
+    @branchHint(.cold);
 
     // initialize root scope
     // NOTE: root scope is entered differently to avoid unnecessary null checks
@@ -1861,7 +1861,7 @@ inline fn assertCtx(self: *const SemanticBuilder, condition: bool, comptime fmt:
 }
 
 fn debugNodeStack(self: *const SemanticBuilder) void {
-    @setCold(true);
+    @branchHint(.cold);
     const ast = self.AST();
 
     print("Node stack:\n", .{});
@@ -1874,10 +1874,10 @@ fn debugNodeStack(self: *const SemanticBuilder) void {
         const loc = ast.tokenLocation(token_offset, main_token);
         const snippet =
             if (source.len > 48) mem.concat(
-            self._gpa,
-            u8,
-            &[_]string{ source[0..32], " ... ", source[(source.len - 16)..source.len] },
-        ) catch @panic("Out of memory") else source;
+                self._gpa,
+                u8,
+                &[_]string{ source[0..32], " ... ", source[(source.len - 16)..source.len] },
+            ) catch @panic("Out of memory") else source;
         print("  - [{d}, {d}:{d}] {any} - {s}\n", .{ id, loc.line, loc.column, tag, snippet });
         if (!mem.eql(u8, source, snippet)) {
             self._gpa.free(snippet);
@@ -1886,7 +1886,7 @@ fn debugNodeStack(self: *const SemanticBuilder) void {
 }
 
 fn printSymbolStack(self: *const SemanticBuilder) void {
-    @setCold(true);
+    @branchHint(.cold);
     const symbols = &self._semantic.symbols;
     const names: []string = symbols.symbols.items(.name);
 
@@ -1899,7 +1899,7 @@ fn printSymbolStack(self: *const SemanticBuilder) void {
 }
 
 fn printScopeStack(self: *const SemanticBuilder) void {
-    @setCold(true);
+    @branchHint(.cold);
     const scopes = &self._semantic.scopes;
 
     print("Scope stack:\n", .{});

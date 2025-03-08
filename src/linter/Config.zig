@@ -41,7 +41,7 @@ const DEFAULT_RULES_CONFIG: RulesConfig = blk: {
 };
 
 const all_rules = @import("rules.zig");
-const all_rule_decls = @typeInfo(all_rules).Struct.decls;
+const all_rule_decls = @typeInfo(all_rules).@"struct".decls;
 
 const std = @import("std");
 const ArenaAllocator = std.heap.ArenaAllocator;
@@ -72,7 +72,7 @@ fn testConfig(source: []const u8, expected: RulesConfig) !void {
     };
     defer actual.deinit();
     const info = @typeInfo(RulesConfig);
-    inline for (info.Struct.fields) |field| {
+    inline for (info.@"struct".fields) |field| {
         const expected_rule_config = @field(expected, field.name);
         const actual_rule_config = @field(actual.value, field.name);
         // TODO: Test that configs are the same, once rule configuration is implemented.
