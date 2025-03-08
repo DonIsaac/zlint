@@ -112,7 +112,7 @@ pub const Reporter = struct {
         const allocator = stackalloc.get();
 
         var string_writer = StringWriter.initCapacity(256, allocator) catch @panic("OOM");
-        defer string_writer.buf.deinit();
+        defer string_writer.deinit();
 
         for (errors) |err| {
             var e = err;
