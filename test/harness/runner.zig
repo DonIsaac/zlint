@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const utils = @import("../utils.zig");
 const TestSuite = @import("TestSuite.zig");
 
@@ -8,12 +9,16 @@ const panic = std.debug.panic;
 const print = std.debug.print;
 
 const TestAllocator = std.heap.GeneralPurposeAllocator(.{
-    .never_unmap = true,
-    .retain_metadata = true,
+    // .never_unmap = true,
+    // .retain_metadata = true,
 });
 
-var gpa = TestAllocator{};
-var global_runner_instance = TestRunner.new(gpa.allocator());
+const is_debug = builtin.mode == .Debug;
+var debug_allocator = TestAllocator{};
+var global_runner_instance = TestRunner.new(if (is_debug)
+    debug_allocator.allocator()
+else
+    std.heap.smp_allocator);
 
 pub fn getRunner() *TestRunner {
     return &global_runner_instance;
@@ -27,10 +32,12 @@ pub fn addTest(test_file: TestRunner.TestFile) *TestRunner {
 pub fn globalShutdown() void {
     getRunner().deinit();
 
-    _ = gpa.detectLeaks();
-    const status = gpa.deinit();
-    if (status == .leak) {
-        panic("Memory leak detected\n", .{});
+    if (is_debug) {
+        _ = debug_allocator.detectLeaks();
+        const status = debug_allocator.deinit();
+        if (status == .leak) {
+            panic("Memory leak detected\n", .{});
+        }
     }
 }
 

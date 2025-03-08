@@ -10,6 +10,35 @@ pub fn new(printer: *Printer, semantic: *const Semantic) SemanticPrinter {
     };
 }
 
+pub fn printModuleRecord(self: *SemanticPrinter) !void {
+    try self.printer.pushObject();
+    defer self.printer.pop();
+
+    try self.printer.pPropName("imports");
+    {
+        const imports = self.semantic.modules.imports;
+        try if (imports.items.len > 0) self.printer.pushArray(true) else self.printer.pushArray(false);
+        defer self.printer.pop();
+
+        for (imports.items, 0..) |import, i| {
+            try self.printImport(import);
+            if (i + 1 != imports.items.len) {
+                self.printer.pComma();
+                try self.printer.pIndent();
+            }
+        }
+    }
+}
+
+fn printImport(self: *SemanticPrinter, import: Semantic.ModuleRecord.ImportEntry) !void {
+    const p = self.printer;
+    try p.pushObject();
+    defer p.pop();
+    try p.pPropStr("specifier", import.specifier);
+    try p.pProp("node", "{d}", import.node);
+    try p.pPropWithNamespacedValue("kind", import.kind);
+}
+
 pub fn printSymbolTable(self: *SemanticPrinter) !void {
     const symbols = &self.semantic.symbols;
     try self.printer.pushArray(true);

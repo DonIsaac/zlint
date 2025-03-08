@@ -14,7 +14,7 @@ pub fn NominalId(TRepr: type) type {
     comptime {
         const err = "NominalId representation must be an unsigned integer";
         switch (info) {
-            .Int => if (info.Int.signedness == .signed) @compileError(err),
+            .int => if (info.int.signedness == .signed) @compileError(err),
             else => @compileError(err),
         }
     }
@@ -57,11 +57,11 @@ pub fn NominalId(TRepr: type) type {
                 else => {
                     const intoInfo = @typeInfo(T);
                     switch (intoInfo) {
-                        .Int => {
-                            if (comptime intoInfo.Int.bits > info.Int.bits) {
+                        .int => {
+                            if (comptime intoInfo.int.bits > info.int.bits) {
                                 assert(value <= max);
                             }
-                            if (comptime intoInfo.Int.signedness == .signed) {
+                            if (comptime intoInfo.int.signedness == .signed) {
                                 assert(value >= 0);
                             }
                             return @enumFromInt(@as(Repr, @intCast(value)));
@@ -92,8 +92,8 @@ pub fn NominalId(TRepr: type) type {
                 else => {
                     const intoInfo = @typeInfo(T);
                     switch (intoInfo) {
-                        .Int => {
-                            if (comptime intoInfo.Int.bits < info.Int.bits) {
+                        .int => {
+                            if (comptime intoInfo.int.bits < info.int.bits) {
                                 assert(self <= std.math.maxInt(T));
                             }
                             return @intFromEnum(self);

@@ -1,7 +1,7 @@
 pub fn Walker(comptime Visitor: type) type {
     comptime {
         const info = @typeInfo(Visitor);
-        if (info != .Struct) {
+        if (info != .@"struct") {
             @compileError("Visitor must be a Visitor struct type.");
         }
     }
@@ -47,7 +47,7 @@ pub fn Walker(comptime Visitor: type) type {
                     // walking if they want, which means that we need to pop the directory
                     // that errored from the stack. Otherwise, all future `next` calls would
                     // likely just fail with the same error.
-                    var item = self.stack.pop();
+                    var item = self.stack.pop() orelse unreachable;
                     if (self.stack.items.len != 0) {
                         item.iter.dir.close();
                     }
@@ -62,7 +62,7 @@ pub fn Walker(comptime Visitor: type) type {
                     try self.name_buffer.ensureUnusedCapacity(gpa, base.name.len + 1);
                     self.name_buffer.appendSliceAssumeCapacity(base.name);
                     self.name_buffer.appendAssumeCapacity(0);
-                    const ent = .{
+                    const ent = Entry{
                         .dir = containing.iter.dir,
                         .basename = self.name_buffer.items[dirname_len .. self.name_buffer.items.len - 1 :0],
                         .path = self.name_buffer.items[0 .. self.name_buffer.items.len - 1 :0],
@@ -92,7 +92,7 @@ pub fn Walker(comptime Visitor: type) type {
                         }
                     }
                 } else {
-                    var item = self.stack.pop();
+                    var item = self.stack.pop() orelse unreachable;
                     if (self.stack.items.len != 0) {
                         item.iter.dir.close();
                     }

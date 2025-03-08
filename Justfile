@@ -23,6 +23,16 @@ _default:
 init:
     ./tasks/init.sh
 
+download-zig:
+    @mkdir -p vendor
+    curl -L https://ziglang.org/builds/zig-macos-aarch64-0.14.0-dev.3427+dea72d15d.tar.xz -o vendor/zig.tar.xz
+    tar -xf vendor/zig.tar.xz -C vendor
+    rm vendor/zig.tar.xz
+    mv vendor/zig-macos-aarch64-0.14.0-dev.3427+dea72d15d vendor/zig14
+
+zig14 *ARGS:
+    ./vendor/zig14/zig {{ARGS}}
+
 install dir="~/.bin":
     @rm {{dir}}/zlint || true
     cp zig-out/bin/zlint {{dir}}/zlint

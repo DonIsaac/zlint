@@ -23,5 +23,5 @@ pub fn DebugOnly(comptime T: type) type {
 /// };
 /// ```
 pub inline fn debugOnly(T: type, value: T) DebugOnly(T) {
-    return comptime if (IS_DEBUG) value else {};
+    return if (IS_DEBUG) value;
 }

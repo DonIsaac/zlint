@@ -37,7 +37,7 @@ const meta = std.meta;
 /// ```
 pub fn Bitflags(Flags: type) type {
     const info = switch (@typeInfo(Flags)) {
-        .Struct => |s| s,
+        .@"struct" => |s| s,
         else => @compileError("Bitflags only works on packed structs."),
     };
 
@@ -47,7 +47,7 @@ pub fn Bitflags(Flags: type) type {
         pub const empty: Flags = .{};
         pub const all: Flags = blk: {
             var flags = Flags{};
-            for (@typeInfo(Flags).Struct.fields) |field| {
+            for (@typeInfo(Flags).@"struct".fields) |field| {
                 // skip padding. may not be present.
                 if (field.type != bool) continue;
                 @field(flags, field.name) = true;
@@ -155,7 +155,7 @@ pub fn Bitflags(Flags: type) type {
             try writer.writeAll(@typeName(Flags) ++ "(");
 
             var first = true;
-            inline for (@typeInfo(Flags).Struct.fields) |field| {
+            inline for (@typeInfo(Flags).@"struct".fields) |field| {
                 if (field.type != bool) continue;
                 // "s_block" -> "block". less noisy.
                 const name = if (field.name.len > 2 and mem.startsWith(u8, field.name, "s_")) field.name[2..] else field.name;
@@ -205,7 +205,7 @@ test Bitflags {
 
         pub usingnamespace Bitflags(@This());
     };
-    try std.testing.expectEqual(4, @typeInfo(Position.Flag).Enum.fields.len);
+    try std.testing.expectEqual(4, @typeInfo(Position.Flag).@"enum".fields.len);
 
     const p = Position{ .s_top = true, .s_left = true };
     try std.testing.expectFmt(

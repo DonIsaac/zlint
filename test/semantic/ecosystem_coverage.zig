@@ -47,7 +47,7 @@ fn testSemantic(alloc: Allocator, source: *const Source) !void {
         const p = source.pathname orelse "<missing>";
         print("ecosystem coverage: {s}", .{p});
         if (is_tty)
-            print("                                                                                      \r", .{})
+            print("                                                                                                                           \r", .{})
         else
             print("\n", .{});
     }

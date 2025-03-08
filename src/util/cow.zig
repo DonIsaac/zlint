@@ -76,7 +76,7 @@ pub fn Cow(comptime sentinel: bool) type {
         }
 
         /// Create a `Cow` that borrows its data.
-        pub fn borrowed(str: Slice) Self {
+        pub fn initBorrowed(str: Slice) Self {
             return .{ .borrowed = true, .str = str };
         }
 
@@ -137,7 +137,7 @@ pub fn Cow(comptime sentinel: bool) type {
         }
 
         fn toOwnedImpl(self: *Self, allocator: Allocator) Allocator.Error!void {
-            @setCold(true);
+            @branchHint(.cold);
             assert(self.borrowed, "This Cow is already owned.", .{});
             const owned_data: MutSlice = try (if (comptime sentinel)
                 allocator.allocSentinel(u8, self.str.len, 0)

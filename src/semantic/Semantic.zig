@@ -15,6 +15,7 @@
 
 symbols: SymbolTable = .{},
 scopes: ScopeTree = .{},
+modules: ModuleRecord = .{},
 ast: Ast, // NOTE: allocated in _arena
 // NOTE: We re-tokenize and store our own tokens b/c AST throws away the end
 // position of each token. B/c of this, `ast.stokenSlice` re-tokenizes each
@@ -103,6 +104,7 @@ pub fn deinit(self: *Semantic) void {
     self.node_links.deinit(self._gpa);
     self.symbols.deinit(self._gpa);
     self.scopes.deinit(self._gpa);
+    self.modules.deinit(self._gpa);
     // SAFETY: *self is no longer valid after deinitilization.
     self.* = undefined;
 }
@@ -129,3 +131,4 @@ pub const ScopeTree = Scope.ScopeTree;
 pub const Symbol = @import("Symbol.zig");
 pub const SymbolTable = Symbol.SymbolTable;
 pub const Reference = @import("Reference.zig");
+pub const ModuleRecord = @import("ModuleRecord.zig");

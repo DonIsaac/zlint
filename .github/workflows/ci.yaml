@@ -26,7 +26,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ZIG_VERSION: 0.13.0
+  ZIG_VERSION: 0.14.0
 
 jobs:
   check:
@@ -73,6 +73,7 @@ jobs:
       - uses: mlugg/setup-zig@v1
         with:
           version: ${{ env.ZIG_VERSION }}
+      - run: zig build --fetch
       - run: zig build
       - uses: DonIsaac/zlint-action@v0
         with:
@@ -91,6 +92,7 @@ jobs:
       - uses: mlugg/setup-zig@v1
         with:
           version: ${{ env.ZIG_VERSION }}
+      - run: rm -rf ~/.cache/zig
       - run: zig build --fetch
       - run: just submodules
       - run: just e2e -Doptimize=${{ matrix.optimize }}

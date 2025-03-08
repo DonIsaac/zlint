@@ -24,7 +24,10 @@ pub fn init(
     errdefer linter.deinit();
     const pool = try allocator.create(Thread.Pool);
     errdefer allocator.destroy(pool);
-    try pool.init(Thread.Pool.Options{ .n_jobs = options.n_threads, .allocator = allocator });
+    try pool.init(Thread.Pool.Options{
+        .n_jobs = if (options.n_threads) |nt| @intCast(nt) else null,
+        .allocator = allocator,
+    });
 
     return .{
         .linter = linter,
