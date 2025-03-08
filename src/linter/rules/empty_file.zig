@@ -49,7 +49,7 @@ pub fn runOnce(_: *const EmptyFile, ctx: *LinterContext) void {
     } else if (std.mem.indexOfNone(u8, source, &std.ascii.whitespace) == null) {
         message = "contains only whitespace";
     } else if (ctx.ast().nodes.len == 1) {
-        message = "is empty";
+        message = "only contains comments";
     }
     if (message) |msg| {
         ctx.report(fileDiagnosticWithMessage(ctx, msg));
