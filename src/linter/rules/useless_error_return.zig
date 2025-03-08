@@ -236,7 +236,7 @@ const Visitor = struct {
         container_field_named_error: bool = false, // MyStruct.SomeError
         known_error_struct_access: bool = false, // `fn foo() SomeError!anytype { return SomeError.DoesNotLookLikeError; }
 
-        const Repr = @typeInfo(Seen).Struct.backing_integer orelse {
+        const Repr = @typeInfo(Seen).@"struct".backing_integer orelse {
             @compileError("packed structs should have backing integer");
         };
 

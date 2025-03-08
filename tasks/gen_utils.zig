@@ -18,7 +18,7 @@ pub const RuleInfo = struct {
     // /// types.
     // name_snake: []const u8,
     pub const all_rules = blk: {
-        const rule_decls: []const std.builtin.Type.Declaration = @typeInfo(zlint.lint.rules).Struct.decls;
+        const rule_decls: []const std.builtin.Type.Declaration = @typeInfo(zlint.lint.rules).@"struct".decls;
         var rule_infos: [rule_decls.len]RuleInfo = undefined;
         var i = 0;
         for (rule_decls) |rule_decl| {

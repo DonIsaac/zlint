@@ -205,7 +205,7 @@ test Bitflags {
 
         pub usingnamespace Bitflags(@This());
     };
-    try std.testing.expectEqual(4, @typeInfo(Position.Flag).Enum.fields.len);
+    try std.testing.expectEqual(4, @typeInfo(Position.Flag).@"enum".fields.len);
 
     const p = Position{ .s_top = true, .s_left = true };
     try std.testing.expectFmt(

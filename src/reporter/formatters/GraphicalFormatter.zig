@@ -430,7 +430,7 @@ const ContextInfo = struct {
         const labeled_span: LabeledSpan, const loc: Location = brk: {
             switch (@TypeOf(span)) {
                 Span => {
-                    const labeled = .{ .span = span };
+                    const labeled = LabeledSpan{ .span = span };
                     break :brk .{ labeled, Location.fromSpan(contents, span) };
                 },
                 LabeledSpan => {

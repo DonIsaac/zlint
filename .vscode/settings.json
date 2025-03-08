@@ -1,8 +1,6 @@
 {
     "zig.zls.enableBuildOnSave": true,
     "zig.zls.buildOnSaveStep": "check",
-    "zig.zls.zigLibPath": "${workspaceFolder}/vendor/zig14/lib",
-    "zig.path": "${workspaceFolder}/vendor/zig14/zig",
     "zls.zigExePath": "./vendor/zig14/zig",
     "files.exclude": {
         ".coverage": true,

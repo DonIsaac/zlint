@@ -91,7 +91,7 @@ pub fn pPropWithNamespacedValue(self: *Printer, key: []const u8, value: anytype)
     const value_str = try std.fmt.bufPrintZ(&value_buf, "{any}", .{value});
 
     // Get the last part of the dot-separated value string.
-    var iter = std.mem.split(u8, value_str, ".");
+    var iter = std.mem.splitScalar(u8, value_str, '.');
     // Always the previous result from `iter.next()`. Stop once we've
     // reached the end, then `segment` will contain the last part.
     var segment = iter.next();
@@ -154,7 +154,7 @@ pub fn popNoIndent(self: *Printer) void {
 /// Exit out of an object or array container, printing the correspodning
 /// closing token.
 pub fn pop(self: *Printer) void {
-    const kind = self.container_stack.pop();
+    const kind = self.container_stack.pop() orelse @panic("container stack is empty");
     self.pIndent() catch @panic("failed to write indent after container end");
     const res = switch (kind) {
         ContainerKind.object => self.writer.write("}"),

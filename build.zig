@@ -24,8 +24,13 @@ pub fn build(b: *std.Build) void {
 
     // dependencies
     l.dependency("chameleon", .{});
-    l.dependency("smart-pointers", .{});
-    l.devDependency("zig-recover", "recover", .{});
+    // l.dependency("smart-pointers", .{});
+    {
+        const dep = l.b.dependency("smart_pointers", .{});
+        l.dependencies.put(b.allocator, "smart-pointers", dep) catch @panic("OOM");
+        l.modules.put(b.allocator, "smart-pointers", dep.module("smart-pointers")) catch @panic("OOM");
+    }
+    l.devDependency("recover", "recover", .{});
 
     // modules
     l.createModule("util", .{
