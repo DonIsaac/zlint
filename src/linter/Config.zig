@@ -1,4 +1,5 @@
 rules: RulesConfig = .{},
+ignore: []const []const u8 = &[_][]const u8{},
 
 const Config = @This();
 

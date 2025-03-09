@@ -37,7 +37,12 @@ pub fn resolveLintConfig(
         scanner.enableDiagnostics(&diagnostics);
         // FIXME: i hate all these allocations, but they're needed b/c of how
         // errors work. That needs refactoring.
-        const config = json.parseFromTokenSourceLeaky(lint.Config, arena_alloc, &scanner, .{}) catch |e| {
+        const config = json.parseFromTokenSourceLeaky(
+            lint.Config,
+            arena_alloc,
+            &scanner,
+            .{ .ignore_unknown_fields = true },
+        ) catch |e| {
             err.* = getReportForParseError(err_alloc, e, source, &diagnostics);
             err.source_name = err_alloc.dupe(u8, maybe_path_to_config) catch @panic(err.message.borrow());
             return e;

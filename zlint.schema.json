@@ -1,0 +1,72 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ZLint Config",
+    "type": "object",
+    "properties": {
+        "ignore": {
+            "type": "array",
+            "description": "Files and folders to skip. Uses `startsWith` to check if files are ignored.\n\n`zig-out` and `vendor` are always ignored, as well as hidden folders.",
+            "default": [
+                "zig-out",
+                "vendor"
+            ],
+            "items": {
+                "type": "string"
+            }
+        },
+        "rules": {
+            "type": "object",
+            "description": "Configure what rules to run and what error level to set them to.",
+            "properties": {
+                "homeless-try": {
+                    "$ref": "#/definitions/RuleToggle"
+                },
+                "line-length": {
+                    "$ref": "#/definitions/RuleToggle"
+                },
+                "must-return-ref": {
+                    "$ref": "#/definitions/RuleToggle"
+                },
+                "no-catch-return": {
+                    "$ref": "#/definitions/RuleToggle"
+                },
+                "no-return-try": {
+                    "$ref": "#/definitions/RuleToggle"
+                },
+                "no-unresolved": {
+                    "$ref": "#/definitions/RuleToggle"
+                },
+                "suppressed-errors": {
+                    "$ref": "#/definitions/RuleToggle"
+                },
+                "unsafe-undefined": {
+                    "$ref": "#/definitions/RuleToggle"
+                },
+                "unused-decls": {
+                    "$ref": "#/definitions/RuleToggle"
+                },
+                "useless-error-return": {
+                    "$ref": "#/definitions/RuleToggle"
+                },
+                "empty-file": {
+                    "$ref": "#/definitions/RuleToggle"
+                }
+            },
+            "additionalProperties": {
+                "$ref": "#/definitions/RuleToggle"
+            }
+        }
+    },
+    "definitions": {
+        "RuleToggle": {
+            "type": "string",
+            "description": "Set the error level of a rule. 'off' and 'allow' do the same thing.",
+            "enum": [
+                "error",
+                "warn",
+                "off",
+                "allow"
+            ]
+        }
+    }
+}
