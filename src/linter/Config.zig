@@ -113,6 +113,7 @@ test "RulesConfig.jsonParse" {
             RulesConfig,
             t.allocator,
             &scanner,
+            .{},
         ));
     }
 }
