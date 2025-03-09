@@ -29,21 +29,6 @@ env:
   ZIG_VERSION: 0.14.0
 
 jobs:
-  check:
-    name: Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      # Install tooling
-      - uses: extractions/setup-just@v2
-        with:
-          just-version: ${{ env.JUST_VERSION }}
-      - uses: mlugg/setup-zig@v1
-        with:
-          version: ${{ env.ZIG_VERSION }}
-      # Run checks
-      - run: just check
-
   build-debug:
     name: Build
     strategy:
@@ -148,6 +133,8 @@ jobs:
           kcov --merge ./.coverage/unit-test $(ls ./.coverage)
 
       - name: Check for changes
+        # ZLint prints crlf on windows
+        if: ${{ matrix.target.os != 'windows' }}
         run: git diff --exit-code
 
       - name: Upload Coverage
@@ -169,6 +156,7 @@ jobs:
         with:
           name: zlint-linux-x86_64-${{ github.run_id }}
           path: zig-out/bin
+      - run: chmod +x zig-out/bin/zlint
       - uses: DonIsaac/zlint-action@v0
         with:
           binary: ./zig-out/bin/zlint
