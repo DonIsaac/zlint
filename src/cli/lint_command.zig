@@ -109,6 +109,11 @@ const LintVisitor = struct {
                 } else if (mem.eql(u8, entry.basename, "vendor") or mem.eql(u8, entry.basename, "zig-out")) {
                     return WalkState.Skip;
                 }
+                for (self.service.config.config.ignore) |ignore| {
+                    if (mem.startsWith(u8, entry.path, ignore)) {
+                        return WalkState.Skip;
+                    }
+                }
             },
             .file => {
                 if (!mem.eql(u8, path.extension(entry.path), ".zig")) {
