@@ -259,7 +259,7 @@ test HomelessTry {
         \\  }
         \\}
         ,
-        // conditional error union
+        // conditional error union, or error union over a conditional
         \\const std = @import("std");
         \\pub fn push(list: std.ArrayList(u32), x: u32, comptime assume_capacity: bool) if(assume_capacity) void else Allocator.Error!void {
         \\  if (comptime assume_capacity) {
@@ -276,6 +276,14 @@ test HomelessTry {
         \\  } else {
         \\    try list.append(x);
         \\  }
+        \\}
+        ,
+        \\pub fn thing(comptime x: bool) !if (x) void else u32 {
+        \\  if (x) {
+        \\    try thing2();
+        \\    return;
+        \\  }
+        \\  return 0;
         \\}
     };
 

@@ -58,16 +58,21 @@ pub fn hasErrorUnion(ast: *const Ast, node: Node.Index) bool {
 
 pub fn getErrorUnion(ast: *const Ast, node: Node.Index) Node.Index {
     const tags: []const Node.Tag = ast.nodes.items(.tag);
+    const tok_tags: []const Token.Tag = ast.tokens.items(.tag);
     return switch (tags[node]) {
         .root => NULL_NODE,
         .error_union, .merge_error_sets, .error_set_decl => node,
         .if_simple => getErrorUnion(ast, ast.nodes.items(.data)[node].rhs),
         .@"if" => blk: {
             const ifnode = ast.ifFull(node);
+            // there's a bug in fn return types for functions with return types
+            // like `!if (cond) ...`. `ast.return_type` is `@"if"` instead of
+            // the error union.
+            const main = ast.nodes.items(.main_token)[node];
+            if (main > 1 and tok_tags[main - 1] == .bang) break :blk node;
             break :blk unwrapNode(getErrorUnion(ast, ifnode.ast.then_expr)) orelse getErrorUnion(ast, ifnode.ast.else_expr);
         },
         else => blk: {
-            const tok_tags: []const Token.Tag = ast.tokens.items(.tag);
             const prev_tok = ast.firstToken(node) -| 1;
             break :blk if (tok_tags[prev_tok] == .bang) node else NULL_NODE;
         },
