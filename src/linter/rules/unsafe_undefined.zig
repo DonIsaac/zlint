@@ -179,7 +179,9 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
 
     while (it.next()) |parent| {
         defer i += 1;
+
         switch (node_tags[parent]) {
+            .root => if (i == 1) return,
             // initializing arrays to undefined can be ok, e.g. when using
             // @memset.
             .global_var_decl,
@@ -214,8 +216,8 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
                 return;
             },
 
-            // Comparison to undefined is unspecified behavior. NOTE: we
-            // skip safety comment check b/c this is _never_ safe.
+            // Comparison to undefined is unspecified behavior.
+            // NOTE: we skip safety comment check b/c this is _never_ safe.
             .equal_equal,
             .bang_equal,
             .less_or_equal,
@@ -334,6 +336,11 @@ test UnsafeUndefined {
         \\  foo.* = undefined;
         \\}
         ,
+        \\const A = enum { undefined, hello };
+        ,
+        \\const x = .undefined;
+        ,
+        \\const x = "undefined";
     };
     const fail = &[_][:0]const u8{
         "const x = undefined;",
