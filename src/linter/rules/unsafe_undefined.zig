@@ -153,6 +153,10 @@ fn undefinedDefault(ctx: *LinterContext, undefined_tok: TokenIndex) Error {
     e.help = Cow.static("If this really can be `undefined`, do so explicitly during struct initialization.");
     return e;
 }
+fn getTokenSource(ctx: *LinterContext, token_idx: TokenIndex) []const u8 {
+    const span = ctx.ast().tokenToSpan(token_idx);
+    return ctx.source.text()[span.start..span.end];
+}
 
 const StringSet = std.StaticStringMap(void);
 const destructor_names = StringSet.initComptime([_]struct { []const u8 }{
@@ -210,6 +214,8 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
             .container_field_align,
             .container_field,
             => {
+                const field_name = getTokenSource(ctx, main_tokens[parent]);
+                if (std.mem.eql(u8, field_name, "undefined")) return;
                 if (!has_safety_comment) {
                     ctx.report(undefinedDefault(ctx, node.main_token));
                 }
@@ -337,6 +343,40 @@ test UnsafeUndefined {
         \\}
         ,
         \\const A = enum { undefined, hello };
+        ,
+        \\const MyStruct = struct {
+        \\  pub const A = enum { undefined, hello };
+        \\};
+        ,
+        \\const MyStruct = struct {
+        \\  pub fn func() void {
+        \\      const A = enum { undefined, hello };
+        \\  }
+        \\};
+        ,
+        \\const A = union { undefined: Foo, hello: Bar };
+        ,
+        \\const MyStruct = struct {
+        \\  const A = union { undefined: Foo, hello: Bar };
+        \\};
+        ,
+        \\const MyStruct = struct {
+        \\  pub fn func() void {
+        \\      const A = union { undefined: Foo, hello: Bar };
+        \\  }
+        \\};
+        ,
+        \\const A = error { undefined, hello };
+        ,
+        \\const MyStruct = struct {
+        \\  const A = error { undefined, hello };
+        \\};
+        ,
+        \\const MyStruct = struct {
+        \\  pub fn func() void {
+        \\      const A = error { undefined, hello };
+        \\  }
+        \\};
         ,
         \\const x = .undefined;
         ,
