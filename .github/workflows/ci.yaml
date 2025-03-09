@@ -34,12 +34,12 @@ jobs:
     strategy:
       matrix:
         target:
-        - os: linux
-          arch: x86_64
-        - os: macos
-          arch: aarch64
-        - os: windows
-          arch: x86_64
+          - os: linux
+            arch: x86_64
+          - os: macos
+            arch: aarch64
+          - os: windows
+            arch: x86_64
         # os: [linux, macos, windows]
         # arch: [x86_64, aarch64]
     runs-on: ubuntu-latest
@@ -58,7 +58,7 @@ jobs:
       # - run: zig build check -Dtarget=${{ matrix.arch }}-${{ matrix.os }} -Dversion=${{ github.ref_name }}
       - name: zig build
         run: |
-          just build -Dtarget=${{ matrix.target.arch }}-${{ matrix.target.os }} 
+          just build -Dtarget=${{ matrix.target.arch }}-${{ matrix.target.os }}
 
       # upload artifacts
       - name: Upload build artifacts
@@ -76,7 +76,7 @@ jobs:
     needs: build-debug
     strategy:
       matrix:
-      # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners
+        # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners
         target:
           # kcov isn't available via apt-get on ubuntu-latest
           - runner: ubuntu-22.04
@@ -161,12 +161,34 @@ jobs:
         with:
           binary: ./zig-out/bin/zlint
 
-  e2e:
-    name: Test E2E
+  e2e-debug:
+    name: Test E2E (Debug)
+    runs-on: ubuntu-latest
+    needs: build-debug
+    steps:
+      - uses: actions/checkout@v4
+      # Install tooling
+      - uses: extractions/setup-just@v2
+      - run: just submodules
+      - name: Download ZLint
+        uses: actions/download-artifact@v4
+        with:
+          name: zlint-linux-x86_64-${{ github.run_id }}
+          path: zig-out/bin
+
+      - name: Test E2E
+        run: |
+          chmod +x zig-out/bin/zlint/test-e2e
+          zig-out/bin/zlint/test-e2e
+      - name: Check for changes
+        run: git diff --exit-code
+
+  e2e-release:
+    name: Test E2E (Release)
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        optimize: ["Debug", "ReleaseSafe", "ReleaseFast"]
+        optimize: ["ReleaseSafe", "ReleaseFast"]
     steps:
       - uses: actions/checkout@v4
       # Install tooling
@@ -175,29 +197,11 @@ jobs:
         with:
           version: ${{ env.ZIG_VERSION }}
       - run: just submodules
-
       - name: Test E2E
-        if: ${{ matrix.optimize != 'Debug' }}
         run: |
           rm -rf ~/.cache/zig
           zig build --fetch
           just e2e -Doptimize=${{ matrix.optimize }}
-
-      - name: Download (Debug)
-        if: ${{ matrix.optimize == 'Debug' }}
-        uses: actions/download-artifact@v4
-        with:
-          name: zlint-linux-x86_64-${{ github.run_id }} 
-          path: zig-out/bin
-
-      - name: Test E2E
-        if: ${{ matrix.optimize == 'Debug' }}
-        run: |
-          chmod +x zig-out/bin/zlint/test-e2e
-          zig-out/bin/zlint/test-e2e
-
-
-      
       - run: rm -rf ~/.cache/zig
       - run: zig build --fetch
       - run: just e2e -Doptimize=${{ matrix.optimize }}
