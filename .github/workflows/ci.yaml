@@ -179,7 +179,7 @@ jobs:
       - name: Test E2E
         run: |
           chmod +x zig-out/bin/zlint/test-e2e
-          zig-out/bin/zlint/test-e2e
+          zig-out/bin/test-e2e
       - name: Check for changes
         run: git diff --exit-code
 
