@@ -447,7 +447,6 @@ test UnsafeUndefined {
         \\const deinit: u32 = undefined;
     };
 
-    _ = debug;
     try runner
         .withPass(pass)
         .withFail(fail)
