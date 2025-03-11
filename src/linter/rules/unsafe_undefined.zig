@@ -119,6 +119,7 @@ const util = @import("util");
 const mem = std.mem;
 const ascii = std.ascii;
 const Semantic = @import("../../semantic.zig").Semantic;
+const Symbol = Semantic.Symbol;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const Token = Semantic.Token;
@@ -168,6 +169,18 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
     if (node.tag != .identifier) return;
     const name = ast.getNodeSource(wrapper.idx);
     if (!mem.eql(u8, name, "undefined")) return;
+
+    const tok = ast.nodes.items(.main_token)[wrapper.idx];
+    if (ctx.links().symbols.get(tok)) |symbol_id| {
+        const symbols = ctx.symbols().symbols.slice();
+        const id = symbol_id.into(usize);
+        const flags: Symbol.Flags = symbols.items(.flags)[id];
+        // check if this is an enum, union (etc) member named `undefined`
+        if (flags.s_member) {
+            const symbol_name = symbols.items(.name)[id];
+            if (mem.eql(u8, symbol_name, "undefined")) return;
+        }
+    }
 
     const node_tags: []const Node.Tag = ast.nodes.items(.tag);
     const main_tokens: []const TokenIndex = ast.nodes.items(.main_token);
@@ -334,6 +347,46 @@ test UnsafeUndefined {
         \\  foo.* = undefined;
         \\}
         ,
+        // members named `undefined`
+        \\const A = enum { undefined, hello };
+        ,
+        \\const MyStruct = struct {
+        \\  pub const A = enum { undefined, hello };
+        \\};
+        ,
+        \\const MyStruct = struct {
+        \\  pub fn func() void {
+        \\      const A = enum { undefined, hello };
+        \\  }
+        \\};
+        ,
+        \\const A = union { undefined: Foo, hello: Bar };
+        ,
+        \\const MyStruct = struct {
+        \\  const A = union { undefined: Foo, hello: Bar };
+        \\};
+        ,
+        \\const MyStruct = struct {
+        \\  pub fn func() void {
+        \\      const A = union { undefined: Foo, hello: Bar };
+        \\  }
+        \\};
+        ,
+        \\const A = error { undefined, hello };
+        ,
+        \\const MyStruct = struct {
+        \\  const A = error { undefined, hello };
+        \\};
+        ,
+        \\const MyStruct = struct {
+        \\  pub fn func() void {
+        \\      const A = error { undefined, hello };
+        \\  }
+        \\};
+        ,
+        \\const x = .undefined;
+        ,
+        \\const x = "undefined";
     };
     const fail = &[_][:0]const u8{
         "const x = undefined;",
@@ -394,6 +447,7 @@ test UnsafeUndefined {
         \\const deinit: u32 = undefined;
     };
 
+    _ = debug;
     try runner
         .withPass(pass)
         .withFail(fail)
