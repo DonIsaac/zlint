@@ -1495,6 +1495,9 @@ inline fn declareSymbol(
         opts.flags.merge(self._curr_symbol_flags),
     );
     try self._semantic.scopes.addBinding(self._gpa, scope, symbol_id);
+    if (opts.identifier) |identifier| {
+        try self._semantic.node_links.symbols.put(self._gpa, identifier, symbol_id);
+    }
     return symbol_id;
 }
 
