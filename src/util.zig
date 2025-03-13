@@ -45,7 +45,7 @@ pub inline fn assert(condition: bool, comptime fmt: string, args: anytype) void 
             std.debug.panic(fmt, args);
         }
     } else {
-        std.debug.assert(condition);
+        if (!condition) unreachable;
     }
 }
 
@@ -60,7 +60,7 @@ pub inline fn assertUnsafe(condition: bool) void {
         if (!condition) @panic("assertion failed");
     } else {
         @setRuntimeSafety(IS_DEBUG);
-        unreachable;
+        if (!condition) unreachable;
     }
 }
 
