@@ -185,26 +185,6 @@ fn parse(self: *SemanticBuilder, source: stringSlice) Allocator.Error!Ast {
     return ast;
 }
 
-// fn tokenize(self: *SemanticBuilder, source: stringSlice) Allocator.Error!TokenList {
-//     const alloc = self._arena.allocator();
-
-//     var tokens = std.MultiArrayList(Token){};
-//     errdefer tokens.deinit(alloc);
-
-//     // Empirically, the zig std lib has an 8:1 ratio of source bytes to token count.
-//     const estimated_token_count = source.len / 8;
-//     try tokens.ensureTotalCapacity(alloc, estimated_token_count);
-
-//     var tokenizer = std.zig.Tokenizer.init(source);
-
-//     while (true) {
-//         const token = tokenizer.next();
-//         try tokens.append(alloc, token);
-//         if (token.tag == .eof) break;
-//     }
-//     return tokens.slice();
-// }
-
 // =========================================================================
 // ================================= VISIT =================================
 // =========================================================================
@@ -219,10 +199,7 @@ fn visit(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
     if (node_id == NULL_NODE) return;
     // Seeing this happen a log, needs debugging.
     if (node_id >= self.AST().nodes.len) {
-        // TODO: hint to compiler that this branch is unlikely. @branchHint
-        // is documented in the Zig language reference, but does not appear available in v0.13.0.
-        // https://ziglang.org/documentation/master/#branchHint
-        // @branchHint(.unlikely);
+        @branchHint(.cold);
         //
         // print("ERROR: node ID out of bounds ({d})\n", .{node_id});
         return;
@@ -645,6 +622,7 @@ fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
             .comma, .doc_comment => {},
             .l_brace => break,
             else => {
+                @branchHint(.unlikely);
                 // in debug builds we want to know if we're missing something or
                 // handling errors incorrectly. in release mode we can safely
                 // ignore it.
@@ -730,6 +708,7 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
     };
 
     if (var_decl.extern_export_token) |extern_export_token| {
+        @branchHint(.unlikely); // most vars are not extern/export
         const offset = self.AST().tokens.items(.start)[extern_export_token];
         const source = self.AST().source;
         assert(source[offset] == 'e');
@@ -1690,6 +1669,7 @@ fn recordImport(self: *SemanticBuilder, node: NodeIndex) Allocator.Error!void {
 
     const specifier_node: NodeIndex = nodes.items(.data)[node].lhs;
     if (tags[specifier_node] != .string_literal) {
+        @branchHint(.cold);
         var e = Error.newStatic("@import specifiers must be string literals.");
         const loc: Token.Loc = self._semantic.tokens.items(.loc)[specifier_node];
         try e.labels.append(self._gpa, LabeledSpan.unlabeled(@intCast(loc.start), @intCast(loc.end)));
@@ -1789,6 +1769,7 @@ inline fn assertToken(self: *const SemanticBuilder, token: TokenIndex, comptime 
 // =========================================================================
 
 fn addAstError(self: *SemanticBuilder, ast: *const Ast, ast_err: Ast.Error) Allocator.Error!void {
+    @branchHint(.cold);
     // error message
     const message: []u8 = blk: {
         var msg: std.ArrayListUnmanaged(u8) = .{};
