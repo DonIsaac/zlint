@@ -43,7 +43,7 @@ pub const Linter = struct {
         var arena = ArenaAllocator.init(gpa);
         errdefer arena.deinit();
         var ruleset = RuleSet{};
-        try ruleset.loadRulesFromConfig(arena.allocator(), &config.config.rules);
+        try ruleset.loadRulesFromConfig(arena.allocator(), &config.config.rules, config.config.@"ignore-rules");
         const linter = Linter{
             .rules = ruleset,
             .gpa = gpa,

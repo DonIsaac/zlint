@@ -11,12 +11,25 @@ pub fn ensureTotalCapacityForAllRules(self: *RuleSet, arena: Allocator) Allocato
     try self.rules.ensureTotalCapacityPrecise(arena.allocator(), ALL_RULE_IMPLS_SIZE);
 }
 
-pub fn loadRulesFromConfig(self: *RuleSet, arena: Allocator, config: *const RulesConfig) !void {
+pub fn loadRulesFromConfig(
+    self: *RuleSet,
+    arena: Allocator,
+    config: *const RulesConfig,
+    ignore_rules: []const []const u8,
+) !void {
     try self.rules.ensureUnusedCapacity(arena, ALL_RULES_SIZE);
     const info = @typeInfo(RulesConfig);
     inline for (info.@"struct".fields) |field| {
         const rule = @field(config, field.name);
-        if (rule.severity != Severity.off) {
+        const RuleConfigImpl = @FieldType(RulesConfig, field.name);
+
+        const ignored: bool = for (ignore_rules) |rule_to_ignore| {
+            if (std.mem.eql(u8, rule_to_ignore, RuleConfigImpl.name)) {
+                break true;
+            }
+        } else false;
+
+        if (!ignored and rule.severity != Severity.off) {
             self.rules.appendAssumeCapacity(.{
                 .severity = rule.severity,
                 // FIXME: unsafe const cast
