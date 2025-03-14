@@ -28,8 +28,15 @@ pub fn resolveLintConfig(
             }
         };
         defer file.close();
-        const source = try file.readToEndAlloc(arena_alloc, std.math.maxInt(u32));
+
+        const metadata = try file.metadata();
+        const file_size = metadata.size();
+
+        const source = try arena_alloc.alloc(u8, file_size);
         errdefer arena_alloc.free(source);
+
+        const bytes_read = try file.readAll(source);
+        std.debug.assert(bytes_read == file_size);
 
         var diagnostics: json.Diagnostics = .{};
         var scanner = json.Scanner.initCompleteInput(arena_alloc, source);
@@ -180,7 +187,7 @@ test ParentIterator {
     }
 }
 
-test resolveLintConfig {
+test "resolveLintConfig" {
     const cwd = fs.cwd();
 
     const fixtures_dir = try cwd.realpathAlloc(t.allocator, "test/fixtures/config");

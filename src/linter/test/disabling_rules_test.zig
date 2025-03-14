@@ -93,7 +93,10 @@ test "When no rules are enabled, no violations are reported" {
     const sema = res.value;
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = .{} });
+        var linter = try Linter.init(t.allocator, .{
+            .arena = &arena,
+            .config = .{ .rules = .{} },
+        });
 
         defer linter.deinit();
         try linter.runOnSource(&sema, &src, &errors);
@@ -138,6 +141,44 @@ test "When a rule is configured to 'off', none of its violations are reported" {
         };
         try expectEqual(1, errors.?.items.len);
         try expectEqual("unsafe-undefined", errors.?.items[0].err.code);
+    }
+}
+
+test "When a rule is configured to be ignored, none of its violations are reported" {
+    var arena = ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+    var src = try makeSource(t.allocator, source);
+    defer src.deinit();
+
+    var errors: ?ErrorList = null;
+    defer if (errors) |errs| {
+        for (errs.items) |*err| err.deinit(t.allocator);
+        errs.deinit();
+    };
+
+    const config = Config{
+        .@"ignore-rules" = &.{"unsafe-undefined"},
+    };
+
+    var builder = SemanticBuilder.init(t.allocator);
+    builder.withSource(&src);
+    defer builder.deinit();
+
+    var res = try builder.build(src.text());
+    defer res.deinit();
+    const sema = res.value;
+
+    {
+        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
+        defer linter.deinit();
+        linter.runOnSource(&sema, &src, &errors) catch |e| {
+            switch (e) {
+                error.OutOfMemory => return e,
+                else => {},
+            }
+        };
+        try expectEqual(1, errors.?.items.len);
+        try expectEqual("unused-decls", errors.?.items[0].err.code);
     }
 }
 

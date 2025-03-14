@@ -1,5 +1,6 @@
-rules: RulesConfig = .{},
-ignore: []const []const u8 = &[_][]const u8{},
+rules: RulesConfig = DEFAULT_RULES_CONFIG,
+ignore: []const []const u8 = &[_][]const u8{"zig-out", "vendor"},
+@"ignore-rules": []const []const u8 = &[_][]const u8{},
 
 const Config = @This();
 

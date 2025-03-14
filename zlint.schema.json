@@ -55,6 +55,14 @@
             "additionalProperties": {
                 "$ref": "#/definitions/RuleToggle"
             }
+        },
+        "ignore-rules": {
+            "type": "array",
+            "description": "Configure what rules ignore.",
+            "default": [],
+            "items": {
+                "type": "string"
+            }
         }
     },
     "definitions": {
