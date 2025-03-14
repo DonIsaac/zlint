@@ -45,8 +45,7 @@ All lints and what they do can be found [here](docs/rules/).
 
 ## ⚙️ Configuration
 
-Create a `zlint.json` file in the same directory as `build.zig`. This disables
-all default rules, only enabling the ones you choose.
+Create a `zlint.json` file in the same directory as `build.zig`. Once you've created this configuration file, you can specify which rules you want to enable and at what severity level they should be reported.
 
 ```json
 {
@@ -54,6 +53,17 @@ all default rules, only enabling the ones you choose.
     "unsafe-undefined": "error",
     "homeless-try": "warn"
   }
+}
+```
+
+You can also use the `ignore-rules` array to disable specific rules globally:
+
+```json
+{
+  "ignore-rules": [
+    "unsafe-undefined",
+    "homeless-try"
+  ]
 }
 ```
 
