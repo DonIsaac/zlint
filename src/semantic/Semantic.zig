@@ -27,7 +27,7 @@ node_links: NodeLinks,
 comments: CommentList.Slice,
 _gpa: Allocator,
 /// Used to allocate AST nodes
-_arena: ArenaAllocator,
+_arena: *ArenaAllocator,
 
 /// The scope where symbols built in to the language are declared.
 ///

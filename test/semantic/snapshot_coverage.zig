@@ -4,6 +4,7 @@ const zlint = @import("zlint");
 const utils = @import("../utils.zig");
 
 const Allocator = std.mem.Allocator;
+const ArenaAllocator = std.heap.ArenaAllocator;
 const TestFolders = utils.TestFolders;
 
 const Printer = zlint.printer.Printer;
@@ -51,7 +52,8 @@ fn run(alloc: Allocator) !void {
 
 fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     // run analysis
-    var builder = SemanticBuilder.init(alloc);
+    var arena = ArenaAllocator.init(alloc);
+    var builder = SemanticBuilder.init(alloc, &arena);
     defer builder.deinit();
     var semantic_result = try builder.build(source.text());
     defer semantic_result.deinit();
@@ -111,7 +113,8 @@ fn runFail(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     defer reporter.deinit();
 
     // run analysis
-    var builder = SemanticBuilder.init(alloc);
+    var arena = ArenaAllocator.init(alloc);
+    var builder = SemanticBuilder.init(alloc, &arena);
     builder.withSource(source);
     defer builder.deinit();
 

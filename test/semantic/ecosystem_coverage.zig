@@ -3,6 +3,7 @@ const test_runner = @import("../harness.zig");
 const std = @import("std");
 const fs = std.fs;
 const Allocator = std.mem.Allocator;
+const ArenaAllocator = std.heap.ArenaAllocator;
 const print = std.debug.print;
 
 const zlint = @import("zlint");
@@ -51,7 +52,8 @@ fn testSemantic(alloc: Allocator, source: *const Source) !void {
         else
             print("\n", .{});
     }
-    var builder = zlint.semantic.SemanticBuilder.init(alloc);
+    var arena = ArenaAllocator.init(alloc);
+    var builder = zlint.semantic.SemanticBuilder.init(alloc, &arena);
     defer builder.deinit();
     var res = try builder.build(source.text());
     defer res.deinit();

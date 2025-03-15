@@ -9,6 +9,7 @@
 //! ```
 const std = @import("std");
 const Allocator = std.mem.Allocator;
+const ArenaAllocator = std.heap.ArenaAllocator;
 
 const Options = @import("../cli/Options.zig");
 const Source = @import("../source.zig").Source;
@@ -19,7 +20,8 @@ const AstPrinter = @import("../printer/AstPrinter.zig");
 const SemanticPrinter = @import("../printer/SemanticPrinter.zig");
 
 pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source) !void {
-    var builder = semantic.SemanticBuilder.init(alloc);
+    var arena = ArenaAllocator.init(alloc);
+    var builder = semantic.SemanticBuilder.init(alloc, &arena);
     defer builder.deinit();
     var sema_result = try builder.build(source.text());
     defer sema_result.deinit();

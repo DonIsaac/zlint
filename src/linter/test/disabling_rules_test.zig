@@ -32,7 +32,6 @@ fn makeSource(arena: Allocator, source_text: []const u8) !Source {
 
 test "Enabled rules have their violations reported" {
     var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
     var src = try makeSource(t.allocator, source);
     defer src.deinit();
 
@@ -49,7 +48,7 @@ test "Enabled rules have their violations reported" {
         },
     };
 
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = SemanticBuilder.init(t.allocator, &arena);
     builder.withSource(&src);
     defer builder.deinit();
 
@@ -72,7 +71,6 @@ test "Enabled rules have their violations reported" {
 
 test "When no rules are enabled, no violations are reported" {
     var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
     var src = try makeSource(t.allocator, source);
     defer src.deinit();
 
@@ -84,7 +82,7 @@ test "When no rules are enabled, no violations are reported" {
         errs.deinit();
     };
 
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = SemanticBuilder.init(t.allocator, &arena);
     builder.withSource(&src);
     defer builder.deinit();
 
@@ -103,7 +101,6 @@ test "When no rules are enabled, no violations are reported" {
 
 test "When a rule is configured to 'off', none of its violations are reported" {
     var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
     var src = try makeSource(t.allocator, source);
     defer src.deinit();
 
@@ -119,7 +116,7 @@ test "When a rule is configured to 'off', none of its violations are reported" {
         },
     };
 
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = SemanticBuilder.init(t.allocator, &arena);
     builder.withSource(&src);
     defer builder.deinit();
 
@@ -149,7 +146,6 @@ test "When rules are configured but a specific rule is disabled with 'zlint-disa
         \\};
     ;
     var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
     var src = try makeSource(t.allocator, source_with_global_disable);
     defer src.deinit();
 
@@ -166,7 +162,7 @@ test "When rules are configured but a specific rule is disabled with 'zlint-disa
         },
     };
 
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = SemanticBuilder.init(t.allocator, &arena);
     builder.withSource(&src);
     defer builder.deinit();
 
@@ -196,7 +192,6 @@ test "When rules are configured but disabled with 'zlint-disable', nothing gets 
         \\};
     ;
     var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
     var src = try makeSource(t.allocator, source_with_global_disable);
     defer src.deinit();
 
@@ -213,7 +208,7 @@ test "When rules are configured but disabled with 'zlint-disable', nothing gets 
         },
     };
 
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = SemanticBuilder.init(t.allocator, &arena);
     builder.withSource(&src);
     defer builder.deinit();
 
@@ -242,7 +237,6 @@ test "When the global disable directive is misplaced, violations still gets repo
         \\// zlint-disable
     ;
     var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
     var src = try makeSource(t.allocator, source_with_global_disable);
     defer src.deinit();
 
@@ -259,7 +253,7 @@ test "When the global disable directive is misplaced, violations still gets repo
         },
     };
 
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = SemanticBuilder.init(t.allocator, &arena);
     builder.withSource(&src);
     defer builder.deinit();
 
@@ -288,7 +282,6 @@ test "When the multiple global directives are set, all rules are honored" {
         \\};
     ;
     var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
     var src = try makeSource(t.allocator, source_with_global_disable);
     defer src.deinit();
 
@@ -305,7 +298,7 @@ test "When the multiple global directives are set, all rules are honored" {
         },
     };
 
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = SemanticBuilder.init(t.allocator, &arena);
     builder.withSource(&src);
     defer builder.deinit();
 

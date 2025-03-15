@@ -63,7 +63,7 @@ pub const Span = struct {
             Span => value, // base case
             std.zig.Ast.Span => .{ .start = value.start, .end = value.end },
             std.zig.Token.Loc => .{ .start = @intCast(value.start), .end = @intCast(value.end) },
-            [2]u32 => .{ .start = value[0], .end = value[1] },
+            [2]u32 => Span.new(value[0], value[1]),
             else => |T| {
                 const info = @typeInfo(T);
                 switch (info) {

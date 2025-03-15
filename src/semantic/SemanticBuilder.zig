@@ -9,8 +9,9 @@
 //
 
 _gpa: Allocator,
-_arena: ArenaAllocator,
+_arena: *ArenaAllocator,
 
+// source_id: util.feature_flags.IfEnabled(u32, .cross_file),
 _source_code: ?_source.ArcStr = null,
 _source_path: ?string = null,
 
@@ -62,10 +63,15 @@ pub const SemanticError = error{
     UnexpectedToken,
 } || Allocator.Error;
 
-pub fn init(gpa: Allocator) SemanticBuilder {
+pub const Options = struct {
+    resolve_references: bool = true,
+};
+
+pub fn init(gpa: Allocator, arena: *ArenaAllocator) SemanticBuilder {
     return .{
         ._gpa = gpa,
-        ._arena = ArenaAllocator.init(gpa),
+        ._arena = arena,
+        // .source_id = 0,
     };
 }
 
@@ -150,8 +156,18 @@ pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Resul
                 .capacity = unresolved.len,
             };
         },
-        else => std.debug.panic("Expected 0 or 1 frame, got {d}", .{unresolved_frame_count}),
+        // on scope exit, resolveReferencesInCurrentScope moves unresolved references into the parent
+        // frame, so it's impossible to have more than 1 frame here.
+        else => {
+            if (util.IS_DEBUG)
+                std.debug.panic("Expected 0 or 1 frame, got {d}", .{unresolved_frame_count})
+            else
+                unreachable;
+        },
     }
+
+    // const zir = try std.zig.AstGen.generate(gpa, ast);
+    // _ = zir;
 
     return Result.new(builder._gpa, builder._semantic, builder._errors);
 }
@@ -1946,7 +1962,8 @@ test "Struct/enum fields are bound bound to the struct/enums's member table" {
         "const Foo = enum { bar };",
     };
     for (programs) |program| {
-        var builder = SemanticBuilder.init(alloc);
+        var arena = ArenaAllocator.init(alloc);
+        var builder = SemanticBuilder.init(alloc, &arena);
         defer builder.deinit();
         var result = try builder.build(program);
         defer result.deinit();
@@ -1988,7 +2005,8 @@ test "comptime blocks" {
         \\  break :blk y + 1;
         \\};
     ;
-    var builder = SemanticBuilder.init(alloc);
+    var arena = ArenaAllocator.init(alloc);
+    var builder = SemanticBuilder.init(alloc, &arena);
     defer builder.deinit();
     var result = try builder.build(src);
     defer result.deinit();

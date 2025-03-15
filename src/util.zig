@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 pub const env = @import("./util/env.zig");
+pub const feature_flags = @import("util/feature_flags.zig");
 pub const NominalId = @import("./util/id.zig").NominalId;
 pub const Cow = @import("./util/cow.zig").Cow;
 
@@ -66,4 +67,11 @@ pub inline fn assertUnsafe(condition: bool) void {
 
 test {
     std.testing.refAllDeclsRecursive(@This());
+}
+
+test trimWhitespaceRight {
+    const expectEqualStrings = std.testing.expectEqualStrings;
+    try expectEqualStrings("hello", trimWhitespaceRight("hello"));
+    try expectEqualStrings("hello", trimWhitespaceRight("hello\t\n"));
+    try expectEqualStrings(" hello", trimWhitespaceRight(" hello "));
 }

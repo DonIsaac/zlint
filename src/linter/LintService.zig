@@ -102,7 +102,8 @@ pub fn lintSource(
 ) (LintError || Allocator.Error)!void {
     // FIXME: empty sources break something but i forget what
     if (source.text().len == 0) return;
-    var builder = SemanticBuilder.init(self.allocator);
+    var arena = ArenaAllocator.init(self.allocator);
+    var builder = SemanticBuilder.init(self.allocator, &arena);
     builder.withSource(source);
     defer builder.deinit();
 
@@ -182,6 +183,7 @@ const walk = @import("../walk/Walker.zig");
 
 const Thread = std.Thread;
 const Allocator = std.mem.Allocator;
+const ArenaAllocator = std.heap.ArenaAllocator;
 const Linter = @import("linter.zig").Linter;
 const Config = @import("Config.zig");
 const Source = @import("../source.zig").Source;

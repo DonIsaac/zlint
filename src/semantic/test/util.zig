@@ -1,4 +1,5 @@
 const std = @import("std");
+const ArenaAllocator = std.heap.ArenaAllocator;
 
 const _source = @import("../../source.zig");
 const SemanticBuilder = @import("../SemanticBuilder.zig");
@@ -10,6 +11,8 @@ const printer = @import("../../root.zig").printer;
 const t = std.testing;
 const print = std.debug.print;
 
+var arena: ArenaAllocator = undefined;
+
 pub fn build(src: [:0]const u8) !Semantic {
     var r = try report.Reporter.graphical(
         std.io.getStdErr().writer().any(),
@@ -17,7 +20,8 @@ pub fn build(src: [:0]const u8) !Semantic {
         report.formatter.Graphical.Theme.unicodeNoColor(),
     );
     defer r.deinit();
-    var builder = SemanticBuilder.init(t.allocator);
+    arena = ArenaAllocator.init(t.allocator);
+    var builder = SemanticBuilder.init(t.allocator, &arena);
     var source = try _source.Source.fromString(
         t.allocator,
         try t.allocator.dupeZ(u8, src),

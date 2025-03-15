@@ -263,7 +263,8 @@ fn lint(
     );
     defer source.deinit();
 
-    var builder = SemanticBuilder.init(self.alloc);
+    var arena = ArenaAllocator.init(self.alloc);
+    var builder = SemanticBuilder.init(self.alloc, &arena);
     defer builder.deinit();
     builder.withSource(&source);
 
@@ -356,6 +357,7 @@ const fs = std.fs;
 const util = @import("util");
 
 const Allocator = std.mem.Allocator;
+const ArenaAllocator = std.heap.ArenaAllocator;
 
 const Linter = @import("linter.zig").Linter;
 const Rule = @import("rule.zig").Rule;
