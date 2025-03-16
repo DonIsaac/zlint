@@ -37,6 +37,10 @@
             .url = "https://github.com/dimdin/zig-recover/archive/36133afaa1b085db7063ffc97c08ae0bddc2de4e.zip",
             .hash = "recover-1.1.0-Zd97oqomAADqISI8KEhW_UUjiPSExhw9hzeoNpg1Nveo",
         },
+        .dora = .{
+            .url = "git+https://github.com/DonIsaac/dora.git#7e73d7a205f2c929965947ddcbc71817f674561b",
+            .hash = "dora-0.0.1-nV4DxD6EAAAOAEr2znAconva_PhRtlpXtYvWfI1uwD_s",
+        },
     },
     .paths = .{
         "build.zig",

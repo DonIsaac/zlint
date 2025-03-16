@@ -24,6 +24,7 @@ pub fn build(b: *std.Build) void {
 
     // dependencies
     l.dependency("chameleon", .{});
+    l.dependency("dora", .{});
     // l.dependency("smart-pointers", .{});
     {
         const dep = l.b.dependency("smart_pointers", .{});
@@ -51,6 +52,7 @@ pub fn build(b: *std.Build) void {
             null,
         .omit_frame_pointer = if (debug_release) false else null,
         .strip = if (debug_release) false else null,
+        .link_libc = true,
     });
     const zlint: *Build.Module = if (comptime v14) lib.root_module else &lib.root_module;
     l.link(zlint, false, .{});
@@ -70,6 +72,7 @@ pub fn build(b: *std.Build) void {
             null,
         .omit_frame_pointer = if (debug_release) false else null,
         .strip = if (debug_release) false else null,
+        .link_libc = true,
     });
     // exe.want_lto
     l.link(if (v14) exe.root_module else &exe.root_module, false, .{});
