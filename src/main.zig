@@ -17,8 +17,6 @@ const DebugAllocator = std.heap.GeneralPurposeAllocator(.{
     .never_unmap = util.IS_DEBUG,
     .retain_metadata = util.IS_DEBUG,
 });
-const ReleaseAllocator = std.heap.SmpAllocator;
-const GeneralPurposeAllocator = if (util.IS_DEBUG) DebugAllocator else ReleaseAllocator;
 var debug_allocator = DebugAllocator.init;
 pub fn main() !u8 {
     const alloc = if (comptime util.IS_DEBUG)

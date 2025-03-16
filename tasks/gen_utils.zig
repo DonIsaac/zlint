@@ -1,6 +1,5 @@
 const std = @import("std");
 const zlint = @import("zlint");
-const fs = std.fs;
 const mem = std.mem;
 
 const Rule = zlint.lint.Rule;
