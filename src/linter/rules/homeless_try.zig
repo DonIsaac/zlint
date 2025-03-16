@@ -298,6 +298,22 @@ test HomelessTry {
         \\  try foo();
         \\  return error.Bar;
         \\}
+        ,
+        //https://github.com/DonIsaac/zlint/issues/258
+        \\fn getValue(value: u8) !u8 {
+        \\    if (value == 1) return error.Test;
+        \\
+        \\    return value - 1;
+        \\}
+        \\
+        \\pub fn main() !void {
+        \\    loop: switch (3) {
+        \\        3 => continue :loop try getValue(3),
+        \\        2 => continue :loop try getValue(2),
+        \\        1 => {},
+        \\        else => unreachable
+        \\    }
+        \\}
     };
 
     const fail = &[_][:0]const u8{
