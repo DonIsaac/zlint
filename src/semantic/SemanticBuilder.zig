@@ -464,7 +464,6 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         .@"break" => return self.visit(data[node_id].rhs),
         // rhs for these nodes are always `undefined`.
         .@"await",
-        .@"continue",
         .@"nosuspend",
         .@"return",
         .@"suspend",
