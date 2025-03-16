@@ -1,9 +1,7 @@
 const std = @import("std");
-const zlint = @import("zlint");
 const gen = @import("./gen_utils.zig");
 
 const fs = std.fs;
-const rules = zlint.lint.rules;
 
 const OUT_FILE = "src/linter/config/rules_config.zig";
 

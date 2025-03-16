@@ -178,7 +178,6 @@ const util = @import("util");
 const fs = std.fs;
 
 const reporters = @import("../reporter.zig");
-const walk = @import("../walk/Walker.zig");
 
 const Thread = std.Thread;
 const Allocator = std.mem.Allocator;

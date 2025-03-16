@@ -4,7 +4,6 @@
 //! `docs/rules`.
 
 const std = @import("std");
-const zlint = @import("zlint");
 const gen = @import("./gen_utils.zig");
 const fs = std.fs;
 const log = std.log;
@@ -13,8 +12,6 @@ const path = fs.path;
 const panic = std.debug.panic;
 
 const Allocator = mem.Allocator;
-
-const Rule = zlint.lint.Rule;
 
 const OUT_DIR = "docs/rules";
 
