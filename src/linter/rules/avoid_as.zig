@@ -65,12 +65,20 @@ pub const meta: Rule.Meta = .{
 };
 
 fn preferTypeAnnotationDiagnostic(ctx: *LinterContext, as_tok: Ast.TokenIndex) Error {
-    const span = ctx.semantic.tokenSpan(as_tok);
     var e = ctx.diagnostic(
         "Prefer using type annotations over @as().",
-        .{LabeledSpan.from(span)},
+        .{ctx.spanT(as_tok)},
     );
     e.help = Cow.static("Use a type annotation instead.");
+    return e;
+}
+
+fn lolTheresAlreadyATypeAnnotationDiagnostic(ctx: *LinterContext, as_tok: Ast.TokenIndex) Error {
+    var e = ctx.diagnostic(
+        "Unnecessary use of @as().",
+        .{ctx.spanT(as_tok)},
+    );
+    e.help = Cow.static("Remove the @as() call.");
     return e;
 }
 
@@ -94,14 +102,16 @@ pub fn runOnNode(_: *const AvoidAs, wrapper: NodeWrapper, ctx: *LinterContext) v
         .simple_var_decl => {
             const data = datas[parent];
             const ty_annotation = data.lhs;
-            if (ty_annotation == Semantic.NULL_NODE) {
-                @branchHint(.likely);
-                ctx.reportWithFix(
-                    VarFixer{ .var_decl = parent, .var_decl_data = data, .as_args = node.data },
-                    preferTypeAnnotationDiagnostic(ctx, node.main_token),
-                    VarFixer.replaceWithTypeAnnotation,
-                );
-            }
+            const diagnostic = if (ty_annotation == Semantic.NULL_NODE)
+                preferTypeAnnotationDiagnostic(ctx, node.main_token)
+            else
+                lolTheresAlreadyATypeAnnotationDiagnostic(ctx, node.main_token);
+
+            ctx.reportWithFix(
+                VarFixer{ .var_decl = parent, .var_decl_data = data, .as_args = node.data },
+                diagnostic,
+                VarFixer.replaceWithTypeAnnotation,
+            );
         },
 
         else => {},
@@ -151,7 +161,11 @@ const VarFixer = struct {
                 ),
             );
         } else {
-            return builder.noop(); // TODO: just remove the @as() call.
+            const expr = builder.snippet(.node, this.as_args.rhs);
+            return builder.replace(
+                builder.spanCovering(.node, this.var_decl_data.rhs),
+                Cow.initBorrowed(expr),
+            );
         }
     }
 };
@@ -180,6 +194,7 @@ test AvoidAs {
     const fail = &[_][:0]const u8{
         // TODO: add test cases
         "const x = @as(u32, 1);",
+        "const x: u32 = @as(u32, 1);",
     };
 
     const fix = &[_]RuleTester.FixCase{
@@ -189,6 +204,14 @@ test AvoidAs {
         },
         .{
             .src = "var x = @as(u32, 1);",
+            .expected = "var x: u32 = 1;",
+        },
+        .{
+            .src = "const x: u32 = @as(u32, 1);",
+            .expected = "const x: u32 = 1;",
+        },
+        .{
+            .src = "var x: u32 = @as(u32, 1);",
             .expected = "var x: u32 = 1;",
         },
     };
