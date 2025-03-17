@@ -35,7 +35,6 @@
 
 const std = @import("std");
 const util = @import("util");
-const _source = @import("../../source.zig");
 const semantic = @import("../../semantic.zig");
 const Semantic = semantic.Semantic;
 const _rule = @import("../rule.zig");
@@ -43,10 +42,6 @@ const _span = @import("../../span.zig");
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
-const Symbol = semantic.Symbol;
-const Loc = std.zig.Loc;
-const Span = _span.Span;
-const LabeledSpan = _span.LabeledSpan;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
