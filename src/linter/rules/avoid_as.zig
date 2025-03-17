@@ -50,6 +50,7 @@ const LabeledSpan = _span.LabeledSpan;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
+const Fix = @import("../fix.zig").Fix;
 
 const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
@@ -60,6 +61,7 @@ pub const meta: Rule.Meta = .{
     .name = "avoid-as",
     .category = .pedantic,
     .default = .warning,
+    .fix = .safe_fix,
 };
 
 fn preferTypeAnnotationDiagnostic(ctx: *LinterContext, as_tok: Ast.TokenIndex) Error {
@@ -68,7 +70,7 @@ fn preferTypeAnnotationDiagnostic(ctx: *LinterContext, as_tok: Ast.TokenIndex) E
         "Prefer using type annotations over @as().",
         .{LabeledSpan.from(span)},
     );
-    e.help = Cow.static("Add a type annotation to the variable declaration.");
+    e.help = Cow.static("Use a type annotation instead.");
     return e;
 }
 
@@ -94,13 +96,65 @@ pub fn runOnNode(_: *const AvoidAs, wrapper: NodeWrapper, ctx: *LinterContext) v
             const ty_annotation = data.lhs;
             if (ty_annotation == Semantic.NULL_NODE) {
                 @branchHint(.likely);
-                ctx.report(preferTypeAnnotationDiagnostic(ctx, node.main_token));
+                ctx.reportWithFix(
+                    VarFixer{ .var_decl = parent, .var_decl_data = data, .as_args = node.data },
+                    preferTypeAnnotationDiagnostic(ctx, node.main_token),
+                    VarFixer.replaceWithTypeAnnotation,
+                );
             }
         },
 
         else => {},
     }
 }
+
+const VarFixer = struct {
+    /// this is a simple_var_decl node
+    var_decl: Ast.Node.Index,
+    var_decl_data: Node.Data,
+    /// `@as(lhs, rhs)`
+    as_args: Ast.Node.Data,
+
+    fn replaceWithTypeAnnotation(this: VarFixer, builder: Fix.Builder) !Fix {
+        // invalid, @as() has no args: `const x = @as();`
+        if (this.as_args.lhs == Semantic.NULL_NODE or this.as_args.rhs == Semantic.NULL_NODE) {
+            @branchHint(.unlikely);
+            return builder.noop();
+        }
+
+        const nodes = builder.ctx.ast().nodes;
+        const toks = builder.ctx.ast().tokens;
+        const tok_tags: []const Semantic.Token.Tag = toks.items(.tag);
+
+        const ty_annotation = this.var_decl_data.lhs;
+        if (ty_annotation == Semantic.NULL_NODE) {
+            // `const` or `var`
+            var tok = nodes.items(.main_token)[this.var_decl];
+            const is_const = tok_tags[tok] == .keyword_const;
+            tok += 1; // next tok is the identifier
+            util.debugAssert(tok_tags[tok] == .identifier, "Expected identifier, got {}", .{tok_tags[tok]});
+
+            const ident = builder.ctx.semantic.tokenSlice(tok);
+            const ty_text = builder.snippet(.node, this.as_args.lhs);
+            const expr_text = builder.snippet(.node, this.as_args.rhs);
+            return builder.replace(
+                builder.spanCovering(.node, this.var_decl),
+                try Cow.fmt(
+                    builder.allocator,
+                    "{s} {s}: {s} = {s}",
+                    .{
+                        if (is_const) "const" else "var",
+                        ident,
+                        ty_text,
+                        expr_text,
+                    },
+                ),
+            );
+        } else {
+            return builder.noop(); // TODO: just remove the @as() call.
+        }
+    }
+};
 
 // Used by the Linter to register the rule so it can be run.
 pub fn rule(self: *AvoidAs) Rule {
@@ -128,8 +182,20 @@ test AvoidAs {
         "const x = @as(u32, 1);",
     };
 
+    const fix = &[_]RuleTester.FixCase{
+        .{
+            .src = "const x = @as(u32, 1);",
+            .expected = "const x: u32 = 1;",
+        },
+        .{
+            .src = "var x = @as(u32, 1);",
+            .expected = "var x: u32 = 1;",
+        },
+    };
+
     try runner
         .withPass(pass)
         .withFail(fail)
+        .withFix(fix)
         .run();
 }

@@ -3,5 +3,5 @@
  1 │ const x = @as(u32, 1);
    ·           ───
    ╰────
-  help: Add a type annotation to the variable declaration.
+  help: Use a type annotation instead.
 
