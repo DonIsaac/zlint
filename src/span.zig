@@ -61,6 +61,7 @@ pub const Span = struct {
     pub fn from(value: anytype) Span {
         return switch (@TypeOf(value)) {
             Span => value, // base case
+            LabeledSpan => value.span,
             std.zig.Ast.Span => .{ .start = value.start, .end = value.end },
             std.zig.Token.Loc => .{ .start = @intCast(value.start), .end = @intCast(value.end) },
             [2]u32 => .{ .start = value[0], .end = value[1] },
@@ -146,6 +147,27 @@ pub const LabeledSpan = struct {
     pub inline fn unlabeled(start: u32, end: u32) LabeledSpan {
         return .{
             .span = .{ .start = start, .end = end },
+        };
+    }
+    pub fn from(value: anytype) LabeledSpan {
+        return switch (@TypeOf(value)) {
+            LabeledSpan => value, // base case
+            Span => .{ .span = value },
+            std.zig.Ast.Span => .{ .span = Span.from(value) },
+            std.zig.Token.Loc => .{ .span = Span.from(value) },
+            [2]u32 => .{ .span = Span.from(value) },
+            else => |T| {
+                const info = @typeInfo(T);
+                switch (info) {
+                    .@"struct", .@"enum" => {
+                        if (@hasField(T, "span")) {
+                            return LabeledSpan.from(@field(value, "span"));
+                        }
+                    },
+                    else => {},
+                }
+                @compileError("Cannot convert type " ++ @typeName(T) ++ "into a LabeledSpan.");
+            },
         };
     }
 };
