@@ -1,0 +1,7 @@
+  𝙭 avoid-as: Prefer using type annotations over @as().
+   ╭─[avoid-as.zig:1:11]
+ 1 │ const x = @as(u32, 1);
+   ·           ───
+   ╰────
+  help: Add a type annotation to the variable declaration.
+
