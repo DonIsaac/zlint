@@ -226,8 +226,9 @@ fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: C
 
     if (loc.label()) |label| {
         try w.writeAll(color.open);
-        const midway = loc.len() / 2;
-        const odd = loc.len() % 2 == 0;
+        const l = loc.len();
+        const odd = l % 2 == 0;
+        const midway = (if (odd) l - 1 else l) / 2;
         const first_len_half = if (odd) midway + 1 else midway;
 
         // ───┬───

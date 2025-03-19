@@ -10,8 +10,8 @@
    ╭─[useless-error-return.zig:3:10]
  2 │ pub const Foo = struct {
  3 │   pub fn init(allocator: std.mem.Allocator) !Foo {
-   ·          ───┬───
-   ·             ╰── 'init' is declared here
+   ·          ──┬──
+   ·            ╰── 'init' is declared here
  4 │     const new = allocator.create(Foo) catch @panic("OOM");
    ·                                       ──┬──
    ·                                         ╰── It catches errors here
