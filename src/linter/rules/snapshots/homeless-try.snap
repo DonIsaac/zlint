@@ -31,8 +31,8 @@
    ╭─[homeless-try.zig:2:8]
  1 │ const std = @import("std");
  2 │ pub fn push(list: std.ArrayList(u32), x: u32, comptime assume_capacity: bool) if(assume_capacity) void else void {
-   ·        ───┬───
-   ·           ╰── function `push` is declared here.
+   ·        ──┬──
+   ·          ╰── function `push` is declared here.
  3 │   if (comptime assume_capacity) {
  5 │   } else {
  6 │     try list.append(x);
