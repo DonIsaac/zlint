@@ -2,14 +2,15 @@ const Constellation = @This();
 
 allocator: Allocator,
 unit_lock: std.Thread.Mutex = .{},
-units: dora.AutoDora(BoundSource.Index, BoundSource),
+units: dora.AutoDora(BoundSource.Index, BoundSource) = .{},
 next_id: atomic.Value(BoundSource.Index) = .init(.first),
 
 pub fn addUninitialized(self: *Constellation, source: Source) BoundSource.Index {
-    const index = self.next_id.fetchAdd(1, .SeqCst);
+    const index = self.nextId();
     {
         self.unit_lock.lock();
         defer self.unit_lock.unlock();
+        // SAFETY: caller is aware `semantic` is not initialized
         try self.units.append(BoundSource{
             .source = source,
             .semantic = undefined,
@@ -19,6 +20,11 @@ pub fn addUninitialized(self: *Constellation, source: Source) BoundSource.Index 
     }
     return index;
 }
+
+inline fn nextId(self: *Constellation) BoundSource.Index {
+    return self.next_id.fetchAdd(1, .monotonic);
+}
+
 pub const GlobalSymbolId = struct {
     source: BoundSource.Index,
     symbol: Semantic.Symbol.Id,
@@ -27,14 +33,34 @@ pub const GlobalSymbolId = struct {
 pub const BoundSource = struct {
     /// Bound source where this symbol is defined.
     source: Source,
-    semantic: Semantic,
     arena: ArenaAllocator,
+    // semantic: Semantic,
     lock: RwLock = .{},
+
+    semantic: Semantic,
+    // state: State = .uninitialized,
+
+    // pub const State = union(enum) {
+    //     uninitialized,
+    //     unbound: Unbound,
+    //     bind: Bound,
+
+    //     pub const Unbound = struct {
+    //         ast: std.zig.Ast,
+    //         tokens: TokenBundle,
+    //     };
+    //     pub const Bound = struct {
+    //         semantic: Semantic,
+    //     };
+    // };
 
     pub const Index = enum(u32) {
         global,
         first,
         _,
+        pub inline fn repr(self: Index) u32 {
+            return @intFromEnum(self);
+        }
     };
 
     pub fn bind(self: *Constellation, source: Source) BoundSource.Index {
@@ -44,7 +70,7 @@ pub const BoundSource = struct {
             .semantic = undefined,
             .arena = ArenaAllocator.init(self.allocator),
         });
-        std.debug.assert(self.units.items.len == @as(u32, @bitCast(index)));
+        std.debug.assert(self.units.items.len == index.repr());
         var bound = &self.units.items[index];
         var builder = SemanticBuilder.init(self.allocator, &bound.arena);
         builder.withSource(&source);
