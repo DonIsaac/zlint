@@ -193,7 +193,11 @@ pub fn reportWithFix(
         std.debug.panic("Fixer for rule \"{s}\" failed: {s}", .{ self.curr_rule_name, @errorName(e) });
     };
 
-    self._report(Diagnostic{ .err = diagnostic_, .fix = fix });
+    if (self.fix.canApply(fix.meta)) {
+        self._report(Diagnostic{ .err = diagnostic_, .fix = fix });
+    } else {
+        self._report(Diagnostic{ .err = diagnostic_ });
+    }
 }
 
 fn _report(self: *Context, diagnostic_: Diagnostic) void {
@@ -273,3 +277,7 @@ const string = util.string;
 
 const Fix = @import("./fix.zig").Fix;
 const FixerFn = @import("./fix.zig").FixerFn;
+
+test {
+    _ = @import("test/lint_context_test.zig");
+}

@@ -16,10 +16,7 @@ pub const Fix = struct {
         kind: Kind = .fix,
         dangerous: bool = false,
 
-        pub const disabled = Meta{
-            .kind = Kind.none,
-            .dangerous = false,
-        };
+        pub const disabled = Meta{ .kind = Kind.none, .dangerous = false };
         pub const dangerous_fix: Meta = .{ .kind = Kind.fix, .dangerous = true };
         pub const safe_fix: Meta = .{ .kind = Kind.fix, .dangerous = false };
         pub const dangerous_suggestion: Meta = .{ .kind = Kind.suggestion, .dangerous = true };
@@ -28,6 +25,15 @@ pub const Fix = struct {
         pub fn isDisabled(self: Meta) bool {
             // TODO: check output assembly, check if `@bitcast(self) == 0` is faster.
             return self.kind == Kind.none;
+        }
+
+        /// Check if a fix (`other`) may be applied based on a user-configured filter.
+        /// Here, `self` does not come from a Fix, but from a linter config.
+        pub fn canApply(self: Meta, other: Meta) bool {
+            if (self.kind == .none) return false; // disabled
+            if (!self.dangerous and other.dangerous) return false; // fix is dangerous, but only safe fixes are allowed
+            if (self.kind != other.kind) return false;
+            return true;
         }
     };
 
