@@ -50,6 +50,7 @@ const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
 const _fix = @import("../fix.zig");
 const _span = @import("../../span.zig");
+const Error = @import("../../Error.zig");
 
 const Span = _span.Span;
 const Symbol = semantic.Symbol;
@@ -59,15 +60,21 @@ const LinterContext = @import("../lint_context.zig");
 const Fix = _fix.Fix;
 const Rule = _rule.Rule;
 
-// Rule metadata
 const UnusedDecls = @This();
 pub const meta: Rule.Meta = .{
     .name = "unused-decls",
     .default = .warning,
-    // TODO: set the category to an appropriate value
     .category = .correctness,
     .fix = Fix.Meta.dangerous_fix,
 };
+
+fn unusedDeclDiagnostic(ctx: *LinterContext, name: []const u8, span: _span.LabeledSpan) Error {
+    return ctx.diagnosticf(
+        "variable '{s}' is declared but never used.",
+        .{name},
+        .{span},
+    );
+}
 
 pub fn runOnSymbol(_: *const UnusedDecls, symbol: Symbol.Id, ctx: *LinterContext) void {
     const s = symbol.into(usize);
@@ -111,11 +118,7 @@ pub fn runOnSymbol(_: *const UnusedDecls, symbol: Symbol.Id, ctx: *LinterContext
         const fixer = UnusedDeclsFixer.init(ctx, symbol);
         ctx.reportWithFix(
             fixer,
-            ctx.diagnosticf(
-                "variable '{s}' is declared but never used.",
-                .{name},
-                .{span},
-            ),
+            unusedDeclDiagnostic(ctx, name, span),
             &UnusedDeclsFixer.removeDecl,
         );
         return;
@@ -138,7 +141,7 @@ const UnusedDeclsFixer = struct {
         return .{ .span = span };
     }
 
-    fn removeDecl(self: UnusedDeclsFixer, b: Fix.Builder) anyerror!Fix {
+    pub fn removeDecl(self: UnusedDeclsFixer, b: Fix.Builder) anyerror!Fix {
         return b.delete(self.span);
     }
 };

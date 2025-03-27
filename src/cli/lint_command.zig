@@ -67,10 +67,8 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
             try walker.walk();
         } else {
             // SAFETY: initialized by reader
-            var msg_buf: [4069]u8 = undefined;
+            var msg_buf: [4096]u8 = undefined;
             var stdin = std.io.getStdIn();
-            // const did_lock = try stdin.tryLock(.shared);
-            // defer if (did_lock) stdin.unlock();
             var buf_reader = std.io.bufferedReader(stdin.reader());
             var reader = buf_reader.reader();
             while (try reader.readUntilDelimiterOrEof(&msg_buf, '\n')) |filepath| {
