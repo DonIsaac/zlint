@@ -46,6 +46,7 @@ const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
 const Fix = @import("../fix.zig").Fix;
+const Span = _span.Span;
 
 const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
@@ -130,15 +131,18 @@ const VarFixer = struct {
         const nodes = builder.ctx.ast().nodes;
         const toks = builder.ctx.ast().tokens;
         const tok_tags: []const Semantic.Token.Tag = toks.items(.tag);
+        const tok_locs: []const Semantic.Token.Loc = builder.ctx.tokens().items(.loc);
 
         const ty_annotation = this.var_decl_data.lhs;
         if (ty_annotation == Semantic.NULL_NODE) {
+            const start_tok = builder.ctx.ast().firstToken(this.var_decl);
             // `const` or `var`
             var tok = nodes.items(.main_token)[this.var_decl];
-            const is_const = tok_tags[tok] == .keyword_const;
+            const var_prelude = Span.new(@intCast(tok_locs[start_tok].start), @intCast(tok_locs[tok].end));
             tok += 1; // next tok is the identifier
             util.debugAssert(tok_tags[tok] == .identifier, "Expected identifier, got {}", .{tok_tags[tok]});
 
+            const prelude = var_prelude.snippet(builder.ctx.source.text());
             const ident = builder.ctx.semantic.tokenSlice(tok);
             const ty_text = builder.snippet(.node, this.as_args.lhs);
             const expr_text = builder.snippet(.node, this.as_args.rhs);
@@ -148,7 +152,7 @@ const VarFixer = struct {
                     builder.allocator,
                     "{s} {s}: {s} = {s}",
                     .{
-                        if (is_const) "const" else "var",
+                        prelude,
                         ident,
                         ty_text,
                         expr_text,
@@ -208,6 +212,25 @@ test AvoidAs {
         .{
             .src = "var x: u32 = @as(u32, 1);",
             .expected = "var x: u32 = 1;",
+        },
+        .{
+            .src = "pub const x = @as(u32, 1);",
+            .expected = "pub const x: u32 = 1;",
+        },
+        .{
+            .src = "pub extern const x = @as(u32, 1);",
+            .expected = "pub extern const x: u32 = 1;",
+        },
+        .{ .src = 
+        \\fn foo() void {
+        \\  comptime var x = @as(u32, 1);
+        \\  _ = &x;
+        \\}
+        , .expected = 
+        \\fn foo() void {
+        \\  comptime var x: u32 = 1;
+        \\  _ = &x;
+        \\}
         },
     };
 
