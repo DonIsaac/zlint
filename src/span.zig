@@ -2,7 +2,6 @@ const std = @import("std");
 const util = @import("util");
 
 const assert = std.debug.assert;
-const string = util.string;
 
 const t = std.testing;
 
@@ -10,7 +9,7 @@ pub const LocationSpan = struct {
     span: LabeledSpan,
     location: Location,
 
-    pub fn fromSpan(contents: string, span: anytype) LocationSpan {
+    pub fn fromSpan(contents: []const u8, span: anytype) LocationSpan {
         const labeled_span: LabeledSpan, const loc: Location = brk: {
             switch (@TypeOf(span)) {
                 Span => {
@@ -38,7 +37,7 @@ pub const LocationSpan = struct {
     pub inline fn column(self: LocationSpan) u32 {
         return self.location.column;
     }
-    pub inline fn source(self: LocationSpan) string {
+    pub inline fn source(self: LocationSpan) []const u8 {
         return self.location.source_line;
     }
 };
@@ -85,7 +84,7 @@ pub const Span = struct {
         return self.end - self.start;
     }
 
-    pub inline fn snippet(self: Span, contents: string) string {
+    pub inline fn snippet(self: Span, contents: []const u8) []const u8 {
         assert(self.end >= self.start);
         return contents[self.start..self.end];
     }
@@ -179,7 +178,7 @@ pub const Location = struct {
     column: u32,
     source_line: []const u8,
 
-    pub fn fromSpan(contents: string, span: Span) Location {
+    pub fn fromSpan(contents: []const u8, span: Span) Location {
         return findLineColumn(contents, @intCast(span.start));
     }
     // TODO: toSpan()

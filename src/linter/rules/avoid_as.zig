@@ -182,16 +182,12 @@ test AvoidAs {
     var runner = RuleTester.init(t.allocator, avoid_as.rule());
     defer runner.deinit();
 
-    // Code your rule should pass on
     const pass = &[_][:0]const u8{
-        // TODO: add test cases
         "const x = 1;",
         "const x: u32 = 1;",
     };
 
-    // Code your rule should fail on
     const fail = &[_][:0]const u8{
-        // TODO: add test cases
         "const x = @as(u32, 1);",
         "const x: u32 = @as(u32, 1);",
     };
@@ -221,17 +217,37 @@ test AvoidAs {
             .src = "pub extern const x = @as(u32, 1);",
             .expected = "pub extern const x: u32 = 1;",
         },
-        .{ .src = 
-        \\fn foo() void {
-        \\  comptime var x = @as(u32, 1);
-        \\  _ = &x;
-        \\}
-        , .expected = 
-        \\fn foo() void {
-        \\  comptime var x: u32 = 1;
-        \\  _ = &x;
-        \\}
+        .{
+            .src =
+            \\fn foo() void {
+            \\  comptime var x = @as(u32, 1);
+            \\  _ = &x;
+            \\}
+            ,
+            .expected =
+            \\fn foo() void {
+            \\  comptime var x: u32 = 1;
+            \\  _ = &x;
+            \\}
+            ,
         },
+        // FIXME: multi-line
+        // .{
+        //     .src =
+        //     \\const x = @as(u32, switch (some_comptime_enum) {
+        //     \\  .foo => 1,
+        //     \\  .bar => 2,
+        //     \\  else => 3,
+        //     \\});
+        //     ,
+        //     .expected =
+        //     \\const x: u32 = switch (some_comptime_enum) {
+        //     \\  .foo => 1,
+        //     \\  .bar => 2,
+        //     \\  else => 3,
+        //     \\};
+        //     ,
+        // },
     };
 
     try runner
