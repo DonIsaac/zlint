@@ -14,7 +14,7 @@
 //! file.
 
 symbols: Symbol.Table = .{},
-scopes: ScopeTree = .{},
+scopes: Scope.Tree = .{},
 modules: ModuleRecord = .{},
 ast: Ast, // NOTE: allocated in _arena
 // NOTE: We re-tokenize and store our own tokens b/c AST throws away the end
@@ -127,7 +127,6 @@ pub const TokenList = _tokenizer.TokenList;
 
 pub const NodeLinks = @import("NodeLinks.zig");
 pub const Scope = @import("Scope.zig");
-pub const ScopeTree = Scope.ScopeTree;
 pub const Symbol = @import("Symbol.zig");
 pub const Reference = @import("Reference.zig");
 pub const ModuleRecord = @import("ModuleRecord.zig");

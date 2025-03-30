@@ -52,7 +52,7 @@ pub fn tokens(self: *const Context) *const Semantic.TokenList.Slice {
     return &self.semantic.tokens;
 }
 
-pub inline fn scopes(self: *const Context) *const Semantic.ScopeTree {
+pub inline fn scopes(self: *const Context) *const Semantic.Scope.Tree {
     return &self.semantic.scopes;
 }
 

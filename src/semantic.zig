@@ -15,7 +15,6 @@ pub const Semantic = @import("./semantic/Semantic.zig");
 pub const Ast = std.zig.Ast;
 pub const Symbol = @import("./semantic/Symbol.zig");
 pub const Scope = @import("./semantic/Scope.zig");
-pub const ScopeTree = Scope.ScopeTree;
 pub const Reference = @import("./semantic/Reference.zig");
 
 const std = @import("std");

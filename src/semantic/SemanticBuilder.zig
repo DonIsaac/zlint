@@ -1701,7 +1701,7 @@ inline fn symbolTable(self: *SemanticBuilder) *Semantic.Symbol.Table {
 }
 
 /// Shorthand for getting the scope tree.
-inline fn scopeTree(self: *SemanticBuilder) *Semantic.ScopeTree {
+inline fn scopeTree(self: *SemanticBuilder) *Semantic.Scope.Tree {
     return &self._semantic.scopes;
 }
 
