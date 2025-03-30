@@ -8,6 +8,8 @@
 //     `ast.extra_data`. That gets the variable-len list of child nodes.
 //
 
+const SemanticBuilder = @This();
+
 _gpa: Allocator,
 _arena: ArenaAllocator,
 
@@ -1696,12 +1698,12 @@ inline fn AST(self: *const SemanticBuilder) *const Ast {
 }
 
 /// Shorthand for getting the symbol table.
-inline fn symbolTable(self: *SemanticBuilder) *Semantic.SymbolTable {
+inline fn symbolTable(self: *SemanticBuilder) *Semantic.Symbol.Table {
     return &self._semantic.symbols;
 }
 
 /// Shorthand for getting the scope tree.
-inline fn scopeTree(self: *SemanticBuilder) *Semantic.ScopeTree {
+inline fn scopeTree(self: *SemanticBuilder) *Semantic.Scope.Tree {
     return &self._semantic.scopes;
 }
 
@@ -1892,8 +1894,6 @@ fn printScopeStack(self: *const SemanticBuilder) void {
         print("  - {d}: (flags: {any})\n", .{ id, scope_flags[id.into(usize)] });
     }
 }
-
-const SemanticBuilder = @This();
 
 const builtins = @import("builtins.zig");
 const Semantic = @import("./Semantic.zig");

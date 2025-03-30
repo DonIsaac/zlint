@@ -1,11 +1,9 @@
 const std = @import("std");
 const LinterContext = @import("../lint_context.zig");
 const Fix = @import("../fix.zig").Fix;
-const _semantic = @import("../../semantic.zig");
+const Semantic = @import("../../semantic.zig").Semantic;
 const _span = @import("../../span.zig");
 const Source = @import("../../source.zig").Source;
-const Semantic = _semantic.Semantic;
-const SemanticBuilder = _semantic.SemanticBuilder;
 
 const t = std.testing;
 const print = std.debug.print;
@@ -16,7 +14,7 @@ fn createCtx(src: [:0]const u8, sema_out: *Semantic, source_out: *Source) !Linte
     errdefer source.deinit();
     source_out.* = source;
 
-    var builder = _semantic.SemanticBuilder.init(t.allocator);
+    var builder = Semantic.Builder.init(t.allocator);
     builder.withSource(&source);
     defer builder.deinit();
 

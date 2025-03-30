@@ -1,7 +1,6 @@
 const std = @import("std");
 
 const _source = @import("../../source.zig");
-const SemanticBuilder = @import("../SemanticBuilder.zig");
 const Semantic = @import("../Semantic.zig");
 const report = @import("../../reporter.zig");
 
@@ -17,7 +16,7 @@ pub fn build(src: [:0]const u8) !Semantic {
         report.formatter.Graphical.Theme.unicodeNoColor(),
     );
     defer r.deinit();
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = Semantic.Builder.init(t.allocator);
     var source = try _source.Source.fromString(
         t.allocator,
         try t.allocator.dupeZ(u8, src),

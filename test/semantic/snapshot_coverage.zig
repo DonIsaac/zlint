@@ -9,7 +9,7 @@ const TestFolders = utils.TestFolders;
 const Printer = zlint.printer.Printer;
 const SemanticPrinter = zlint.printer.SemanticPrinter;
 
-const SemanticBuilder = zlint.semantic.SemanticBuilder;
+const Semantic = zlint.semantic.Semantic;
 
 const FailError = error{
     ExpectedSemanticFailure,
@@ -17,7 +17,7 @@ const FailError = error{
 const Error = error{
     // The walker produced a source without a filename.
     SourceMissingFilename,
-} || FailError || SemanticBuilder.SemanticError || Allocator.Error;
+} || FailError || Semantic.Builder.SemanticError || Allocator.Error;
 
 fn run(alloc: Allocator) !void {
     const Suite = std.meta.Tuple(&[_]type{ []const u8, *const test_runner.TestSuite.TestFn });
@@ -51,7 +51,7 @@ fn run(alloc: Allocator) !void {
 
 fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     // run analysis
-    var builder = SemanticBuilder.init(alloc);
+    var builder = Semantic.Builder.init(alloc);
     defer builder.deinit();
     var semantic_result = try builder.build(source.text());
     defer semantic_result.deinit();
@@ -111,11 +111,11 @@ fn runFail(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     defer reporter.deinit();
 
     // run analysis
-    var builder = SemanticBuilder.init(alloc);
+    var builder = Semantic.Builder.init(alloc);
     builder.withSource(source);
     defer builder.deinit();
 
-    var semantic_result: SemanticBuilder.Result = builder.build(source.text()) catch {
+    var semantic_result: Semantic.Builder.Result = builder.build(source.text()) catch {
         reporter.reportErrorSlice(alloc, builder._errors.items);
         builder._errors.deinit(alloc);
         return;

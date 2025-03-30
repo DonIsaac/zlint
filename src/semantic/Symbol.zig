@@ -148,7 +148,7 @@ pub const Flags = packed struct(FLAGS_REPR) {
 ///   pub fn bang() void {},          // export
 /// };
 /// ```
-pub const SymbolTable = struct {
+pub const Table = struct {
     /// Indexed by symbol id.
     ///
     /// Do not write to this list directly.
@@ -157,12 +157,12 @@ pub const SymbolTable = struct {
     unresolved_references: std.ArrayListUnmanaged(Reference.Id) = .{},
 
     /// Get a symbol from the table.
-    pub inline fn get(self: *const SymbolTable, id: Symbol.Id) *const Symbol {
+    pub inline fn get(self: *const Symbol.Table, id: Symbol.Id) *const Symbol {
         return &self.symbols.get(id.into(usize));
     }
 
     pub fn addSymbol(
-        self: *SymbolTable,
+        self: *Symbol.Table,
         alloc: Allocator,
         declaration_node: Node.Index,
         name: ?string,
@@ -194,7 +194,7 @@ pub const SymbolTable = struct {
     }
 
     pub fn addReference(
-        self: *SymbolTable,
+        self: *Symbol.Table,
         alloc: Allocator,
         reference: Reference,
     ) Allocator.Error!Reference.Id {
@@ -208,46 +208,46 @@ pub const SymbolTable = struct {
     }
 
     pub fn getReference(
-        self: *const SymbolTable,
+        self: *const Symbol.Table,
         reference_id: Reference.Id,
     ) Reference {
         return self.references.get(reference_id.into(usize));
     }
 
     pub fn getReferences(
-        self: *const SymbolTable,
+        self: *const Symbol.Table,
         symbol_id: Symbol.Id,
     ) []const Reference.Id {
         return self.symbols.items(.references)[symbol_id.int()].items;
     }
     pub fn getReferencesMut(
-        self: *SymbolTable,
+        self: *Symbol.Table,
         symbol_id: Symbol.Id,
     ) *std.ArrayListUnmanaged(Reference.Id) {
         return &self.symbols.items(.references)[symbol_id.int()];
     }
 
-    pub inline fn getMembers(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
+    pub inline fn getMembers(self: *const Symbol.Table, container: Symbol.Id) *const SymbolIdList {
         return &self.symbols.items(.members)[container.int()];
     }
 
-    pub inline fn getMembersMut(self: *SymbolTable, container: Symbol.Id) *SymbolIdList {
+    pub inline fn getMembersMut(self: *Symbol.Table, container: Symbol.Id) *SymbolIdList {
         return &self.symbols.items(.members)[container.int()];
     }
 
-    pub fn addMember(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) Allocator.Error!void {
+    pub fn addMember(self: *Symbol.Table, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) Allocator.Error!void {
         try self.getMembersMut(container).append(alloc, member);
     }
 
-    pub inline fn getExports(self: *const SymbolTable, container: Symbol.Id) *const SymbolIdList {
+    pub inline fn getExports(self: *const Symbol.Table, container: Symbol.Id) *const SymbolIdList {
         return &self.symbols.items(.exports)[container.int()];
     }
 
-    pub inline fn getExportsMut(self: *SymbolTable, container: Symbol.Id) *SymbolIdList {
+    pub inline fn getExportsMut(self: *Symbol.Table, container: Symbol.Id) *SymbolIdList {
         return &self.symbols.items(.exports)[container.int()];
     }
 
-    pub inline fn addExport(self: *SymbolTable, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) Allocator.Error!void {
+    pub inline fn addExport(self: *Symbol.Table, alloc: Allocator, member: Symbol.Id, container: Symbol.Id) Allocator.Error!void {
         try self.getExportsMut(container).append(alloc, member);
     }
 
@@ -257,7 +257,7 @@ pub const SymbolTable = struct {
     /// Returns the first found
     /// symbol. Since symbols are bound in the order they're declared, this will
     /// be the first declaration.
-    pub fn getSymbolNamed(self: *const SymbolTable, name: []const u8) ?Symbol.Id {
+    pub fn getSymbolNamed(self: *const Symbol.Table, name: []const u8) ?Symbol.Id {
         const names = self.symbols.items(.name);
 
         for (0..names.len) |symbol_id| {
@@ -269,17 +269,17 @@ pub const SymbolTable = struct {
         return null;
     }
 
-    pub inline fn iter(self: *const SymbolTable) Iterator {
+    pub inline fn iter(self: *const Symbol.Table) Iterator {
         return Iterator{ .table = self };
     }
 
     /// Iterate over a symbol's references.
-    pub inline fn iterReferences(self: *const SymbolTable, id: Symbol.Id) ReferenceIterator {
+    pub inline fn iterReferences(self: *const Symbol.Table, id: Symbol.Id) ReferenceIterator {
         const refs = self.symbols.items(.references)[id.int()].items;
         return ReferenceIterator{ .table = self, .refs = refs };
     }
 
-    pub fn deinit(self: *SymbolTable, alloc: Allocator) void {
+    pub fn deinit(self: *Symbol.Table, alloc: Allocator) void {
         {
             var i: Id.Repr = 0;
             const len: Id.Repr = @intCast(self.symbols.len);
@@ -299,7 +299,7 @@ pub const SymbolTable = struct {
 
 pub const Iterator = struct {
     curr: Id.Repr = 0,
-    table: *const SymbolTable,
+    table: *const Symbol.Table,
 
     pub fn next(self: *Iterator) ?Symbol.Id {
         if (self.curr >= self.table.symbols.len) {
@@ -313,7 +313,7 @@ pub const Iterator = struct {
 
 pub const ReferenceIterator = struct {
     curr: usize = 0,
-    table: *const SymbolTable,
+    table: *const Symbol.Table,
     refs: []Reference.Id,
 
     pub inline fn len(self: ReferenceIterator) usize {
@@ -345,11 +345,11 @@ const Reference = @import("Reference.zig");
 const assert = std.debug.assert;
 const string = @import("util").string;
 
-test "SymbolTable.iter()" {
+test "Symbol.Table.iter()" {
     const a = std.testing.allocator;
     const expectEqual = std.testing.expectEqual;
 
-    var table = SymbolTable{};
+    var table = Symbol.Table{};
     defer table.deinit(a);
 
     _ = try table.addSymbol(a, 1, "a", null, null, Scope.Id.new(0), .public, .{});

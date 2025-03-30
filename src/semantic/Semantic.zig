@@ -13,8 +13,8 @@
 //! an entire linked binary or library; rather it refers to a single parsed
 //! file.
 
-symbols: SymbolTable = .{},
-scopes: ScopeTree = .{},
+symbols: Symbol.Table = .{},
+scopes: Scope.Tree = .{},
 modules: ModuleRecord = .{},
 ast: Ast, // NOTE: allocated in _arena
 // NOTE: We re-tokenize and store our own tokens b/c AST throws away the end
@@ -125,10 +125,9 @@ const TokenIndex = _ast.TokenIndex;
 pub const Token = _tokenizer.Token;
 pub const TokenList = _tokenizer.TokenList;
 
+pub const Builder = @import("SemanticBuilder.zig");
 pub const NodeLinks = @import("NodeLinks.zig");
 pub const Scope = @import("Scope.zig");
-pub const ScopeTree = Scope.ScopeTree;
 pub const Symbol = @import("Symbol.zig");
-pub const SymbolTable = Symbol.SymbolTable;
 pub const Reference = @import("Reference.zig");
 pub const ModuleRecord = @import("ModuleRecord.zig");

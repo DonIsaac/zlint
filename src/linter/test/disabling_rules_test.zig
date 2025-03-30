@@ -5,7 +5,7 @@ const ArenaAllocator = std.heap.ArenaAllocator;
 const lint = @import("../../lint.zig");
 const Linter = lint.Linter;
 const Config = lint.Config;
-const SemanticBuilder = @import("../../semantic.zig").SemanticBuilder;
+const Semantic = @import("../../semantic.zig").Semantic;
 
 const Source = @import("../../source.zig").Source;
 
@@ -49,7 +49,7 @@ test "Enabled rules have their violations reported" {
         },
     };
 
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = Semantic.Builder.init(t.allocator);
     builder.withSource(&src);
     defer builder.deinit();
 
@@ -84,7 +84,7 @@ test "When no rules are enabled, no violations are reported" {
         errs.deinit();
     };
 
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = Semantic.Builder.init(t.allocator);
     builder.withSource(&src);
     defer builder.deinit();
 
@@ -119,7 +119,7 @@ test "When a rule is configured to 'off', none of its violations are reported" {
         },
     };
 
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = Semantic.Builder.init(t.allocator);
     builder.withSource(&src);
     defer builder.deinit();
 
@@ -166,7 +166,7 @@ test "When rules are configured but a specific rule is disabled with 'zlint-disa
         },
     };
 
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = Semantic.Builder.init(t.allocator);
     builder.withSource(&src);
     defer builder.deinit();
 
@@ -213,7 +213,7 @@ test "When rules are configured but disabled with 'zlint-disable', nothing gets 
         },
     };
 
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = Semantic.Builder.init(t.allocator);
     builder.withSource(&src);
     defer builder.deinit();
 
@@ -259,7 +259,7 @@ test "When the global disable directive is misplaced, violations still gets repo
         },
     };
 
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = Semantic.Builder.init(t.allocator);
     builder.withSource(&src);
     defer builder.deinit();
 
@@ -305,7 +305,7 @@ test "When the multiple global directives are set, all rules are honored" {
         },
     };
 
-    var builder = SemanticBuilder.init(t.allocator);
+    var builder = Semantic.Builder.init(t.allocator);
     builder.withSource(&src);
     defer builder.deinit();
 

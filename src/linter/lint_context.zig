@@ -52,11 +52,11 @@ pub fn tokens(self: *const Context) *const Semantic.TokenList.Slice {
     return &self.semantic.tokens;
 }
 
-pub inline fn scopes(self: *const Context) *const Semantic.ScopeTree {
+pub inline fn scopes(self: *const Context) *const Semantic.Scope.Tree {
     return &self.semantic.scopes;
 }
 
-pub inline fn symbols(self: *const Context) *const Semantic.SymbolTable {
+pub inline fn symbols(self: *const Context) *const Semantic.Symbol.Table {
     return &self.semantic.symbols;
 }
 
