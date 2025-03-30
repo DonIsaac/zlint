@@ -5,9 +5,6 @@ pub const env = @import("./util/env.zig");
 pub const NominalId = @import("./util/id.zig").NominalId;
 pub const Cow = @import("./util/cow.zig").Cow;
 
-pub const stringSlice = [:0]const u8;
-pub const stringMut = []u8;
-
 pub const RUNTIME_SAFETY = builtin.mode != .ReleaseFast;
 pub const IS_DEBUG = builtin.mode == .Debug;
 pub const IS_TEST = builtin.is_test;
