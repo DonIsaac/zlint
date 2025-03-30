@@ -125,6 +125,7 @@ const TokenIndex = _ast.TokenIndex;
 pub const Token = _tokenizer.Token;
 pub const TokenList = _tokenizer.TokenList;
 
+pub const Builder = @import("SemanticBuilder.zig");
 pub const NodeLinks = @import("NodeLinks.zig");
 pub const Scope = @import("Scope.zig");
 pub const Symbol = @import("Symbol.zig");

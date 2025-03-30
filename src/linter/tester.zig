@@ -254,7 +254,7 @@ fn lint(
     src: [:0]const u8,
     test_id: usize,
     errors: *Linter.Diagnostic.List,
-) (Linter.LintError || SemanticBuilder.SemanticError || Allocator.Error)!void {
+) (Linter.LintError || Semantic.Builder.SemanticError || Allocator.Error)!void {
     // TODO: support static strings in Source w/o leaking memory.
     var source = try Source.fromString(
         self.alloc,
@@ -263,7 +263,7 @@ fn lint(
     );
     defer source.deinit();
 
-    var builder = SemanticBuilder.init(self.alloc);
+    var builder = Semantic.Builder.init(self.alloc);
     defer builder.deinit();
     builder.withSource(&source);
 
@@ -361,7 +361,7 @@ const Linter = @import("linter.zig").Linter;
 const Rule = @import("rule.zig").Rule;
 const Fix = @import("fix.zig").Fix;
 const Fixer = @import("fix.zig").Fixer;
-const SemanticBuilder = @import("../semantic.zig").SemanticBuilder;
+const Semantic = @import("../semantic.zig").Semantic;
 const Source = @import("../source.zig").Source;
 const GraphicalFormatter = @import("../reporter.zig").formatter.Graphical;
 

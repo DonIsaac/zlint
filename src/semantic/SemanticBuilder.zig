@@ -8,6 +8,8 @@
 //     `ast.extra_data`. That gets the variable-len list of child nodes.
 //
 
+const SemanticBuilder = @This();
+
 _gpa: Allocator,
 _arena: ArenaAllocator,
 
@@ -1892,8 +1894,6 @@ fn printScopeStack(self: *const SemanticBuilder) void {
         print("  - {d}: (flags: {any})\n", .{ id, scope_flags[id.into(usize)] });
     }
 }
-
-const SemanticBuilder = @This();
 
 const builtins = @import("builtins.zig");
 const Semantic = @import("./Semantic.zig");

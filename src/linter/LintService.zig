@@ -102,7 +102,7 @@ pub fn lintSource(
 ) (LintError || Allocator.Error)!void {
     // FIXME: empty sources break something but i forget what
     if (source.text().len == 0) return;
-    var builder = SemanticBuilder.init(self.allocator);
+    var builder = Semantic.Builder.init(self.allocator);
     builder.withSource(source);
     defer builder.deinit();
 
@@ -188,4 +188,4 @@ const Fix = @import("fix.zig").Fix;
 const Fixer = @import("fix.zig").Fixer;
 const Error = @import("../Error.zig");
 
-const SemanticBuilder = @import("../semantic.zig").SemanticBuilder;
+const Semantic = @import("../semantic.zig").Semantic;

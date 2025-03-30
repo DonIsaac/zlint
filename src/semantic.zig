@@ -8,8 +8,6 @@
 //! an entire linked binary or library; rather it refers to a single parsed
 //! file.
 
-pub const SemanticBuilder = @import("./semantic/SemanticBuilder.zig");
-
 pub const Semantic = @import("./semantic/Semantic.zig");
 // parts of semantic
 pub const Ast = std.zig.Ast;
