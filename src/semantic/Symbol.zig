@@ -12,7 +12,7 @@
 /// source text, which owns the allocation.
 ///
 /// `&'a str`
-name: string,
+name: []const u8,
 /// The token that declared this symbol. This is usually an `.identifier`.
 ///
 /// `null` for anonymous symbols (i.e. no `name`).
@@ -22,7 +22,7 @@ name: string,
 token: ast.MaybeTokenId,
 /// Only populated for symbols not bound to an identifier. Otherwise, this is an
 /// empty string.
-debug_name: string,
+debug_name: []const u8,
 /// This symbol's type. Only present if statically determinable, since
 /// analysis doesn't currently do type checking.
 // ty: ?Type,
@@ -165,8 +165,8 @@ pub const Table = struct {
         self: *Symbol.Table,
         alloc: Allocator,
         declaration_node: Node.Index,
-        name: ?string,
-        debug_name: ?string,
+        name: ?[]const u8,
+        debug_name: ?[]const u8,
         token: ?ast.TokenIndex,
         scope_id: Scope.Id,
         visibility: Symbol.Visibility,
@@ -343,7 +343,6 @@ const Scope = @import("Scope.zig");
 const Reference = @import("Reference.zig");
 
 const assert = std.debug.assert;
-const string = @import("util").string;
 
 test "Symbol.Table.iter()" {
     const a = std.testing.allocator;

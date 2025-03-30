@@ -3,7 +3,6 @@ const util = @import("util");
 const semantic = @import("../semantic.zig");
 
 const Ast = std.zig.Ast;
-const string = util.string;
 const Symbol = semantic.Symbol;
 const Severity = @import("../Error.zig").Severity;
 const Fix = @import("./fix.zig").Fix;
@@ -54,7 +53,7 @@ pub const Rule = struct {
     const META_FIELD_NAME = "meta";
     pub const MAX_SIZE: usize = 16;
     pub const Meta = struct {
-        name: string,
+        name: []const u8,
         category: Category,
         /// Default severity when no config file is provided. Rules that are
         /// `.off` do not get run at all.

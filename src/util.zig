@@ -5,10 +5,6 @@ pub const env = @import("./util/env.zig");
 pub const NominalId = @import("./util/id.zig").NominalId;
 pub const Cow = @import("./util/cow.zig").Cow;
 
-pub const string = []const u8;
-pub const stringSlice = [:0]const u8;
-pub const stringMut = []u8;
-
 pub const RUNTIME_SAFETY = builtin.mode != .ReleaseFast;
 pub const IS_DEBUG = builtin.mode == .Debug;
 pub const IS_TEST = builtin.is_test;
@@ -19,10 +15,10 @@ pub const DebugOnly = @import("./util/debug_only.zig").DebugOnly;
 pub const debugOnly = @import("./util/debug_only.zig").debugOnly;
 pub const Bitflags = @import("./util/bitflags.zig").Bitflags;
 
-pub fn trimWhitespace(s: string) string {
+pub fn trimWhitespace(s: []const u8) []const u8 {
     return std.mem.trim(u8, s, &std.ascii.whitespace);
 }
-pub fn trimWhitespaceRight(s: string) string {
+pub fn trimWhitespaceRight(s: []const u8) []const u8 {
     return std.mem.trimRight(u8, s, &std.ascii.whitespace);
 }
 pub fn isWhitespace(c: u8) bool {
@@ -39,7 +35,7 @@ pub fn isWhitespace(c: u8) bool {
 /// `condition` is false. In `ReleaseFast` mode, `unreachable` is stripped and
 /// assumed to be true by the compiler, which will lead to strange program
 /// behavior.
-pub inline fn assert(condition: bool, comptime fmt: string, args: anytype) void {
+pub inline fn assert(condition: bool, comptime fmt: []const u8, args: anytype) void {
     if (comptime IS_DEBUG) {
         if (!condition) {
             std.debug.panic(fmt, args);
@@ -49,7 +45,7 @@ pub inline fn assert(condition: bool, comptime fmt: string, args: anytype) void 
     }
 }
 
-pub inline fn debugAssert(condition: bool, comptime fmt: string, args: anytype) void {
+pub inline fn debugAssert(condition: bool, comptime fmt: []const u8, args: anytype) void {
     if (comptime IS_DEBUG) {
         if (!condition) std.debug.panic(fmt, args);
     }

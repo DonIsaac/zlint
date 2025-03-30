@@ -6,7 +6,7 @@ gpa: Allocator,
 diagnostics: Diagnostic.List,
 
 /// this slice is 'static (in data segment) and should never be free'd
-curr_rule_name: string = "",
+curr_rule_name: []const u8 = "",
 curr_severity: Severity = Severity.err,
 // TODO: `void` in release builds
 curr_fix_capabilities: Fix.Meta = Fix.Meta.disabled,
@@ -117,7 +117,7 @@ pub inline fn labelT(
 pub fn diagnostic(
     self: *Context,
     /// error message
-    comptime message: string,
+    comptime message: []const u8,
     /// location(s) of the problem
     spans: anytype,
 ) Error {
@@ -273,7 +273,6 @@ const LabeledSpan = @import("../span.zig").LabeledSpan;
 const Rule = _rule.Rule;
 const Semantic = _semantic.Semantic;
 const Source = _source.Source;
-const string = util.string;
 
 const Fix = @import("./fix.zig").Fix;
 const FixerFn = @import("./fix.zig").FixerFn;

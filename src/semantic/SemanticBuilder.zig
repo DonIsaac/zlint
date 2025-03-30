@@ -14,7 +14,7 @@ _gpa: Allocator,
 _arena: ArenaAllocator,
 
 _source_code: ?_source.ArcStr = null,
-_source_path: ?string = null,
+_source_path: ?[]const u8 = null,
 
 // states
 _curr_scope_flags: Scope.Flags = .{},
@@ -91,7 +91,7 @@ pub fn withSource(self: *SemanticBuilder, source: *const _source.Source) void {
 /// In some  cases, SemanticBuilder may choose to panic instead of
 /// returning an error union. These assertions produce better release
 /// binaries and catch bugs earlier.
-pub fn build(builder: *SemanticBuilder, source: stringSlice) SemanticError!Result {
+pub fn build(builder: *SemanticBuilder, source: [:0]const u8) SemanticError!Result {
     // NOTE: ast is moved
     const gpa = builder._gpa;
     const token_bundle = try tokenizer.tokenize(
@@ -168,7 +168,7 @@ pub fn deinit(self: *SemanticBuilder) void {
     if (self._source_code) |*src| src.deinit();
 }
 
-fn parse(self: *SemanticBuilder, source: stringSlice) Allocator.Error!Ast {
+fn parse(self: *SemanticBuilder, source: [:0]const u8) Allocator.Error!Ast {
     const alloc = self._arena.allocator();
 
     var ast = try Ast.parse(self._arena.allocator(), source, .zig);
@@ -1108,7 +1108,7 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     const proto = ast.fullFnProto(&buf, data.lhs) orelse unreachable;
     const visibility = if (proto.visib_token == null) Symbol.Visibility.private else Symbol.Visibility.public;
     // TODO: bound name vs escaped name
-    const debug_name: ?string = if (proto.name_token == null) "<anonymous fn>" else null;
+    const debug_name: ?[]const u8 = if (proto.name_token == null) "<anonymous fn>" else null;
 
     const prev_symbol_flags = self._curr_reference_flags;
     self._curr_symbol_flags.set(Symbol.Flags.s_container, false);
@@ -1418,7 +1418,7 @@ const DeclareSymbol = struct {
     identifier: ?TokenIndex = null,
     // name: ?string = null,
     /// An optional debug name for anonymous symbols
-    debug_name: ?string = null,
+    debug_name: ?[]const u8 = null,
     /// Visibility to external code. Defaults to public.
     visibility: Symbol.Visibility = .public,
     flags: Symbol.Flags = .{},
@@ -1546,7 +1546,7 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
     const bindings: []const Symbol.Id = self.scopeTree().getBindings(self.currentScope());
     var references = self.symbolTable().references;
     // const ref_tokens: []TokenIndex = references.items(.identifier);
-    const ref_names: []const string = references.items(.identifier);
+    const ref_names: []const []const u8 = references.items(.identifier);
     const ref_symbols: []Symbol.Id.Optional = self.symbolTable().references.items(.symbol);
     const symbol_refs = self.symbolTable().symbols.items(.references);
 
@@ -1556,7 +1556,7 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
     defer stack.free(resolved_map);
 
     for (bindings) |binding| {
-        const name: string = names[binding.int()];
+        const name: []const u8 = names[binding.int()];
         for (0..curr.items.len) |i| {
             if (resolved_map[i] or name.len == 0) continue;
             const ref_id: Reference.Id = curr.items[i];
@@ -1805,7 +1805,7 @@ fn addAstError(self: *SemanticBuilder, ast: *const Ast, ast_err: Ast.Error) Allo
 /// Record an error encountered during parsing or analysis.
 ///
 /// All parameters are borrowed. Errors own their data, so each parameter gets cloned onto the heap.
-fn addError(self: *SemanticBuilder, message: string, labels: []Span, help: ?string) Allocator.Error!void {
+fn addError(self: *SemanticBuilder, message: []const u8, labels: []Span, help: ?[]const u8) Allocator.Error!void {
     const alloc = self._errors.allocator;
     const heap_message = try alloc.dupeZ(u8, message);
     const heap_labels = try alloc.dupe(Span, labels);
@@ -1861,7 +1861,7 @@ fn debugNodeStack(self: *const SemanticBuilder) void {
             if (source.len > 48) mem.concat(
                 self._gpa,
                 u8,
-                &[_]string{ source[0..32], " ... ", source[(source.len - 16)..source.len] },
+                &[_][]const u8{ source[0..32], " ... ", source[(source.len - 16)..source.len] },
             ) catch @panic("Out of memory") else source;
         print("  - [{d}, {d}:{d}] {any} - {s}\n", .{ id, loc.line, loc.column, tag, snippet });
         if (!mem.eql(u8, source, snippet)) {
@@ -1873,7 +1873,7 @@ fn debugNodeStack(self: *const SemanticBuilder) void {
 fn printSymbolStack(self: *const SemanticBuilder) void {
     @branchHint(.cold);
     const symbols = &self._semantic.symbols;
-    const names: []string = symbols.symbols.items(.name);
+    const names: [][]const u8 = symbols.symbols.items(.name);
 
     print("Symbol stack:\n", .{});
     for (self._symbol_stack.items) |id| {
@@ -1928,8 +1928,6 @@ const Span = _span.Span;
 
 const util = @import("util");
 const IS_DEBUG = util.IS_DEBUG;
-const string = util.string;
-const stringSlice = util.stringSlice;
 
 const t = std.testing;
 test {

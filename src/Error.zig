@@ -13,7 +13,7 @@ severity: Severity = .err,
 labels: std.ArrayListUnmanaged(LabeledSpan) = .{},
 // labels: []LabeledSpan = NO_SPANS,
 /// Name of the file being linted.
-source_name: ?string = null,
+source_name: ?[]const u8 = null,
 source: ?ArcStr = null,
 /// Optional help text. This will go under the code snippet.
 help: ?Cow(false) = null,
@@ -27,15 +27,15 @@ pub fn new(message: []u8, allocator: Allocator) Error {
     return Error{ .message = Cow(false).owned(message, allocator) };
 }
 
-pub fn newStatic(comptime message: string) Error {
+pub fn newStatic(comptime message: []const u8) Error {
     return Error{ .message = Cow(false).static(message) };
 }
 
-pub fn fmt(alloc: Allocator, comptime format: string, args: anytype) Allocator.Error!Error {
+pub fn fmt(alloc: Allocator, comptime format: []const u8, args: anytype) Allocator.Error!Error {
     return Error{ .message = try Cow(false).fmt(alloc, format, args) };
 }
 
-pub fn newAtLocation(message: string, span: Span) Error {
+pub fn newAtLocation(message: []const u8, span: Span) Error {
     return Error{
         .message = message,
         .labels = [_]Span{span},
@@ -187,7 +187,6 @@ const _span = @import("span.zig");
 
 const Allocator = std.mem.Allocator;
 const Arc = ptrs.Arc;
-const string = util.string;
 const Cow = util.Cow;
 
 const Span = _span.Span;
