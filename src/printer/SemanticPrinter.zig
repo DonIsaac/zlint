@@ -54,7 +54,7 @@ pub fn printSymbolTable(self: *SemanticPrinter) !void {
     }
 }
 
-fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: *const Semantic.SymbolTable) !void {
+fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: *const Semantic.Symbol.Table) !void {
     const p = self.printer;
     try p.pushObject();
     defer p.pop();

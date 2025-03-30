@@ -1696,7 +1696,7 @@ inline fn AST(self: *const SemanticBuilder) *const Ast {
 }
 
 /// Shorthand for getting the symbol table.
-inline fn symbolTable(self: *SemanticBuilder) *Semantic.SymbolTable {
+inline fn symbolTable(self: *SemanticBuilder) *Semantic.Symbol.Table {
     return &self._semantic.symbols;
 }
 

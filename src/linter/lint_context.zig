@@ -56,7 +56,7 @@ pub inline fn scopes(self: *const Context) *const Semantic.ScopeTree {
     return &self.semantic.scopes;
 }
 
-pub inline fn symbols(self: *const Context) *const Semantic.SymbolTable {
+pub inline fn symbols(self: *const Context) *const Semantic.Symbol.Table {
     return &self.semantic.symbols;
 }
 
