@@ -1260,9 +1260,9 @@ fn enterRoot(self: *SemanticBuilder) !void {
 
 /// Panic if we're not currently within the root scope and node.
 ///
-/// This function gets erased in ReleaseFast builds.
+/// This function gets erased in Release* builds.
 inline fn assertRoot(self: *const SemanticBuilder) void {
-    if (!util.IS_DEBUG) return // don't run assertions in any kind of release build
+    if (!util.IS_DEBUG) return;
 
     self.assertCtx(self._scope_stack.items.len == 1, "assertRoot: scope stack is not at root", .{});
     self.assertCtx(self._scope_stack.items[0] == Semantic.ROOT_SCOPE_ID, "assertRoot: scope stack is not at root", .{});
@@ -1351,8 +1351,8 @@ fn enterNode(self: *SemanticBuilder, node_id: NodeIndex) !void {
     if (IS_DEBUG) self._checkForNodeLoop(node_id);
     const curr_node = self.currentNode();
     const curr_scope = self.currentScope();
-    self._semantic.node_links.setParent(node_id, curr_node);
-    self._semantic.node_links.setScope(node_id, curr_scope);
+    self.links().setParent(node_id, curr_node);
+    self.links().setScope(node_id, curr_scope);
     try self._node_stack.append(self._gpa, node_id);
 }
 
@@ -1429,11 +1429,15 @@ const DeclareSymbol = struct {
 /// Create and bind a symbol to the current scope and container (parent) symbol.
 ///
 /// Panics if the parent is a member symbol.
-fn bindSymbol(self: *SemanticBuilder, opts: DeclareSymbol) !Symbol.Id {
+fn bindSymbol(self: *SemanticBuilder, opts: DeclareSymbol) Allocator.Error!Symbol.Id {
     const symbol_id = try self.declareSymbol(opts);
     if (self.currentContainerSymbol()) |container_id| {
-        assert(!self._semantic.symbols.get(container_id).flags.s_member);
-        try self._semantic.symbols.addMember(self._gpa, symbol_id, container_id);
+        assert(!self.symbolTable().symbols.items(.flags)[container_id.int()].s_member);
+        if (opts.flags.s_member) {
+            try self.symbolTable().addMember(self._gpa, symbol_id, container_id);
+        } else {
+            try self.symbolTable().addExport(self._gpa, symbol_id, container_id);
+        }
     }
 
     return symbol_id;
@@ -1444,7 +1448,7 @@ fn bindSymbol(self: *SemanticBuilder, opts: DeclareSymbol) !Symbol.Id {
 fn declareMemberSymbol(
     self: *SemanticBuilder,
     opts: DeclareSymbol,
-) !Symbol.Id {
+) Allocator.Error!Symbol.Id {
     var options = opts;
     options.flags.s_member = true;
     const member_symbol_id = try self.declareSymbol(options);
@@ -1461,7 +1465,7 @@ fn declareMemberSymbol(
 inline fn declareSymbol(
     self: *SemanticBuilder,
     opts: DeclareSymbol,
-) !Symbol.Id {
+) Allocator.Error!Symbol.Id {
     const scope = opts.scope_id orelse self.currentScope();
     const name = if (opts.identifier) |ident| self.tokenSlice(ident) else null;
     const symbol_id = try self._semantic.symbols.addSymbol(
@@ -1476,7 +1480,7 @@ inline fn declareSymbol(
     );
     try self._semantic.scopes.addBinding(self._gpa, scope, symbol_id);
     if (opts.identifier) |identifier| {
-        try self._semantic.node_links.symbols.put(self._gpa, identifier, symbol_id);
+        try self.links().symbols.put(self._gpa, identifier, symbol_id);
     }
     return symbol_id;
 }
@@ -1698,13 +1702,17 @@ inline fn AST(self: *const SemanticBuilder) *const Ast {
 }
 
 /// Shorthand for getting the symbol table.
-inline fn symbolTable(self: *SemanticBuilder) *Semantic.Symbol.Table {
+inline fn symbolTable(self: *SemanticBuilder) *Symbol.Table {
     return &self._semantic.symbols;
 }
 
 /// Shorthand for getting the scope tree.
-inline fn scopeTree(self: *SemanticBuilder) *Semantic.Scope.Tree {
+inline fn scopeTree(self: *SemanticBuilder) *Scope.Tree {
     return &self._semantic.scopes;
+}
+
+inline fn links(self: *SemanticBuilder) *NodeLinks {
+    return &self._semantic.node_links;
 }
 
 fn tokenSlice(self: *const SemanticBuilder, token: TokenIndex) []const u8 {
@@ -1935,6 +1943,7 @@ test {
     t.refAllDecls(@import("test/scope_flags_test.zig"));
     t.refAllDecls(@import("test/symbol_decl_test.zig"));
     t.refAllDecls(@import("test/symbol_ref_test.zig"));
+    t.refAllDecls(@import("test/members_and_exports_test.zig"));
 }
 test "Struct/enum fields are bound bound to the struct/enums's member table" {
     const alloc = std.testing.allocator;

@@ -10,8 +10,8 @@
       "references": [
         
       ], 
-      "members": [1,2,3,4], 
-      "exports": [], 
+      "members": [], 
+      "exports": [1,2,3,4], 
       
     }, 
     {
@@ -68,8 +68,8 @@
         {"symbol":4,"scope":2,"node":"identifier","identifier":"Foo","flags":["read"]}, 
         
       ], 
-      "members": [5,6,7], 
-      "exports": [], 
+      "members": [5], 
+      "exports": [6,7], 
       
     }, 
     {

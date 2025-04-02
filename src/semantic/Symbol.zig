@@ -45,7 +45,8 @@ references: std.ArrayListUnmanaged(Reference.Id) = .{},
 members: SymbolIdList = .{},
 
 /// Symbols directly accessible on the symbol itself (e.g. static methods,
-/// constants, enum members).
+/// constants, enum members). These are _not_ symbols exported via `export`;
+/// those are linker exports.
 ///
 /// Do not write to this list directly.
 exports: SymbolIdList = .{},
