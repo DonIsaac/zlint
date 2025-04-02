@@ -10,8 +10,8 @@
       "references": [
         
       ], 
-      "members": [1,2,3,4], 
-      "exports": [], 
+      "members": [1,2], 
+      "exports": [3,4], 
       
     }, 
     {
