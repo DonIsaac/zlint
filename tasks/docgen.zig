@@ -32,7 +32,7 @@ pub fn main() !void {
     const alloc = gpa.allocator();
     const root = fs.cwd();
 
-    const schema_ctx, const schema_map =  try gen.ruleSchemaMap(alloc);
+    const schema_ctx, const schema_map = try gen.ruleSchemaMap(alloc);
     var ctx = Context{
         .alloc = alloc,
         .ctx = schema_ctx,

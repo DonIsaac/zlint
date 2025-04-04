@@ -49,7 +49,7 @@ pub const RuleInfo = struct {
 
 pub const SchemaMap = std.StringHashMap(*const Schema);
 /// Map is key'd by `rule-name`.
-/// 
+///
 /// This leaks memory, and a lot of it.
 pub fn ruleSchemaMap(allocator: Allocator) !struct { Schema.Context, SchemaMap } {
     const info = @typeInfo(RulesConfig).@"struct";
@@ -71,5 +71,5 @@ pub fn ruleSchemaMap(allocator: Allocator) !struct { Schema.Context, SchemaMap }
         map.putAssumeCapacityNoClobber(RuleConfig.name, rule_schema);
     }
 
-    return .{ctx, map};
+    return .{ ctx, map };
 }
