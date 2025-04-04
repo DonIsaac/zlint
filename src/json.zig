@@ -80,6 +80,17 @@ pub const Schema = union(enum) {
             item_schema.* = item;
             return Array.schema(item_schema);
         }
+        pub fn tuple(self: *const Context, prefix_items: anytype) !Schema {
+            var arr = Array{};
+            var items = try self.allocator.alloc(Schema, prefix_items.len);
+            for (0..prefix_items.len) |i|  {
+                items[i] = prefix_items[i];
+            }
+            items.len = prefix_items.len;
+            
+            arr.prefixItems  = items;
+            return .{ .array = arr };
+        }
         pub fn oneOf(self: *const Context, schemas: []const Schema) !Schema {
             return Compound.oneOf(try self.allocator.dupe(Schema, schemas));
         }
@@ -322,7 +333,7 @@ pub const Schema = union(enum) {
         }
     };
 
-    pub const Integer = Number(i32);
+    pub const Integer = Number(i64);
     pub const Float = Number(f32);
     fn Number(Num: type) type {
         // todo: exclusive minimum/maximum
@@ -451,6 +462,7 @@ pub const Schema = union(enum) {
     pub const Array = struct {
         common: Common = .{},
         items: ?*Schema = null,
+        prefixItems: ?[]const Schema = null,
 
         pub fn schema(items: *Schema) Schema {
             return Schema{ .array = .{ .items = items } };
@@ -462,6 +474,14 @@ pub const Schema = union(enum) {
             try self.common.toJson(&value);
             if (self.items) |items| {
                 try value.put("items", try items.toJson(ctx));
+            }
+            if (self.prefixItems) |prefix| {
+                var arr = try ctx.jsonArray(prefix.len);
+                for (prefix) |item| {
+                    const item_value = try item.toJson(ctx);
+                    arr.appendAssumeCapacity(item_value);
+                }
+                try value.put("prefixItems", .{ .array = arr });
             }
 
             return .{ .object = value };
