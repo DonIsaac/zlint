@@ -68,7 +68,11 @@ fn testConfig(source: []const u8, expected: RulesConfig) !void {
 
     scanner.enableDiagnostics(&diagnostics);
     const actual = json.parseFromTokenSource(RulesConfig, t.allocator, &scanner, .{}) catch |err| {
-        print("[{d}:{d}] {s}\n", .{ diagnostics.getLine(), diagnostics.getColumn(), source[diagnostics.line_start_cursor..diagnostics.cursor_pointer.*] });
+        print("[{d}:{d}] {s}\n", .{
+            diagnostics.getLine(),
+            diagnostics.getColumn(),
+            source[diagnostics.line_start_cursor..diagnostics.cursor_pointer.*],
+        });
         return err;
     };
     defer actual.deinit();

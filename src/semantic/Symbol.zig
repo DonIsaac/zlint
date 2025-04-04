@@ -39,7 +39,7 @@ flags: Flags,
 references: std.ArrayListUnmanaged(Reference.Id) = .{},
 
 /// Symbols on "instance objects" (e.g. field properties and instance
-/// methods).
+/// methods). Generally corresponds to `.container_field` nodes.
 ///
 /// Do not write to this list directly.
 members: SymbolIdList = .{},

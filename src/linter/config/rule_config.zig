@@ -3,6 +3,7 @@ const json = std.json;
 const Severity = @import("../../Error.zig").Severity;
 const Allocator = std.mem.Allocator;
 const Rule = @import("../rule.zig").Rule;
+const Schema = @import("../../json.zig").Schema;
 
 const ParseError = json.ParseError(json.Scanner);
 
@@ -23,6 +24,11 @@ pub fn RuleConfig(RuleImpl: type) type {
             rule_impl.* = .{};
             return Self{ .severity = severity, .rule_impl = rule_impl };
         }
+
+        pub fn jsonSchema(ctx: *Schema.Root) !Schema {
+            return ctx.ref(Severity);
+        }
+
         pub fn rule(self: *Self) Rule {
             const rule_impl: *RuleImpl = @ptrCast(@alignCast(@constCast(self.rule_impl)));
             return rule_impl.rule();

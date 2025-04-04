@@ -96,6 +96,18 @@ pub const Severity = enum {
             else => return ParseError.UnexpectedToken,
         }
     }
+
+    pub fn jsonSchema(ctx: *Schema.Root) !Schema {
+        const numeric = Schema{
+            .int = .{ .min = 0, .max = 2 },
+        };
+        const str = Schema{ .@"enum" = Schema.Enum{
+            .@"enum" = severity_map.keys(),
+        } };
+
+        const schemas = try ctx.allocator.dupe(Schema, &[_]Schema{ numeric, str });
+        return Schema.oneOf(schemas);
+    }
 };
 
 /// Results hold a value and a list of errors. Useful for error-recoverable
@@ -184,6 +196,7 @@ const json = std.json;
 const ptrs = @import("smart-pointers");
 const util = @import("util");
 const _span = @import("span.zig");
+const Schema = @import("json.zig").Schema;
 
 const Allocator = std.mem.Allocator;
 const Arc = ptrs.Arc;

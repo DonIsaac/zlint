@@ -1,6 +1,7 @@
 const std = @import("std");
 const util = @import("util");
 const semantic = @import("../semantic.zig");
+const AllRules = @import("./rules.zig");
 
 const Ast = std.zig.Ast;
 const Symbol = semantic.Symbol;
@@ -40,14 +41,10 @@ const VTable = struct {
 /// those methods and, if they exist, stores pointers to them. These then get
 /// used by the `Linter` to check for violations.
 pub const Rule = struct {
-    // name: string,
     meta: Meta,
     id: Id,
     ptr: *anyopaque,
     vtable: VTable,
-    // runOnceFn: RunOnceFn,
-    // runOnNodeFn: RunOnNodeFn,
-    // runOnSymbolFn: RunOnSymbolFn,
 
     /// Rules must have a constant with this name of type `Rule.Meta`.
     const META_FIELD_NAME = "meta";
@@ -157,7 +154,6 @@ pub const Rule = struct {
 const IdMap = std.StaticStringMap(Rule.Id);
 const rule_ids: IdMap = ids: {
     const Type = std.builtin.Type;
-    const AllRules = @import("./rules.zig");
     const RuleDecls: []const Type.Declaration = @typeInfo(AllRules).@"struct".decls;
     var ids: [RuleDecls.len]struct { []const u8, Rule.Id } = undefined;
     for (RuleDecls, 0..) |decl, i| {
@@ -176,7 +172,7 @@ test rule_ids {
     const t = std.testing;
     comptime {
         try t.expectEqual(
-            @typeInfo(@import("./rules.zig")).@"struct".decls.len,
+            @typeInfo(AllRules).@"struct".decls.len,
             rule_ids.kvs.len,
         );
         try t.expect(rule_ids.get("unsafe-undefined") != null);
