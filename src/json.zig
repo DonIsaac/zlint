@@ -83,12 +83,12 @@ pub const Schema = union(enum) {
         pub fn tuple(self: *const Context, prefix_items: anytype) !Schema {
             var arr = Array{};
             var items = try self.allocator.alloc(Schema, prefix_items.len);
-            for (0..prefix_items.len) |i|  {
+            for (0..prefix_items.len) |i| {
                 items[i] = prefix_items[i];
             }
             items.len = prefix_items.len;
-            
-            arr.prefixItems  = items;
+
+            arr.prefixItems = items;
             return .{ .array = arr };
         }
         pub fn oneOf(self: *const Context, schemas: []const Schema) !Schema {
