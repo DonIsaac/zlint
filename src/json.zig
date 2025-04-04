@@ -21,12 +21,6 @@ pub const Schema = union(enum) {
     @"$ref": Ref,
     compound: Compound,
 
-    pub fn oneOf(schemas: []const Schema) Schema {
-        return Schema{ .compound = .{
-            .kind = .{ .one_of = schemas },
-        } };
-    }
-
     pub fn toJson(self: *const Schema, ctx: *Schema.Context) Allocator.Error!json.Value {
         return switch (self.*) {
             .int => |i| i.toJson(ctx),
@@ -81,10 +75,10 @@ pub const Schema = union(enum) {
             try obj.properties.ensureTotalCapacity(self.allocator, num_properties);
             return obj;
         }
-        pub fn array(self: *Context, len: usize) Allocator.Error!json.Array {
-            var arr = json.Array.init(self.allocator);
-            try arr.ensureTotalCapacityPrecise(len);
-            return arr;
+        pub fn array(self: *const Context, item: Schema) !Schema {
+            const item_schema = try self.allocator.create(Schema);
+            item_schema.* = item;
+            return Array.schema(item_schema);
         }
         pub fn oneOf(self: *const Context, schemas: []const Schema) !Schema {
             return Compound.oneOf(try self.allocator.dupe(Schema, schemas));
@@ -116,6 +110,10 @@ pub const Schema = union(enum) {
                 }
             }
             return schema;
+        }
+
+        pub fn toValue(ctx: *Schema.Context, value: anytype) Allocator.Error!?Value {
+            return toValueT(@TypeOf(value), value, ctx);
         }
 
         pub fn addSchema(ctx: *Schema.Context, T: type) Allocator.Error!Schema {
@@ -169,7 +167,7 @@ pub const Schema = union(enum) {
                             if (FieldType != anyopaque and FieldType != *anyopaque) {
                                 var field_schema = try ctx.genSchemaImpl(FieldType, true, false);
                                 if (field.defaultValue()) |default| {
-                                    field_schema.common().default = try toValue(default, ctx);
+                                    field_schema.common().default = try ctx.toValue(default);
                                 }
                                 try properties.put(ctx.allocator, field.name, field_schema);
                             }
@@ -199,15 +197,12 @@ pub const Schema = union(enum) {
                 .array => |arr| if (arr.child == u8)
                     Schema{ .string = .{} }
                 else
-                    Schema{ .array = .{} }, // todo
+                    ctx.array(try ctx.genSchemaImpl(arr.child, true, false)),
                 .pointer => |ptr| switch (ptr.size) {
                     .slice => if (ptr.child == u8)
                         Schema{ .string = .{} }
-                    else arr: {
-                        const items_schema = try ctx.allocator.create(Schema);
-                        items_schema.* = try ctx.genSchemaImpl(ptr.child, true, false);
-                        break :arr Schema{ .array = .{ .items = items_schema } };
-                    },
+                    else
+                        ctx.array(try ctx.genSchemaImpl(ptr.child, true, false)),
                     else => @compileError("todo: " ++ @typeName(T)),
                 },
                 .optional => |o| ctx.genSchema(o.child),
@@ -274,6 +269,11 @@ pub const Schema = union(enum) {
             var obj = ObjectMap.init(self.allocator);
             try obj.ensureUnusedCapacity(len);
             return obj;
+        }
+        pub fn jsonArray(self: *Context, len: usize) Allocator.Error!json.Array {
+            var arr = json.Array.init(self.allocator);
+            try arr.ensureTotalCapacityPrecise(len);
+            return arr;
         }
     };
 
@@ -441,7 +441,7 @@ pub const Schema = union(enum) {
         fn toJson(self: *const Enum, ctx: *Schema.Context) Allocator.Error!json.Value {
             var value = ctx.jsonObject();
             try value.put("type", .{ .string = "string" });
-            try value.put("enum", try toValue(self.@"enum", ctx) orelse unreachable);
+            try value.put("enum", try ctx.toValue(self.@"enum") orelse unreachable);
             try self.common.toJson(&value);
 
             return .{ .object = value };
@@ -493,7 +493,7 @@ pub const Schema = union(enum) {
             try value.put("properties", .{ .object = properties });
 
             if (self.required.len > 0) {
-                var arr = try ctx.array(self.required.len);
+                var arr = try ctx.jsonArray(self.required.len);
                 for (self.required) |name| {
                     arr.appendAssumeCapacity(.{ .string = name });
                 }
@@ -552,7 +552,7 @@ pub const Schema = union(enum) {
                 .any_of => |l| .{ "anyOf", l },
                 .one_of => |l| .{ "oneOf", l },
             };
-            var arr = try ctx.array(schemalist.len);
+            var arr = try ctx.jsonArray(schemalist.len);
             for (schemalist) |schema| {
                 const schema_value = try schema.toJson(ctx);
                 arr.appendAssumeCapacity(schema_value);
@@ -562,10 +562,6 @@ pub const Schema = union(enum) {
         }
     };
 };
-
-fn toValue(value: anytype, ctx: *Schema.Context) Allocator.Error!?Value {
-    return toValueT(@TypeOf(value), value, ctx);
-}
 
 fn toValueT(T: type, value: T, ctx: *Schema.Context) Allocator.Error!?Value {
     const info = @typeInfo(T);
@@ -586,7 +582,7 @@ fn toValueT(T: type, value: T, ctx: *Schema.Context) Allocator.Error!?Value {
             break :obj Value{ .object = obj };
         },
         .array => |array| array: {
-            var arr = try ctx.array(array.len);
+            var arr = try ctx.jsonArray(array.len);
             for (array) |item| {
                 try arr.appendAssumeCapacity(try toValueT(
                     array.child,
@@ -598,7 +594,7 @@ fn toValueT(T: type, value: T, ctx: *Schema.Context) Allocator.Error!?Value {
         },
         .pointer => |ptr| switch (ptr.size) {
             .slice => if (ptr.child == u8) Value{ .string = value } else array: {
-                var arr = try ctx.array(value.len);
+                var arr = try ctx.jsonArray(value.len);
                 for (value) |item| {
                     arr.appendAssumeCapacity(try toValueT(
                         ptr.child,
