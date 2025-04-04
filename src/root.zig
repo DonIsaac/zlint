@@ -7,6 +7,9 @@ pub const report = @import("reporter.zig");
 
 pub const lint = @import("lint.zig");
 
+/// Internal. Exported for codegen.
+pub const json = @import("json.zig");
+
 pub const printer = struct {
     pub const Printer = @import("printer/Printer.zig");
     pub const SemanticPrinter = @import("printer/SemanticPrinter.zig");
