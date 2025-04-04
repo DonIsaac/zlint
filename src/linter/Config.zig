@@ -64,7 +64,7 @@ const std = @import("std");
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Schema = @import("../json.zig").Schema;
 
-const RulesConfig = @import("config/rules_config.zig").RulesConfig;
+pub const RulesConfig = @import("config/rules_config.zig").RulesConfig;
 
 // =============================================================================
 

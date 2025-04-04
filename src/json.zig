@@ -127,10 +127,16 @@ pub const Schema = union(enum) {
             return toValueT(@TypeOf(value), value, ctx);
         }
 
-        pub fn addSchema(ctx: *Schema.Context, T: type) Allocator.Error!Schema {
+        pub fn addSchema(ctx: *Schema.Context, T: type) Allocator.Error!*Schema {
+            // force declaration insertion here instead of genSchemaImpl to make
+            // sure schema gets inserted into declaration map. genSchemaImpl only
+            // adds container types.
             const schema = try ctx.genSchemaImpl(T, false, false);
-            _ = try ctx.addDefinition(@typeName(T), schema);
-            return schema;
+            const ent = try ctx.addDefinition(@typeName(T), schema);
+            // ent.schema is ptr to copied `schema` in declaration map
+            assert(std.meta.activeTag(schema) == std.meta.activeTag(ent.schema.*));
+
+            return ent.schema;
         }
 
         pub fn genSchema(ctx: *Schema.Context, T: type) Allocator.Error!Schema {
@@ -226,22 +232,28 @@ pub const Schema = union(enum) {
 
         fn maybeAddDefinition(self: *Context, add_def: bool, comptime typename: []const u8, schema: Schema) !Schema {
             return if (add_def and schema != .@"$ref")
-                self.addDefinition(typename, schema)
+                (try self.addDefinition(typename, schema)).ref
             else
                 schema;
         }
 
-        fn addDefinition(self: *Context, name: []const u8, schema_: Schema) Allocator.Error!Schema {
+        const DefinitionSchema = struct {
+            ref: Schema,
+            schema: *Schema,
+        };
+        fn addDefinition(self: *Context, name: []const u8, schema_: Schema) Allocator.Error!DefinitionSchema {
             var schema = schema_;
             const key = if (schema.common().@"$id") |id| brk: {
                 try self.typemap.put(self.allocator, name, id);
                 break :brk id;
             } else name;
-            const uri = try fmt.allocPrint(self.allocator, Ref.definitions ++ "{s}", .{key});
             const entry = try self.definitions.getOrPut(self.allocator, key);
             if (entry.found_existing) panic("duplicate schema definition under key '{s}'", .{key});
             entry.value_ptr.* = schema;
-            return Schema{ .@"$ref" = .{ .uri = uri } };
+            return .{
+                .ref = try Ref.definition(self.allocator, key),
+                .schema = entry.value_ptr,
+            };
         }
 
         pub fn ref(self: *Context, T: type) !Schema {
@@ -529,11 +541,11 @@ pub const Schema = union(enum) {
         uri: []const u8,
 
         const definitions = "#/definitions/";
-        fn definition(allocator: Allocator, name: []const u8) Allocator.Error!Schema {
+        fn definition(allocator: Allocator, relative_uri: []const u8) Allocator.Error!Schema {
             const uri = if (@inComptime())
-                definitions ++ name
+                definitions ++ relative_uri
             else
-                try fmt.allocPrint(allocator, definitions ++ "{s}", .{name});
+                try fmt.allocPrint(allocator, definitions ++ "{s}", .{relative_uri});
             return .{ .@"$ref" = Ref{ .uri = uri } };
         }
 
