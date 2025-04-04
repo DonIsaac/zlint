@@ -11,8 +11,8 @@ const assert = std.debug.assert;
 const panic = std.debug.panic;
 
 pub const Schema = union(enum) {
-    int: Number(i32),
-    number: Number(f32),
+    int: Integer,
+    number: Float,
     boolean: Boolean,
     string: String,
     @"enum": Enum,
@@ -27,7 +27,7 @@ pub const Schema = union(enum) {
         } };
     }
 
-    pub fn toJson(self: *const Schema, ctx: *Schema.Root) Allocator.Error!json.Value {
+    pub fn toJson(self: *const Schema, ctx: *Schema.Context) Allocator.Error!json.Value {
         return switch (self.*) {
             .int => |i| i.toJson(ctx),
             .number => |n| n.toJson(ctx),
@@ -41,7 +41,7 @@ pub const Schema = union(enum) {
         };
     }
 
-    fn common(self: *Schema) *Common {
+    pub fn common(self: *Schema) *Common {
         return switch (self.*) {
             .int => &self.int.common,
             .number => &self.number.common,
@@ -64,6 +64,224 @@ pub const Schema = union(enum) {
         }
     };
 
+    pub const Context = struct {
+        draft: Draft = .v7,
+        definitions: std.StringHashMapUnmanaged(Schema) = .{},
+        typemap: std.StringHashMapUnmanaged([]const u8) = .{},
+        allocator: Allocator,
+
+        pub fn init(allocator: Allocator) Schema.Context {
+            return Schema.Context{
+                .allocator = allocator,
+            };
+        }
+
+        pub fn object(self: *const Context, num_properties: u32) !Schema.Object {
+            var obj: Schema.Object = .{};
+            try obj.properties.ensureTotalCapacity(self.allocator, num_properties);
+            return obj;
+        }
+        pub fn array(self: *Context, len: usize) Allocator.Error!json.Array {
+            var arr = json.Array.init(self.allocator);
+            try arr.ensureTotalCapacityPrecise(len);
+            return arr;
+        }
+        pub fn oneOf(self: *const Context, schemas: []const Schema) !Schema {
+            return Compound.oneOf(try self.allocator.dupe(Schema, schemas));
+        }
+        pub fn allOf(self: *const Context, schemas: []const Schema) !Schema {
+            return Compound.allOf(try self.allocator.dupe(Schema, schemas));
+        }
+        pub fn anyOf(self: *const Context, schemas: []const Schema) !Schema {
+            return Compound.anyOf(try self.allocator.dupe(Schema, schemas));
+        }
+        pub fn @"enum"(self: *const Context, variants: []const []const u8) !Schema {
+            return Enum.schema(try self.allocator.dupe([]const u8, variants));
+        }
+
+        pub fn toJson(self: *Schema.Context, root: Schema) Allocator.Error!json.Value {
+            var schema = try root.toJson(self);
+            if (schema == .object) {
+                var obj = &schema.object;
+                try obj.put("$schema", .{ .string = self.draft.uri() });
+                if (self.definitions.count() > 0) {
+                    var definitions = self.jsonObject();
+                    var it = self.definitions.iterator();
+                    while (it.next()) |entry| {
+                        const key = entry.key_ptr.*;
+                        const def_schema = entry.value_ptr.*;
+                        try definitions.put(key, try def_schema.toJson(self));
+                    }
+                    try obj.put("definitions", .{ .object = definitions });
+                }
+            }
+            return schema;
+        }
+
+        pub fn addSchema(ctx: *Schema.Context, T: type) Allocator.Error!Schema {
+            const schema = try ctx.genSchemaImpl(T, false, false);
+            _ = try ctx.addDefinition(@typeName(T), schema);
+            return schema;
+        }
+
+        pub fn genSchema(ctx: *Schema.Context, T: type) Allocator.Error!Schema {
+            return genSchemaImpl(ctx, T, false, false);
+        }
+
+        pub fn genSchemaInner(ctx: *Schema.Context, T: type) Allocator.Error!Schema {
+            return genSchemaImpl(ctx, T, false, true);
+        }
+
+        fn genSchemaImpl(
+            ctx: *Schema.Context,
+            T: type,
+            add_def: bool,
+            comptime force_codegen: bool,
+        ) Allocator.Error!Schema {
+            const typename = @typeName(T);
+            if (try ctx.getRef(T)) |ref_| return ref_;
+
+            const info = @typeInfo(T);
+            return switch (info) {
+                .comptime_int => Schema{ .int = .{} },
+                .int => |i| Integer.schema(
+                    if (i.signedness == .unsigned) 0 else null,
+                    std.math.maxInt(T),
+                ),
+                .float, .comptime_float => Schema{ .number = .{} },
+                .bool => Schema{ .boolean = .{} },
+                .@"struct" => |s| @"struct": {
+                    const schema = if (@hasDecl(T, "jsonSchema") and !force_codegen) try T.jsonSchema(ctx) else blk: {
+                        if (s.is_tuple) @compileError("todo: tuples");
+
+                        var properties: Schema.Object.Properties = .{};
+                        try properties.ensureUnusedCapacity(ctx.allocator, s.fields.len);
+                        var required = try std.ArrayListUnmanaged([]const u8).initCapacity(ctx.allocator, s.fields.len);
+
+                        inline for (s.fields) |field| {
+                            const fieldInfo = @typeInfo(field.type);
+                            const FieldType = if (fieldInfo != .optional) brk: {
+                                if (field.default_value_ptr == null)
+                                    required.appendAssumeCapacity(field.name);
+                                break :brk field.type;
+                            } else fieldInfo.optional.child;
+
+                            if (FieldType != anyopaque and FieldType != *anyopaque) {
+                                var field_schema = try ctx.genSchemaImpl(FieldType, true, false);
+                                if (field.defaultValue()) |default| {
+                                    field_schema.common().default = try toValue(default, ctx);
+                                }
+                                try properties.put(ctx.allocator, field.name, field_schema);
+                            }
+                        }
+
+                        break :blk Schema{ .object = .{
+                            .common = .{},
+                            .properties = properties,
+                            .required = required.items,
+                        } };
+                    };
+
+                    break :@"struct" ctx.maybeAddDefinition(add_def, typename, schema);
+                },
+                .@"enum" => |e| @"enum": {
+                    const schema = if (@hasDecl(T, "jsonSchema") and !force_codegen) try T.jsonSchema(ctx) else blk: {
+                        const fields = try ctx.allocator.alloc([]const u8, e.fields.len);
+                        inline for (0..e.fields.len) |i| {
+                            fields[i] = try ctx.allocator.dupe(u8, e.fields[i].name);
+                        }
+                        break :blk Schema{
+                            .@"enum" = .{ .common = .{}, .@"enum" = fields },
+                        };
+                    };
+                    break :@"enum" ctx.maybeAddDefinition(add_def, typename, schema);
+                },
+                .array => |arr| if (arr.child == u8)
+                    Schema{ .string = .{} }
+                else
+                    Schema{ .array = .{} }, // todo
+                .pointer => |ptr| switch (ptr.size) {
+                    .slice => if (ptr.child == u8)
+                        Schema{ .string = .{} }
+                    else arr: {
+                        const items_schema = try ctx.allocator.create(Schema);
+                        items_schema.* = try ctx.genSchemaImpl(ptr.child, true, false);
+                        break :arr Schema{ .array = .{ .items = items_schema } };
+                    },
+                    else => @compileError("todo: " ++ @typeName(T)),
+                },
+                .optional => |o| ctx.genSchema(o.child),
+                .undefined, .null, .void, .noreturn => |t| {
+                    @compileError("Cannot generate a json schema from type " ++ @tagName(t));
+                },
+                else => @compileError("todo: " ++ @typeName(T)),
+            };
+        }
+
+        fn maybeAddDefinition(self: *Context, add_def: bool, comptime typename: []const u8, schema: Schema) !Schema {
+            return if (add_def and schema != .@"$ref")
+                self.addDefinition(typename, schema)
+            else
+                schema;
+        }
+
+        fn addDefinition(self: *Context, name: []const u8, schema_: Schema) Allocator.Error!Schema {
+            var schema = schema_;
+            const key = if (schema.common().@"$id") |id| brk: {
+                try self.typemap.put(self.allocator, name, id);
+                break :brk id;
+            } else name;
+            const uri = try fmt.allocPrint(self.allocator, Ref.definitions ++ "{s}", .{key});
+            const entry = try self.definitions.getOrPut(self.allocator, key);
+            if (entry.found_existing) panic("duplicate schema definition under key '{s}'", .{key});
+            entry.value_ptr.* = schema;
+            return Schema{ .@"$ref" = .{ .uri = uri } };
+        }
+
+        pub fn ref(self: *Context, T: type) !Schema {
+            const typename = @typeName(T);
+            if (self.typemap.get(typename)) |id| {
+                return Ref.definition(self.allocator, id);
+            }
+            if (self.definitions.getPtr(typename)) |_| {
+                return Ref.definition(self.allocator, typename);
+            }
+            var def = try self.genSchemaImpl(T, false, false);
+            if (def == .@"$ref") {
+                var uri = def.@"$ref".uri;
+                if (mem.startsWith(u8, uri, Ref.definitions)) {
+                    uri = uri[Ref.definitions.len..];
+                }
+                try self.typemap.put(self.allocator, typename, uri);
+                return def;
+            }
+            const key = if (def.common().@"$id") |id| id else typename;
+            try self.typemap.put(self.allocator, typename, key);
+            try self.definitions.put(self.allocator, key, def);
+            return Ref.definition(self.allocator, key);
+        }
+
+        fn getRef(self: *Context, T: type) !?Schema {
+            const typename = @typeName(T);
+            const key: []const u8 = self.typemap.get(typename) orelse if (self.definitions.getPtr(typename)) |_| typename else return null;
+            return try Ref.definition(self.allocator, key);
+        }
+
+        fn jsonObject(self: *Context) ObjectMap {
+            return ObjectMap.init(self.allocator);
+        }
+        fn objectSized(self: *Context, len: usize) Allocator.Error!ObjectMap {
+            var obj = ObjectMap.init(self.allocator);
+            try obj.ensureUnusedCapacity(len);
+            return obj;
+        }
+    };
+
+    pub const Root = struct {
+        common: Common = .{},
+        root: Schema = .{ .object = .{} },
+    };
+
     const Common = struct {
         title: ?[]const u8 = null,
         description: ?[]const u8 = null,
@@ -71,6 +289,15 @@ pub const Schema = union(enum) {
         default: ?Value = null,
         examples: [][]const u8 = &[_][]const u8{},
         extraValues: std.StringHashMapUnmanaged(Value) = .{},
+
+        pub inline fn withTitle(self: *Common, title: []const u8) *Common {
+            self.title = title;
+            return self;
+        }
+        pub inline fn withDescription(self: *Common, description: []const u8) *Common {
+            self.description = description;
+            return self;
+        }
 
         fn toJson(self: *const Common, value: *ObjectMap) Allocator.Error!void {
             if (self.title) |title| try value.put("title", .{ .string = title });
@@ -95,212 +322,25 @@ pub const Schema = union(enum) {
         }
     };
 
-    pub const Root = struct {
-        common: Common = .{},
-        root: Schema,
-        definitions: std.StringHashMapUnmanaged(Schema) = .{},
-        typemap: std.StringHashMapUnmanaged([]const u8) = .{},
-        allocator: Allocator,
-
-        pub fn init(allocator: Allocator) Schema.Root {
-            return Schema.Root{
-                .allocator = allocator,
-                .root = Schema{ .object = .{} },
-            };
-        }
-
-        pub fn from(T: type, allocator: Allocator) Allocator.Error!Schema.Root {
-            var ctx = Schema.Root{
-                .allocator = allocator,
-                .root = undefined,
-            };
-            const root_schema = try genSchemaImpl(&ctx, T, false);
-            ctx.root = root_schema;
-            return ctx;
-        }
-
-        pub fn toJson(self: *Schema.Root) Allocator.Error!json.Value {
-            var schema = try self.root.toJson(self);
-            if (schema == .object) {
-                var obj = &schema.object;
-                try obj.put("$schema", .{ .string = "https://json-schema.org/draft-07/schema#" });
-                if (self.definitions.count() > 0) {
-                    var definitions = self.object();
-                    var it = self.definitions.iterator();
-                    while (it.next()) |entry| {
-                        const key = entry.key_ptr.*;
-                        const def_schema = entry.value_ptr.*;
-                        try definitions.put(key, try def_schema.toJson(self));
-                    }
-                    try obj.put("definitions", .{ .object = definitions });
-                }
-            }
-            return schema;
-        }
-
-        pub fn addSchema(ctx: *Schema.Root, T: type) Allocator.Error!Schema {
-            const schema = try ctx.genSchemaImpl(T, false);
-            _ = try ctx.addDefinition(@typeName(T), schema);
-            return schema;
-        }
-
-        pub fn genSchema(ctx: *Schema.Root, T: type) Allocator.Error!Schema {
-            return genSchemaImpl(ctx, T, false);
-        }
-
-        fn genSchemaImpl(ctx: *Schema.Root, T: type, add_def: bool) Allocator.Error!Schema {
-            const typename = @typeName(T);
-            if (try ctx.getRef(T)) |ref_| return ref_;
-
-            const info = @typeInfo(T);
-            return switch (info) {
-                .comptime_int, .int => Schema{ .int = .{} },
-                .comptime_float, .float => Schema{ .number = .{} },
-                .bool => Schema{ .boolean = .{} },
-                .@"struct" => |s| @"struct": {
-                    const schema = if (@hasDecl(T, "jsonSchema")) try T.jsonSchema(ctx) else blk: {
-                        if (s.is_tuple) @compileError("todo: tuples");
-
-                        var properties: Schema.Object.Properties = .{};
-                        try properties.ensureUnusedCapacity(ctx.allocator, s.fields.len);
-                        var required = try std.ArrayListUnmanaged([]const u8).initCapacity(ctx.allocator, s.fields.len);
-
-                        inline for (s.fields) |field| {
-                            const fieldInfo = @typeInfo(field.type);
-                            const FieldType = if (fieldInfo != .optional) brk: {
-                                if (field.default_value_ptr == null)
-                                    required.appendAssumeCapacity(field.name);
-                                break :brk field.type;
-                            } else fieldInfo.optional.child;
-
-                            if (FieldType != anyopaque and FieldType != *anyopaque) {
-                                var field_schema = try ctx.genSchemaImpl(FieldType, true);
-                                if (field.defaultValue()) |default| {
-                                    const F = @TypeOf(default);
-                                    field_schema.common().default = try toValue(F, default, ctx);
-                                }
-                                try properties.put(ctx.allocator, field.name, field_schema);
-                            }
-                        }
-
-                        break :blk Schema{ .object = .{
-                            .common = .{},
-                            .properties = properties,
-                            .required = required.items,
-                        } };
-                    };
-
-                    break :@"struct" ctx.maybeAddDefinition(add_def, typename, schema);
-                },
-                .@"enum" => |e| @"enum": {
-                    const schema = if (@hasDecl(T, "jsonSchema")) try T.jsonSchema(ctx) else blk: {
-                        const fields = try ctx.allocator.alloc([]const u8, e.fields.len);
-                        inline for (0..e.fields.len) |i| {
-                            fields[i] = try ctx.allocator.dupe(u8, e.fields[i].name);
-                        }
-                        break :blk Schema{
-                            .@"enum" = .{ .common = .{}, .@"enum" = fields },
-                        };
-                    };
-                    break :@"enum" ctx.maybeAddDefinition(add_def, typename, schema);
-                },
-                .array => |arr| if (arr.child == u8)
-                    Schema{ .string = .{} }
-                else
-                    Schema{ .array = .{} }, // todo
-                .pointer => |ptr| switch (ptr.size) {
-                    .slice => if (ptr.child == u8)
-                        Schema{ .string = .{} }
-                    else arr: {
-                        const items_schema = try ctx.allocator.create(Schema);
-                        items_schema.* = try ctx.genSchemaImpl(ptr.child, true);
-                        break :arr Schema{ .array = .{ .items = items_schema } };
-                    },
-                    else => @compileError("todo: " ++ @typeName(T)),
-                },
-                .optional => |o| ctx.genSchema(o.child),
-                .undefined, .null, .void, .noreturn => |t| {
-                    @compileError("Cannot generate a json schema from type " ++ @tagName(t));
-                },
-                else => @compileError("todo: " ++ @typeName(T)),
-            };
-        }
-
-        fn maybeAddDefinition(self: *Root, add_def: bool, comptime typename: []const u8, schema: Schema) !Schema {
-            return if (add_def and schema != .@"$ref")
-                self.addDefinition(typename, schema)
-            else
-                schema;
-        }
-
-        fn addDefinition(self: *Root, name: []const u8, schema_: Schema) Allocator.Error!Schema {
-            var schema = schema_;
-            const key = if (schema.common().@"$id") |id| brk: {
-                try self.typemap.put(self.allocator, name, id);
-                break :brk id;
-            } else name;
-            const uri = try fmt.allocPrint(self.allocator, Ref.definitions ++ "{s}", .{key});
-            const entry = try self.definitions.getOrPut(self.allocator, key);
-            if (entry.found_existing) panic("duplicate schema definition under key '{s}'", .{key});
-            entry.value_ptr.* = schema;
-            return Schema{ .@"$ref" = .{ .uri = uri } };
-        }
-
-        pub fn ref(self: *Root, T: type) !Schema {
-            const typename = @typeName(T);
-            if (self.typemap.get(typename)) |id| {
-                return Ref.definition(self.allocator, id);
-            }
-            if (self.definitions.getPtr(typename)) |_| {
-                return Ref.definition(self.allocator, typename);
-            }
-            var def = try self.genSchemaImpl(T, false);
-            if (def == .@"$ref") {
-                var uri = def.@"$ref".uri;
-                if (mem.startsWith(u8, uri, Ref.definitions)) {
-                    uri = uri[Ref.definitions.len..];
-                }
-                try self.typemap.put(self.allocator, typename, uri);
-                return def;
-            }
-            const key = if (def.common().@"$id") |id| id else typename;
-            try self.typemap.put(self.allocator, typename, key);
-            try self.definitions.put(self.allocator, key, def);
-            return Ref.definition(self.allocator, key);
-        }
-
-        fn getRef(self: *Root, T: type) !?Schema {
-            const typename = @typeName(T);
-            const key: []const u8 = self.typemap.get(typename) orelse if (self.definitions.getPtr(typename)) |_| typename else return null;
-            return try Ref.definition(self.allocator, key);
-        }
-
-        fn object(self: *Root) ObjectMap {
-            return ObjectMap.init(self.allocator);
-        }
-
-        fn objectSized(self: *Root, len: usize) Allocator.Error!ObjectMap {
-            var obj = ObjectMap.init(self.allocator);
-            try obj.ensureUnusedCapacity(len);
-            return obj;
-        }
-
-        fn array(self: *Root, len: usize) Allocator.Error!json.Array {
-            var arr = json.Array.init(self.allocator);
-            try arr.ensureTotalCapacityPrecise(len);
-            return arr;
-        }
-    };
-
-    pub fn Number(Num: type) type {
+    pub const Integer = Number(i32);
+    pub const Float = Number(f32);
+    fn Number(Num: type) type {
         // todo: exclusive minimum/maximum
         return struct {
             common: Common = .{},
             min: ?Num = null,
             max: ?Num = null,
 
-            fn toJson(self: *const @This(), ctx: *Schema.Root) Allocator.Error!json.Value {
-                var value = ctx.object();
+            pub fn schema(min: ?Num, max: ?Num) Schema {
+                return switch (@typeInfo(Num)) {
+                    .int, .comptime_int => Schema{ .int = .{ .min = min, .max = max } },
+                    .float, .comptime_float => Schema{ .number = .{ .min = min, .max = max } },
+                    else => unreachable,
+                };
+            }
+
+            fn toJson(self: *const @This(), ctx: *Schema.Context) Allocator.Error!json.Value {
+                var value = ctx.jsonObject();
                 switch (@typeInfo(Num)) {
                     .int, .comptime_int => {
                         try value.put("type", Value{ .string = "integer" });
@@ -322,8 +362,13 @@ pub const Schema = union(enum) {
 
     pub const Boolean = struct {
         common: Common = .{},
-        fn toJson(self: *const Boolean, ctx: *Schema.Root) Allocator.Error!json.Value {
-            var value = ctx.object();
+
+        pub fn schema() Schema {
+            return Schema{ .boolean = .{} };
+        }
+
+        fn toJson(self: *const Boolean, ctx: *Schema.Context) Allocator.Error!json.Value {
+            var value = ctx.jsonObject();
             try value.put("type", Value{ .string = "boolean" });
             try self.common.toJson(&value);
 
@@ -368,8 +413,12 @@ pub const Schema = union(enum) {
             regex,
         };
 
-        fn toJson(self: *const String, ctx: *Schema.Root) Allocator.Error!json.Value {
-            var value = ctx.object();
+        pub fn schema() Schema {
+            return Schema{ .string = .{} };
+        }
+
+        fn toJson(self: *const String, ctx: *Schema.Context) Allocator.Error!json.Value {
+            var value = ctx.jsonObject();
             try value.put("type", .{ .string = "string" });
             try self.common.toJson(&value);
             if (self.minLength) |min| try value.put("minLength", .{ .integer = min });
@@ -385,9 +434,14 @@ pub const Schema = union(enum) {
         common: Common = .{},
         @"enum": []const []const u8,
 
-        fn toJson(self: *const Enum, ctx: *Schema.Root) Allocator.Error!json.Value {
-            var value = ctx.object();
-            try value.put("type", .{ .string = "enum" });
+        pub fn schema(variants: []const []const u8) Schema {
+            return Schema{ .@"enum" = .{ .@"enum" = variants } };
+        }
+
+        fn toJson(self: *const Enum, ctx: *Schema.Context) Allocator.Error!json.Value {
+            var value = ctx.jsonObject();
+            try value.put("type", .{ .string = "string" });
+            try value.put("enum", try toValue(self.@"enum", ctx) orelse unreachable);
             try self.common.toJson(&value);
 
             return .{ .object = value };
@@ -398,8 +452,12 @@ pub const Schema = union(enum) {
         common: Common = .{},
         items: ?*Schema = null,
 
-        fn toJson(self: *const Array, ctx: *Schema.Root) Allocator.Error!json.Value {
-            var value = ctx.object();
+        pub fn schema(items: *Schema) Schema {
+            return Schema{ .array = .{ .items = items } };
+        }
+
+        fn toJson(self: *const Array, ctx: *Schema.Context) Allocator.Error!json.Value {
+            var value = ctx.jsonObject();
             try value.put("type", .{ .string = "array" });
             try self.common.toJson(&value);
             if (self.items) |items| {
@@ -417,8 +475,12 @@ pub const Schema = union(enum) {
 
         const Properties = std.StringHashMapUnmanaged(Schema);
 
-        fn toJson(self: *const Object, ctx: *Schema.Root) Allocator.Error!json.Value {
-            var value = ctx.object();
+        pub fn schema() Schema {
+            return Schema{ .object = .{} };
+        }
+
+        fn toJson(self: *const Object, ctx: *Schema.Context) Allocator.Error!json.Value {
+            var value = ctx.jsonObject();
             try value.put("type", .{ .string = "object" });
             try self.common.toJson(&value);
 
@@ -426,8 +488,7 @@ pub const Schema = union(enum) {
             var it = self.properties.iterator();
             while (it.next()) |entry| {
                 const key = entry.key_ptr.*;
-                const schema = entry.value_ptr.*;
-                try properties.put(key, try schema.toJson(ctx));
+                try properties.put(key, try entry.value_ptr.toJson(ctx));
             }
             try value.put("properties", .{ .object = properties });
 
@@ -456,8 +517,8 @@ pub const Schema = union(enum) {
             return .{ .@"$ref" = Ref{ .uri = uri } };
         }
 
-        fn toJson(self: *const Ref, ctx: *Schema.Root) Allocator.Error!json.Value {
-            var value = ctx.object();
+        fn toJson(self: *const Ref, ctx: *Schema.Context) Allocator.Error!json.Value {
+            var value = ctx.jsonObject();
             try value.put("$ref", .{ .string = self.uri });
             try self.common.toJson(&value);
             return .{ .object = value };
@@ -473,8 +534,18 @@ pub const Schema = union(enum) {
             one_of: []const Schema,
         };
 
-        pub fn toJson(self: *const Compound, ctx: *Schema.Root) Allocator.Error!json.Value {
-            var value = ctx.object();
+        pub fn oneOf(schemas: []const Schema) Schema {
+            return Schema{ .compound = .{ .kind = .{ .one_of = schemas } } };
+        }
+        pub fn allOf(schemas: []const Schema) Schema {
+            return Schema{ .compound = .{ .kind = .{ .all_of = schemas } } };
+        }
+        pub fn anyOf(schemas: []const Schema) Schema {
+            return Schema{ .compound = .{ .kind = .{ .any_of = schemas } } };
+        }
+
+        fn toJson(self: *const Compound, ctx: *Schema.Context) Allocator.Error!json.Value {
+            var value = ctx.jsonObject();
             try self.common.toJson(&value);
             const key: []const u8, const schemalist = switch (self.kind) {
                 .all_of => |l| .{ "allOf", l },
@@ -492,7 +563,11 @@ pub const Schema = union(enum) {
     };
 };
 
-fn toValue(T: type, value: T, ctx: *Schema.Root) Allocator.Error!?Value {
+fn toValue(value: anytype, ctx: *Schema.Context) Allocator.Error!?Value {
+    return toValueT(@TypeOf(value), value, ctx);
+}
+
+fn toValueT(T: type, value: T, ctx: *Schema.Context) Allocator.Error!?Value {
     const info = @typeInfo(T);
     return switch (info) {
         .comptime_int, .int => Value{ .integer = value },
@@ -504,7 +579,7 @@ fn toValue(T: type, value: T, ctx: *Schema.Root) Allocator.Error!?Value {
             inline for (s.fields) |field| {
                 const field_value: Value = switch (field.type) {
                     *anyopaque => .{ .bool = true },
-                    else => try toValue(field.type, @field(value, field.name), ctx) orelse return null,
+                    else => try toValueT(field.type, @field(value, field.name), ctx) orelse return null,
                 };
                 try obj.put(field.name, field_value);
             }
@@ -513,7 +588,7 @@ fn toValue(T: type, value: T, ctx: *Schema.Root) Allocator.Error!?Value {
         .array => |array| array: {
             var arr = try ctx.array(array.len);
             for (array) |item| {
-                try arr.appendAssumeCapacity(try toValue(
+                try arr.appendAssumeCapacity(try toValueT(
                     array.child,
                     item,
                     ctx,
@@ -525,7 +600,7 @@ fn toValue(T: type, value: T, ctx: *Schema.Root) Allocator.Error!?Value {
             .slice => if (ptr.child == u8) Value{ .string = value } else array: {
                 var arr = try ctx.array(value.len);
                 for (value) |item| {
-                    arr.appendAssumeCapacity(try toValue(
+                    arr.appendAssumeCapacity(try toValueT(
                         ptr.child,
                         item,
                         ctx,
@@ -533,10 +608,10 @@ fn toValue(T: type, value: T, ctx: *Schema.Root) Allocator.Error!?Value {
                 }
                 break :array Value{ .array = arr };
             },
-            .one => toValue(ptr.child, value.*, ctx),
+            .one => toValueT(ptr.child, value.*, ctx),
             else => @panic("todo: " ++ @typeName(T)),
         },
-        .optional => |o| toValue(o.child, value, ctx),
+        .optional => |o| toValueT(o.child, value, ctx),
         // .@"enum" =>
         .undefined, .void, .noreturn => |t| {
             @compileError("Cannot generate a json value from type " ++ @tagName(t));
@@ -550,8 +625,9 @@ test {
     defer arena.deinit();
     const allocator = arena.allocator();
     const Config = @import("linter/Config.zig");
-    var schema = try Schema.Root.from(Config, allocator);
+    var ctx = Schema.Context.init(allocator);
+    const root = try ctx.genSchema(Config);
 
-    const j = try schema.toJson();
+    const j = try ctx.toJson(root);
     j.dump();
 }

@@ -97,16 +97,18 @@ pub const Severity = enum {
         }
     }
 
-    pub fn jsonSchema(ctx: *Schema.Root) !Schema {
-        const numeric = Schema{
-            .int = .{ .min = 0, .max = 2 },
-        };
-        const str = Schema{ .@"enum" = Schema.Enum{
-            .@"enum" = severity_map.keys(),
-        } };
+    pub fn jsonSchema(ctx: *Schema.Context) !Schema {
+        const numeric = Schema.Integer.schema(0, 2);
+        const str = Schema.Enum.schema(severity_map.keys());
 
-        const schemas = try ctx.allocator.dupe(Schema, &[_]Schema{ numeric, str });
-        return Schema.oneOf(schemas);
+        var schema = try ctx.oneOf(&[_]Schema{ numeric, str });
+        _ = schema.common()
+            .withTitle("Severity")
+            .withDescription(
+            \\Set the error level of a rule. 'off' and 'allow' do the same thing.
+        );
+        _ = &schema;
+        return schema;
     }
 };
 

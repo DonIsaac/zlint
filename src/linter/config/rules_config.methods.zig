@@ -2,6 +2,7 @@ const std = @import("std");
 const json = std.json;
 const meta = std.meta;
 const mem = std.mem;
+const Schema = @import("../../json.zig").Schema;
 
 const Allocator = std.mem.Allocator;
 
@@ -44,6 +45,18 @@ pub fn RulesConfigMethods(RulesConfig: type) type {
             assert(end == .object_end);
 
             return config;
+        }
+
+        pub fn jsonSchema(ctx: *Schema.Context) !Schema {
+            const info = @typeInfo(RulesConfig).@"struct";
+            var obj = try ctx.object(info.fields.len);
+            inline for (info.fields) |field| {
+                const Rule = field.type;
+                obj.properties.putAssumeCapacityNoClobber(Rule.name, try Rule.jsonSchema(ctx));
+            }
+            obj.common.description = "Configure which rules are enabled and how.";
+
+            return .{ .object = obj };
         }
     };
 }

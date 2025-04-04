@@ -25,7 +25,7 @@ pub fn RuleConfig(RuleImpl: type) type {
             return Self{ .severity = severity, .rule_impl = rule_impl };
         }
 
-        pub fn jsonSchema(ctx: *Schema.Root) !Schema {
+        pub fn jsonSchema(ctx: *Schema.Context) !Schema {
             return ctx.ref(Severity);
         }
 
