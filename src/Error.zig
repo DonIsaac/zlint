@@ -110,6 +110,15 @@ pub const Severity = enum {
         _ = &schema;
         return schema;
     }
+
+    pub fn asSlice(self: Severity) []const u8 {
+        switch (self) {
+            .err => return "error",
+            .warning => return "warn",
+            .notice => return "notice",
+            .off => return "off",
+        }
+    }
 };
 
 /// Results hold a value and a list of errors. Useful for error-recoverable

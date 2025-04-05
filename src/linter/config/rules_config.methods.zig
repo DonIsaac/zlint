@@ -56,7 +56,9 @@ pub fn RulesConfigMethods(RulesConfig: type) type {
             var obj = try ctx.object(info.fields.len);
             inline for (info.fields) |field| {
                 const Rule = field.type;
-                obj.properties.putAssumeCapacityNoClobber(Rule.name, try Rule.jsonSchema(ctx));
+                var prop_schema: Schema = try Rule.jsonSchema(ctx);
+                prop_schema.common().default = .{ .string = Rule.meta.default.asSlice() };
+                obj.properties.putAssumeCapacityNoClobber(Rule.name, prop_schema);
             }
             obj.common.description = "Configure which rules are enabled and how.";
 
