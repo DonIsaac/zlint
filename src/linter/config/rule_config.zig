@@ -8,13 +8,14 @@ const Schema = @import("../../json.zig").Schema;
 const ParseError = json.ParseError(json.Scanner);
 
 pub fn RuleConfig(RuleImpl: type) type {
-    const DEFAULT: RuleImpl = .{};
     return struct {
         severity: Severity = .off,
         // FIXME: unsafe const cast
-        rule_impl: *anyopaque = @ptrCast(@constCast(&DEFAULT)),
+        rule_impl: *anyopaque = @ptrCast(@constCast(&default)),
 
         pub const name = RuleImpl.meta.name;
+        pub const meta: Rule.Meta = RuleImpl.meta;
+        pub const default: RuleImpl = .{};
         const Self = @This();
 
         pub fn jsonParse(allocator: Allocator, source: *json.Scanner, options: json.ParseOptions) ParseError!Self {
@@ -49,14 +50,19 @@ pub fn RuleConfig(RuleImpl: type) type {
 
         pub fn jsonSchema(ctx: *Schema.Context) !Schema {
             const severity = try ctx.ref(Severity);
-            const rule_config = try ctx.ref(RuleImpl);
-            if (rule_config == .object and rule_config.object.properties.count() == 0) {
-                return severity;
-            }
-            var config_schema = try ctx.tuple([_]Schema{ severity, rule_config });
-            try config_schema.common().extra_values.put(ctx.allocator, "items", json.Value{ .bool = false });
+            var rule_config = try ctx.ref(RuleImpl);
+            rule_config.@"$ref".resolve(ctx).?.common().title = try std.fmt.allocPrint(ctx.allocator, "{s} config", .{RuleImpl.meta.name});
 
-            const schema = try ctx.oneOf(&[_]Schema{ severity, config_schema });
+            const schema = if (rule_config == .object and rule_config.object.properties.count() == 0)
+                severity
+            else compound: {
+                var config_schema = try ctx.tuple([_]Schema{ severity, rule_config });
+                var common = config_schema.common();
+                try common.extra_values.put(ctx.allocator, "items", json.Value{ .bool = false });
+
+                break :compound try ctx.oneOf(&[_]Schema{ severity, config_schema });
+            };
+
             return schema;
         }
 
