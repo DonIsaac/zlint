@@ -7,7 +7,6 @@ const Schema = @import("../../json.zig").Schema;
 
 const ParseError = json.ParseError(json.Scanner);
 
-// TODO: per-rule configuration objects.
 pub fn RuleConfig(RuleImpl: type) type {
     const DEFAULT: RuleImpl = .{};
     return struct {
@@ -55,7 +54,7 @@ pub fn RuleConfig(RuleImpl: type) type {
                 return severity;
             }
             var config_schema = try ctx.tuple([_]Schema{ severity, rule_config });
-            try config_schema.common().extraValues.put(ctx.allocator, "items", json.Value{ .bool = false });
+            try config_schema.common().extra_values.put(ctx.allocator, "items", json.Value{ .bool = false });
 
             const schema = try ctx.oneOf(&[_]Schema{ severity, config_schema });
             return schema;

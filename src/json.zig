@@ -230,6 +230,16 @@ pub const Schema = union(enum) {
             };
         }
 
+        pub fn getSchema(ctx: *Schema.Context, T: type) ?*Schema {
+            const typename = @typeName(T);
+            if (ctx.definitions.getPtr(typename)) |schema| return schema;
+            if (ctx.typemap.get(typename)) |id| {
+                return ctx.definitions.getPtr(id);
+            }
+
+            return null;
+        }
+
         fn maybeAddDefinition(self: *Context, add_def: bool, comptime typename: []const u8, schema: Schema) !Schema {
             return if (add_def and schema != .@"$ref")
                 (try self.addDefinition(typename, schema)).ref
@@ -311,7 +321,7 @@ pub const Schema = union(enum) {
         @"$id": ?[]const u8 = null,
         default: ?Value = null,
         examples: [][]const u8 = &[_][]const u8{},
-        extraValues: std.StringHashMapUnmanaged(Value) = .{},
+        extra_values: std.StringHashMapUnmanaged(Value) = .{},
 
         pub inline fn withTitle(self: *Common, title: []const u8) *Common {
             self.title = title;
@@ -337,8 +347,8 @@ pub const Schema = union(enum) {
                 ex.value_ptr.* = .{ .array = arr };
             }
 
-            var it = self.extraValues.iterator();
-            try value.ensureUnusedCapacity(self.extraValues.count());
+            var it = self.extra_values.iterator();
+            try value.ensureUnusedCapacity(self.extra_values.count());
             while (it.next()) |entry| {
                 try value.put(entry.key_ptr.*, entry.value_ptr.*);
             }
@@ -550,7 +560,7 @@ pub const Schema = union(enum) {
         uri: []const u8,
 
         const definitions = "#/definitions/";
-        fn definition(allocator: Allocator, relative_uri: []const u8) Allocator.Error!Schema {
+        pub fn definition(allocator: Allocator, relative_uri: []const u8) Allocator.Error!Schema {
             const uri = if (@inComptime())
                 definitions ++ relative_uri
             else
@@ -558,13 +568,12 @@ pub const Schema = union(enum) {
             return .{ .@"$ref" = Ref{ .uri = uri } };
         }
 
-        pub fn resolve(self: *const Ref, ctx: *Schema.Context) *Schema {
+        pub fn resolve(self: *const Ref, ctx: *Schema.Context) ?*Schema {
             if (mem.startsWith(u8, self.uri, definitions)) {
                 const key = self.uri[definitions.len..];
                 return ctx.definitions.getPtr(key) orelse @panic("could not resolve reference");
             }
-            // @panic("todo");
-            return undefined;
+            return null;
         }
 
         fn toJson(self: *const Ref, ctx: *Schema.Context) Allocator.Error!json.Value {
