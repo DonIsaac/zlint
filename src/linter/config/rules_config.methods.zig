@@ -15,7 +15,11 @@ const ParseError = json.ParseError(json.Scanner);
 pub fn RulesConfigMethods(RulesConfig: type) type {
     return struct {
         /// See: `std.json.parseFromTokenSource()`
-        pub fn jsonParse(allocator: Allocator, source: *json.Scanner, options: json.ParseOptions) !RulesConfig {
+        pub fn jsonParse(
+            allocator: Allocator,
+            source: *json.Scanner,
+            options: json.ParseOptions,
+        ) !RulesConfig {
             var config = RulesConfig{};
 
             // eat '{'

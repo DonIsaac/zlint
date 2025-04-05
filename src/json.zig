@@ -561,7 +561,6 @@ pub const Schema = union(enum) {
         pub fn resolve(self: *const Ref, ctx: *Schema.Context) *Schema {
             if (mem.startsWith(u8, self.uri, definitions)) {
                 const key = self.uri[definitions.len..];
-                std.debug.print("{s}\n", .{key});
                 return ctx.definitions.getPtr(key) orelse @panic("could not resolve reference");
             }
             // @panic("todo");
@@ -659,7 +658,6 @@ fn toValueT(T: type, value: T, ctx: *Schema.Context) Allocator.Error!?Value {
             else => @panic("todo: " ++ @typeName(T)),
         },
         .optional => |o| toValueT(o.child, value, ctx),
-        // .@"enum" =>
         .undefined, .void, .noreturn => |t| {
             @compileError("Cannot generate a json value from type " ++ @tagName(t));
         },
@@ -675,6 +673,5 @@ test {
     var ctx = Schema.Context.init(allocator);
     const root = try ctx.genSchema(Config);
 
-    const j = try ctx.toJson(root);
-    j.dump();
+    _ = try ctx.toJson(root);
 }

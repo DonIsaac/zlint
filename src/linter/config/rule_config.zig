@@ -32,6 +32,7 @@ pub fn RuleConfig(RuleImpl: type) type {
                     const severity = try Severity.jsonParse(allocator, source, options);
                     const rule_impl = try allocator.create(RuleImpl);
                     if (try source.peekNextTokenType() == .array_end) {
+                        _ = try source.next();
                         rule_impl.* = .{};
                     } else {
                         rule_impl.* = try json.innerParse(RuleImpl, allocator, source, options);

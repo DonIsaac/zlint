@@ -125,6 +125,28 @@ test "RulesConfig.jsonParse" {
             .homeless_try = .{ .severity = Severity.err },
         },
     );
+    try testConfig(
+        \\{ "unsafe-undefined": ["error"] }
+    ,
+        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err } },
+    );
+    try testConfig(
+        \\{ "unsafe-undefined": ["error", {}] }
+    ,
+        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err } },
+    );
+    try testConfig(
+        \\{ "unsafe-undefined": ["error", { "allow_arrays": true }] }
+    ,
+        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err } },
+    );
+    var cfg = all_rules.UnsafeUndefined{ .allow_arrays = false };
+    try testConfig(
+        \\{ "unsafe-undefined": ["error", { "allow_arrays": false }] }
+    ,
+        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err, .rule_impl = @ptrCast(&cfg) } },
+    );
+
     {
         var scanner = json.Scanner.initCompleteInput(t.allocator,
             \\{ "no-undefined": "allow" }
