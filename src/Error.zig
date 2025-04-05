@@ -96,6 +96,20 @@ pub const Severity = enum {
             else => return ParseError.UnexpectedToken,
         }
     }
+
+    pub fn jsonSchema(ctx: *Schema.Context) !Schema {
+        const numeric = Schema.Integer.schema(0, 2);
+        const str = Schema.Enum.schema(severity_map.keys());
+
+        var schema = try ctx.oneOf(&[_]Schema{ numeric, str });
+        _ = schema.common()
+            .withTitle("Severity")
+            .withDescription(
+            \\Set the error level of a rule. 'off' and 'allow' do the same thing.
+        );
+        _ = &schema;
+        return schema;
+    }
 };
 
 /// Results hold a value and a list of errors. Useful for error-recoverable
@@ -184,6 +198,7 @@ const json = std.json;
 const ptrs = @import("smart-pointers");
 const util = @import("util");
 const _span = @import("span.zig");
+const Schema = @import("json.zig").Schema;
 
 const Allocator = std.mem.Allocator;
 const Arc = ptrs.Arc;

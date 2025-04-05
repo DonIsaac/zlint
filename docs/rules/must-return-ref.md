@@ -54,3 +54,7 @@ fn foo() ArenaAllocator {
   return std.mem.ArenaAllocator.init(std.heap.page_allocator);
 }
 ```
+
+## Configuration
+
+This rule has no configuration.

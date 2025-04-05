@@ -41,8 +41,7 @@ _node_stack: std.ArrayListUnmanaged(NodeIndex) = .{},
 /// We try to resolve these each time a scope is exited.
 _unresolved_references: ReferenceStack = .{},
 
-/// SAFETY: initialized after parsing.
-_semantic: Semantic = undefined,
+_semantic: Semantic,
 /// Errors encountered during parsing and analysis.
 ///
 /// Errors in this list are allocated using this list's allocator.
@@ -67,6 +66,8 @@ pub const SemanticError = error{
 pub fn init(gpa: Allocator) SemanticBuilder {
     return .{
         ._gpa = gpa,
+        // SAFETY: initialized after parsing
+        ._semantic = undefined,
         ._arena = ArenaAllocator.init(gpa),
     };
 }
@@ -1136,15 +1137,16 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
         .flags = flags,
     });
 
-    var fn_signature_implies_comptime = false;
-    const tags: []const Node.Tag = ast.nodes.items(.tag);
-    for (proto.ast.params) |param_id| {
-        if (tags[param_id] == .@"comptime") {
-            fn_signature_implies_comptime = true;
-            break;
+    var fn_signature_implies_comptime = mem.eql(u8, ast.getNodeSource(proto.ast.return_type), "type");
+    if (!fn_signature_implies_comptime) {
+        const tags: []const Node.Tag = ast.nodes.items(.tag);
+        for (proto.ast.params) |param_id| {
+            if (tags[param_id] == .@"comptime") {
+                fn_signature_implies_comptime = true;
+                break;
+            }
         }
     }
-    fn_signature_implies_comptime = fn_signature_implies_comptime or mem.eql(u8, ast.getNodeSource(proto.ast.return_type), "type");
 
     // parameters are in a new scope b/c other symbols in the same scope as
     // the declared fn cannot access them.
@@ -1237,7 +1239,11 @@ fn enterRoot(self: *SemanticBuilder) !void {
         Semantic.ROOT_NODE_ID,
         .{ .s_top = true },
     );
-    util.assert(root_scope_id == Semantic.ROOT_SCOPE_ID, "Creating root scope returned id {d} which is not the expected root id ({d})", .{ root_scope_id, Semantic.ROOT_SCOPE_ID });
+    util.assert(
+        root_scope_id == Semantic.ROOT_SCOPE_ID,
+        "Creating root scope returned id {d} which is not the expected root id ({d})",
+        .{ root_scope_id, Semantic.ROOT_SCOPE_ID },
+    );
 
     // SemanticBuilder.init() allocates enough space for 8 scopes.
     self._scope_stack.appendAssumeCapacity(root_scope_id);
@@ -1254,7 +1260,11 @@ fn enterRoot(self: *SemanticBuilder) !void {
         .debug_name = "@This()",
         .flags = .{ .s_const = true },
     });
-    util.assert(root_symbol_id.int() == 0, "Creating root symbol returned id {d} which is not the expected root id (0)", .{root_symbol_id});
+    util.assert(
+        root_symbol_id.int() == 0,
+        "Creating root symbol returned id {d} which is not the expected root id (0)",
+        .{root_symbol_id},
+    );
     try self.enterContainerSymbol(root_symbol_id);
 }
 
@@ -1366,6 +1376,7 @@ inline fn exitNode(self: *SemanticBuilder) void {
 ///
 /// Should only be run in debug builds.
 fn _checkForNodeLoop(self: *SemanticBuilder, node_id: NodeIndex) void {
+    comptime assert(IS_DEBUG);
     var is_loop = false;
     for (self._node_stack.items) |id| {
         if (node_id == id) {
@@ -1496,12 +1507,15 @@ inline fn takeReferenceFlags(self: *SemanticBuilder) Reference.Flags {
 const CreateReference = struct {
     /// Defaults to current node
     node: ?NodeIndex = null,
+    /// Defaults to `.main_token` for the `node`, which must be a `.identifier`
+    /// token. No checks are performed when `token` is provided.
     token: ?TokenIndex = null,
     /// Defaults to current scope
     scope: ?Scope.Id = null,
     /// If `null`, will be added to unresolved reference list. The builder will
     /// attempt to resolve it later, as it progresses with the walk.
     symbol: ?Symbol.Id = null,
+    /// Merged with current reference flags
     flags: Reference.Flags = .{},
 };
 
@@ -1549,7 +1563,6 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
     const names = self.symbolTable().symbols.items(.name);
     const bindings: []const Symbol.Id = self.scopeTree().getBindings(self.currentScope());
     var references = self.symbolTable().references;
-    // const ref_tokens: []TokenIndex = references.items(.identifier);
     const ref_names: []const []const u8 = references.items(.identifier);
     const ref_symbols: []Symbol.Id.Optional = self.symbolTable().references.items(.symbol);
     const symbol_refs = self.symbolTable().symbols.items(.references);
@@ -1597,7 +1610,8 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
             // want the last frame to exist so we can move it to the list of
             // unresolved references in the symbol table
             curr.deinit(self._gpa);
-            _ = self._unresolved_references.frames.pop();
+            const last = self._unresolved_references.frames.pop();
+            assert(last != null);
         } else {
             const temp = try self._gpa.dupe(Reference.Id, curr.items);
             defer self._gpa.free(temp);
@@ -1796,9 +1810,7 @@ fn addAstError(self: *SemanticBuilder, ast: *const Ast, ast_err: Ast.Error) Allo
     {
         const byte_offset: Ast.ByteOffset = ast.tokens.items(.start)[ast_err.token];
         const loc = ast.tokenLocation(byte_offset, ast_err.token);
-        const span = LabeledSpan{
-            .span = .{ .start = @intCast(loc.line_start), .end = @intCast(loc.line_end) },
-        };
+        const span = LabeledSpan.unlabeled(@intCast(loc.line_start), @intCast(loc.line_end));
         try err.labels.ensureTotalCapacityPrecise(self._gpa, 1);
         err.labels.appendAssumeCapacity(span);
     }

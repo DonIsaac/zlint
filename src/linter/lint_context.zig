@@ -126,6 +126,7 @@ pub fn diagnostic(
     e.labels.appendSliceAssumeCapacity(&spans);
     return e;
 }
+
 /// Create a new `Error` with a formatted message
 pub fn diagnosticf(self: *Context, comptime template: []const u8, args: anytype, spans: anytype) Error {
     var e = Error.fmt(self.gpa, template, args) catch @panic("OOM");
@@ -179,7 +180,9 @@ pub fn reportWithFix(
     if (comptime util.IS_DEBUG and @import("builtin").is_test) {
         util.assert(
             !self.curr_fix_capabilities.isDisabled(),
-            "Rule '{s}' just provided an auto-fix without advertising auto-fix capabilities in its `Meta`. Please update your rule's `meta.fix` field.",
+            "Rule '{s}' just provided an auto-fix without advertising " ++
+                "auto-fix capabilities in its `Meta`. Please update your " ++
+                "rule's `meta.fix` field.",
             .{self.curr_rule_name},
         );
     }

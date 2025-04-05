@@ -9,7 +9,12 @@ pub const Options = struct {
     verbose: bool = false,
 };
 
-pub fn new(printer: *Printer, opts: Options, source: Source, ast: *const Ast) AstPrinter {
+pub fn new(
+    printer: *Printer,
+    opts: Options,
+    source: Source,
+    ast: *const Ast,
+) AstPrinter {
     return .{
         .opts = opts,
         .source = source,
@@ -132,11 +137,9 @@ fn printVarDecl(self: *AstPrinter, node: Node, var_decl: Ast.full.VarDecl) !void
 
     const ident = self.ast.tokenSlice(identifier_tok_id);
     try self.printer.pPropStr("ident", ident);
-    // const decl = ast.fullVarDecl(node_id) orelse unreachable;
     try self.printer.pPropJson("data", var_decl);
     inline for (std.meta.fields(Ast.full.VarDecl.Components)) |field| {
         if (std.mem.indexOf(u8, field.name, "_node")) |node_suffix_index| {
-            // std.debug.print("{any}\n", .{node_suffix_index});
             const name: []const u8 = field.name[0..node_suffix_index];
             const node_id = @field(var_decl.ast, field.name);
             try self.printer.pPropName(name);
@@ -147,7 +150,6 @@ fn printVarDecl(self: *AstPrinter, node: Node, var_decl: Ast.full.VarDecl) !void
 
 fn printCall(self: *AstPrinter, _: Node, call: Ast.full.Call) !void {
     try self.printer.pProp("async_token", "{any}", call.async_token);
-    //     try self.printPropNode("fn_node", call.ast.fn_expr);
     try self.printPropNodeArray("params", call.ast.params);
 }
 
@@ -179,8 +181,6 @@ fn printPropNodeArray(self: *AstPrinter, key: []const u8, nodes: []const NodeId)
     try self.printer.pPropName(key);
     try self.printer.pushArray(true);
     defer self.printer.pop();
-
-    // try self.printer.pPropName(key);
 
     for (nodes) |node| {
         try self.printAstNode(node);

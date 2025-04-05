@@ -84,7 +84,6 @@ pub const Linter = struct {
 
         var ctx = Context.init(self.gpa, semantic, source);
         defer ctx.deinit();
-        // if (self.options.fix) ctx.fix = Fix.Meta.safe_fix;
         ctx.fix = self.options.fix;
         const nodes = ctx.semantic.ast.nodes;
         assert(nodes.len < std.math.maxInt(u32));

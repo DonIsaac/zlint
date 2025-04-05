@@ -44,3 +44,7 @@ fn bar() !void {
   return foo();
 }
 ```
+
+## Configuration
+
+This rule has no configuration.

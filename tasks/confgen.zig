@@ -1,5 +1,10 @@
 const std = @import("std");
 const gen = @import("./gen_utils.zig");
+const zlint = @import("zlint");
+const Allocator = std.mem.Allocator;
+const ArenaAllocator = std.heap.ArenaAllocator;
+const Schema = zlint.json.Schema;
+const Config = zlint.lint.Config;
 
 const fs = std.fs;
 
@@ -35,4 +40,16 @@ pub fn main() !void {
             .{ snake_name, rule_info.name_pascale },
         );
     }
+    try createJsonSchema(allocator);
+}
+
+fn createJsonSchema(allocator: Allocator) !void {
+    var arena = ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    var ctx = Schema.Context.init(allocator);
+    const root = try ctx.genSchema(Config);
+    const schema = try ctx.toJson(root);
+
+    const out = try fs.cwd().createFile("zlint.schema.json", .{});
+    try std.json.stringify(schema, .{ .whitespace = .indent_4 }, out.writer());
 }

@@ -3,6 +3,7 @@ const json = std.json;
 const Severity = @import("../../Error.zig").Severity;
 const Allocator = std.mem.Allocator;
 const Rule = @import("../rule.zig").Rule;
+const Schema = @import("../../json.zig").Schema;
 
 const ParseError = json.ParseError(json.Scanner);
 
@@ -18,45 +19,51 @@ pub fn RuleConfig(RuleImpl: type) type {
         const Self = @This();
 
         pub fn jsonParse(allocator: Allocator, source: *json.Scanner, options: json.ParseOptions) ParseError!Self {
-            const severity = try Severity.jsonParse(allocator, source, options);
-            const rule_impl = try allocator.create(RuleImpl);
-            rule_impl.* = .{};
-            return Self{ .severity = severity, .rule_impl = rule_impl };
+            switch (try source.peekNextTokenType()) {
+                .string, .number => {
+                    @branchHint(.likely);
+                    const severity = try Severity.jsonParse(allocator, source, options);
+                    const rule_impl = try allocator.create(RuleImpl);
+                    rule_impl.* = .{};
+                    return Self{ .severity = severity, .rule_impl = rule_impl };
+                },
+                .array_begin => {
+                    _ = try source.next();
+                    const severity = try Severity.jsonParse(allocator, source, options);
+                    const rule_impl = try allocator.create(RuleImpl);
+                    if (try source.peekNextTokenType() == .array_end) {
+                        _ = try source.next();
+                        rule_impl.* = .{};
+                    } else {
+                        rule_impl.* = try json.innerParse(RuleImpl, allocator, source, options);
+                        const tok = try source.next();
+                        if (tok != .array_end) {
+                            @branchHint(.cold);
+                            return ParseError.UnexpectedToken;
+                        }
+                    }
+                    return Self{ .severity = severity, .rule_impl = rule_impl };
+                },
+                else => return ParseError.UnexpectedToken,
+            }
         }
+
+        pub fn jsonSchema(ctx: *Schema.Context) !Schema {
+            const severity = try ctx.ref(Severity);
+            const rule_config = try ctx.ref(RuleImpl);
+            if (rule_config == .object and rule_config.object.properties.count() == 0) {
+                return severity;
+            }
+            var config_schema = try ctx.tuple([_]Schema{ severity, rule_config });
+            try config_schema.common().extraValues.put(ctx.allocator, "items", json.Value{ .bool = false });
+
+            const schema = try ctx.oneOf(&[_]Schema{ severity, config_schema });
+            return schema;
+        }
+
         pub fn rule(self: *Self) Rule {
             const rule_impl: *RuleImpl = @ptrCast(@alignCast(@constCast(self.rule_impl)));
             return rule_impl.rule();
         }
     };
 }
-
-// TODO: per-rule configuration objects.
-// pub fn RuleConfig(Rule: type) type {
-//     if (!@hasDecl(Rule, "Config") or Rule.Config == void) {
-//         return RuleConfigWithDefault(Rule, void, {});
-//     } else {
-//         return RuleConfigWithDefault(Rule, Rule.Config, .{});
-//     }
-// }
-
-// fn RuleConfigWithDefault(TRule: type, Config: type, default: @TypeOf(Config)) type {
-//     return struct {
-//         severity: Severity,
-//         config: Config = default,
-
-//         pub const Rule = TRule;
-//         const Self = @This();
-
-//         pub fn jsonParse(allocator: Allocator, source: *json.Scanner, options: json.ParseOptions) !Self {
-//             switch (try source.peekNextTokenType()) {
-//                 .string, .number => {
-//                     const severity = try json.parseFromTokenSourceLeaky(Severity, allocator, source, options);
-//                     return Self{ .severity = severity };
-//                 },
-//                 .array_begin => {
-//                     @Todo("handle configs")
-//                 }
-//             }
-//         }
-//     };
-// }

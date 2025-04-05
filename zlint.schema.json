@@ -1,72 +1,336 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "title": "ZLint Config",
     "type": "object",
     "properties": {
+        "rules": {
+            "$ref": "#/definitions/linter.config.rules_config.RulesConfig"
+        },
         "ignore": {
             "type": "array",
             "description": "Files and folders to skip. Uses `startsWith` to check if files are ignored.\n\n`zig-out` and `vendor` are always ignored, as well as hidden folders.",
             "default": [
-                "zig-out",
-                "vendor"
+                "vendor",
+                "zig-out"
             ],
             "items": {
                 "type": "string"
             }
-        },
-        "rules": {
-            "type": "object",
-            "description": "Configure what rules to run and what error level to set them to.",
-            "properties": {
-                "homeless-try": {
-                    "$ref": "#/definitions/RuleToggle"
-                },
-                "line-length": {
-                    "$ref": "#/definitions/RuleToggle"
-                },
-                "must-return-ref": {
-                    "$ref": "#/definitions/RuleToggle"
-                },
-                "no-catch-return": {
-                    "$ref": "#/definitions/RuleToggle"
-                },
-                "no-return-try": {
-                    "$ref": "#/definitions/RuleToggle"
-                },
-                "no-unresolved": {
-                    "$ref": "#/definitions/RuleToggle"
-                },
-                "suppressed-errors": {
-                    "$ref": "#/definitions/RuleToggle"
-                },
-                "unsafe-undefined": {
-                    "$ref": "#/definitions/RuleToggle"
-                },
-                "unused-decls": {
-                    "$ref": "#/definitions/RuleToggle"
-                },
-                "useless-error-return": {
-                    "$ref": "#/definitions/RuleToggle"
-                },
-                "empty-file": {
-                    "$ref": "#/definitions/RuleToggle"
-                }
-            },
-            "additionalProperties": {
-                "$ref": "#/definitions/RuleToggle"
-            }
         }
     },
+    "$schema": "https://json-schema.org/draft-07/schema#",
     "definitions": {
-        "RuleToggle": {
-            "type": "string",
+        "linter.rules.unused_decls": {
+            "type": "object",
+            "properties": {}
+        },
+        "linter.rules.suppressed_errors": {
+            "type": "object",
+            "properties": {}
+        },
+        "linter.rules.useless_error_return": {
+            "type": "object",
+            "properties": {}
+        },
+        "linter.rules.avoid_as": {
+            "type": "object",
+            "properties": {}
+        },
+        "linter.config.rules_config.RulesConfig": {
+            "type": "object",
+            "description": "Configure which rules are enabled and how.",
+            "properties": {
+                "line-length": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.line_length"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "useless-error-return": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.useless_error_return"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "empty-file": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.empty_file"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "avoid-as": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.avoid_as"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "no-unresolved": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.no_unresolved"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "unsafe-undefined": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.unsafe_undefined"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "suppressed-errors": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.suppressed_errors"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "no-return-try": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.no_return_try"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "unused-decls": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.unused_decls"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "homeless-try": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.homeless_try"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "must-return-ref": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.must_return_ref"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "no-catch-return": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.no_catch_return"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "Error.Severity": {
+            "title": "Severity",
             "description": "Set the error level of a rule. 'off' and 'allow' do the same thing.",
-            "enum": [
-                "error",
-                "warn",
-                "off",
-                "allow"
+            "oneOf": [
+                {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2
+                },
+                {
+                    "type": "string",
+                    "enum": [
+                        "off",
+                        "deny",
+                        "warn",
+                        "error",
+                        "allow"
+                    ]
+                }
             ]
+        },
+        "linter.rules.homeless_try": {
+            "type": "object",
+            "properties": {}
+        },
+        "linter.rules.empty_file": {
+            "type": "object",
+            "properties": {}
+        },
+        "linter.rules.no_catch_return": {
+            "type": "object",
+            "properties": {}
+        },
+        "linter.rules.must_return_ref": {
+            "type": "object",
+            "properties": {}
+        },
+        "linter.rules.line_length": {
+            "type": "object",
+            "properties": {
+                "max_length": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295
+                }
+            }
+        },
+        "linter.rules.no_return_try": {
+            "type": "object",
+            "properties": {}
+        },
+        "linter.rules.no_unresolved": {
+            "type": "object",
+            "properties": {}
+        },
+        "linter.rules.unsafe_undefined": {
+            "type": "object",
+            "properties": {
+                "allow_arrays": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
         }
     }
 }

@@ -41,13 +41,30 @@ const DEFAULT_RULES_CONFIG: RulesConfig = blk: {
     break :blk config;
 };
 
+pub fn jsonSchema(ctx: *Schema.Context) !Schema {
+    var schema = try ctx.genSchemaInner(Config);
+    var ignore = schema.object.properties.getPtr("ignore").?;
+
+    var default = try ctx.jsonArray(2);
+    try default.appendSlice(&[_]json.Value{
+        .{ .string = "vendor" },
+        .{ .string = "zig-out" },
+    });
+    var c = ignore.common();
+    c.default = .{ .array = default };
+    c.description = "Files and folders to skip. Uses `startsWith` to check if files are ignored.\n\n`zig-out` and `vendor` are always ignored, as well as hidden folders.";
+
+    return schema;
+}
+
 const all_rules = @import("rules.zig");
 const all_rule_decls = @typeInfo(all_rules).@"struct".decls;
 
 const std = @import("std");
 const ArenaAllocator = std.heap.ArenaAllocator;
+const Schema = @import("../json.zig").Schema;
 
-const RulesConfig = @import("config/rules_config.zig").RulesConfig;
+pub const RulesConfig = @import("config/rules_config.zig").RulesConfig;
 
 // =============================================================================
 
@@ -68,7 +85,11 @@ fn testConfig(source: []const u8, expected: RulesConfig) !void {
 
     scanner.enableDiagnostics(&diagnostics);
     const actual = json.parseFromTokenSource(RulesConfig, t.allocator, &scanner, .{}) catch |err| {
-        print("[{d}:{d}] {s}\n", .{ diagnostics.getLine(), diagnostics.getColumn(), source[diagnostics.line_start_cursor..diagnostics.cursor_pointer.*] });
+        print("[{d}:{d}] {s}\n", .{
+            diagnostics.getLine(),
+            diagnostics.getColumn(),
+            source[diagnostics.line_start_cursor..diagnostics.cursor_pointer.*],
+        });
         return err;
     };
     defer actual.deinit();
@@ -104,6 +125,28 @@ test "RulesConfig.jsonParse" {
             .homeless_try = .{ .severity = Severity.err },
         },
     );
+    try testConfig(
+        \\{ "unsafe-undefined": ["error"] }
+    ,
+        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err } },
+    );
+    try testConfig(
+        \\{ "unsafe-undefined": ["error", {}] }
+    ,
+        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err } },
+    );
+    try testConfig(
+        \\{ "unsafe-undefined": ["error", { "allow_arrays": true }] }
+    ,
+        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err } },
+    );
+    var cfg = all_rules.UnsafeUndefined{ .allow_arrays = false };
+    try testConfig(
+        \\{ "unsafe-undefined": ["error", { "allow_arrays": false }] }
+    ,
+        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err, .rule_impl = @ptrCast(&cfg) } },
+    );
+
     {
         var scanner = json.Scanner.initCompleteInput(t.allocator,
             \\{ "no-undefined": "allow" }

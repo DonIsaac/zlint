@@ -42,3 +42,7 @@ Examples of **correct** code for this rule:
 const x = @import("foo.zig");
 const y = @import("mod/bar.zig");
 ```
+
+## Configuration
+
+This rule has no configuration.

@@ -30,10 +30,9 @@ pub const Fix = struct {
         /// Check if a fix (`other`) may be applied based on a user-configured filter.
         /// Here, `self` does not come from a Fix, but from a linter config.
         pub fn canApply(self: Meta, other: Meta) bool {
-            if (self.kind == .none) return false; // disabled
-            if (!self.dangerous and other.dangerous) return false; // fix is dangerous, but only safe fixes are allowed
-            if (self.kind != other.kind) return false;
-            return true;
+            return self.kind != .none // not disabled
+            and (self.dangerous or !other.dangerous) // fix is safe or we allow dangerous fixes
+            and (self.kind == other.kind); // fix kind matches
         }
     };
 

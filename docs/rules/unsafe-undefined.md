@@ -127,3 +127,9 @@ test Foo {
   // ...
 }
 ```
+
+## Configuration
+
+This rule accepts the following options:
+
+- allow_arrays: boolean
