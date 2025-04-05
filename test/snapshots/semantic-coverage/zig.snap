@@ -1,5 +1,5 @@
-Passed: 97.696014% (2841/2908)
-Panics: 0% (0/2908)
+Passed: 97.51616% (2866/2939)
+Panics: 0% (0/2939)
 
 doc/langref/destructuring_mixed.zig: error.FullMismatch
 doc/langref/destructuring_to_existing.zig: error.FullMismatch
@@ -11,10 +11,16 @@ lib/compiler/aro/aro/Parser.zig: error.FullMismatch
 lib/compiler/aro/aro/Tree.zig: error.FullMismatch
 lib/compiler/aro/aro/Type.zig: error.FullMismatch
 lib/compiler/aro/aro/text_literal.zig: error.FullMismatch
+lib/compiler/reduce/Walk.zig: error.FullMismatch
+lib/compiler_rt/divmodei4.zig: error.FullMismatch
 lib/std/Progress.zig: error.FullMismatch
 lib/std/Target/Query.zig: error.FullMismatch
 lib/std/os/linux/IoUring.zig: error.FullMismatch
+lib/std/zig/Ast.zig: error.FullMismatch
+lib/std/zig/AstGen.zig: error.FullMismatch
+lib/std/zig/AstRlAnnotate.zig: error.FullMismatch
 src/Sema.zig: error.FullMismatch
+src/Zcu.zig: error.FullMismatch
 src/arch/x86_64/CodeGen.zig: error.FullMismatch
 src/link/Dwarf.zig: error.FullMismatch
 src/link/Elf/Atom.zig: error.FullMismatch
