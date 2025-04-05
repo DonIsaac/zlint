@@ -56,26 +56,15 @@ pub fn main() !void {
 
     for (gen.RuleInfo.all_rules) |rule| {
         log.info("Rule: {s}", .{rule.meta.name});
-        const source: [:0]u8 = try root.readFileAllocOptions(alloc, rule.path, gen.MAX, null, @alignOf(u8), 0);
+        const source = try gen.readSourceFile(alloc, root, rule.path);
         defer alloc.free(source);
 
-        const rule_docs = docs: {
-            var tokens = std.zig.Tokenizer.init(source);
-            const start: usize = 0;
-            var end: usize = 0;
-            while (true) {
-                const tok = tokens.next();
-                switch (tok.tag) {
-                    .eof => panic(
-                        "Reached EOF on rule '{s}' before finding docs and/or rule impl.",
-                        .{rule.meta.name},
-                    ),
-                    .container_doc_comment, .doc_comment => end = tok.loc.end,
-                    else => break :docs source[start..end],
-                }
-            }
-        };
+        const rule_docs = try gen.getModuleDocs(source, alloc) orelse panic(
+            "Reached EOF on rule '{s}' before finding docs and/or rule impl.",
+            .{rule.meta.name},
+        );
         if (rule_docs.len == 0) panic("No docs found for rule '{s}'.", .{rule.meta.name});
+        defer alloc.free(rule_docs);
         try generateDocFile(&ctx, rule, rule_docs);
     }
 
@@ -100,7 +89,7 @@ fn generateDocFile(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
 }
 
 fn renderDocs(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
-    try ctx.writer.print("# `{s}`\n\n", .{rule.meta.name});
+    try ctx.writer.print("# `{s}`\n\n", .{rule.name(.kebab)});
     const enabled_message = switch (rule.meta.default) {
         .off => "No",
         .err => "Yes (error)",
@@ -119,27 +108,20 @@ fn renderDocs(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
         },
     );
     try ctx.writer.writeByteNTimes('\n', 2);
-
-    var lines = mem.splitScalar(u8, docs, '\n');
-    const DOC_COMMENT_PREFIX = "//! ";
-    while (lines.next()) |line| {
-        // happens when there's a newline in the docs. The line will be `//!`
-        // (note no trailing whitespace). Like I said, these are just newlines,
-        // so that's what we'll write.
-        const clean = if (line.len < DOC_COMMENT_PREFIX.len) "" else line[DOC_COMMENT_PREFIX.len..];
-        try ctx.writer.print("{s}\n", .{clean});
-    }
+    try ctx.writer.writeAll(docs);
+    try ctx.writer.writeByteNTimes('\n', 2);
     try renderConfigSection(ctx, rule);
 }
 
 fn renderConfigSection(ctx: *Context, rule: gen.RuleInfo) !void {
-    var schema: ?Schema = ctx.schemas.get(rule.meta.name).?;
+    // SAFETY: allocator only used
+    var schema: ?Schema = ctx.schemas.get(rule.name(.kebab)).?;
     while (true) {
         const s: Schema = schema orelse break;
         switch (s) {
             .object => break,
             .@"$ref" => |ref| {
-                schema = ref.resolve(ctx.ctx).*;
+                schema = ref.resolve(ctx.ctx).?.*;
             },
             .compound => |c| {
                 schema = c.kind.one_of[1].array.prefixItems.?[1];
