@@ -146,7 +146,7 @@ fn renderConfigSection(ctx: *Context, rule: gen.RuleInfo) !void {
             },
             else => {
                 schema = null;
-            }
+            },
         }
     }
 
