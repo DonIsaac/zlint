@@ -50,6 +50,9 @@ pub fn RuleConfig(RuleImpl: type) type {
         pub fn jsonSchema(ctx: *Schema.Context) !Schema {
             const severity = try ctx.ref(Severity);
             const rule_config = try ctx.ref(RuleImpl);
+            if (rule_config == .object and rule_config.object.properties.count() == 0) {
+                return severity;
+            }
             var config_schema = try ctx.tuple([_]Schema{ severity, rule_config });
             try config_schema.common().extraValues.put(ctx.allocator, "items", json.Value{ .bool = false });
 

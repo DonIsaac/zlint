@@ -47,28 +47,29 @@ pub const RuleInfo = struct {
     }
 };
 
-pub const SchemaMap = std.StringHashMap(*const Schema);
+pub const SchemaMap = std.StringHashMap(Schema);
 /// Map is key'd by `rule-name`.
 ///
 /// This leaks memory, and a lot of it.
-pub fn ruleSchemaMap(allocator: Allocator) !struct { Schema.Context, SchemaMap } {
+pub fn ruleSchemaMap(allocator: Allocator) !struct { *Schema.Context, *SchemaMap } {
     const info = @typeInfo(RulesConfig).@"struct";
 
-    var map = SchemaMap.init(allocator);
+    var map = try allocator.create(SchemaMap);
+    map.* = SchemaMap.init(allocator);
     try map.ensureTotalCapacity(info.fields.len);
 
     // create and pre-warm arena. Must be on the heap so returned context
     // does not contain a stack pointer.
-    var arena = try allocator.create(ArenaAllocator);
-    arena.* = std.heap.ArenaAllocator.init(allocator);
-    _ = try arena.allocator().alloc(u8, 4096);
-    assert(arena.reset(.retain_capacity));
+    // _ = try arena.allocator().alloc(u8, 4096);
+    // assert(arena.reset(.retain_capacity));
 
-    var ctx = Schema.Context.init(arena.allocator());
+    var ctx = try allocator.create(Schema.Context);
+    ctx.* = Schema.Context.init(allocator);
     inline for (info.fields) |rule_config| {
         const RuleConfig = @FieldType(RulesConfig, rule_config.name);
         const rule_schema = try ctx.addSchema(RuleConfig);
-        map.putAssumeCapacityNoClobber(RuleConfig.name, rule_schema);
+        std.debug.print("{s}: {any}\n", .{RuleConfig.name, rule_schema});
+        try map.put(RuleConfig.name, rule_schema.*);
     }
 
     return .{ ctx, map };

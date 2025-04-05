@@ -40,3 +40,7 @@ fn foo(x: u32) void {
 }
 foo(1);
 ```
+
+## Configuration
+
+This rule has no configuration.

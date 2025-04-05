@@ -12,19 +12,22 @@ const mem = std.mem;
 const path = fs.path;
 
 const Allocator = mem.Allocator;
+const ArenaAllocator = std.heap.ArenaAllocator;
 const Writer = fs.File.Writer;
 const Config = zlint.lint.Config;
 const Schema = zlint.json.Schema;
 
 const panic = std.debug.panic;
+const assert = std.debug.assert;
 
 const OUT_DIR = "docs/rules";
 
 const Context = struct {
     alloc: Allocator,
-    ctx: Schema.Context,
-    schemas: gen.SchemaMap,
+    ctx: *Schema.Context,
+    schemas: *gen.SchemaMap,
     writer: Writer,
+    depth: u32 = 0,
 };
 
 pub fn main() !void {
@@ -32,7 +35,8 @@ pub fn main() !void {
     const alloc = gpa.allocator();
     const root = fs.cwd();
 
-    const schema_ctx, const schema_map = try gen.ruleSchemaMap(alloc);
+    var arena = ArenaAllocator.init(alloc);
+    const schema_ctx, const schema_map = try gen.ruleSchemaMap(arena.allocator());
     var ctx = Context{
         .alloc = alloc,
         .ctx = schema_ctx,
@@ -125,10 +129,53 @@ fn renderDocs(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
         const clean = if (line.len < DOC_COMMENT_PREFIX.len) "" else line[DOC_COMMENT_PREFIX.len..];
         try ctx.writer.print("{s}\n", .{clean});
     }
+    try renderConfigSection(ctx, rule);
 }
 
-fn renderConfigSection(ctx: *const Context, rule: gen.RuleInfo) !void {
-    const schema = ctx.schemas.get(rule.meta.name).?;
-    _ = schema;
-    @panic("todo");
+fn renderConfigSection(ctx: *Context, rule: gen.RuleInfo) !void {
+    var schema: ?Schema = ctx.schemas.get(rule.meta.name).?;
+    while (true) {
+        const s: Schema = schema orelse break;
+        switch (s) {
+            .object => break,
+            .@"$ref" => |ref| {
+                schema = ref.resolve(ctx.ctx).*;
+            },
+            .compound => |c| {
+                schema = c.kind.one_of[1].array.prefixItems.?[1];
+            },
+            else => {
+                schema = null;
+            }
+        }
+    }
+
+    try ctx.writer.writeAll("## Configuration\n");
+    const schema_ = schema orelse {
+        return ctx.writer.writeAll("This rule has no configuration.\n");
+    };
+    const obj = schema_.object;
+
+    if (obj.properties.count() == 0) {
+        return ctx.writer.writeAll("This rule has no configuration.\n");
+    } else {
+        try ctx.writer.writeAll("This rule accepts the following options:\n");
+    }
+
+    assert(ctx.depth == 0);
+    var it = obj.properties.iterator();
+    while (it.next()) |prop| {
+        ctx.depth += 1;
+        defer ctx.depth -= 1;
+        const key = prop.key_ptr.*;
+        const required = obj.isRequired(key);
+        try renderObjectProperty(ctx, key, prop.value_ptr, required);
+    }
+}
+
+fn renderObjectProperty(ctx: *Context, name: []const u8, value: *const Schema, required: bool) !void {
+    // TODO: render value and other stuff
+    try ctx.writer.print("- {s}: {s}\n", .{ name, @tagName(std.meta.activeTag(value.*)) });
+    _ = required;
+    // @panic("todo");
 }

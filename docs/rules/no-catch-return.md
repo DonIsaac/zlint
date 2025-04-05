@@ -45,3 +45,7 @@ fn baz() !void {
   riskyOp() catch |e| return error.OutOfMemory;
 }
 ```
+
+## Configuration
+
+This rule has no configuration.

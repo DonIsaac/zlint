@@ -65,3 +65,7 @@ fn check(x: bool) !void {
 // Empty error set is explicitly allowed
 fn noErrors() error{}!void {}
 ```
+
+## Configuration
+
+This rule has no configuration.

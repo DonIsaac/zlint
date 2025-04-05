@@ -534,6 +534,15 @@ pub const Schema = union(enum) {
 
             return .{ .object = value };
         }
+
+        pub fn isRequired(self: *const Object, property: []const u8) bool {
+            for (self.required) |required_prop| {
+                if (mem.eql(u8, property, required_prop)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     };
 
     pub const Ref = struct {
@@ -547,6 +556,16 @@ pub const Schema = union(enum) {
             else
                 try fmt.allocPrint(allocator, definitions ++ "{s}", .{relative_uri});
             return .{ .@"$ref" = Ref{ .uri = uri } };
+        }
+
+        pub fn resolve(self: *const Ref, ctx: *Schema.Context) *Schema {
+            if (mem.startsWith(u8, self.uri, definitions)) {
+                const key = self.uri[definitions.len..];
+                std.debug.print("{s}\n", .{key});
+                return ctx.definitions.getPtr(key) orelse @panic("could not resolve reference");
+            }
+            // @panic("todo");
+            return undefined;
         }
 
         fn toJson(self: *const Ref, ctx: *Schema.Context) Allocator.Error!json.Value {

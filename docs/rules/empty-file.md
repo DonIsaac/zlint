@@ -24,3 +24,7 @@ Examples of **correct** code for this rule:
 fn exampleFunction() void {
 }
 ```
+
+## Configuration
+
+This rule has no configuration.
