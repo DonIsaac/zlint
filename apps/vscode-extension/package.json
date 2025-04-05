@@ -1,0 +1,49 @@
+{
+  "name": "zlint-vscode",
+  "displayName": "ZLint",
+  "description": "A linter for the Zig programming language",
+  "version": "0.0.1",
+  "type": "module",
+  "module": "src/extension.ts",
+  "main": "dist/extension.js",
+  "private": true,
+  "license": "MIT",
+  "categories": [
+    "Linters"
+  ],
+  "author": {
+    "name": "Don Isaac",
+    "url": "https://github.com/DonIsaac"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DonIsaac/zlint",
+    "directory": "apps/vscode-extension"
+  },
+  "engines": {
+    "vscode": "^1.78.0"
+  },
+  "scripts": {
+    "package": "vsce package --no-dependencies -o zlint.vsix",
+    "build:prod": "bun build.ts --production",
+    "install-extension": "code --install-extension zlint.vsix --force"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/vscode": "^1.78.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "activationEvents": [
+    "onLanguage:zig"
+  ],
+  "contributes": {
+    "jsonValidation": [
+      {
+        "fileMatch": "zlint.json",
+        "url": "https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/zlint.schema.json"
+      }
+    ]
+  }
+}
