@@ -1,7 +1,8 @@
 //! Formatters process diagnostics for a `Reporter`.
 
-pub const Github = @import("./formatters/GithubFormatter.zig");
-pub const Graphical = @import("./formatters/GraphicalFormatter.zig");
+pub const Github = @import("formatters/GithubFormatter.zig");
+pub const Graphical = @import("formatters/GraphicalFormatter.zig");
+pub const JSON = @import("formatters/JSONFormatter.zig");
 
 pub const Meta = struct {
     report_statistics: bool,
@@ -10,6 +11,7 @@ pub const Meta = struct {
 pub const Kind = enum {
     graphical,
     github,
+    json,
 
     const FormatMap = std.StaticStringMapWithEql(
         Kind,
@@ -18,6 +20,7 @@ pub const Kind = enum {
     const formats = FormatMap.initComptime(&[_]struct { []const u8, Kind }{
         .{ "github", .github },
         .{ "gh", .github },
+        .{ "json", .json },
         .{ "graphical", .graphical },
         .{ "default", .graphical },
     });
