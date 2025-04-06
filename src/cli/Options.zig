@@ -32,7 +32,7 @@ pub const usage =
 ;
 const help =
     \\--print-ast <file>  Parse a file and print its AST as JSON
-    \\-f, --format <fmt>  Choose an output format (default, graphical, github, gh)
+    \\-f, --format <fmt>  Choose an output format (default, graphical, json, github, gh)
     \\--no-summary        Do not print a summary after linting
     \\-S, --stdin         Lint filepaths received from stdin (newline separated)
     \\--fix               Apply automatic fixes where possible

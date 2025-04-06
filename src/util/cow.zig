@@ -165,6 +165,10 @@ pub fn Cow(comptime sentinel: bool) type {
             });
         }
 
+        pub fn jsonStringify(self: *const Self, jw: anytype) !void {
+            return jw.write(self.str);
+        }
+
         /// Destroy this `Cow`. The underlying string will only be deallocated
         /// if it is owned.
         ///
