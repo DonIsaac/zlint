@@ -34,16 +34,20 @@ pub const Reporter = struct {
 
     pub fn initKind(kind: formatters.Kind, writer: Writer, allocator: Allocator) Allocator.Error!Reporter {
         switch (kind) {
-            formatters.Kind.graphical => {
+            .graphical => {
                 // TODO: check terminal support for unicode characters
                 // TODO: any non-falsy value should turn off colors
                 const color = !util.env.checkEnvFlag("NO_COLOR", .enabled);
                 const f = formatters.Graphical.unicode(allocator, color);
                 return init(formatters.Graphical, f, writer, allocator);
             },
-            formatters.Kind.github => {
+            .github => {
                 const f = formatters.Github{};
                 return init(formatters.Github, f, writer, allocator);
+            },
+            .json => {
+                const f = formatters.JSON{};
+                return init(formatters.JSON, f, writer, allocator);
             },
         }
     }

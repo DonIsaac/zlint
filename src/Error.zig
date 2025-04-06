@@ -55,6 +55,32 @@ pub fn deinit(self: *Error, alloc: std.mem.Allocator) void {
     self.labels.deinit(alloc);
 }
 
+pub fn jsonStringify(self: *const Error, jw: anytype) !void {
+    // const W = std.json.WriteStream(std.io.AnyWriter, .{});
+    // const jw = @as(W, jw_);
+    try jw.beginObject();
+
+    try jw.objectFieldRaw("\"level\"");
+    try jw.write(self.severity.asSlice());
+
+    try jw.objectFieldRaw("\"message\"");
+    try jw.write(self.message.borrow());
+
+    try jw.objectFieldRaw("\"code\"");
+    try jw.write(if (self.code.len > 0) self.code else null);
+
+    try jw.objectFieldRaw("\"labels\"");
+    try jw.write(self.labels.items);
+
+    try jw.objectFieldRaw("\"source_name\"");
+    try jw.write(self.source_name);
+
+    try jw.objectFieldRaw("\"help\"");
+    try jw.write(self.help);
+
+    try jw.endObject();
+}
+
 const ParseError = json.ParseError(json.Scanner);
 const severity_map = std.StaticStringMap(Severity).initComptime([_]struct { []const u8, Severity }{
     .{ "error", Severity.err },
