@@ -182,7 +182,7 @@ pub fn match(glob: []const u8, path: []const u8) bool {
                             // In effect, this makes the whole segment optional so that a/**/b matches a/b.
                             if (state.path_index == 0 or
                                 (state.path_index < path.len and
-                                isSeparator(path[state.path_index - 1])))
+                                    isSeparator(path[state.path_index - 1])))
                             {
                                 state.glob_index += 1;
                             }
