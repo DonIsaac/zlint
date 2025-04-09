@@ -1,7 +1,9 @@
-import * as vscode from "vscode"
-import { ConfigService } from "./ConfigService"
+import * as vscode from 'vscode';
+import { ConfigService } from './ConfigService';
+import { BinaryService } from './BinaryService';
 
 export function activate(context: vscode.ExtensionContext) {
     const config = new ConfigService();
-    context.subscriptions.push(config);
+    const bin = new BinaryService(config);
+    context.subscriptions.push(config, bin);
 }
