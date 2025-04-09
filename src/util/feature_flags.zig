@@ -1,10 +1,10 @@
 //! Feature flags guard work-in-progress features until they are ready to be
 //! shipped.
-//! 
+//!
 //! All flags are comptime-known. This may change in the future.
 
 /// Enable language server features.
-/// 
+///
 /// Not yet implemented.
 pub const lsp: bool = false;
 
