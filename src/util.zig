@@ -14,6 +14,7 @@ pub const NEWLINE = if (IS_WINDOWS) "\r\n" else "\n";
 pub const DebugOnly = @import("./util/debug_only.zig").DebugOnly;
 pub const debugOnly = @import("./util/debug_only.zig").debugOnly;
 pub const Bitflags = @import("./util/bitflags.zig").Bitflags;
+pub const FeatureFlags = @import("util/feature_flags.zig");
 
 pub fn trimWhitespace(s: []const u8) []const u8 {
     return std.mem.trim(u8, s, &std.ascii.whitespace);
