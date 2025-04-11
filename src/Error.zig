@@ -43,12 +43,11 @@ pub fn newAtLocation(message: []const u8, span: Span) Error {
 }
 
 pub fn deinit(self: *Error, alloc: std.mem.Allocator) void {
-    // if (!self.message.static) alloc.free(self.message.str);
     self.message.deinit(alloc);
 
     if (self.help) |*help| help.deinit(alloc);
-    if (self.source_name != null) alloc.free(self.source_name.?);
-    if (self.source != null) self.source.?.deinit();
+    if (self.source_name) |src_name| alloc.free(src_name);
+    if (self.source) |*src| src.deinit();
     for (self.labels.items) |*label| {
         if (label.label) |*label_text| label_text.deinit(alloc);
     }

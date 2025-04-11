@@ -57,7 +57,8 @@ build *ARGS:
 
 # Check for syntax and semantic errors
 check:
-    zig build check
+    zig build check --summary all --prominent-compile-errors
+
 check-ast:
     @for file in `git ls-files | grep '.zig$' | grep --invert-match 'fail'`; do zig ast-check "$file"; done
 

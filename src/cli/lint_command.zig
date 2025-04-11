@@ -1,5 +1,6 @@
 const std = @import("std");
 const walk = @import("../walk/Walker.zig");
+const glob = @import("../walk/glob.zig");
 const _lint = @import("../lint.zig");
 const reporters = @import("../reporter.zig");
 const lint_config = @import("lint_config.zig");
@@ -59,7 +60,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
         defer service.deinit();
 
         if (!options.stdin) {
-            var visitor: LintVisitor = .{ .service = &service, .allocator = alloc };
+            var visitor: LintVisitor = .{ .service = &service, .allocator = alloc, .globs = options.args.items };
             var src = try fs.cwd().openDir(".", .{ .iterate = true });
             defer src.close();
             var walker = try LintWalker.init(alloc, src, &visitor);
@@ -97,6 +98,7 @@ const LintVisitor = struct {
     /// borrowed
     service: *LintService,
     allocator: Allocator,
+    globs: []const []const u8,
 
     pub fn visit(self: *LintVisitor, entry: walk.Entry) ?walk.WalkState {
         switch (entry.kind) {
@@ -114,6 +116,15 @@ const LintVisitor = struct {
             },
             .file => {
                 if (!mem.eql(u8, path.extension(entry.path), ".zig")) {
+                    return WalkState.Continue;
+                }
+
+                if (self.globs.len > 0) matches_glob: {
+                    for (self.globs) |pattern| {
+                        if (glob.match(pattern, entry.path)) {
+                            break :matches_glob;
+                        }
+                    }
                     return WalkState.Continue;
                 }
 
