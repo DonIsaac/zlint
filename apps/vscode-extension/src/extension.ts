@@ -10,7 +10,7 @@ export function activate(context: vscode.ExtensionContext) {
     const config = new ConfigService(logs);
     logs.appendLine('Found config: ' + JSON.stringify(config.config));
     const bin = new BinaryService(config, logs);
-    const diagnostics = new DiagnosticsService(bin, logs);
+    const diagnostics = new DiagnosticsService(config, bin, logs);
 
     bin.findZLintBinary().catch(e => logs.appendLine('error finding zlint binary: ' + e));
 

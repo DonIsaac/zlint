@@ -60,7 +60,7 @@ export class BinaryService extends EventEmitter<void> implements Disposable {
         this.log.appendLine('looking for zlint binary...');
         const newPath = await this.getZLintPath(this.configService.config.path).catch(e => this.log.appendLine(String(e)))
         if (!newPath || this.zlintPath === newPath) return;
-        this.log.appendLine('found zlint binary at ' +  newPath);
+        this.log.appendLine('found zlint binary at ' + newPath);
 
         // only update path after version check, in case binary is not valid
         const version = await this.getZLintVersion(newPath);
@@ -97,24 +97,13 @@ export class BinaryService extends EventEmitter<void> implements Disposable {
      * Basically just `which zlint`
      */
     private async findExisting(): Promise<string | undefined> {
-        const { promise, resolve } = Promise.withResolvers<string | undefined>();
+        const { resolve } = Promise.withResolvers<string | undefined>();
         const child = spawn('which', ['zlint'], {
             shell: true,
             stdio: ['ignore', 'pipe', 'ignore'],
         });
 
-        // let didResolve = false;
-        // const bufs: Buffer[] = [];
-        // child.stdout
-        //     .on('data', (buf) => bufs.push(buf))
-        //     .on('end', () => {
-        //         if (didResolve) return;
-        //         const binPath: string = Buffer.concat(bufs).toString('utf8').trim();
-        //         didResolve = true;
-        //         return resolve(binPath.length ? binPath : undefined);
-        //     });
         try {
-
             const stdout = await readableStreamToString(child.stdout!)
             resolve(stdout.length ? stdout : undefined)
         } catch {

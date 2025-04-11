@@ -3,7 +3,7 @@ import assert from "node:assert";
 
 export function readableStreamToString(stream: Readable) {
     assert(stream && stream.readable)
-    const { promise, resolve, reject } = Promise.withResolvers<string>();
+    const { promise, resolve } = Promise.withResolvers<string>();
 
     const chunks: Buffer[] = [];
     const finalize = () => Buffer.concat(chunks).toString('utf8')

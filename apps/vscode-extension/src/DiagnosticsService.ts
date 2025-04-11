@@ -5,13 +5,24 @@ import type { BinaryService } from "./BinaryService";
 import { readableStreamToString } from "./util";
 import { strict as assert } from "node:assert";
 import path from "node:path";
+import type { ConfigService } from "./ConfigService";
 
 export class DiagnosticsService implements Disposable {
     #diagnostics: DiagnosticCollection
+    private subscriptions: Disposable[] = []
 
-    constructor(private bin: BinaryService, private log: vscode.OutputChannel) {
+    constructor(
+        private config: ConfigService,
+        private bin: BinaryService,
+        private log: vscode.OutputChannel
+    ) {
         this.#diagnostics = vscode.languages.createDiagnosticCollection('zlint')
         this.collectDiagnostics = this.collectDiagnostics.bind(this)
+        this.subscriptions.push(this.config.event(e => {
+            if (e.type === 'disabled') {
+                this.#diagnostics.clear
+            }
+        }))
     }
 
     public async collectDiagnostics(): Promise<void> {
@@ -26,18 +37,8 @@ export class DiagnosticsService implements Disposable {
         log.appendLine('zlint output: ' + raw);
         if (!raw) return;
         const lines = raw.split('\n').filter(Boolean);
-        // const lines: zlint.Diagnostic[] = raw.split('\n').map(l => {
-        //     try {
-        //     return JSON.parse(l)
-        //     } catch (e) {
-        //         log.appendLine('error parsing zlint output: ' + e);
-        //         return null
-        //     }
-        // }).filter(Boolean)
 
         log.appendLine(`zlint output lines: ${lines}`)
-        log.appendLine('here 1')
-        // this.log.appendLine(JSON.stringify(lines, undefined, 2))
 
         for (const line of lines) {
             log.appendLine('here 2')
@@ -50,11 +51,6 @@ export class DiagnosticsService implements Disposable {
             }
             if (json.source_name && vscode.workspace.rootPath)
                 json.source_name = path.resolve(vscode.workspace.rootPath!, json.source_name)
-            // const json: zlint.Diagnostic = JSON.parse(line);
-            // this.log.appendLine(`zlint json: (${typeof json}) ${JSON.stringify(json)}`);
-            log.appendLine("foo")
-            log.appendLine("# of labels: " + json?.labels)
-            log.appendLine("bar")
             assert(typeof json === 'object' && !!json)
             if (!json.labels?.length) continue
 
@@ -64,7 +60,6 @@ export class DiagnosticsService implements Disposable {
             fileDiagnostics.push(zlint.Diagnostic.toDiagnostic(json))
             newDiagnsotics.set(key, fileDiagnostics)
         }
-        // this.log.appendLine(`zlint found ${} diagnostics`)
 
         this.#diagnostics.clear()
         for (const [file, diagnostics] of newDiagnsotics.entries()) {
@@ -91,13 +86,11 @@ namespace zlint {
     }
 
     export interface Label {
-        // spawn: { start: number, end: number }
         start: Loc
         end: Loc
         label: string | null
         primary: boolean
     }
-
     export namespace Label {
         export function toRange(label: Label): vscode.Range {
             const start = Loc.toPosition(label.start)
@@ -114,14 +107,13 @@ namespace zlint {
         source_name: string | null
         labels?: Label[]
     }
-
     export namespace Diagnostic {
         export function toDiagnostic(diagnostic: Diagnostic): vscode.Diagnostic {
             const { level, message, labels = [], code } = diagnostic
             const severity = level === 'warn' ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error
             const primary: Label | undefined = labels.find(label => label.primary) ?? labels[0]
             const range = primary ? Label.toRange(primary) : new Range(0, 0, 0, 0)
-            const d =  new vscode.Diagnostic(range, message, severity)
+            const d = new vscode.Diagnostic(range, message, severity)
             d.source = 'zlint'
             d.code = code ?? undefined
             return d
