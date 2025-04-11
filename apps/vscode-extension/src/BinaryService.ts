@@ -3,7 +3,7 @@ import { strict as assert } from 'node:assert';
 import { promises as fs } from 'node:fs';
 import { type ChildProcess, spawn } from 'node:child_process';
 import type { ConfigService, Event } from './ConfigService';
-import { EventEmitter, type Disposable } from 'vscode';
+import { EventEmitter, workspace, type Disposable, type OutputChannel } from 'vscode';
 import { readableStreamToString } from './util';
 
 const kEmptyArray: string[] = [];
@@ -16,8 +16,15 @@ export class BinaryService extends EventEmitter<void> implements Disposable {
     private version: string | undefined;
     #onConfigChange: Disposable
 
-    constructor(private configService: ConfigService) {
+    constructor(
+        private configService: ConfigService,
+        private log: OutputChannel
+    ) {
         super()
+
+        this.runZlint = this.runZlint.bind(this);
+        this.onConfigChange = this.onConfigChange.bind(this);
+
         this.#onConfigChange = configService.event(this.onConfigChange, this);
         // use empty string to avoid shape transitions
         this.zlintPath = '';
@@ -28,24 +35,36 @@ export class BinaryService extends EventEmitter<void> implements Disposable {
      * @throws if `zlint` binary isn't found or hasn't been loaded/verified yet.
      */
     public runZlint(args: string[] = kEmptyArray): ChildProcess {
+        const root = workspace.rootPath
         if (!this.zlintPath) {
             throw new Error('zlint binary path not set');
         }
+        if (!root) throw new Error('workspace root path not set');
+        this.log.appendLine('running zlint: ' + this.zlintPath + ' ' + args.join(' '));
         return spawn(this.zlintPath, args, {
             shell: true,
             stdio: ['ignore', 'pipe', 'pipe'],
+            cwd: workspace.rootPath
         });
+    }
+
+    public get ready(): boolean {
+        return Boolean(this.zlintPath);
     }
 
     private async onConfigChange({ type }: Event): Promise<void> {
         if (type === 'disabled') return;
-        const newPath = await this.getZLintPath(this.configService.config.path);
-        if (this.zlintPath === newPath) return;
-        console.log('found zlint binary at', newPath);
+        await this.findZLintBinary();
+    }
+    public async findZLintBinary(): Promise<void> {
+        this.log.appendLine('looking for zlint binary...');
+        const newPath = await this.getZLintPath(this.configService.config.path).catch(e => this.log.appendLine(String(e)))
+        if (!newPath || this.zlintPath === newPath) return;
+        this.log.appendLine('found zlint binary at ' +  newPath);
 
         // only update path after version check, in case binary is not valid
         const version = await this.getZLintVersion(newPath);
-        console.log('found zlint version:', version);
+        this.log.appendLine('found zlint version: ' + version);
         this.zlintPath = newPath;
         this.version = version;
         this.fire();

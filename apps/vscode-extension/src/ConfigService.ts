@@ -3,6 +3,7 @@ import {
     EventEmitter,
     workspace,
     type ConfigurationChangeEvent,
+    type OutputChannel,
     type WorkspaceConfiguration,
 } from 'vscode';
 
@@ -16,7 +17,7 @@ export class ConfigService extends EventEmitter<Event> implements Disposable {
     private subscriptions: Disposable[] = [];
     #config: Config;
 
-    constructor() {
+    constructor(private log: OutputChannel) {
         super();
         this.#config = ConfigService.load();
         this.subscriptions.push(workspace.onDidChangeConfiguration(this.onConfigChange, this));
@@ -25,7 +26,10 @@ export class ConfigService extends EventEmitter<Event> implements Disposable {
     private onConfigChange(event: ConfigurationChangeEvent): void {
         if (!(this instanceof ConfigService))
             throw new TypeError("bad 'this' type; expected ConfigService");
-        if (!event.affectsConfiguration(ConfigService.configSection)) return;
+        const relevant = event.affectsConfiguration(ConfigService.configSection);
+
+        this.log.appendLine('config changed. Do we care? ' + relevant);
+        if (!relevant) return;
 
         const { enabled, path } = ConfigService.load();
 
