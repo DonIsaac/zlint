@@ -88,6 +88,10 @@ export interface Config {
 }
 namespace Config {
   export const scope = 'zig.zlint'
+
+  /**
+   * Subscribe to configuration changes
+   */
   export function subscribe(
     callback: (event: ConfigurationChangeEvent) => void,
     thisArg?: any,
@@ -98,6 +102,7 @@ namespace Config {
       }
     })
   }
+
   // oxlint-disable consistent-function-scoping
   export function loadFromWorkspace(config: WorkspaceConfiguration): Config {
     return {

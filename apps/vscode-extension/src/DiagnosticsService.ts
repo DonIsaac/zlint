@@ -12,6 +12,7 @@ import { strict as assert } from 'node:assert'
 import path from 'node:path'
 import type { ConfigService } from './ConfigService'
 
+const name = 'zlint'
 export class DiagnosticsService implements Disposable {
   #diagnostics: DiagnosticCollection
   #subscriptions: Disposable[] = []
@@ -21,7 +22,7 @@ export class DiagnosticsService implements Disposable {
     private bin: BinaryService,
     private log: vscode.OutputChannel,
   ) {
-    this.#diagnostics = vscode.languages.createDiagnosticCollection('zlint')
+    this.#diagnostics = vscode.languages.createDiagnosticCollection(name)
     this.collectDiagnostics = this.collectDiagnostics.bind(this)
     this.#subscriptions.push(
       this.config.event((e) => {
@@ -129,7 +130,7 @@ namespace zlint {
         labels.find((label) => label.primary) ?? labels[0]
       const range = primary ? Label.toRange(primary) : new Range(0, 0, 0, 0)
       const d = new vscode.Diagnostic(range, message, severity)
-      d.source = 'zlint'
+      d.source = name
       d.code = code ?? undefined
       return d
     }
