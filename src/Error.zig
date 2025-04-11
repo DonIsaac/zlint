@@ -68,8 +68,15 @@ pub fn jsonStringify(self: *const Error, jw: anytype) !void {
     try jw.objectFieldRaw("\"code\"");
     try jw.write(if (self.code.len > 0) self.code else null);
 
-    try jw.objectFieldRaw("\"labels\"");
-    try jw.write(self.labels.items);
+    if (self.source) |source| {
+        const src: []const u8 = source.deref().*[0..];
+        try jw.objectFieldRaw("\"labels\"");
+        try jw.beginArray();
+        for (self.labels.items) |label| {
+            try jw.write(label.fmtJson(src));
+        }
+        try jw.endArray();
+    }
 
     try jw.objectFieldRaw("\"source_name\"");
     try jw.write(self.source_name);

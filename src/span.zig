@@ -148,6 +148,7 @@ pub const LabeledSpan = struct {
             .span = .{ .start = start, .end = end },
         };
     }
+
     pub fn from(value: anytype) LabeledSpan {
         return switch (@TypeOf(value)) {
             LabeledSpan => value, // base case
@@ -169,6 +170,39 @@ pub const LabeledSpan = struct {
             },
         };
     }
+    pub fn fmtJson(self: LabeledSpan, source: []const u8) LocationFormatter {
+        return .{ .span = self, .source = source };
+    }
+
+    pub const LocationFormatter = struct {
+        span: LabeledSpan,
+        source: []const u8,
+
+        const Repr = struct {
+            start: Location,
+            end: Location,
+            primary: bool,
+            label: ?util.Cow(false),
+        };
+
+        // pub fn format(self: *const LocationFormatter, comptime _: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        // pub fn format(self: *const LocationFormatter, comptime _: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        pub fn jsonStringify(self: *const LocationFormatter, jw: anytype) !void {
+            const start_offset = self.span.span.start;
+            const len = self.span.span.len();
+            const start = findLineColumn(self.source, start_offset);
+            var end = findLineColumn(self.source[start_offset..], len);
+            end.line += start.line - 1;
+            end.column += start.column - 1;
+
+            try jw.write(Repr{
+                .start = start,
+                .end = end,
+                .primary = self.span.primary,
+                .label = self.span.label,
+            });
+        }
+    };
 };
 
 pub const Location = struct {
@@ -180,6 +214,15 @@ pub const Location = struct {
 
     pub fn fromSpan(contents: []const u8, span: Span) Location {
         return findLineColumn(contents, @intCast(span.start));
+    }
+    pub fn jsonStringify(self: *const Location, jw: anytype) !void {
+        // { line, column }
+        try jw.beginObject();
+        try jw.objectFieldRaw("\"line\"");
+        try jw.write(self.line);
+        try jw.objectFieldRaw("\"column\"");
+        try jw.write(self.column);
+        try jw.endObject();
     }
     // TODO: toSpan()
 };
