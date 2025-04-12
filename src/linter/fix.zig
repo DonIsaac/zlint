@@ -94,14 +94,8 @@ pub const Fix = struct {
 
         pub fn spanCovering(self: Builder, comptime kind: Spanned, id: u32) Span {
             return switch (kind) {
-                .token => Span.from(self.ctx.semantic.tokens.items(.loc)[id]),
-                .node => {
-                    const locs: []const Semantic.Token.Loc = self.ctx.semantic.tokens.items(.loc);
-                    const ast = self.ctx.ast();
-                    const start = ast.firstToken(id);
-                    const last = ast.lastToken(id);
-                    return Span.new(@intCast(locs[start].start), @intCast(locs[last].end));
-                },
+                .token => self.ctx.semantic.tokenSpan(id),
+                .node => self.ctx.semantic.nodeSpan(id),
             };
         }
     };
