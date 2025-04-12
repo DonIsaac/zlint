@@ -111,7 +111,11 @@ pub fn runOnNode(_: *const AvoidAs, wrapper: NodeWrapper, ctx: *LinterContext) v
             );
         },
         // a: lhs = rhs
-        .container_field_init => ctx.reportWithFix(wrapper.idx, preferTypeAnnotationDiagnostic(ctx, node.main_token), &removeAs),
+        .container_field_init => ctx.reportWithFix(
+            wrapper.idx,
+            lolTheresAlreadyATypeAnnotationDiagnostic(ctx, node.main_token),
+            &removeAs,
+        ),
 
         else => {},
     }
