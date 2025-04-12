@@ -21,6 +21,8 @@ export class ConfigService extends EventEmitter<Event> implements Disposable {
   constructor(private log: OutputChannel) {
     super()
     this.#config = ConfigService.load()
+    this.onConfigChange = this.onConfigChange.bind(this)
+    this.emit = this.emit.bind(this)
     this.#subscriptions.push(
       workspace.onDidChangeConfiguration(this.onConfigChange, this),
     )
@@ -47,9 +49,10 @@ export class ConfigService extends EventEmitter<Event> implements Disposable {
 
     if (this.#config.enabled !== enabled) {
       this.#config.enabled = enabled
-      this.fire({ type: enabled ? 'enabled' : 'disabled' } as
+      this.emit({ type: enabled ? 'enabled' : 'disabled' } as
         | EnabledEvent
         | DisabledEvent)
+      return
     }
     if (!this.#config.enabled) return
 
@@ -60,7 +63,7 @@ export class ConfigService extends EventEmitter<Event> implements Disposable {
     }
 
     if (didChange) {
-      this.fire({ type: 'change' } as ConfigChangeEvent)
+      this.emit({ type: 'change' } as ConfigChangeEvent)
     }
   }
 
@@ -72,6 +75,11 @@ export class ConfigService extends EventEmitter<Event> implements Disposable {
     return Config.loadFromWorkspace(
       workspace.getConfiguration(this.configSection),
     )
+  }
+
+  private emit(event: Event): void {
+    this.log.appendLine('emitting event: ' + JSON.stringify(event))
+    this.fire(event)
   }
 
   public dispose() {

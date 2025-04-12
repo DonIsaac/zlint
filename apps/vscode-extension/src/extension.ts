@@ -28,15 +28,16 @@ export function activate(context: vscode.ExtensionContext) {
       .catch((e) => logs.appendLine('error collecting diagnostics: ' + e))
   })
 
-  const toggleCommand = vscode.commands.registerCommand(
-    'zlint.toggle',
-    () => config.set(
-      'enabled',
-      !config.config.enabled,
-      vscode.ConfigurationTarget.WorkspaceFolder
-    ),
-  )
+  // FIXME: this command is not working
+  // const toggleCommand = vscode.commands.registerCommand(
+  //   'zig.zlint.toggle',
+  //   () => config.set(
+  //     'enabled',
+  //     !config.config.enabled,
+  //     vscode.ConfigurationTarget.WorkspaceFolder
+  //   ),
+  // )
   
 
-  context.subscriptions.push(config, bin, lintCmd, toggleCommand)
+  context.subscriptions.push(config, bin, lintCmd)
 }

@@ -12,6 +12,7 @@ import {
 import { readableStreamToString } from './util'
 
 const kEmptyArray: string[] = []
+const { HOME } = process.env
 
 /**
  * @emits when path to zlint binary loads or changes
@@ -45,6 +46,7 @@ export class BinaryService extends EventEmitter<void> implements Disposable {
       throw new Error('zlint binary path not set')
     }
     if (!root) throw new Error('workspace root path not set')
+    this.log.appendLine('cwd: ' + root)
     this.log.appendLine(
       'running zlint: ' + this.zlintPath + ' ' + args.join(' '),
     )
@@ -87,6 +89,7 @@ export class BinaryService extends EventEmitter<void> implements Disposable {
     configuredPath: string | undefined,
   ): Promise<string> {
     if (configuredPath) {
+      if (HOME) configuredPath = configuredPath.replaceAll('~', HOME)
       const fullPath = path.resolve(configuredPath)
       const stat = await fs.stat(fullPath)
       if (!stat.isFile())

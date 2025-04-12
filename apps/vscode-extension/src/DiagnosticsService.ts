@@ -27,7 +27,8 @@ export class DiagnosticsService implements Disposable {
     this.#subscriptions.push(
       this.config.event((e) => {
         if (e.type === 'disabled') {
-          this.#diagnostics.clear
+          this.log.appendLine('Received disabled event, clearing diagnostics')
+          this.#diagnostics.clear()
         }
       }),
     )

@@ -2,7 +2,7 @@
   "name": "zlint-vscode",
   "displayName": "ZLint",
   "description": "A linter for the Zig programming language",
-  "version": "0.0.1",
+  "version": "0.0.0-alpha.1",
   "type": "commonjs",
   "main": "dist/extension.js",
   "private": true,
@@ -55,15 +55,10 @@
     "configuration": {
       "title": "ZLint",
       "properties": {
-        "zig.zlint.enable": {
+        "zig.zlint.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Enable ZLint"
-        },
-        "zig.zlint.path": {
-          "type": "string",
-          "title": "ZLint Path",
-          "description": "Path to ZLint binary. If not set, zlint will be searched for in $PATH."
         }
       }
     },
