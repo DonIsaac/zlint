@@ -64,6 +64,10 @@ pub fn nodeSpan(self: *const Semantic, node: Ast.Node.Index) Span {
     return Span.new(@intCast(start), @intCast(end));
 }
 
+pub fn nodeSlice(self: *const Semantic, node: Ast.Node.Index) []const u8 {
+    return self.nodeSpan(node).snippet(self.ast.source);
+}
+
 /// Find the symbol bound to an identifier name that was declared in some scope.
 ///
 /// To find a binding that is referrable within a scope, but that may not have
