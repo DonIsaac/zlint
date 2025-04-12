@@ -30,6 +30,7 @@ export class BinaryService extends EventEmitter<void> implements Disposable {
 
     this.runZlint = this.runZlint.bind(this)
     this.onConfigChange = this.onConfigChange.bind(this)
+    this.findExisting = this.findExisting.bind(this)
 
     this.#onConfigChange = configService.event(this.onConfigChange, this)
     // use empty string to avoid shape transitions
@@ -111,15 +112,25 @@ export class BinaryService extends EventEmitter<void> implements Disposable {
    * Basically just `which zlint`
    */
   private async findExisting(): Promise<string | undefined> {
-    const { resolve } = Promise.withResolvers<string | undefined>()
     const child = spawn('which', ['zlint'], {
       shell: true,
-      stdio: ['ignore', 'pipe', 'ignore'],
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: process.env,
     })
+      .on('error', error => this.log.appendLine('error finding zlint binary: ' + error))
+      .on('exit', code => this.log.appendLine(`which zlint exited with code ${code}`))
 
     try {
-      const stdout = await readableStreamToString(child.stdout!)
-      resolve(stdout.length ? stdout : undefined)
+      const [stdout, stderr] = await Promise.all([
+        readableStreamToString(child.stdout!),
+        readableStreamToString(child.stderr!),
+      ]);
+      if (child.exitCode) {
+        this.log.appendLine('error finding zlint binary: ' + stderr)
+        return undefined
+      }
+      const binPath = stdout.trim() || undefined // '' -> undefined
+      return binPath
     } catch {
       return undefined
     }
