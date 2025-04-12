@@ -136,7 +136,30 @@ const UnusedDeclsFixer = struct {
         const decl: Node.Index = ctx.symbols().symbols.items(.decl)[symbol.int()];
         var span = ctx.spanN(decl).span;
         const text = ctx.source.text();
-        if (span.end < text.len and text[span.end] == ';') span.end += 1;
+
+        // if (span.end < text.len and text[span.end] == ';') span.end += 1;
+        var needs_semicolon = true;
+        while (span.end < text.len) {
+            switch (text[span.end]) {
+                ';' => if (needs_semicolon) {
+                    needs_semicolon = false;
+                    span.end += 1;
+                } else break,
+                ' ', '\t' => span.end += 1,
+                '\n' => {
+                    span.end += 1;
+                    break;
+                },
+                '\r' => {
+                    span.end += 1;
+                    if (span.end < text.len and text[span.end] == '\n') {
+                        span.end += 1;
+                    }
+                    break;
+                },
+                else => break,
+            }
+        }
 
         return .{ .span = span };
     }
@@ -200,21 +223,38 @@ test UnusedDecls {
         .{ .src = "const x = 1;", .expected = "" },
         .{ .src = "const std = @import(\"std\");", .expected = "" },
         .{ .src = "const x = struct {\na: u32,\n};", .expected = "" },
-        .{ .src = 
-        \\//! This module does a thing
-        \\const std = @import("std");
-        , .expected = 
-        \\//! This module does a thing
-        \\
+        .{
+            .src =
+            \\//! This module does a thing
+            \\const std = @import("std");
+            ,
+            .expected =
+            \\//! This module does a thing
+            \\
+            ,
         },
-        .{ .src = 
-        \\pub const used = 1;
-        \\const unused = struct {
-        \\  a: u32 = 1
-        \\};
-        , .expected = 
-        \\pub const used = 1;
-        \\
+        .{
+            .src =
+            \\pub const used = 1;
+            \\const unused = struct {
+            \\  a: u32 = 1
+            \\};
+            ,
+            .expected =
+            \\pub const used = 1;
+            \\
+            ,
+        },
+        .{
+            .src =
+            \\const x = 1;
+            \\const y = 2;
+            \\pub const z = x + 1;
+            ,
+            .expected =
+            \\const x = 1;
+            \\pub const z = x + 1;
+            ,
         },
     };
 
