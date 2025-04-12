@@ -48,7 +48,7 @@ pub const Rule = struct {
 
     /// Rules must have a constant with this name of type `Rule.Meta`.
     const META_FIELD_NAME = "meta";
-    pub const MAX_SIZE: usize = 16;
+    pub const MAX_SIZE: usize = 32;
     pub const Meta = struct {
         name: []const u8,
         category: Category,
@@ -86,7 +86,10 @@ pub const Rule = struct {
             };
         };
         if (@sizeOf(ptr_info.child) > MAX_SIZE) {
-            @compileError("Rule " ++ @typeName(ptr_info.child) ++ " is too large. Maximum size is " ++ MAX_SIZE);
+            @compileError(std.fmt.comptimePrint(
+                "Rule " ++ @typeName(ptr_info.child) ++ " is too large. Maximum size is {d}",
+                .{MAX_SIZE},
+            ));
         }
         const meta: Meta = if (@hasDecl(ptr_info.child, META_FIELD_NAME))
             @field(ptr_info.child, META_FIELD_NAME)
@@ -105,13 +108,13 @@ pub const Rule = struct {
             }
             pub fn runOnNode(pointer: *const anyopaque, node: NodeWrapper, ctx: *LinterContext) anyerror!void {
                 if (@hasDecl(ptr_info.child, "runOnNode")) {
-                    const self: T = @ptrCast(@constCast(pointer));
+                    const self: T = @ptrCast(@alignCast(@constCast(pointer)));
                     return ptr_info.child.runOnNode(self, node, ctx);
                 }
             }
             pub fn runOnSymbol(pointer: *const anyopaque, symbol: Symbol.Id, ctx: *LinterContext) anyerror!void {
                 if (@hasDecl(ptr_info.child, "runOnSymbol")) {
-                    const self: T = @ptrCast(@constCast(pointer));
+                    const self: T = @ptrCast(@alignCast(@constCast(pointer)));
                     return ptr_info.child.runOnSymbol(self, symbol, ctx);
                 }
             }
