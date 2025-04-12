@@ -180,13 +180,7 @@ pub fn Walker(Visitor: type, Error: type) type {
         /// Initialize this walker's stack in preparation for a walk. It is
         /// recommended to use an arena for `allocator`.
         pub fn init(allocator: Allocator, ast: *const Ast, visitor: *Visitor) Allocator.Error!Self {
-            var self = Self{
-                .ast = ast,
-                .tags = ast.nodes.items(.tag).ptr,
-                .datas = ast.nodes.items(.data).ptr,
-                .alloc = allocator,
-                .visitor = visitor,
-            };
+            var self = Self.new(allocator, ast, visitor);
             // var stackfb = std.heap.stackFallback(64, allocator);
             // const stack = stackfb.get();
             const root_decls = ast.rootDecls();
@@ -204,6 +198,33 @@ pub fn Walker(Visitor: type, Error: type) type {
             }
 
             return self;
+        }
+
+        pub const InitError = error{NullNode} || Allocator.Error;
+
+        pub fn initAtNode(
+            allocator: Allocator,
+            ast: *const Ast,
+            visitor: *Visitor,
+            node: Node.Index,
+        ) InitError!Self {
+            if (node == Semantic.NULL_NODE) {
+                @branchHint(.cold);
+                return InitError.NullNode;
+            }
+            var self = Self.new(allocator, ast, visitor);
+            try self.push(node, .{ .maybe_null = false });
+            return self;
+        }
+
+        fn new(allocator: Allocator, ast: *const Ast, visitor: *Visitor) Self {
+            return Self{
+                .ast = ast,
+                .tags = ast.nodes.items(.tag).ptr,
+                .datas = ast.nodes.items(.data).ptr,
+                .alloc = allocator,
+                .visitor = visitor,
+            };
         }
 
         inline fn enterNode(self: *Self, node: Node.Index) Error!void {

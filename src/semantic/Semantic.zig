@@ -56,6 +56,14 @@ pub fn tokenSpan(self: *const Semantic, token: TokenIndex) Span {
     return Span.from(self.tokens.items(.loc)[token]);
 }
 
+pub fn nodeSpan(self: *const Semantic, node: Ast.Node.Index) Span {
+    const locs: []const Semantic.Token.Loc = self.tokens.items(.loc);
+    const start = locs[self.ast.firstToken(node)].start;
+    const end = locs[self.ast.lastToken(node)].end;
+    assert(start <= end);
+    return Span.new(@intCast(start), @intCast(end));
+}
+
 /// Find the symbol bound to an identifier name that was declared in some scope.
 ///
 /// To find a binding that is referrable within a scope, but that may not have
@@ -116,6 +124,7 @@ const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Ast = std.zig.Ast;
 const Span = @import("../span.zig").Span;
+const assert = std.debug.assert;
 
 const _ast = @import("./ast.zig");
 const _tokenizer = @import("./tokenizer.zig");
