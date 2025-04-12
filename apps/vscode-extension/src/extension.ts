@@ -16,7 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
     .findZLintBinary()
     .catch((e) => logs.appendLine('error finding zlint binary: ' + e))
 
-  const lintCmd = vscode.commands.registerCommand('zlint.lint', () => {
+  const lintCmd = vscode.commands.registerCommand('zig.zlint.lint', () => {
     if (!bin.ready) {
       logs.appendLine('zlint binary not ready, not running zlint.lint')
       return
@@ -28,5 +28,15 @@ export function activate(context: vscode.ExtensionContext) {
       .catch((e) => logs.appendLine('error collecting diagnostics: ' + e))
   })
 
-  context.subscriptions.push(config, bin, lintCmd)
+  const toggleCommand = vscode.commands.registerCommand(
+    'zlint.toggle',
+    () => config.set(
+      'enabled',
+      !config.config.enabled,
+      vscode.ConfigurationTarget.WorkspaceFolder
+    ),
+  )
+  
+
+  context.subscriptions.push(config, bin, lintCmd, toggleCommand)
 }

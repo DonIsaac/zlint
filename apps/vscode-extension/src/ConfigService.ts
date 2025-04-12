@@ -1,4 +1,5 @@
 import {
+  ConfigurationTarget,
   Disposable,
   EventEmitter,
   workspace,
@@ -23,6 +24,15 @@ export class ConfigService extends EventEmitter<Event> implements Disposable {
     this.#subscriptions.push(
       workspace.onDidChangeConfiguration(this.onConfigChange, this),
     )
+  }
+
+  public set<K extends keyof Config>(
+    key: K,
+    value: Config[K],
+    target?: ConfigurationTarget | boolean | null
+  ): void {
+    const config = workspace.getConfiguration(Config.scope)
+    config.update(key, value, target)
   }
 
   private onConfigChange(event: ConfigurationChangeEvent): void {

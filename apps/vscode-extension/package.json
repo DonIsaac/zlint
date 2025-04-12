@@ -42,8 +42,13 @@
   "contributes": {
     "commands": [
       {
-        "command": "zlint.lint",
+        "command": "zig.zlint.lint",
         "title": "Run ZLint",
+        "category": "ZLint"
+      },
+      {
+        "command": "zig.zlint.toggle",
+        "title": "Enable/disable ZLint for this workspace",
         "category": "ZLint"
       }
     ],
