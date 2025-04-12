@@ -12,3 +12,10 @@
    ╰────
   help: Remove the @as() call.
 
+  𝙭 avoid-as: Prefer using type annotations over @as().
+   ╭─[avoid-as.zig:1:31]
+ 1 │ const Foo = struct { x: u32 = @as(u32, 1) };
+   ·                               ───
+   ╰────
+  help: Use a type annotation instead.
+

@@ -95,6 +95,7 @@ pub fn runOnNode(_: *const AvoidAs, wrapper: NodeWrapper, ctx: *LinterContext) v
     const parent = ctx.links().getParent(wrapper.idx) orelse return;
 
     switch (tags[parent]) {
+        // var a: lhs = rhs
         .simple_var_decl => {
             const data = datas[parent];
             const ty_annotation = data.lhs;
@@ -109,9 +110,20 @@ pub fn runOnNode(_: *const AvoidAs, wrapper: NodeWrapper, ctx: *LinterContext) v
                 VarFixer.replaceWithTypeAnnotation,
             );
         },
+        // a: lhs = rhs
+        .container_field_init => ctx.reportWithFix(wrapper.idx, preferTypeAnnotationDiagnostic(ctx, node.main_token), &removeAs),
 
         else => {},
     }
+}
+
+fn removeAs(as_node: Node.Index, builder: Fix.Builder) !Fix {
+    const expr_node = builder.ctx.ast().nodes.items(.data)[as_node].rhs;
+    const as_span = builder.spanCovering(.node, as_node);
+    return builder.replace(
+        as_span,
+        Cow.initBorrowed(builder.snippet(.node, expr_node)),
+    );
 }
 
 const VarFixer = struct {
@@ -185,11 +197,13 @@ test AvoidAs {
     const pass = &[_][:0]const u8{
         "const x = 1;",
         "const x: u32 = 1;",
+        "const Foo = struct { x: u32 = 1 };",
     };
 
     const fail = &[_][:0]const u8{
         "const x = @as(u32, 1);",
         "const x: u32 = @as(u32, 1);",
+        "const Foo = struct { x: u32 = @as(u32, 1) };",
     };
 
     const fix = &[_]RuleTester.FixCase{
@@ -246,6 +260,10 @@ test AvoidAs {
             \\  else => 3,
             \\};
             ,
+        },
+        .{
+            .src = "const Foo = struct { x: u32 = @as(u32, 1) };",
+            .expected = "const Foo = struct { x: u32 = 1 };",
         },
     };
 
