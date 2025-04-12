@@ -47,6 +47,21 @@
 //! };
 //! ```
 //!
+//! #### Whitelisting Types
+//! You may whitelist specific types that are allowed to be initialized to `undefined`.
+//! Any variable with this type will not have a violation triggered, as long as
+//! the type is obvious to ZLint's semantic analyzer. By default the whitelist
+//! contains `ThreadPool`/`Thread.Pool` from `std.Thread.Pool`
+//!
+//! ```zig
+//! // "unsafe-undefined": ["error", { "allow_types": ["CustomBuffer"] }]
+//! const CustomBuffer = [4096]u8;
+//! var buf: CustomBuffer = undefined; // ok
+//! ```
+//! > [!NOTE]
+//! > ZLint does not have a type checker yet, so implicit struct initializations
+//! > will not be ignored.
+//!
 //! #### Destructors
 //! Invalidating freed pointers/data by setting it to `undefined` is helpful for
 //! finding use-after-free bugs. Using `undefined` in destructors will not trigger
@@ -131,7 +146,10 @@ const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
 
 allow_arrays: bool = true,
-allowed_types: []const []const u8 = &[_][]const u8{"ThreadPool"},
+allowed_types: []const []const u8 = &[_][]const u8{
+    "ThreadPool",
+    "Thread.Pool",
+},
 
 const UnsafeUndefined = @This();
 pub const meta: Rule.Meta = .{
