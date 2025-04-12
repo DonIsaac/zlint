@@ -1,0 +1,72 @@
+{
+  "name": "zlint-vscode",
+  "displayName": "ZLint",
+  "description": "A linter for the Zig programming language",
+  "version": "0.0.0-alpha.1",
+  "type": "commonjs",
+  "main": "dist/extension.js",
+  "private": true,
+  "license": "MIT",
+  "categories": [
+    "Linters"
+  ],
+  "publisher": "donisaac",
+  "author": {
+    "name": "Don Isaac",
+    "url": "https://github.com/DonIsaac"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DonIsaac/zlint",
+    "directory": "apps/vscode-extension"
+  },
+  "engines": {
+    "vscode": "^1.78.0"
+  },
+  "scripts": {
+    "package": "vsce package --no-dependencies -o zlint.vsix",
+    "build:prod": "bun build.ts --production",
+    "install-extension": "code --install-extension zlint.vsix --force",
+    "all": "bun run build && bun package && bun install-extension"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/vscode": "^1.78.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "activationEvents": [
+    "onLanguage:zig"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "zig.zlint.lint",
+        "title": "Run ZLint",
+        "category": "ZLint"
+      },
+      {
+        "command": "zig.zlint.toggle",
+        "title": "Enable/disable ZLint for this workspace",
+        "category": "ZLint"
+      }
+    ],
+    "configuration": {
+      "title": "ZLint",
+      "properties": {
+        "zig.zlint.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable ZLint"
+        }
+      }
+    },
+    "jsonValidation": [
+      {
+        "fileMatch": "zlint.json",
+        "url": "https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/zlint.schema.json"
+      }
+    ]
+  }
+}

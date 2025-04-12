@@ -17,17 +17,33 @@ pub fn format(_: *JSONFormatter, w: *Writer, e: Error) FormatError!void {
 }
 
 test JSONFormatter {
+    const Source = @import("../../source.zig").Source;
     const json = std.json;
-    const allocator = std.testing.allocator;
+    const Value = json.Value;
+    const expect = std.testing.expect;
+    const expectEqual = std.testing.expectEqual;
     const expectEqualStrings = std.testing.expectEqualStrings;
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    const source: [:0]const u8 = "const x: u32 = 1;";
+    const src = try Source.fromString(allocator, @constCast(source), "test.zig");
 
     var buf = std.ArrayList(u8).init(allocator);
     defer buf.deinit();
 
     var err = Error.newStatic("oof");
-    defer err.deinit(allocator);
+    err.source = src.contents;
+    err.source_name = src.pathname;
     err.help = Cow.static("help pls");
     err.code = "code";
+    try err.labels.append(allocator, LabeledSpan{
+        .label = Cow.static("some label"),
+        .span = _span.Span.new(0, 4),
+        .primary = true,
+    });
 
     var f = JSONFormatter{};
     var w = buf.writer().any();
@@ -40,6 +56,14 @@ test JSONFormatter {
     try expectEqualStrings("oof", obj.get("message").?.string);
     try expectEqualStrings("code", obj.get("code").?.string);
     try expectEqualStrings("help pls", obj.get("help").?.string);
+    const labels = obj.get("labels") orelse return error.ZigTestFailing;
+    try expect(labels == .array);
+    try expectEqual(1, labels.array.items.len);
+    const label = labels.array.items[0].object;
+    try expectEqual(Value{ .bool = true }, label.get("primary"));
+    try expectEqualStrings("some label", label.get("label").?.string);
+    try expect(label.get("start").? == .object);
+    try expect(label.get("end").? == .object);
 }
 
 const std = @import("std");
