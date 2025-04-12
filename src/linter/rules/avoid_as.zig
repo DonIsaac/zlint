@@ -231,23 +231,22 @@ test AvoidAs {
             \\}
             ,
         },
-        // FIXME: multi-line
-        // .{
-        //     .src =
-        //     \\const x = @as(u32, switch (some_comptime_enum) {
-        //     \\  .foo => 1,
-        //     \\  .bar => 2,
-        //     \\  else => 3,
-        //     \\});
-        //     ,
-        //     .expected =
-        //     \\const x: u32 = switch (some_comptime_enum) {
-        //     \\  .foo => 1,
-        //     \\  .bar => 2,
-        //     \\  else => 3,
-        //     \\};
-        //     ,
-        // },
+        .{
+            .src =
+            \\const x = @as(u32, switch (some_comptime_enum) {
+            \\  .foo => 1,
+            \\  .bar => 2,
+            \\  else => 3,
+            \\});
+            ,
+            .expected =
+            \\const x: u32 = switch (some_comptime_enum) {
+            \\  .foo => 1,
+            \\  .bar => 2,
+            \\  else => 3,
+            \\};
+            ,
+        },
     };
 
     try runner
