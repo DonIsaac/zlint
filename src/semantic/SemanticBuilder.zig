@@ -489,21 +489,21 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
 }
 
 /// Basic lhs/rhs traversal. This is just a shorthand.
-inline fn visitRecursive(self: *SemanticBuilder, node_id: NodeIndex) !void {
+fn visitRecursive(self: *SemanticBuilder, node_id: NodeIndex) callconv(util.@"inline") !void {
     const data: Node.Data = self.getNodeData(node_id);
     try self.visit(data.lhs);
     try self.visit(data.rhs);
 }
 
 /// Like `visit`, but turns off `read`/`write` reference flags and turns on `type`.
-inline fn visitType(self: *SemanticBuilder, node_id: NodeIndex) !void {
+fn visitType(self: *SemanticBuilder, node_id: NodeIndex) callconv(util.@"inline") !void {
     const prev = self.takeReferenceFlags();
     defer self._curr_reference_flags = prev;
     self._curr_reference_flags.type = true;
     try self.visit(node_id);
 }
 
-inline fn visitRecursiveSlice(self: *SemanticBuilder, node_id: NodeIndex) !void {
+fn visitRecursiveSlice(self: *SemanticBuilder, node_id: NodeIndex) callconv(util.@"inline") !void {
     const data = self.getNodeData(node_id);
     const ast = self.AST();
     self.assertCtx(data.lhs < ast.extra_data.len, "slice start exceeds extra_data bounds", .{});
@@ -591,7 +591,6 @@ fn visitContainer(self: *SemanticBuilder, node: NodeIndex, container: full.Conta
 }
 
 fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
-    // util.assertUnsafe(self.AST().nodes.items(.tag)[node_id] == Node.Tag.error_set_decl);
     const tags: []const Token.Tag = self.AST().tokens.items(.tag);
 
     var curr_tok = self.getNodeData(node_id).rhs;
@@ -606,7 +605,6 @@ fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
         // NOTE: causes an out-of-bounds access in release builds, but the
         // assertion never fails in debug builds. TODO: investigate and report
         // to Zig team.
-        // util.assertUnsafe(curr_tok > 0);
         util.assert(
             curr_tok > 0,
             "an brace should always be encountered when walking an error declaration's members in a syntactically-valid program.",
@@ -635,7 +633,8 @@ fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     }
 }
 
-/// ======================= VARIABLE/FIELD DECLARATIONS ========================
+// ======================= VARIABLE/FIELD DECLARATIONS ========================
+
 /// Visit a container field (e.g. a struct property, enum variant, etc).
 ///
 /// ```zig
@@ -777,9 +776,7 @@ fn visitAssignDestructure(
         const decl: full.VarDecl = ast.fullVarDecl(var_id) orelse {
             return SemanticError.FullMismatch;
         };
-        // const identifier: ?string = self.getIdentifier(main_token + 1);
-        const identifier = main_token + 1;
-        if (token_tags[identifier] != .identifier) return error.MissingIdentifier;
+        const identifier = try self.assertToken(main_token + 1, .identifier);
 
         // note: intentionally not using bindSymbol (for now, at least)
         _ = try self.declareSymbol(.{
@@ -820,7 +817,7 @@ fn visitIdentifier(self: *SemanticBuilder, node_id: NodeIndex) !void {
     });
 }
 
-fn visitFieldAccess(self: *SemanticBuilder, node_id: NodeIndex) !void {
+fn visitFieldAccess(self: *SemanticBuilder, node_id: NodeIndex) callconv(util.@"inline") !void {
     // TODO: record references
     return self.visit(self.getNodeData(node_id).lhs);
 }
@@ -857,14 +854,14 @@ fn visitPtrType(self: *SemanticBuilder, ptr: full.PtrType) !void {
 
 // =============================================================================
 
-fn visitArrayInit(self: *SemanticBuilder, _: NodeIndex, arr: full.ArrayInit) !void {
+fn visitArrayInit(self: *SemanticBuilder, _: NodeIndex, arr: full.ArrayInit) callconv(util.@"inline") !void {
     try self.visitType(arr.ast.type_expr);
     for (arr.ast.elements) |el| {
         try self.visit(el);
     }
 }
 
-fn visitStructInit(self: *SemanticBuilder, _: NodeIndex, @"struct": full.StructInit) !void {
+fn visitStructInit(self: *SemanticBuilder, _: NodeIndex, @"struct": full.StructInit) callconv(util.@"inline") !void {
     try self.visit(@"struct".ast.type_expr);
     for (@"struct".ast.fields) |field| {
         try self.visit(field);
@@ -872,14 +869,14 @@ fn visitStructInit(self: *SemanticBuilder, _: NodeIndex, @"struct": full.StructI
 }
 // ============================== STATEMENTS ===============================
 
-inline fn visitWhile(self: *SemanticBuilder, _: NodeIndex, while_stmt: full.While) !void {
+fn visitWhile(self: *SemanticBuilder, _: NodeIndex, while_stmt: full.While) callconv(util.@"inline") !void {
     try self.visit(while_stmt.ast.cond_expr);
     try self.visit(while_stmt.ast.cont_expr); // what is this?
     try self.visit(while_stmt.ast.then_expr);
     try self.visit(while_stmt.ast.else_expr);
 }
 
-inline fn visitFor(self: *SemanticBuilder, node: NodeIndex, for_stmt: full.For) !void {
+fn visitFor(self: *SemanticBuilder, node: NodeIndex, for_stmt: full.For) callconv(util.@"inline") !void {
     for (for_stmt.ast.inputs) |input| {
         try self.visit(input);
     }
@@ -913,7 +910,7 @@ inline fn visitFor(self: *SemanticBuilder, node: NodeIndex, for_stmt: full.For) 
     try self.visit(for_stmt.ast.else_expr);
 }
 
-inline fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) !void {
+fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) callconv(util.@"inline") !void {
     const ast = self.AST();
     const tags = ast.tokens.items(.tag);
 
@@ -921,7 +918,7 @@ inline fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) !void 
 
     // TODO: should payloads be in a separate scope as the block or naw?
     {
-        // if (cond) |payload| then
+        // `if (cond) |payload| then`
         // payload is only available in `then`, not `else`
         try self.enterScope(.{});
         defer self.exitScope();
@@ -1032,7 +1029,7 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
     return self.visit(data.rhs);
 }
 
-inline fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnProto) !void {
+fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnProto) !void {
     try self.enterScope(.{ .flags = .{ .s_function = true } });
     defer self.exitScope();
 
@@ -1100,11 +1097,10 @@ fn visitFnProtoParams(self: *SemanticBuilder, fn_proto: full.FnProto) !void {
     }
 }
 
-inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
+fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) callconv(util.@"inline") !void {
     var buf: [1]u32 = undefined;
     const ast = self.AST();
     // lhs is prototype, rhs is body
-    // const data: Node.Data = ast.nodes.items(.data)[node_id];
     const data = self.getNodeData(node_id);
     const proto = ast.fullFnProto(&buf, data.lhs) orelse unreachable;
     const visibility = if (proto.visib_token == null) Symbol.Visibility.private else Symbol.Visibility.public;
@@ -1173,11 +1169,6 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     // same name as a parameter is an illegal shadow, not a redeclaration
     // error.
     self._next_block_scope_flags.s_function = true;
-    // try self.enterScope(.{
-    //     .node = data.rhs,
-    //     .flags = .{ .s_function = true },
-    // });
-    // defer self.exitScope();
     try self.visit(data.rhs);
     util.assert(
         self._next_block_scope_flags.eql(.{}),
@@ -1187,7 +1178,7 @@ inline fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
 }
 
 /// Visit a function call. Does not visit calls to builtins
-inline fn visitCall(self: *SemanticBuilder, _: NodeIndex, call: full.Call) !void {
+fn visitCall(self: *SemanticBuilder, _: NodeIndex, call: full.Call) !void {
     // TODO: record reference
     const prev = self._curr_reference_flags;
     // visit callee
@@ -1210,7 +1201,7 @@ inline fn visitCall(self: *SemanticBuilder, _: NodeIndex, call: full.Call) !void
     }
 }
 
-inline fn visitBuiltinCall(self: *SemanticBuilder, node: NodeIndex, comptime is_slice: bool) !void {
+fn visitBuiltinCall(self: *SemanticBuilder, node: NodeIndex, comptime is_slice: bool) !void {
     const nodes = self.AST().nodes;
 
     const builtin = try self.assertToken(nodes.items(.main_token)[node], .builtin);
@@ -1393,8 +1384,7 @@ inline fn enterContainerSymbol(self: *SemanticBuilder, symbol_id: Symbol.Id) All
 
 /// Pop the most recent container symbol from the stack. Panics if the symbol stack is empty.
 inline fn exitContainerSymbol(self: *SemanticBuilder) void {
-    // NOTE: asserts stack is not empty
-    _ = self._symbol_stack.pop();
+    _ = self._symbol_stack.pop().?;
 }
 
 /// Get the most recent container symbol, returning `null` if the stack is empty.
@@ -1473,10 +1463,10 @@ fn declareMemberSymbol(
 
 /// Declare a symbol in the current scope. Symbols created this way are not
 /// associated with a container symbol's members or exports.
-inline fn declareSymbol(
+fn declareSymbol(
     self: *SemanticBuilder,
     opts: DeclareSymbol,
-) Allocator.Error!Symbol.Id {
+) callconv(util.@"inline") Allocator.Error!Symbol.Id {
     const scope = opts.scope_id orelse self.currentScope();
     const name = if (opts.identifier) |ident| self.tokenSlice(ident) else null;
     const symbol_id = try self._semantic.symbols.addSymbol(

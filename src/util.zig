@@ -1,19 +1,20 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-pub const env = @import("./util/env.zig");
-pub const NominalId = @import("./util/id.zig").NominalId;
-pub const Cow = @import("./util/cow.zig").Cow;
-
 pub const RUNTIME_SAFETY = builtin.mode != .ReleaseFast;
 pub const IS_DEBUG = builtin.mode == .Debug;
 pub const IS_TEST = builtin.is_test;
 pub const IS_WINDOWS = builtin.target.os.tag == .windows;
 pub const NEWLINE = if (IS_WINDOWS) "\r\n" else "\n";
 
-pub const DebugOnly = @import("./util/debug_only.zig").DebugOnly;
-pub const debugOnly = @import("./util/debug_only.zig").debugOnly;
-pub const Bitflags = @import("./util/bitflags.zig").Bitflags;
+pub const @"inline": std.builtin.CallingConvention = if (IS_DEBUG) .Inline else .Unspecified;
+
+pub const env = @import("util/env.zig");
+pub const NominalId = @import("util/id.zig").NominalId;
+pub const Cow = @import("util/cow.zig").Cow;
+pub const DebugOnly = @import("util/debug_only.zig").DebugOnly;
+pub const debugOnly = @import("util/debug_only.zig").debugOnly;
+pub const Bitflags = @import("util/bitflags.zig").Bitflags;
 pub const FeatureFlags = @import("util/feature_flags.zig");
 
 pub fn trimWhitespace(s: []const u8) []const u8 {
