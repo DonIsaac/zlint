@@ -13,18 +13,11 @@
 //! an entire linked binary or library; rather it refers to a single parsed
 //! file.
 
+parse: Parse, // NOTE: allocated in _arena
 symbols: Symbol.Table = .{},
 scopes: Scope.Tree = .{},
 modules: ModuleRecord = .{},
-ast: Ast, // NOTE: allocated in _arena
-// NOTE: We re-tokenize and store our own tokens b/c AST throws away the end
-// position of each token. B/c of this, `ast.stokenSlice` re-tokenizes each
-// time. So we do it once, eat the memory overhead, and help the linter avoid
-// constant re-tokenization.
-// NOTE: allocated in _arena
-tokens: TokenList.Slice,
 node_links: NodeLinks,
-comments: CommentList.Slice,
 _gpa: Allocator,
 /// Used to allocate AST nodes
 _arena: ArenaAllocator,
@@ -47,25 +40,41 @@ pub const ROOT_NODE_ID: Ast.Node.Index = 0;
 /// Alias for `ROOT_NODE_ID`. Used in null-node check contexts for code clarity.
 pub const NULL_NODE: Ast.Node.Index = ROOT_NODE_ID;
 
+pub inline fn source(self: *const Semantic) [:0]const u8 {
+    return self.parse.ast.source;
+}
+
+pub inline fn nodes(self: *const Semantic) *const Ast.NodeList.Slice {
+    return &self.parse.ast.nodes;
+}
+
+pub inline fn tokens(self: *const Semantic) *const TokenList.Slice {
+    return &self.parse.tokens;
+}
+
+pub fn comments(self: *const Semantic) *const CommentList.Slice {
+    return &self.parse.comments;
+}
+
 pub fn tokenSlice(self: *const Semantic, token: TokenIndex) []const u8 {
-    const loc: Token.Loc = self.tokens.items(.loc)[token];
-    return self.ast.source[loc.start..loc.end];
+    const loc: Token.Loc = self.parse.tokens.items(.loc)[token];
+    return self.source()[loc.start..loc.end];
 }
 
 pub fn tokenSpan(self: *const Semantic, token: TokenIndex) Span {
-    return Span.from(self.tokens.items(.loc)[token]);
+    return Span.from(self.parse.tokens.items(.loc)[token]);
 }
 
 pub fn nodeSpan(self: *const Semantic, node: Ast.Node.Index) Span {
-    const locs: []const Semantic.Token.Loc = self.tokens.items(.loc);
-    const start = locs[self.ast.firstToken(node)].start;
-    const end = locs[self.ast.lastToken(node)].end;
+    const locs: []const Semantic.Token.Loc = self.parse.tokens.items(.loc);
+    const start = locs[self.parse.ast.firstToken(node)].start;
+    const end = locs[self.parse.ast.lastToken(node)].end;
     assert(start <= end);
     return Span.new(@intCast(start), @intCast(end));
 }
 
 pub fn nodeSlice(self: *const Semantic, node: Ast.Node.Index) []const u8 {
-    return self.nodeSpan(node).snippet(self.ast.source);
+    return self.nodeSpan(node).snippet(self.source());
 }
 
 /// Find the symbol bound to an identifier name that was declared in some scope.
@@ -139,6 +148,7 @@ pub const Token = _tokenizer.Token;
 pub const TokenList = _tokenizer.TokenList;
 
 pub const Builder = @import("SemanticBuilder.zig");
+pub const Parse = @import("Parse.zig");
 pub const NodeLinks = @import("NodeLinks.zig");
 pub const Scope = @import("Scope.zig");
 pub const Symbol = @import("Symbol.zig");

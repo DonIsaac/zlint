@@ -46,10 +46,10 @@ pub fn takeDiagnostics(self: *Context) Diagnostic.List {
 // Shorthand access to data within the context. Makes writing rules easier.
 
 pub fn ast(self: *const Context) *const Ast {
-    return &self.semantic.ast;
+    return &self.semantic.parse.ast;
 }
 pub fn tokens(self: *const Context) *const Semantic.TokenList.Slice {
-    return &self.semantic.tokens;
+    return &self.semantic.parse.tokens;
 }
 
 pub inline fn scopes(self: *const Context) *const Semantic.Scope.Tree {
@@ -67,22 +67,13 @@ pub inline fn links(self: *const Context) *const Semantic.NodeLinks {
 // ============================ ERROR REPORTING ============================
 
 pub fn spanN(self: *const Context, node_id: Ast.Node.Index) LabeledSpan {
-    // TODO: inline
-    const ast_ = self.semantic.ast;
-    const tok_locations: []const Semantic.Token.Loc = self.semantic.tokens.items(.loc);
-
-    const first = ast_.firstToken(node_id);
-    const last = ast_.lastToken(node_id);
-    const first_start = tok_locations[first].start;
-    const last_end = tok_locations[last].end;
-    return LabeledSpan.unlabeled(@intCast(first_start), @intCast(last_end));
+    const span = self.semantic.nodeSpan(node_id);
+    return LabeledSpan{ .span = span };
 }
 
 pub fn spanT(self: *const Context, token_id: Ast.TokenIndex) LabeledSpan {
-    // TODO: inline
-    const s = self.semantic.ast.tokenToSpan(token_id);
-    // return .{ .start = s.start, .end = s.end };
-    return LabeledSpan.unlabeled(s.start, s.end);
+    const span = self.semantic.tokenSpan(token_id);
+    return LabeledSpan{ .span = span };
 }
 
 pub inline fn labelN(
@@ -91,9 +82,9 @@ pub inline fn labelN(
     comptime fmt: []const u8,
     args: anytype,
 ) LabeledSpan {
-    const s = self.semantic.ast.nodeToSpan(node_id);
+    const s = self.semantic.nodeSpan(node_id);
     return LabeledSpan{
-        .span = .{ .start = s.start, .end = s.end },
+        .span = s,
         .label = util.Cow(false).fmt(self.gpa, fmt, args) catch @panic("OOM"),
         .primary = false,
     };
@@ -105,7 +96,7 @@ pub inline fn labelT(
     comptime fmt: []const u8,
     args: anytype,
 ) LabeledSpan {
-    const s = self.semantic.ast.tokenToSpan(token_id);
+    const s = self.semantic.parse.ast.tokenToSpan(token_id);
     return LabeledSpan{
         .span = .{ .start = s.start, .end = s.end },
         .label = util.Cow(false).fmt(self.gpa, fmt, args) catch @panic("OOM"),

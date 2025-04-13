@@ -62,7 +62,7 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: 
     try p.pPropStr("name", symbol.name);
     try p.pPropStr("debugName", symbol.debug_name);
     try p.pProp("token", "{any}", if (symbol.token.unwrap()) |t| t.int() else null);
-    const decl = self.semantic.ast.nodes.items(.tag)[symbol.decl];
+    const decl = self.semantic.parse.ast.nodes.items(.tag)[symbol.decl];
     try p.pPropWithNamespacedValue("declNode", decl);
     try p.pProp("scope", "{d}", symbol.scope);
     {
@@ -109,7 +109,7 @@ pub fn printUnresolvedReferences(self: *SemanticPrinter) !void {
 }
 
 fn printReference(self: *SemanticPrinter, ref_id: Reference.Id) !void {
-    const ast = &self.semantic.ast;
+    const ast = &self.semantic.parse.ast;
     const ref = self.semantic.symbols.getReference(ref_id);
     const tags = ast.nodes.items(.tag);
 
