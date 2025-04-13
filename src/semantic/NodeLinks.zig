@@ -1,5 +1,7 @@
 //! Links AST nodes to other semantic data
 
+const NodeLinks = @This();
+
 /// Map of AST nodes to their parents. Index is the child node id.
 ///
 /// Confusingly, the root node id is also used as the "null" node id, so the
@@ -93,8 +95,6 @@ const ParentIdsIterator = struct {
         return self.curr_id;
     }
 };
-
-const NodeLinks = @This();
 
 const std = @import("std");
 const _ast = @import("ast.zig");

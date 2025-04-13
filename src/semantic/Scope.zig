@@ -1,3 +1,5 @@
+const Scope = @This();
+
 /// Unique identifier for this scope.
 id: Id,
 /// Scope hints.
@@ -161,8 +163,6 @@ const ScopeParentIterator = struct {
         return curr;
     }
 };
-
-const Scope = @This();
 
 const std = @import("std");
 const util = @import("util");

@@ -1,6 +1,6 @@
 //! A reference on a symbol. Describes where and how a symbol is used.
 
-pub const Reference = @This();
+const Reference = @This();
 
 symbol: Symbol.Id.Optional,
 scope: Scope.Id,
