@@ -776,7 +776,7 @@ fn visitAssignDestructure(
         const decl: full.VarDecl = ast.fullVarDecl(var_id) orelse {
             return SemanticError.FullMismatch;
         };
-        const identifier = try self.assertToken(main_token + 1.identifier);
+        const identifier = try self.assertToken(main_token + 1, .identifier);
 
         // note: intentionally not using bindSymbol (for now, at least)
         _ = try self.declareSymbol(.{
