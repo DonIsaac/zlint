@@ -45,11 +45,6 @@
         "command": "zig.zlint.lint",
         "title": "Run ZLint",
         "category": "ZLint"
-      },
-      {
-        "command": "zig.zlint.toggle",
-        "title": "Enable/disable ZLint for this workspace",
-        "category": "ZLint"
       }
     ],
     "configuration": {
@@ -59,6 +54,10 @@
           "type": "boolean",
           "default": true,
           "description": "Enable ZLint"
+        },
+        "zig.zlint.path": {
+          "type": "string",
+          "description": "Path to `zlint` binary. By default, it will use the one in your PATH."
         }
       }
     },
