@@ -2,6 +2,8 @@
 //!
 //! Type: `pub struct Symbol<'a>`
 
+const Symbol = @This();
+
 /// Identifier bound to this symbol.
 ///
 ///
@@ -329,8 +331,6 @@ pub const ReferenceIterator = struct {
         return self.table.getReference(ref_id);
     }
 };
-
-const Symbol = @This();
 
 const std = @import("std");
 const util = @import("util");

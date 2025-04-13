@@ -13,11 +13,13 @@
 //! an entire linked binary or library; rather it refers to a single parsed
 //! file.
 
+const Semantic = @This();
+
 parse: Parse, // NOTE: allocated in _arena
 symbols: Symbol.Table = .{},
 scopes: Scope.Tree = .{},
 modules: ModuleRecord = .{},
-node_links: NodeLinks,
+node_links: NodeLinks = .{},
 _gpa: Allocator,
 /// Used to allocate AST nodes
 _arena: ArenaAllocator,
@@ -129,8 +131,6 @@ pub fn deinit(self: *Semantic) void {
     // SAFETY: *self is no longer valid after deinitilization.
     self.* = undefined;
 }
-
-const Semantic = @This();
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
