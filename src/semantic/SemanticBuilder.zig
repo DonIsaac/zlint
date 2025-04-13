@@ -95,28 +95,34 @@ pub fn withSource(self: *SemanticBuilder, source: *const _source.Source) void {
 pub fn build(builder: *SemanticBuilder, source: [:0]const u8) SemanticError!Result {
     // NOTE: ast is moved
     const gpa = builder._gpa;
-    const token_bundle = try tokenizer.tokenize(
-        builder._arena.allocator(),
-        source,
-    );
+    const arena = builder._arena.allocator();
+    var parse, const stats = try Semantic.Parse.build(arena, source);
 
-    const ast = try builder.parse(source);
-    const node_links = try NodeLinks.init(gpa, &ast);
-    assert(ast.nodes.len == node_links.parents.items.len);
-    assert(ast.nodes.len == node_links.scopes.items.len);
+    // Record parse errors
+    if (parse.ast.errors.len > 0) {
+        try builder._errors.ensureUnusedCapacity(builder._gpa, parse.ast.errors.len);
+        for (parse.ast.errors) |ast_err| {
+            // Not an error. TODO: verify this assumption
+            if (ast_err.is_note) continue;
+            try builder.addAstError(&parse.ast, ast_err);
+        }
+    }
+
+    const node_count = parse.ast.nodes.len;
+    const node_links = try NodeLinks.init(gpa, &parse.ast);
+    assert(node_count == node_links.parents.items.len);
+    assert(node_count == node_links.scopes.items.len);
 
     // reserve capacity for stacks
     try builder._scope_stack.ensureTotalCapacity(gpa, 8); // TODO: use stack fallback allocator?
     try builder._symbol_stack.ensureTotalCapacity(gpa, 8);
     // TODO: verify this hypothesis. What is the max node stack len while
     // building? (avg over a representative sample of real Zig files.)
-    try builder._node_stack.ensureTotalCapacity(gpa, @max(ast.nodes.len, 32) >> 2);
+    try builder._node_stack.ensureTotalCapacity(gpa, @max(node_count, 32) >> 2);
 
     builder._semantic = Semantic{
-        .tokens = token_bundle.tokens,
-        .ast = ast,
+        .parse = parse,
         .node_links = node_links,
-        .comments = token_bundle.comments,
         ._arena = builder._arena,
         ._gpa = gpa,
     };
@@ -126,7 +132,7 @@ pub fn build(builder: *SemanticBuilder, source: [:0]const u8) SemanticError!Resu
     // TODO: benchmark analysis with and without this
     try builder._semantic.symbols.symbols.ensureTotalCapacity(
         builder._gpa,
-        token_bundle.stats.identifiers >> 1,
+        stats.identifiers >> 1,
     );
 
     // Create root scope & symbol and push them onto their stacks. Also
@@ -134,7 +140,7 @@ pub fn build(builder: *SemanticBuilder, source: [:0]const u8) SemanticError!Resu
     try builder.enterRoot();
     builder.assertRoot(); // sanity check
 
-    for (builder._semantic.ast.rootDecls()) |node| {
+    for (builder.AST().rootDecls()) |node| {
         try builder.visitNode(node);
         builder.assertRoot();
     }
@@ -167,25 +173,6 @@ pub fn deinit(self: *SemanticBuilder) void {
     self._node_stack.deinit(self._gpa);
     self._unresolved_references.deinit(self._gpa);
     if (self._source_code) |*src| src.deinit();
-}
-
-fn parse(self: *SemanticBuilder, source: [:0]const u8) Allocator.Error!Ast {
-    const alloc = self._arena.allocator();
-
-    var ast = try Ast.parse(self._arena.allocator(), source, .zig);
-    errdefer ast.deinit(alloc);
-
-    // Record parse errors
-    if (ast.errors.len > 0) {
-        try self._errors.ensureUnusedCapacity(self._gpa, ast.errors.len);
-        for (ast.errors) |ast_err| {
-            // Not an error. TODO: verify this assumption
-            if (ast_err.is_note) continue;
-            try self.addAstError(&ast, ast_err);
-        }
-    }
-
-    return ast;
 }
 
 // =========================================================================
@@ -1680,7 +1667,7 @@ fn recordImport(self: *SemanticBuilder, node: NodeIndex) Allocator.Error!void {
     if (tags[specifier_node] != .string_literal) {
         @branchHint(.cold);
         var e = Error.newStatic("@import specifiers must be string literals.");
-        const loc: Token.Loc = self._semantic.tokens.items(.loc)[specifier_node];
+        const loc: Token.Loc = self._semantic.tokens().items(.loc)[specifier_node];
         try e.labels.append(self._gpa, LabeledSpan.unlabeled(@intCast(loc.start), @intCast(loc.end)));
         try self._errors.append(self._gpa, e);
     }
@@ -1702,7 +1689,7 @@ fn recordImport(self: *SemanticBuilder, node: NodeIndex) Allocator.Error!void {
 /// Shorthand for getting the AST. Must be caps to avoid shadowing local
 /// `ast` declarations.
 inline fn AST(self: *const SemanticBuilder) *const Ast {
-    return &self._semantic.ast;
+    return &self._semantic.parse.ast;
 }
 
 /// Shorthand for getting the symbol table.
