@@ -5,7 +5,7 @@
       "debugName": "@This()", 
       "token": null, 
       "declNode": "root", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["const"], 
       "references": [
         
@@ -19,7 +19,7 @@
       "debugName": "", 
       "token": 0, 
       "declNode": "container_field_init", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["member","struct"], 
       "references": [
         
@@ -33,7 +33,7 @@
       "debugName": "", 
       "token": 4, 
       "declNode": "container_field_init", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["member","struct"], 
       "references": [
         
@@ -47,7 +47,7 @@
       "debugName": "", 
       "token": 14, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["variable","const"], 
       "references": [
         {"symbol":3,"scope":1,"node":"identifier","identifier":"Foo","flags":["type"]}, 
@@ -63,7 +63,7 @@
       "debugName": "", 
       "token": 22, 
       "declNode": "fn_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["fn"], 
       "references": [
         
@@ -79,7 +79,7 @@
     ], 
   }, 
   "scopes": {
-    "id": util.id.NominalId(u32)(0), 
+    "id": 0, 
     "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
@@ -91,14 +91,14 @@
     }, 
     "children": [
       {
-        "id": util.id.NominalId(u32)(1), 
+        "id": 1, 
         "flags": ["function"], 
         "bindings": {
           
         }, 
         "children": [
           {
-            "id": util.id.NominalId(u32)(2), 
+            "id": 2, 
             "flags": ["function","block"], 
             "bindings": {
               

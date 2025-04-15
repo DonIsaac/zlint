@@ -104,6 +104,13 @@ pub fn NominalId(TRepr: type) type {
             }
         }
 
+        pub fn format(self: Id, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+            if (fmt.len > 0 and fmt[0] == 'd') {
+                return std.fmt.formatType(@intFromEnum(self), fmt, options, writer, 1);
+            }
+            return std.fmt.formatType(self, fmt, options, writer, 1);
+        }
+
         /// Try to turn this id into its corresponding optional type. Returns
         /// `null` if the id is `MAX` (which is used to represent `Optional.none`).
         pub inline fn optional(self: Id) ?Optional {

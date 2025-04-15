@@ -70,7 +70,8 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     const snapshot = try TestFolders.openSnapshotFile(alloc, "snapshot-coverage/simple/pass", utils.cleanStrSlice(source_name));
     defer snapshot.close();
 
-    var printer = Printer.init(alloc, snapshot.writer());
+    const w = snapshot.writer();
+    var printer = Printer.init(alloc, w.any());
     var sem_printer = SemanticPrinter.new(&printer, &semantic);
     defer printer.deinit();
 

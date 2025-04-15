@@ -18,7 +18,8 @@ const Printer = @import("../printer/Printer.zig");
 const AstPrinter = @import("../printer/AstPrinter.zig");
 const SemanticPrinter = @import("../printer/SemanticPrinter.zig");
 
-pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source) !void {
+/// Borrows source.
+pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source, writer_: ?std.io.AnyWriter) !void {
     var builder = Semantic.Builder.init(alloc);
     defer builder.deinit();
     var sema_result = try builder.build(source.text());
@@ -30,7 +31,7 @@ pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source) !void {
         return;
     }
     const sema = &sema_result.value;
-    const writer = std.io.getStdOut().writer();
+    const writer = writer_ orelse std.io.getStdOut().writer().any();
     var printer = Printer.init(alloc, writer);
     defer printer.deinit();
     var ast_printer = AstPrinter.new(&printer, .{ .verbose = opts.verbose }, source, &sema.parse.ast);
@@ -47,4 +48,8 @@ pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source) !void {
     try semantic_printer.printScopeTree();
     try printer.pPropName("modules");
     try semantic_printer.printModuleRecord();
+}
+
+test {
+    _ = @import("test/print_ast_test.zig");
 }
