@@ -126,8 +126,7 @@ pub fn lintSource(
     // destroyed (not the errors it contains.)
     defer if (diagnostics_) |*d| d.deinit();
     self.linter.runOnSource(&semantic, source, &diagnostics_) catch |e| {
-        if (diagnostics_ == null) return e;
-        var diagnostics = diagnostics_ orelse unreachable;
+        var diagnostics = diagnostics_ orelse return e;
 
         // FIXME: take errors from ctx. requires using Error instead of Diagnostic
         // when fix is false

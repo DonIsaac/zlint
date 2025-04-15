@@ -233,31 +233,24 @@ fn findLineColumn(source: []const u8, byte_offset: u32) Location {
     var column: u32 = 1;
     var line_start: u32 = 0;
     var i: u32 = 0;
-    while (i < byte_offset) : (i += 1) {
-        switch (source[i]) {
-            '\n' => {
-                line += 1;
-                column = 1;
-                line_start = i + 1;
+    const slice = source[0..byte_offset];
 
-                if (util.IS_WINDOWS and i < byte_offset and source[i + 1] == '\r') {
-                    i += 1;
-                }
-            },
-            else => {
-                column += 1;
-            },
+    while (i < byte_offset) {
+        if (std.mem.indexOfScalarPos(u8, slice, i, '\n')) |pos| {
+            line += 1;
+            column = 1;
+            i = @as(u32, @intCast(pos)) + 1;
+            line_start = i;
+        } else {
+            column += byte_offset - i;
+            break;
         }
     }
 
-    while (i < source.len and source[i] != '\n') {
-        i += 1;
-        if (util.IS_WINDOWS and i < source.len - 1 and source[i + 1] == '\r') {
-            i += 1;
-        }
-    }
+    const pos = std.mem.indexOfScalarPos(u8, source, i, '\n') orelse source.len;
+    i = @intCast(pos);
 
-    return .{
+    return Location{
         .line = line,
         .column = column,
         .source_line = source[line_start..i],
