@@ -8,12 +8,12 @@ const json = std.json;
 const print_command = @import("../print_command.zig");
 
 const source_code: [:0]const u8 =
-\\pub const Foo = struct {
-\\    a: u32,
-\\    b: bool,
-\\    c: ?[]const u8,
-\\};
-\\const x: Foo = Foo{ .a = 1, .b = true, .c = "hello" };
+    \\pub const Foo = struct {
+    \\    a: u32,
+    \\    b: bool,
+    \\    c: ?[]const u8,
+    \\};
+    \\const x: Foo = Foo{ .a = 1, .b = true, .c = "hello" };
 ;
 
 test print_command {
