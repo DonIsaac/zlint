@@ -60,6 +60,8 @@ jobs:
       # Run tests
       - run: zig build --fetch
       - run: zig build test --summary all -freference-trace --color on
+      - name: Check for changes
+        run: git diff --exit-code
 
   # https://imgflip.com/i/9eygz0
   lint:
@@ -100,7 +102,7 @@ jobs:
         run: git diff --exit-code
 
   docs:
-    name: Docs
+    name: Docs + JSON Schema
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -112,6 +114,6 @@ jobs:
       - uses: mlugg/setup-zig@v1
         with:
           version: ${{ env.ZIG_VERSION }}
-      - run: just docs
+      - run: zig build docs codegen
       - name: Check for changes
         run: git diff --exit-code
