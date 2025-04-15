@@ -1,4 +1,5 @@
 const std = @import("std");
+const util = @import("util");
 const walk = @import("../walk/Walker.zig");
 const glob = @import("../walk/glob.zig");
 const _lint = @import("../lint.zig");
@@ -33,7 +34,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
     reporter.opts.quiet = options.quiet;
     reporter.opts.report_stats = reporter.opts.report_stats and options.summary;
 
-    const config = resolve_config: {
+    var config = resolve_config: {
         var errors: [1]Error = undefined;
         const c = lint_config.resolveLintConfig(&arena, fs.cwd(), "zlint.json", alloc, &errors[0]) catch {
             reporter.reportErrorSlice(alloc, errors[0..1]);
@@ -41,6 +42,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
         };
         break :resolve_config c;
     };
+    try lint_config.readGitignore(&config, fs.cwd());
 
     const start = std.time.milliTimestamp();
 
@@ -60,7 +62,12 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
         defer service.deinit();
 
         if (!options.stdin) {
-            var visitor: LintVisitor = .{ .service = &service, .allocator = alloc, .globs = options.args.items };
+            var visitor: LintVisitor = .{
+                .service = &service,
+                .allocator = alloc,
+                .include = options.args.items,
+                .exclude = config.config.ignore,
+            };
             var src = try fs.cwd().openDir(".", .{ .iterate = true });
             defer src.close();
             var walker = try LintWalker.init(alloc, src, &visitor);
@@ -98,7 +105,8 @@ const LintVisitor = struct {
     /// borrowed
     service: *LintService,
     allocator: Allocator,
-    globs: []const []const u8,
+    include: []const glob.Pattern,
+    exclude: []const glob.Pattern,
 
     pub fn visit(self: *LintVisitor, entry: walk.Entry) ?walk.WalkState {
         switch (entry.kind) {
@@ -115,16 +123,9 @@ const LintVisitor = struct {
                 }
             },
             .file => {
-                if (!mem.eql(u8, path.extension(entry.path), ".zig")) {
-                    return WalkState.Continue;
-                }
-
-                if (self.globs.len > 0) matches_glob: {
-                    for (self.globs) |pattern| {
-                        if (glob.match(pattern, entry.path)) {
-                            break :matches_glob;
-                        }
-                    }
+                if (!mem.eql(u8, path.extension(entry.path), ".zig") or
+                    !self.isIncluded(&entry))
+                {
                     return WalkState.Continue;
                 }
 
@@ -142,5 +143,32 @@ const LintVisitor = struct {
             },
         }
         return WalkState.Continue;
+    }
+
+    fn isIncluded(self: *const LintVisitor, entry: *const walk.Entry) bool {
+        util.debugAssert(
+            entry.kind != .directory,
+            "isIncluded should only be passed file-like things, got a dir.",
+            .{},
+        );
+
+        if (self.include.len > 0) matches_include: {
+            for (self.include) |pattern| {
+                if (glob.match(pattern, entry.path)) {
+                    break :matches_include;
+                }
+            }
+            return false;
+        }
+
+        if (self.exclude.len > 0) {
+            for (self.exclude) |pattern| {
+                if (glob.match(pattern, entry.path)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 };

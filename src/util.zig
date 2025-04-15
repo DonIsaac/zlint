@@ -17,6 +17,7 @@ pub const debugOnly = @import("util/debug_only.zig").debugOnly;
 pub const Bitflags = @import("util/bitflags.zig").Bitflags;
 pub const FeatureFlags = @import("util/feature_flags.zig");
 
+/// remove leading and trailing whitespace characters from a string
 pub fn trimWhitespace(s: []const u8) []const u8 {
     return std.mem.trim(u8, s, &std.ascii.whitespace);
 }
@@ -39,9 +40,7 @@ pub fn isWhitespace(c: u8) bool {
 /// behavior.
 pub inline fn assert(condition: bool, comptime fmt: []const u8, args: anytype) void {
     if (comptime IS_DEBUG) {
-        if (!condition) {
-            std.debug.panic(fmt, args);
-        }
+        if (!condition) std.debug.panic(fmt, args);
     } else {
         if (!condition) unreachable;
     }
