@@ -29,6 +29,47 @@ env:
   ZIG_VERSION: 0.14.0
 
 jobs:
+  build-debug:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - os: linux
+            arch: x86_64
+          - os: macos
+            arch: aarch64
+          - os: windows
+            arch: x86_64
+            runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Install tooling
+      - uses: extractions/setup-just@v2
+      - uses: mlugg/setup-zig@v1
+        with:
+          version: ${{ env.ZIG_VERSION }}
+
+      # Build
+      - run: zig build --fetch
+      - name: zig fmt
+        run: zig fmt src test/harness tasks build.zig build.zig.zon
+      # - run: zig build check -Dtarget=${{ matrix.arch }}-${{ matrix.os }} -Dversion=${{ github.ref_name }}
+      - name: zig build
+        run: |
+          just build -Dtarget=${{ matrix.target.arch }}-${{ matrix.target.os }}
+
+      # upload artifacts
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 2 # binaries don't compress well
+          name: zlint-${{ matrix.target.os }}-${{ matrix.target.arch }}-${{ github.run_id }}
+          path: zig-out/bin/**
+          overwrite: true
+
   check:
     name: Check
     runs-on: ubuntu-latest
@@ -46,45 +87,110 @@ jobs:
 
   test:
     name: Test
+    needs: build-debug
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+        # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners
+        target:
+          # kcov isn't available via apt-get on ubuntu-latest
+          - runner: ubuntu-latest
+            os: linux
+            arch: x86_64
+          - runner: macos-latest
+            os: macos
+            arch: aarch64
+          - runner: windows-latest
+            os: windows
+            arch: x86_64
+      fail-fast: false
+    runs-on: ${{ matrix.target.runner }}
     steps:
       - uses: actions/checkout@v4
-      # Install tooling
-      - uses: extractions/setup-just@v2
-      - uses: mlugg/setup-zig@v1
+      # download compiled artifacts from build-debug for target platform
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          version: ${{ env.ZIG_VERSION }}
-      # Run tests
-      - run: zig build --fetch
-      - run: zig build test --summary all -freference-trace --color on
+          name: zlint-${{ matrix.target.os }}-${{ matrix.target.arch }}-${{ github.run_id }}
+          path: zig-out/bin
+          merge-multiple: true
+
+      - name: ls
+        if: ${{ matrix.target.os != 'windows' }}
+        run: |
+          ls -lAF zig-out
+          ls -lAF zig-out/bin
+          ls -lAF zig-out/bin/zlint || true
+
+      - name: Make binaries executable
+        run: |
+          for file in $(ls zig-out/bin); do
+            echo "chmod +x $file"
+            chmod +x zig-out/bin/$file
+          done
+
+      - name: Test
+        run: |
+          ./zig-out/bin/test
+          ./zig-out/bin/test-utils
+
+  codecov:
+    name: Collect and upload test coverage
+    needs: build-debug
+    runs-on: "ubuntu-22.04"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kcov
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y kcov
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: zlint-linux-x86_64-${{ github.run_id }}
+          path: zig-out/bin
+          merge-multiple: true
+      - name: Make binaries execuable
+        run: |
+          for file in $(ls zig-out/bin); do
+            echo "chmod +x $file"
+            chmod +x zig-out/bin/$file
+          done
+
+      - run: just submodules
+      - run: just coverage
+      - uses: codecov/codecov-action@v4
+        with:
+          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   # https://imgflip.com/i/9eygz0
   lint:
     name: Lint Changed
+    needs: build-debug
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Install tooling
-      - uses: extractions/setup-just@v2
-      - uses: mlugg/setup-zig@v1
+      - uses: actions/download-artifact@v4
         with:
-          version: ${{ env.ZIG_VERSION }}
-      - run: zig build --fetch
-      - run: zig build
+          name: zlint-linux-x86_64-${{ github.run_id }}
+          path: zig-out/bin
+          merge-multiple: true
+      - name: Make zlint executable
+        run: chmod +x zig-out/bin/zlint
       - uses: DonIsaac/zlint-action@v0
         with:
           binary: ./zig-out/bin/zlint
+      - name: Check for changes
+        run: git diff --exit-code
 
+  # debug e2e is run via codecov. No need to do it twice.
   e2e:
     name: Test E2E
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        optimize: ["Debug", "ReleaseSafe", "ReleaseFast"]
+        optimize: ["ReleaseSafe", "ReleaseFast"]
     steps:
       - uses: actions/checkout@v4
       # Install tooling
@@ -100,7 +206,7 @@ jobs:
         run: git diff --exit-code
 
   docs:
-    name: Docs
+    name: Docs + JSON Schema
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -112,6 +218,6 @@ jobs:
       - uses: mlugg/setup-zig@v1
         with:
           version: ${{ env.ZIG_VERSION }}
-      - run: just docs
+      - run: zig build docs codegen
       - name: Check for changes
         run: git diff --exit-code
