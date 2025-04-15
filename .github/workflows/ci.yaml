@@ -128,13 +128,6 @@ jobs:
             echo "chmod +x $file"
             chmod +x zig-out/bin/$file
           done
-      # - name: Make binaries executable
-      #   if: ${{ matrix.target.os == 'windows' }}
-      #   run: |
-      #     for file in $(ls zig-out/bin); do
-      #       echo "chmod +x $file"
-      #       chmod +x zig-out/bin/$file
-      #     done
 
       - name: Test
         run: |
