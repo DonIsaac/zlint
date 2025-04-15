@@ -56,7 +56,7 @@ pub fn main() !u8 {
         errdefer file.close();
         var source = try Source.init(alloc, file, null);
         defer source.deinit();
-        try print_cmd.parseAndPrint(alloc, opts, source);
+        try print_cmd.parseAndPrint(alloc, opts, source, null);
         return 0;
     }
 

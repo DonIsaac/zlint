@@ -5,7 +5,7 @@
       "debugName": "@This()", 
       "token": null, 
       "declNode": "root", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["const"], 
       "references": [
         
@@ -19,7 +19,7 @@
       "debugName": "", 
       "token": 2, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["variable","const","enum"], 
       "references": [
         {"symbol":1,"scope":2,"node":"identifier","identifier":"Foo","flags":["read"]}, 
@@ -35,7 +35,7 @@
       "debugName": "", 
       "token": 6, 
       "declNode": "container_field_init", 
-      "scope": util.id.NominalId(u32)(1), 
+      "scope": 1, 
       "flags": ["member","enum"], 
       "references": [
         
@@ -49,7 +49,7 @@
       "debugName": "", 
       "token": 8, 
       "declNode": "container_field_init", 
-      "scope": util.id.NominalId(u32)(1), 
+      "scope": 1, 
       "flags": ["member","enum"], 
       "references": [
         
@@ -63,7 +63,7 @@
       "debugName": "", 
       "token": 10, 
       "declNode": "container_field_init", 
-      "scope": util.id.NominalId(u32)(1), 
+      "scope": 1, 
       "flags": ["member","enum"], 
       "references": [
         
@@ -77,7 +77,7 @@
       "debugName": "", 
       "token": 14, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(1), 
+      "scope": 1, 
       "flags": ["variable","const"], 
       "references": [
         
@@ -91,7 +91,7 @@
       "debugName": "", 
       "token": 22, 
       "declNode": "fn_decl", 
-      "scope": util.id.NominalId(u32)(1), 
+      "scope": 1, 
       "flags": ["fn"], 
       "references": [
         
@@ -105,7 +105,7 @@
       "debugName": "", 
       "token": 24, 
       "declNode": "identifier", 
-      "scope": util.id.NominalId(u32)(2), 
+      "scope": 2, 
       "flags": ["const","fn_param"], 
       "references": [
         {"symbol":7,"scope":3,"node":"identifier","identifier":"self","flags":["read"]}, 
@@ -122,7 +122,7 @@
     ], 
   }, 
   "scopes": {
-    "id": util.id.NominalId(u32)(0), 
+    "id": 0, 
     "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
@@ -131,7 +131,7 @@
     }, 
     "children": [
       {
-        "id": util.id.NominalId(u32)(1), 
+        "id": 1, 
         "flags": ["enum","block"], 
         "bindings": {
           "a": 2, 
@@ -143,7 +143,7 @@
         }, 
         "children": [
           {
-            "id": util.id.NominalId(u32)(2), 
+            "id": 2, 
             "flags": ["function"], 
             "bindings": {
               "self": 7, 
@@ -151,7 +151,7 @@
             }, 
             "children": [
               {
-                "id": util.id.NominalId(u32)(3), 
+                "id": 3, 
                 "flags": ["function","block"], 
                 "bindings": {
                   

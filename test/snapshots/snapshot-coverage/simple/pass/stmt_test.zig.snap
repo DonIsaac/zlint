@@ -5,7 +5,7 @@
       "debugName": "@This()", 
       "token": null, 
       "declNode": "root", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["const"], 
       "references": [
         
@@ -19,7 +19,7 @@
       "debugName": "", 
       "token": 1, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["variable","const"], 
       "references": [
         {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["call"]}, 
@@ -35,7 +35,7 @@
       "debugName": "", 
       "token": 9, 
       "declNode": "fn_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["fn"], 
       "references": [
         {"symbol":2,"scope":3,"node":"identifier","identifier":"add","flags":["call"]}, 
@@ -52,7 +52,7 @@
       "debugName": "", 
       "token": 11, 
       "declNode": "identifier", 
-      "scope": util.id.NominalId(u32)(1), 
+      "scope": 1, 
       "flags": ["const","fn_param"], 
       "references": [
         {"symbol":3,"scope":2,"node":"identifier","identifier":"a","flags":["read"]}, 
@@ -67,7 +67,7 @@
       "debugName": "", 
       "token": 15, 
       "declNode": "identifier", 
-      "scope": util.id.NominalId(u32)(1), 
+      "scope": 1, 
       "flags": ["const","fn_param"], 
       "references": [
         {"symbol":4,"scope":2,"node":"identifier","identifier":"b","flags":["read"]}, 
@@ -90,7 +90,7 @@
     ], 
   }, 
   "scopes": {
-    "id": util.id.NominalId(u32)(0), 
+    "id": 0, 
     "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
@@ -100,7 +100,7 @@
     }, 
     "children": [
       {
-        "id": util.id.NominalId(u32)(1), 
+        "id": 1, 
         "flags": ["function"], 
         "bindings": {
           "a": 3, 
@@ -109,7 +109,7 @@
         }, 
         "children": [
           {
-            "id": util.id.NominalId(u32)(2), 
+            "id": 2, 
             "flags": ["function","block"], 
             "bindings": {
               
@@ -120,7 +120,7 @@
         ], 
         
       }, {
-        "id": util.id.NominalId(u32)(3), 
+        "id": 3, 
         "flags": ["block","comptime","test"], 
         "bindings": {
           
@@ -128,7 +128,7 @@
         "children": [], 
         
       }, {
-        "id": util.id.NominalId(u32)(4), 
+        "id": 4, 
         "flags": ["block","comptime","test"], 
         "bindings": {
           

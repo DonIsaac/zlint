@@ -14,7 +14,8 @@ shiftwidth: usize = 2,
 indent: u8 = ' ',
 _newline: []const u8 = "\n",
 
-pub const Writer = std.fs.File.Writer;
+// pub const Writer = std.fs.File.Writer;
+pub const Writer = std.io.AnyWriter;
 const ContainerKind = enum { object, array };
 const ContainerStack = std.ArrayList(ContainerKind);
 const NEWLINE = if (builtin.target.os.tag == .windows) "\r\n" else "\n";
