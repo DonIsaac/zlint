@@ -61,6 +61,8 @@ jobs:
       - run: zig build --fetch
       - run: zig build test --summary all -freference-trace --color on
       - name: Check for changes
+        #  windows adds crlf line endings
+        if: ${{ matrix.os != 'windows-latest' }}
         run: git diff --exit-code
 
   # https://imgflip.com/i/9eygz0
