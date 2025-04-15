@@ -122,11 +122,19 @@ jobs:
           ls -lAF zig-out/bin/zlint || true
 
       - name: Make binaries executable
+        shell: bash
         run: |
           for file in $(ls zig-out/bin); do
             echo "chmod +x $file"
             chmod +x zig-out/bin/$file
           done
+      # - name: Make binaries executable
+      #   if: ${{ matrix.target.os == 'windows' }}
+      #   run: |
+      #     for file in $(ls zig-out/bin); do
+      #       echo "chmod +x $file"
+      #       chmod +x zig-out/bin/$file
+      #     done
 
       - name: Test
         run: |
@@ -139,6 +147,7 @@ jobs:
     runs-on: "ubuntu-22.04"
     steps:
       - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
       - name: Install kcov
         run: |
           sudo apt-get update
