@@ -17,7 +17,7 @@ node_modules
 .idea
 
 # temp & backup files
-tmp/
+tmp/**
 .tmp/
 temp/
 *.tmp

@@ -109,6 +109,8 @@ const BraceStack = struct {
     }
 };
 
+pub const Pattern = []const u8;
+
 /// This function checks returns a boolean value if the pathname `path` matches
 /// the pattern `glob`.
 ///
@@ -136,7 +138,7 @@ const BraceStack = struct {
 ///     Multiple "!" characters negate the pattern multiple times.
 /// "\"
 ///     Used to escape any of the special characters above.
-pub fn match(glob: []const u8, path: []const u8) bool {
+pub fn match(glob: Pattern, path: []const u8) bool {
     // This algorithm is based on https://research.swtch.com/glob
     var state = State{};
     // Store the state when we see an opening '{' brace in a stack.

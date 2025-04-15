@@ -8,14 +8,17 @@ pub const Managed = struct {
     path: ?[]const u8 = null,
     config: Config,
     arena: *ArenaAllocator,
+    pub inline fn allocator(self: *Managed) Allocator {
+        return self.arena.allocator();
+    }
+    pub inline fn deinit(self: *Managed) void {
+        self.arena.deinit();
+        self.* = undefined;
+    }
 };
 
 pub fn intoManaged(self: Config, arena: *ArenaAllocator, path: ?[]const u8) Managed {
-    return Managed{
-        .config = self,
-        .arena = arena,
-        .path = path,
-    };
+    return Managed{ .config = self, .arena = arena, .path = path };
 }
 
 pub const DEFAULT: Config = .{
@@ -62,6 +65,7 @@ const all_rule_decls = @typeInfo(all_rules).@"struct".decls;
 
 const std = @import("std");
 const ArenaAllocator = std.heap.ArenaAllocator;
+const Allocator = std.mem.Allocator;
 const Schema = @import("../json.zig").Schema;
 
 pub const RulesConfig = @import("config/rules_config.zig").RulesConfig;
