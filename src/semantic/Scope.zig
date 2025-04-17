@@ -1,3 +1,5 @@
+const Scope = @This();
+
 /// Unique identifier for this scope.
 id: Id,
 /// Scope hints.
@@ -47,7 +49,7 @@ pub const Flags = packed struct(FLAGS_REPR) {
 };
 
 /// Stores variable scopes created by a zig program.
-pub const ScopeTree = struct {
+pub const Tree = struct {
     /// Indexed by scope id.
     scopes: std.MultiArrayList(Scope) = .{},
     /// Mappings from scopes to their descendants.
@@ -61,7 +63,7 @@ pub const ScopeTree = struct {
     /// Returns the number of declared scopes in a program.
     ///
     /// Shorthand for `scope_tree.scopes.len`.
-    pub inline fn len(self: *const ScopeTree) u32 {
+    pub inline fn len(self: *const Scope.Tree) u32 {
         @setRuntimeSafety(!util.IS_DEBUG);
         assert(self.scopes.len < Id.MAX);
 
@@ -72,7 +74,7 @@ pub const ScopeTree = struct {
     ///
     /// Avoid this when possible. Prefer using property slices for better cache
     /// locality.
-    pub fn getScope(self: *const ScopeTree, id: Scope.Id) Scope {
+    pub fn getScope(self: *const Scope.Tree, id: Scope.Id) Scope {
         return self.scopes.get(id.into(usize));
     }
 
@@ -81,7 +83,7 @@ pub const ScopeTree = struct {
     /// ## Errors
     /// If allocation fails. Usually due to OOM.
     pub fn addScope(
-        self: *ScopeTree,
+        self: *Scope.Tree,
         alloc: Allocator,
         parent: ?Scope.Id,
         node: NodeIndex,
@@ -116,22 +118,22 @@ pub const ScopeTree = struct {
         return id;
     }
 
-    pub fn addBinding(self: *ScopeTree, alloc: Allocator, scope_id: Scope.Id, symbol_id: Symbol.Id) Allocator.Error!void {
+    pub fn addBinding(self: *Scope.Tree, alloc: Allocator, scope_id: Scope.Id, symbol_id: Symbol.Id) Allocator.Error!void {
         return self.bindings.items[scope_id.int()].append(alloc, symbol_id);
     }
 
-    pub fn getBindings(self: *const ScopeTree, scope_id: Scope.Id) []const Symbol.Id {
+    pub fn getBindings(self: *const Scope.Tree, scope_id: Scope.Id) []const Symbol.Id {
         return self.bindings.items[scope_id.int()].items;
     }
 
-    pub fn iterParents(self: *const ScopeTree, scope_id: Scope.Id) ScopeParentIterator {
+    pub fn iterParents(self: *const Scope.Tree, scope_id: Scope.Id) ScopeParentIterator {
         return .{
             .curr = scope_id.into(Id.Optional),
             .parents = self.scopes.items(.parent),
         };
     }
 
-    pub fn deinit(self: *ScopeTree, alloc: Allocator) void {
+    pub fn deinit(self: *Scope.Tree, alloc: Allocator) void {
         self.scopes.deinit(alloc);
 
         for (0..self.children.items.len) |i| {
@@ -149,7 +151,7 @@ pub const ScopeTree = struct {
 
 const ScopeParentIterator = struct {
     curr: Scope.Id.Optional,
-    // tree: *const ScopeTree,
+    // tree: *const Scope.Tree,
     parents: []const Id.Optional,
 
     pub fn next(self: *ScopeParentIterator) ?Scope.Id {
@@ -161,8 +163,6 @@ const ScopeParentIterator = struct {
         return curr;
     }
 };
-
-const Scope = @This();
 
 const std = @import("std");
 const util = @import("util");
@@ -188,11 +188,11 @@ test Flags {
     try t.expectEqual(block, block.merge(.{ .s_block = false }));
 }
 
-test "ScopeTree.addScope" {
+test "Scope.Tree.addScope" {
     const alloc = t.allocator;
     const expectEqual = t.expectEqual;
 
-    var tree = ScopeTree{};
+    var tree = Scope.Tree{};
     defer tree.deinit(alloc);
 
     const root_id = try tree.addScope(alloc, null, 0, .{ .s_top = true });

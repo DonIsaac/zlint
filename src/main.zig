@@ -17,8 +17,6 @@ const DebugAllocator = std.heap.GeneralPurposeAllocator(.{
     .never_unmap = util.IS_DEBUG,
     .retain_metadata = util.IS_DEBUG,
 });
-const ReleaseAllocator = std.heap.SmpAllocator;
-const GeneralPurposeAllocator = if (util.IS_DEBUG) DebugAllocator else ReleaseAllocator;
 var debug_allocator = DebugAllocator.init;
 pub fn main() !u8 {
     const alloc = if (comptime util.IS_DEBUG)
@@ -58,7 +56,7 @@ pub fn main() !u8 {
         errdefer file.close();
         var source = try Source.init(alloc, file, null);
         defer source.deinit();
-        try print_cmd.parseAndPrint(alloc, opts, source);
+        try print_cmd.parseAndPrint(alloc, opts, source, null);
         return 0;
     }
 
@@ -68,4 +66,5 @@ pub fn main() !u8 {
 test {
     std.testing.refAllDecls(@This());
     std.testing.refAllDecls(@import("visit/walk.zig"));
+    std.testing.refAllDecls(@import("json.zig"));
 }

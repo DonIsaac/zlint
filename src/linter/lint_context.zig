@@ -6,7 +6,7 @@ gpa: Allocator,
 diagnostics: Diagnostic.List,
 
 /// this slice is 'static (in data segment) and should never be free'd
-curr_rule_name: string = "",
+curr_rule_name: []const u8 = "",
 curr_severity: Severity = Severity.err,
 // TODO: `void` in release builds
 curr_fix_capabilities: Fix.Meta = Fix.Meta.disabled,
@@ -46,17 +46,17 @@ pub fn takeDiagnostics(self: *Context) Diagnostic.List {
 // Shorthand access to data within the context. Makes writing rules easier.
 
 pub fn ast(self: *const Context) *const Ast {
-    return &self.semantic.ast;
+    return &self.semantic.parse.ast;
 }
 pub fn tokens(self: *const Context) *const Semantic.TokenList.Slice {
-    return &self.semantic.tokens;
+    return &self.semantic.parse.tokens;
 }
 
-pub inline fn scopes(self: *const Context) *const Semantic.ScopeTree {
+pub inline fn scopes(self: *const Context) *const Semantic.Scope.Tree {
     return &self.semantic.scopes;
 }
 
-pub inline fn symbols(self: *const Context) *const Semantic.SymbolTable {
+pub inline fn symbols(self: *const Context) *const Semantic.Symbol.Table {
     return &self.semantic.symbols;
 }
 
@@ -67,22 +67,13 @@ pub inline fn links(self: *const Context) *const Semantic.NodeLinks {
 // ============================ ERROR REPORTING ============================
 
 pub fn spanN(self: *const Context, node_id: Ast.Node.Index) LabeledSpan {
-    // TODO: inline
-    const ast_ = self.semantic.ast;
-    const tok_locations: []const Semantic.Token.Loc = self.semantic.tokens.items(.loc);
-
-    const first = ast_.firstToken(node_id);
-    const last = ast_.lastToken(node_id);
-    const first_start = tok_locations[first].start;
-    const last_end = tok_locations[last].end;
-    return LabeledSpan.unlabeled(@intCast(first_start), @intCast(last_end));
+    const span = self.semantic.nodeSpan(node_id);
+    return LabeledSpan{ .span = span };
 }
 
 pub fn spanT(self: *const Context, token_id: Ast.TokenIndex) LabeledSpan {
-    // TODO: inline
-    const s = self.semantic.ast.tokenToSpan(token_id);
-    // return .{ .start = s.start, .end = s.end };
-    return LabeledSpan.unlabeled(s.start, s.end);
+    const span = self.semantic.tokenSpan(token_id);
+    return LabeledSpan{ .span = span };
 }
 
 pub inline fn labelN(
@@ -91,9 +82,9 @@ pub inline fn labelN(
     comptime fmt: []const u8,
     args: anytype,
 ) LabeledSpan {
-    const s = self.semantic.ast.nodeToSpan(node_id);
+    const s = self.semantic.nodeSpan(node_id);
     return LabeledSpan{
-        .span = .{ .start = s.start, .end = s.end },
+        .span = s,
         .label = util.Cow(false).fmt(self.gpa, fmt, args) catch @panic("OOM"),
         .primary = false,
     };
@@ -105,7 +96,7 @@ pub inline fn labelT(
     comptime fmt: []const u8,
     args: anytype,
 ) LabeledSpan {
-    const s = self.semantic.ast.tokenToSpan(token_id);
+    const s = self.semantic.parse.ast.tokenToSpan(token_id);
     return LabeledSpan{
         .span = .{ .start = s.start, .end = s.end },
         .label = util.Cow(false).fmt(self.gpa, fmt, args) catch @panic("OOM"),
@@ -117,7 +108,7 @@ pub inline fn labelT(
 pub fn diagnostic(
     self: *Context,
     /// error message
-    comptime message: string,
+    comptime message: []const u8,
     /// location(s) of the problem
     spans: anytype,
 ) Error {
@@ -126,6 +117,7 @@ pub fn diagnostic(
     e.labels.appendSliceAssumeCapacity(&spans);
     return e;
 }
+
 /// Create a new `Error` with a formatted message
 pub fn diagnosticf(self: *Context, comptime template: []const u8, args: anytype, spans: anytype) Error {
     var e = Error.fmt(self.gpa, template, args) catch @panic("OOM");
@@ -179,7 +171,9 @@ pub fn reportWithFix(
     if (comptime util.IS_DEBUG and @import("builtin").is_test) {
         util.assert(
             !self.curr_fix_capabilities.isDisabled(),
-            "Rule '{s}' just provided an auto-fix without advertising auto-fix capabilities in its `Meta`. Please update your rule's `meta.fix` field.",
+            "Rule '{s}' just provided an auto-fix without advertising " ++
+                "auto-fix capabilities in its `Meta`. Please update your " ++
+                "rule's `meta.fix` field.",
             .{self.curr_rule_name},
         );
     }
@@ -193,7 +187,11 @@ pub fn reportWithFix(
         std.debug.panic("Fixer for rule \"{s}\" failed: {s}", .{ self.curr_rule_name, @errorName(e) });
     };
 
-    self._report(Diagnostic{ .err = diagnostic_, .fix = fix });
+    if (self.fix.canApply(fix.meta)) {
+        self._report(Diagnostic{ .err = diagnostic_, .fix = fix });
+    } else {
+        self._report(Diagnostic{ .err = diagnostic_ });
+    }
 }
 
 fn _report(self: *Context, diagnostic_: Diagnostic) void {
@@ -269,7 +267,10 @@ const LabeledSpan = @import("../span.zig").LabeledSpan;
 const Rule = _rule.Rule;
 const Semantic = _semantic.Semantic;
 const Source = _source.Source;
-const string = util.string;
 
 const Fix = @import("./fix.zig").Fix;
 const FixerFn = @import("./fix.zig").FixerFn;
+
+test {
+    _ = @import("test/lint_context_test.zig");
+}

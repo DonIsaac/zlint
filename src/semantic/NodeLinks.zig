@@ -1,5 +1,7 @@
 //! Links AST nodes to other semantic data
 
+const NodeLinks = @This();
+
 /// Map of AST nodes to their parents. Index is the child node id.
 ///
 /// Confusingly, the root node id is also used as the "null" node id, so the
@@ -18,6 +20,11 @@ parents: std.ArrayListUnmanaged(NodeIndex) = .{},
 ///
 /// This is _not_ a mapping for scopes that nodes create.
 scopes: std.ArrayListUnmanaged(Scope.Id) = .{},
+/// Maps identifier tokens to the symbols bound to them.
+///
+/// These are the same as `symbol.identifier`, but allow for lookups the other
+/// way.
+symbols: std.AutoHashMapUnmanaged(Ast.TokenIndex, Symbol.Id) = .{},
 /// Maps tokens (usually `.identifier`s) to the references they create. Since
 /// references are sparse in an AST, a hashmap is used to avoid wasting memory.
 references: std.AutoHashMapUnmanaged(Ast.TokenIndex, Reference.Id) = .{},
@@ -36,7 +43,7 @@ pub fn init(alloc: Allocator, ast: *const Ast) Allocator.Error!NodeLinks {
 }
 
 pub fn deinit(self: *NodeLinks, alloc: Allocator) void {
-    inline for (.{ "parents", "scopes", "references" }) |name| {
+    inline for (.{ "parents", "scopes", "symbols", "references" }) |name| {
         @field(self, name).deinit(alloc);
     }
 }
@@ -89,8 +96,6 @@ const ParentIdsIterator = struct {
     }
 };
 
-const NodeLinks = @This();
-
 const std = @import("std");
 const _ast = @import("ast.zig");
 const util = @import("util");
@@ -102,6 +107,7 @@ const ROOT_NODE_ID = Semantic.ROOT_NODE_ID;
 const NULL_NODE = Semantic.NULL_NODE;
 const ROOT_SCOPE_ID = Semantic.ROOT_SCOPE_ID;
 const Scope = Semantic.Scope;
+const Symbol = Semantic.Symbol;
 const Reference = Semantic.Reference;
 
 const Allocator = std.mem.Allocator;

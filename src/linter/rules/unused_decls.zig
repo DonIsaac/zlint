@@ -50,6 +50,7 @@ const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
 const _fix = @import("../fix.zig");
 const _span = @import("../../span.zig");
+const Error = @import("../../Error.zig");
 
 const Span = _span.Span;
 const Symbol = semantic.Symbol;
@@ -59,15 +60,21 @@ const LinterContext = @import("../lint_context.zig");
 const Fix = _fix.Fix;
 const Rule = _rule.Rule;
 
-// Rule metadata
 const UnusedDecls = @This();
 pub const meta: Rule.Meta = .{
     .name = "unused-decls",
     .default = .warning,
-    // TODO: set the category to an appropriate value
     .category = .correctness,
     .fix = Fix.Meta.dangerous_fix,
 };
+
+fn unusedDeclDiagnostic(ctx: *LinterContext, name: []const u8, span: _span.LabeledSpan) Error {
+    return ctx.diagnosticf(
+        "variable '{s}' is declared but never used.",
+        .{name},
+        .{span},
+    );
+}
 
 pub fn runOnSymbol(_: *const UnusedDecls, symbol: Symbol.Id, ctx: *LinterContext) void {
     const s = symbol.into(usize);
@@ -111,11 +118,7 @@ pub fn runOnSymbol(_: *const UnusedDecls, symbol: Symbol.Id, ctx: *LinterContext
         const fixer = UnusedDeclsFixer.init(ctx, symbol);
         ctx.reportWithFix(
             fixer,
-            ctx.diagnosticf(
-                "variable '{s}' is declared but never used.",
-                .{name},
-                .{span},
-            ),
+            unusedDeclDiagnostic(ctx, name, span),
             &UnusedDeclsFixer.removeDecl,
         );
         return;
@@ -133,12 +136,35 @@ const UnusedDeclsFixer = struct {
         const decl: Node.Index = ctx.symbols().symbols.items(.decl)[symbol.int()];
         var span = ctx.spanN(decl).span;
         const text = ctx.source.text();
-        if (span.end < text.len and text[span.end] == ';') span.end += 1;
+
+        // if (span.end < text.len and text[span.end] == ';') span.end += 1;
+        var needs_semicolon = true;
+        while (span.end < text.len) {
+            switch (text[span.end]) {
+                ';' => if (needs_semicolon) {
+                    needs_semicolon = false;
+                    span.end += 1;
+                } else break,
+                ' ', '\t' => span.end += 1,
+                '\n' => {
+                    span.end += 1;
+                    break;
+                },
+                '\r' => {
+                    span.end += 1;
+                    if (span.end < text.len and text[span.end] == '\n') {
+                        span.end += 1;
+                    }
+                    break;
+                },
+                else => break,
+            }
+        }
 
         return .{ .span = span };
     }
 
-    fn removeDecl(self: UnusedDeclsFixer, b: Fix.Builder) anyerror!Fix {
+    pub fn removeDecl(self: UnusedDeclsFixer, b: Fix.Builder) anyerror!Fix {
         return b.delete(self.span);
     }
 };
@@ -197,21 +223,38 @@ test UnusedDecls {
         .{ .src = "const x = 1;", .expected = "" },
         .{ .src = "const std = @import(\"std\");", .expected = "" },
         .{ .src = "const x = struct {\na: u32,\n};", .expected = "" },
-        .{ .src = 
-        \\//! This module does a thing
-        \\const std = @import("std");
-        , .expected = 
-        \\//! This module does a thing
-        \\
+        .{
+            .src =
+            \\//! This module does a thing
+            \\const std = @import("std");
+            ,
+            .expected =
+            \\//! This module does a thing
+            \\
+            ,
         },
-        .{ .src = 
-        \\pub const used = 1;
-        \\const unused = struct {
-        \\  a: u32 = 1
-        \\};
-        , .expected = 
-        \\pub const used = 1;
-        \\
+        .{
+            .src =
+            \\pub const used = 1;
+            \\const unused = struct {
+            \\  a: u32 = 1
+            \\};
+            ,
+            .expected =
+            \\pub const used = 1;
+            \\
+            ,
+        },
+        .{
+            .src =
+            \\const x = 1;
+            \\const y = 2;
+            \\pub const z = x + 1;
+            ,
+            .expected =
+            \\const x = 1;
+            \\pub const z = x + 1;
+            ,
         },
     };
 

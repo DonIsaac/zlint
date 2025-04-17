@@ -52,3 +52,7 @@ pub fn foo(x: u32) void {
   var z: u32 = 1;
 }
 ```
+
+## Configuration
+
+This rule has no configuration.

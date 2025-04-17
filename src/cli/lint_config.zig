@@ -3,6 +3,8 @@ const util = @import("util");
 const fs = std.fs;
 const path = std.fs.path;
 const json = std.json;
+const mem = std.mem;
+const Allocator = mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Dir = std.fs.Dir;
 const lint = @import("../lint.zig");
@@ -11,10 +13,10 @@ const Error = @import("../Error.zig");
 const Span = @import("../span.zig").Span;
 
 pub fn resolveLintConfig(
-    arena: *std.heap.ArenaAllocator,
+    arena: *ArenaAllocator,
     cwd: Dir,
     config_filename: [:0]const u8,
-    err_alloc: std.mem.Allocator,
+    err_alloc: Allocator,
     err: *Error,
 ) !lint.Config.Managed {
     const arena_alloc = arena.allocator();
@@ -114,7 +116,7 @@ fn ParentIterator(comptime N: usize) type {
             const slash: usize = @intCast(self.last_slash);
             const filename_len = self.filename.len;
 
-            defer if (std.mem.lastIndexOf(u8, self.buf[0..slash], SLASH_STR)) |prev_slash| {
+            defer if (mem.lastIndexOf(u8, self.buf[0..slash], SLASH_STR)) |prev_slash| {
                 self.last_slash = @intCast(prev_slash);
             } else {
                 self.last_slash = -1;
@@ -128,7 +130,7 @@ fn ParentIterator(comptime N: usize) type {
 }
 
 fn getReportForParseError(
-    alloc: std.mem.Allocator,
+    alloc: Allocator,
     e: json.ParseError(json.Scanner),
     source: []const u8,
     diagnostics: *const json.Diagnostics,
@@ -138,7 +140,7 @@ fn getReportForParseError(
 
     const message = switch (e) {
         error.UnknownField => blk: {
-            if (std.mem.lastIndexOfAny(u8, source[0..offset], &std.ascii.whitespace)) |start| {
+            if (mem.lastIndexOfAny(u8, source[0..offset], &std.ascii.whitespace)) |start| {
                 span.start = @intCast(start + 1);
             }
             const field = source[span.start..span.end];
@@ -160,6 +162,56 @@ fn getReportForParseError(
 const customRuleMessages = std.StaticStringMap([]const u8).initComptime([_]struct { []const u8, []const u8 }{
     .{ "\"no-undefined\"", "`no-undefined` has been renamed to `unsafe-undefined`." },
 });
+
+/// Try to read the contents of a `.gitignore` and add its entries to `config`'s
+/// ignore list. if `config` doesn't have a path, looks for `.gitignore` within
+/// `root`.
+pub fn readGitignore(config: *lint.Config.Managed, root: fs.Dir) !void {
+    const allocator = config.allocator();
+    const dirname_: ?[]const u8 = if (config.path) |p| blk: {
+        if (comptime util.IS_DEBUG) {
+            std.debug.assert(mem.endsWith(u8, p, "zlint.json"));
+            std.debug.assert(path.isAbsolute(p));
+        }
+        break :blk path.dirname(p);
+    } else null;
+
+    var gitignore_file = if (dirname_) |dirname| blk: {
+        var stackfb = std.heap.stackFallback(512, allocator);
+        const stackalloc = stackfb.get();
+        const gitignore_path = try path.join(stackalloc, &[_][]const u8{ dirname, ".gitignore" });
+        defer stackalloc.free(gitignore_path);
+        break :blk fs.openFileAbsolute(gitignore_path, .{ .mode = .read_only }) catch return;
+    } else root: {
+        break :root root.openFile(".gitignore", .{ .mode = .read_only }) catch return;
+    };
+    defer gitignore_file.close();
+
+    const gitignore = try gitignore_file.readToEndAlloc(allocator, std.math.maxInt(u32));
+    var it = mem.splitScalar(u8, gitignore, '\n');
+
+    // count lines to pre-allocate enough memory
+    var lines: u32 = 0;
+    while (it.next()) |line_| {
+        // const line = mem.trim(u8, line_, &std.ascii.whitespace);
+        const line = util.trimWhitespace(line_);
+        if (line.len == 0 or line[0] == '#') continue;
+        lines += 1;
+    }
+
+    if (lines == 0) return;
+    it.reset();
+
+    // merge existing + new ignores
+    var ignores = try std.ArrayListUnmanaged([]const u8).initCapacity(allocator, config.config.ignore.len + lines);
+    ignores.appendSliceAssumeCapacity(config.config.ignore);
+    while (it.next()) |line_| {
+        const line = mem.trim(u8, line_, &std.ascii.whitespace);
+        if (line.len == 0 or line[0] == '#') continue;
+        ignores.appendAssumeCapacity(line);
+    }
+    config.config.ignore = ignores.items;
+}
 
 const t = std.testing;
 test ParentIterator {

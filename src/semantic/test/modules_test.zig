@@ -1,13 +1,9 @@
 const std = @import("std");
 const test_util = @import("util.zig");
 
-const Symbol = @import("../Symbol.zig");
 const Semantic = @import("../Semantic.zig");
 
 const t = std.testing;
-const build = test_util.build;
-const panic = std.debug.panic;
-const print = std.debug.print;
 
 test "@import(\"std\")" {
     const src =

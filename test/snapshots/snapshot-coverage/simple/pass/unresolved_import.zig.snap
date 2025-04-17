@@ -5,13 +5,13 @@
       "debugName": "@This()", 
       "token": null, 
       "declNode": "root", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["const"], 
       "references": [
         
       ], 
-      "members": [1], 
-      "exports": [], 
+      "members": [], 
+      "exports": [1], 
       
     }, 
     {
@@ -19,7 +19,7 @@
       "debugName": "", 
       "token": 1, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["variable","const"], 
       "references": [
         
@@ -41,7 +41,7 @@
     ], 
   }, 
   "scopes": {
-    "id": util.id.NominalId(u32)(0), 
+    "id": 0, 
     "flags": ["top"], 
     "bindings": {
       "@This()": 0, 

@@ -70,3 +70,7 @@ fn bar() u32 {
   return 1;
 }
 ```
+
+## Configuration
+
+This rule has no configuration.

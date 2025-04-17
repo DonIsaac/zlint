@@ -63,3 +63,7 @@ test foo {
   foo() catch {};
 }
 ```
+
+## Configuration
+
+This rule has no configuration.

@@ -1,7 +1,7 @@
 rule: Rule,
 linter: Linter,
 
-filename: string,
+filename: []const u8,
 
 /// Test cases that should produce no violations when linted.
 passes: std.ArrayListUnmanaged([:0]const u8) = .{},
@@ -45,7 +45,7 @@ pub const FixCase = struct {
 };
 
 pub fn init(alloc: Allocator, rule: Rule) RuleTester {
-    const filename = std.mem.concat(alloc, u8, &[_]string{ rule.meta.name, ".zig" }) catch @panic("OOM");
+    const filename = std.mem.concat(alloc, u8, &[_][]const u8{ rule.meta.name, ".zig" }) catch @panic("OOM");
     var linter = Linter.initEmpty(alloc);
     linter.registerRule(.err, rule) catch |e| {
         panic("Failed to register rule {s}: {s}", .{ rule.meta.name, @errorName(e) });
@@ -64,7 +64,7 @@ pub fn init(alloc: Allocator, rule: Rule) RuleTester {
 /// Set the file name to use when linting test cases. It must end in `.zig`.
 ///
 /// By default, the file name is `<rule-name>.zig`.
-pub fn setFileName(self: *RuleTester, filename: string) void {
+pub fn setFileName(self: *RuleTester, filename: []const u8) void {
     util.assert(std.mem.endsWith(u8, filename, ".zig"), "File names must end in .zig", .{});
     self.alloc.free(self.filename);
     self.filename = self.alloc.dupe(u8, filename) catch |e| {
@@ -72,8 +72,8 @@ pub fn setFileName(self: *RuleTester, filename: string) void {
     };
 }
 
-pub fn withPath(self: *RuleTester, source_dir: string) *RuleTester {
-    const new_name = fs.path.join(self.alloc, &[_]string{ source_dir, self.filename }) catch @panic("OOM");
+pub fn withPath(self: *RuleTester, source_dir: []const u8) *RuleTester {
+    const new_name = fs.path.join(self.alloc, &[_][]const u8{ source_dir, self.filename }) catch @panic("OOM");
     self.alloc.free(self.filename);
     self.filename = new_name;
     return self;
@@ -254,7 +254,7 @@ fn lint(
     src: [:0]const u8,
     test_id: usize,
     errors: *Linter.Diagnostic.List,
-) (Linter.LintError || SemanticBuilder.SemanticError || Allocator.Error)!void {
+) (Linter.LintError || Semantic.Builder.SemanticError || Allocator.Error)!void {
     // TODO: support static strings in Source w/o leaking memory.
     var source = try Source.fromString(
         self.alloc,
@@ -263,7 +263,7 @@ fn lint(
     );
     defer source.deinit();
 
-    var builder = SemanticBuilder.init(self.alloc);
+    var builder = Semantic.Builder.init(self.alloc);
     defer builder.deinit();
     builder.withSource(&source);
 
@@ -305,7 +305,7 @@ fn saveSnapshot(self: *RuleTester) SnapshotError!void {
             return e;
         };
         defer snapshot_dir.close();
-        const snapshot_filename = try std.mem.concat(self.alloc, u8, &[_]string{ self.rule.meta.name, ".snap" });
+        const snapshot_filename = try std.mem.concat(self.alloc, u8, &[_][]const u8{ self.rule.meta.name, ".snap" });
         defer self.alloc.free(snapshot_filename);
         const snapshot_file = snapshot_dir.createFile(snapshot_filename, .{ .truncate = true }) catch |e| {
             self.diagnostic.message = Cow.fmt(
@@ -361,12 +361,11 @@ const Linter = @import("linter.zig").Linter;
 const Rule = @import("rule.zig").Rule;
 const Fix = @import("fix.zig").Fix;
 const Fixer = @import("fix.zig").Fixer;
-const SemanticBuilder = @import("../semantic.zig").SemanticBuilder;
+const Semantic = @import("../semantic.zig").Semantic;
 const Source = @import("../source.zig").Source;
 const GraphicalFormatter = @import("../reporter.zig").formatter.Graphical;
 
 const Cow = util.Cow(false);
-const string = util.string;
 const panic = std.debug.panic;
 
 const NodeWrapper = @import("rule.zig").NodeWrapper;

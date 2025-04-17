@@ -2,6 +2,7 @@ const std = @import("std");
 const json = std.json;
 const meta = std.meta;
 const mem = std.mem;
+const Schema = @import("../../json.zig").Schema;
 
 const Allocator = std.mem.Allocator;
 
@@ -14,7 +15,11 @@ const ParseError = json.ParseError(json.Scanner);
 pub fn RulesConfigMethods(RulesConfig: type) type {
     return struct {
         /// See: `std.json.parseFromTokenSource()`
-        pub fn jsonParse(allocator: Allocator, source: *json.Scanner, options: json.ParseOptions) !RulesConfig {
+        pub fn jsonParse(
+            allocator: Allocator,
+            source: *json.Scanner,
+            options: json.ParseOptions,
+        ) !RulesConfig {
             var config = RulesConfig{};
 
             // eat '{'
@@ -44,6 +49,20 @@ pub fn RulesConfigMethods(RulesConfig: type) type {
             assert(end == .object_end);
 
             return config;
+        }
+
+        pub fn jsonSchema(ctx: *Schema.Context) !Schema {
+            const info = @typeInfo(RulesConfig).@"struct";
+            var obj = try ctx.object(info.fields.len);
+            inline for (info.fields) |field| {
+                const Rule = field.type;
+                var prop_schema: Schema = try Rule.jsonSchema(ctx);
+                prop_schema.common().default = .{ .string = Rule.meta.default.asSlice() };
+                obj.properties.putAssumeCapacityNoClobber(Rule.name, prop_schema);
+            }
+            obj.common.description = "Configure which rules are enabled and how.";
+
+            return .{ .object = obj };
         }
     };
 }

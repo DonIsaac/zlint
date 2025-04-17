@@ -5,13 +5,13 @@
       "debugName": "@This()", 
       "token": null, 
       "declNode": "root", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["const"], 
       "references": [
         
       ], 
-      "members": [1,2,3,5,6], 
-      "exports": [], 
+      "members": [], 
+      "exports": [1,2,3,5,6], 
       
     }, 
     {
@@ -19,7 +19,7 @@
       "debugName": "", 
       "token": 1, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["variable","const"], 
       "references": [
         {"symbol":1,"scope":1,"node":"identifier","identifier":"x","flags":["type"]}, 
@@ -34,7 +34,7 @@
       "debugName": "", 
       "token": 6, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["variable","const","struct"], 
       "references": [
         {"symbol":2,"scope":0,"node":"identifier","identifier":"Foo","flags":["type"]}, 
@@ -49,14 +49,14 @@
       "debugName": "", 
       "token": 18, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["variable","const","struct"], 
       "references": [
         {"symbol":3,"scope":3,"node":"identifier","identifier":"Namespace","flags":["type"]}, 
         
       ], 
-      "members": [4], 
-      "exports": [], 
+      "members": [], 
+      "exports": [4], 
       
     }, 
     {
@@ -64,7 +64,7 @@
       "debugName": "", 
       "token": 23, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(2), 
+      "scope": 2, 
       "flags": ["variable","const"], 
       "references": [
         
@@ -78,7 +78,7 @@
       "debugName": "", 
       "token": 30, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["variable","const","struct"], 
       "references": [
         
@@ -92,7 +92,7 @@
       "debugName": "", 
       "token": 40, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["variable","const"], 
       "references": [
         
@@ -108,7 +108,7 @@
     ], 
   }, 
   "scopes": {
-    "id": util.id.NominalId(u32)(0), 
+    "id": 0, 
     "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
@@ -121,7 +121,7 @@
     }, 
     "children": [
       {
-        "id": util.id.NominalId(u32)(1), 
+        "id": 1, 
         "flags": ["struct","block"], 
         "bindings": {
           
@@ -129,7 +129,7 @@
         "children": [], 
         
       }, {
-        "id": util.id.NominalId(u32)(2), 
+        "id": 2, 
         "flags": ["struct","block"], 
         "bindings": {
           "Member": 4, 
@@ -138,7 +138,7 @@
         "children": [], 
         
       }, {
-        "id": util.id.NominalId(u32)(3), 
+        "id": 3, 
         "flags": ["struct","block"], 
         "bindings": {
           

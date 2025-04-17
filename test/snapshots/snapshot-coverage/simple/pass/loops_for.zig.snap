@@ -5,13 +5,13 @@
       "debugName": "@This()", 
       "token": null, 
       "declNode": "root", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["const"], 
       "references": [
         
       ], 
-      "members": [1,2,3,5,6,7], 
-      "exports": [], 
+      "members": [], 
+      "exports": [1,2,3,5,6,7], 
       
     }, 
     {
@@ -19,7 +19,7 @@
       "debugName": "", 
       "token": 1, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["variable","const"], 
       "references": [
         {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["call"]}, 
@@ -35,7 +35,7 @@
       "debugName": "", 
       "token": 9, 
       "declNode": "fn_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["fn"], 
       "references": [
         
@@ -49,7 +49,7 @@
       "debugName": "", 
       "token": 15, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(2), 
+      "scope": 2, 
       "flags": ["variable","const"], 
       "references": [
         {"symbol":3,"scope":2,"node":"identifier","identifier":"arr","flags":["read"]}, 
@@ -64,7 +64,7 @@
       "debugName": "", 
       "token": 38, 
       "declNode": "for_simple", 
-      "scope": util.id.NominalId(u32)(3), 
+      "scope": 3, 
       "flags": ["payload","const"], 
       "references": [
         {"symbol":4,"scope":4,"node":"identifier","identifier":"i","flags":["read"]}, 
@@ -80,7 +80,7 @@
       "debugName": "", 
       "token": 42, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(4), 
+      "scope": 4, 
       "flags": ["variable","const"], 
       "references": [
         {"symbol":5,"scope":4,"node":"identifier","identifier":"power_of_two","flags":["read"]}, 
@@ -95,7 +95,7 @@
       "debugName": "", 
       "token": 67, 
       "declNode": "fn_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["fn"], 
       "references": [
         
@@ -109,7 +109,7 @@
       "debugName": "", 
       "token": 73, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(6), 
+      "scope": 6, 
       "flags": ["variable","const"], 
       "references": [
         {"symbol":7,"scope":6,"node":"identifier","identifier":"mat4x4","flags":["read"]}, 
@@ -124,7 +124,7 @@
       "debugName": "", 
       "token": 149, 
       "declNode": "for", 
-      "scope": util.id.NominalId(u32)(7), 
+      "scope": 7, 
       "flags": ["payload","const"], 
       "references": [
         {"symbol":8,"scope":8,"node":"identifier","identifier":"row","flags":["read"]}, 
@@ -139,7 +139,7 @@
       "debugName": "", 
       "token": 151, 
       "declNode": "for", 
-      "scope": util.id.NominalId(u32)(7), 
+      "scope": 7, 
       "flags": ["payload","const"], 
       "references": [
         {"symbol":9,"scope":10,"node":"identifier","identifier":"row_index","flags":["read"]}, 
@@ -154,7 +154,7 @@
       "debugName": "", 
       "token": 162, 
       "declNode": "for", 
-      "scope": util.id.NominalId(u32)(9), 
+      "scope": 9, 
       "flags": ["payload","const"], 
       "references": [
         {"symbol":10,"scope":12,"node":"identifier","identifier":"cell","flags":["read"]}, 
@@ -169,7 +169,7 @@
       "debugName": "", 
       "token": 164, 
       "declNode": "for", 
-      "scope": util.id.NominalId(u32)(9), 
+      "scope": 9, 
       "flags": ["payload","const"], 
       "references": [
         {"symbol":11,"scope":10,"node":"identifier","identifier":"column_index","flags":["read"]}, 
@@ -192,7 +192,7 @@
     ], 
   }, 
   "scopes": {
-    "id": util.id.NominalId(u32)(0), 
+    "id": 0, 
     "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
@@ -203,14 +203,14 @@
     }, 
     "children": [
       {
-        "id": util.id.NominalId(u32)(1), 
+        "id": 1, 
         "flags": ["function"], 
         "bindings": {
           
         }, 
         "children": [
           {
-            "id": util.id.NominalId(u32)(2), 
+            "id": 2, 
             "flags": ["function","block"], 
             "bindings": {
               "arr": 3, 
@@ -218,7 +218,7 @@
             }, 
             "children": [
               {
-                "id": util.id.NominalId(u32)(3), 
+                "id": 3, 
                 "flags": [], 
                 "bindings": {
                   "i": 4, 
@@ -226,7 +226,7 @@
                 }, 
                 "children": [
                   {
-                    "id": util.id.NominalId(u32)(4), 
+                    "id": 4, 
                     "flags": ["block"], 
                     "bindings": {
                       "power_of_two": 5, 
@@ -244,14 +244,14 @@
         ], 
         
       }, {
-        "id": util.id.NominalId(u32)(5), 
+        "id": 5, 
         "flags": ["function"], 
         "bindings": {
           
         }, 
         "children": [
           {
-            "id": util.id.NominalId(u32)(6), 
+            "id": 6, 
             "flags": ["function","block"], 
             "bindings": {
               "mat4x4": 7, 
@@ -259,7 +259,7 @@
             }, 
             "children": [
               {
-                "id": util.id.NominalId(u32)(7), 
+                "id": 7, 
                 "flags": [], 
                 "bindings": {
                   "row": 8, 
@@ -268,14 +268,14 @@
                 }, 
                 "children": [
                   {
-                    "id": util.id.NominalId(u32)(8), 
+                    "id": 8, 
                     "flags": ["block"], 
                     "bindings": {
                       
                     }, 
                     "children": [
                       {
-                        "id": util.id.NominalId(u32)(9), 
+                        "id": 9, 
                         "flags": [], 
                         "bindings": {
                           "cell": 10, 
@@ -284,21 +284,21 @@
                         }, 
                         "children": [
                           {
-                            "id": util.id.NominalId(u32)(10), 
+                            "id": 10, 
                             "flags": ["block"], 
                             "bindings": {
                               
                             }, 
                             "children": [
                               {
-                                "id": util.id.NominalId(u32)(11), 
+                                "id": 11, 
                                 "flags": [], 
                                 "bindings": {
                                   
                                 }, 
                                 "children": [
                                   {
-                                    "id": util.id.NominalId(u32)(12), 
+                                    "id": 12, 
                                     "flags": ["block"], 
                                     "bindings": {
                                       
@@ -309,7 +309,7 @@
                                 ], 
                                 
                               }, {
-                                "id": util.id.NominalId(u32)(13), 
+                                "id": 13, 
                                 "flags": [], 
                                 "bindings": {
                                   

@@ -49,6 +49,50 @@ pub fn format(_: *GithubFormatter, w: *Writer, e: Error) FormatError!void {
     });
 }
 
+test GithubFormatter {
+    const Cow = @import("util").Cow(false);
+    const allocator = std.testing.allocator;
+    const expectEqualStrings = std.testing.expectEqualStrings;
+
+    var buf = std.ArrayList(u8).init(allocator);
+    defer buf.deinit();
+    var f = GithubFormatter{};
+    var w = buf.writer().any();
+
+    var err = Error.newStatic("Something happened");
+    err.help = Cow.static("help pls");
+    err.code = "code";
+    err.source_name = "some/file.zig";
+
+    try f.format(&w, err);
+    try expectEqualStrings("::error file=some/file.zig,line=1,col=1,title=code::Something happened\n", buf.items);
+
+    buf.clearRetainingCapacity();
+    err.severity = .warning;
+    try err.labels.append(allocator, .{
+        .label = Cow.static("here it is"),
+        .span = .{ .start = 5, .end = 10 },
+    });
+    defer err.labels.deinit(allocator);
+
+    try f.format(&w, err);
+    try expectEqualStrings("::warning file=some/file.zig,line=1,col=1,title=code::Something happened\n", buf.items);
+
+    buf.clearRetainingCapacity();
+    var src = try Error.ArcStr.init(
+        allocator,
+        try allocator.dupeZ(u8,
+            \\
+            \\foo bar baz bang
+        ),
+    );
+    defer src.deinit();
+    err.source = src;
+
+    try f.format(&w, err);
+    try expectEqualStrings("::warning file=some/file.zig,line=2,col=5,title=code::Something happened\n", buf.items);
+}
+
 const std = @import("std");
 const formatter = @import("../formatter.zig");
 const Meta = formatter.Meta;

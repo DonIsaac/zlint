@@ -16,10 +16,7 @@ pub const Fix = struct {
         kind: Kind = .fix,
         dangerous: bool = false,
 
-        pub const disabled = Meta{
-            .kind = Kind.none,
-            .dangerous = false,
-        };
+        pub const disabled = Meta{ .kind = Kind.none, .dangerous = false };
         pub const dangerous_fix: Meta = .{ .kind = Kind.fix, .dangerous = true };
         pub const safe_fix: Meta = .{ .kind = Kind.fix, .dangerous = false };
         pub const dangerous_suggestion: Meta = .{ .kind = Kind.suggestion, .dangerous = true };
@@ -28,6 +25,14 @@ pub const Fix = struct {
         pub fn isDisabled(self: Meta) bool {
             // TODO: check output assembly, check if `@bitcast(self) == 0` is faster.
             return self.kind == Kind.none;
+        }
+
+        /// Check if a fix (`other`) may be applied based on a user-configured filter.
+        /// Here, `self` does not come from a Fix, but from a linter config.
+        pub fn canApply(self: Meta, other: Meta) bool {
+            return self.kind != .none // not disabled
+            and (self.dangerous or !other.dangerous) // fix is safe or we allow dangerous fixes
+            and (self.kind == other.kind); // fix kind matches
         }
     };
 
@@ -89,8 +94,8 @@ pub const Fix = struct {
 
         pub fn spanCovering(self: Builder, comptime kind: Spanned, id: u32) Span {
             return switch (kind) {
-                .node => Span.from(self.ctx.ast().nodeToSpan(id)),
-                .token => Span.from(self.ctx.semantic.tokens.items(.loc)[id]),
+                .token => self.ctx.semantic.tokenSpan(id),
+                .node => self.ctx.semantic.nodeSpan(id),
             };
         }
     };
@@ -218,6 +223,7 @@ const std = @import("std");
 const heap = std.heap;
 const mem = std.mem;
 const util = @import("util");
+const Semantic = @import("../semantic.zig").Semantic;
 
 const Allocator = std.mem.Allocator;
 const Span = @import("../span.zig").Span;

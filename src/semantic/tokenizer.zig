@@ -20,7 +20,7 @@ pub const TokenBundle = struct {
     comments: CommentList.Slice,
     stats: Stats,
 
-    const Stats = struct {
+    pub const Stats = struct {
         /// Number of identifier tokens encountered.
         identifiers: u32 = 0,
     };

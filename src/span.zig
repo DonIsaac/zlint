@@ -2,7 +2,6 @@ const std = @import("std");
 const util = @import("util");
 
 const assert = std.debug.assert;
-const string = util.string;
 
 const t = std.testing;
 
@@ -10,7 +9,7 @@ pub const LocationSpan = struct {
     span: LabeledSpan,
     location: Location,
 
-    pub fn fromSpan(contents: string, span: anytype) LocationSpan {
+    pub fn fromSpan(contents: []const u8, span: anytype) LocationSpan {
         const labeled_span: LabeledSpan, const loc: Location = brk: {
             switch (@TypeOf(span)) {
                 Span => {
@@ -38,7 +37,7 @@ pub const LocationSpan = struct {
     pub inline fn column(self: LocationSpan) u32 {
         return self.location.column;
     }
-    pub inline fn source(self: LocationSpan) string {
+    pub inline fn source(self: LocationSpan) []const u8 {
         return self.location.source_line;
     }
 };
@@ -61,6 +60,7 @@ pub const Span = struct {
     pub fn from(value: anytype) Span {
         return switch (@TypeOf(value)) {
             Span => value, // base case
+            LabeledSpan => value.span,
             std.zig.Ast.Span => .{ .start = value.start, .end = value.end },
             std.zig.Token.Loc => .{ .start = @intCast(value.start), .end = @intCast(value.end) },
             [2]u32 => .{ .start = value[0], .end = value[1] },
@@ -84,7 +84,7 @@ pub const Span = struct {
         return self.end - self.start;
     }
 
-    pub inline fn snippet(self: Span, contents: string) string {
+    pub inline fn snippet(self: Span, contents: []const u8) []const u8 {
         assert(self.end >= self.start);
         return contents[self.start..self.end];
     }
@@ -148,6 +148,61 @@ pub const LabeledSpan = struct {
             .span = .{ .start = start, .end = end },
         };
     }
+
+    pub fn from(value: anytype) LabeledSpan {
+        return switch (@TypeOf(value)) {
+            LabeledSpan => value, // base case
+            Span => .{ .span = value },
+            std.zig.Ast.Span => .{ .span = Span.from(value) },
+            std.zig.Token.Loc => .{ .span = Span.from(value) },
+            [2]u32 => .{ .span = Span.from(value) },
+            else => |T| {
+                const info = @typeInfo(T);
+                switch (info) {
+                    .@"struct", .@"enum" => {
+                        if (@hasField(T, "span")) {
+                            return LabeledSpan.from(@field(value, "span"));
+                        }
+                    },
+                    else => {},
+                }
+                @compileError("Cannot convert type " ++ @typeName(T) ++ "into a LabeledSpan.");
+            },
+        };
+    }
+    pub fn fmtJson(self: LabeledSpan, source: []const u8) LocationFormatter {
+        return .{ .span = self, .source = source };
+    }
+
+    pub const LocationFormatter = struct {
+        span: LabeledSpan,
+        source: []const u8,
+
+        const Repr = struct {
+            start: Location,
+            end: Location,
+            primary: bool,
+            label: ?util.Cow(false),
+        };
+
+        // pub fn format(self: *const LocationFormatter, comptime _: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        // pub fn format(self: *const LocationFormatter, comptime _: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        pub fn jsonStringify(self: *const LocationFormatter, jw: anytype) !void {
+            const start_offset = self.span.span.start;
+            const len = self.span.span.len();
+            const start = findLineColumn(self.source, start_offset);
+            var end = findLineColumn(self.source[start_offset..], len);
+            end.line += start.line - 1;
+            end.column += start.column - 1;
+
+            try jw.write(Repr{
+                .start = start,
+                .end = end,
+                .primary = self.span.primary,
+                .label = self.span.label,
+            });
+        }
+    };
 };
 
 pub const Location = struct {
@@ -157,8 +212,17 @@ pub const Location = struct {
     column: u32,
     source_line: []const u8,
 
-    pub fn fromSpan(contents: string, span: Span) Location {
+    pub fn fromSpan(contents: []const u8, span: Span) Location {
         return findLineColumn(contents, @intCast(span.start));
+    }
+    pub fn jsonStringify(self: *const Location, jw: anytype) !void {
+        // { line, column }
+        try jw.beginObject();
+        try jw.objectFieldRaw("\"line\"");
+        try jw.write(self.line);
+        try jw.objectFieldRaw("\"column\"");
+        try jw.write(self.column);
+        try jw.endObject();
     }
     // TODO: toSpan()
 };
@@ -169,31 +233,24 @@ fn findLineColumn(source: []const u8, byte_offset: u32) Location {
     var column: u32 = 1;
     var line_start: u32 = 0;
     var i: u32 = 0;
-    while (i < byte_offset) : (i += 1) {
-        switch (source[i]) {
-            '\n' => {
-                line += 1;
-                column = 1;
-                line_start = i + 1;
+    const slice = source[0..byte_offset];
 
-                if (util.IS_WINDOWS and i < byte_offset and source[i + 1] == '\r') {
-                    i += 1;
-                }
-            },
-            else => {
-                column += 1;
-            },
+    while (i < byte_offset) {
+        if (std.mem.indexOfScalarPos(u8, slice, i, '\n')) |pos| {
+            line += 1;
+            column = 1;
+            i = @as(u32, @intCast(pos)) + 1;
+            line_start = i;
+        } else {
+            column += byte_offset - i;
+            break;
         }
     }
 
-    while (i < source.len and source[i] != '\n') {
-        i += 1;
-        if (util.IS_WINDOWS and i < source.len - 1 and source[i + 1] == '\r') {
-            i += 1;
-        }
-    }
+    const pos = std.mem.indexOfScalarPos(u8, source, i, '\n') orelse source.len;
+    i = @intCast(pos);
 
-    return .{
+    return Location{
         .line = line,
         .column = column,
         .source_line = source[line_start..i],

@@ -13,6 +13,20 @@
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 
   𝙭 unsafe-undefined: `undefined` is missing a safety comment
+   ╭─[unsafe-undefined.zig:1:19]
+ 1 │ var slice: []u8 = undefined;
+   ·                   ─────────
+   ╰────
+  help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
+
+  𝙭 unsafe-undefined: `undefined` is missing a safety comment
+   ╭─[unsafe-undefined.zig:1:27]
+ 1 │ const slice: []const u8 = undefined;
+   ·                           ─────────
+   ╰────
+  help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
+
+  𝙭 unsafe-undefined: `undefined` is missing a safety comment
    ╭─[unsafe-undefined.zig:1:23]
  1 │ const slice: [:0]u8 = undefined;
    ·                       ─────────
@@ -33,20 +47,26 @@
    ╰────
   help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
 
+  𝙭 unsafe-undefined: `undefined` is missing a safety comment
+   ╭─[unsafe-undefined.zig:1:35]
+ 1 │ const slice: []const []const u8 = undefined;
+   ·                                   ─────────
+   ╰────
+  help: Add a `SAFETY: <reason>` before this line explaining why this code is safe.
+
   𝙭 unsafe-undefined: Do not use `undefined` as a default value
    ╭─[unsafe-undefined.zig:1:33]
  1 │ const Foo = struct { bar: u32 = undefined };
    ·                                 ─────────
- 2 │ fn foo(x: *Foo) void {
    ╰────
   help: If this really can be `undefined`, do so explicitly during struct initialization.
 
   𝙭 unsafe-undefined: comparing with `undefined` is unspecified behavior.
-   ╭─[unsafe-undefined.zig:3:12]
- 2 │ fn foo(x: *Foo) void {
- 3 │   if (x == undefined) {
+   ╭─[unsafe-undefined.zig:2:12]
+ 1 │ fn foo(x: *Foo) void {
+ 2 │   if (x == undefined) {
    ·            ─────────
- 4 │     @import("std").debug.print("x is undefined\n", .{});
+ 3 │     @import("std").debug.print("x is undefined\n", .{});
    ╰────
   help: Uninitialized data can have any value. If you need to check that a value does not exist, use `null`.
 

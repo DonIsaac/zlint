@@ -55,6 +55,23 @@ const Foo = struct {
 };
 ```
 
+#### Whitelisting Types
+
+You may whitelist specific types that are allowed to be initialized to `undefined`.
+Any variable with this type will not have a violation triggered, as long as
+the type is obvious to ZLint's semantic analyzer. By default the whitelist
+contains `ThreadPool`/`Thread.Pool` from `std.Thread.Pool`
+
+```zig
+// "unsafe-undefined": ["error", { "allow_types": ["CustomBuffer"] }]
+const CustomBuffer = [4096]u8;
+var buf: CustomBuffer = undefined; // ok
+```
+
+> [!NOTE]
+> ZLint does not have a type checker yet, so implicit struct initializations
+> will not be ignored.
+
 #### Destructors
 
 Invalidating freed pointers/data by setting it to `undefined` is helpful for
@@ -127,3 +144,10 @@ test Foo {
   // ...
 }
 ```
+
+## Configuration
+
+This rule accepts the following options:
+
+- allowed_types: array
+- allow_arrays: boolean

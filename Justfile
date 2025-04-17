@@ -57,7 +57,8 @@ build *ARGS:
 
 # Check for syntax and semantic errors
 check:
-    zig build check
+    zig build check --summary all --prominent-compile-errors
+
 check-ast:
     @for file in `git ls-files | grep '.zig$' | grep --invert-match 'fail'`; do zig ast-check "$file"; done
 
@@ -84,10 +85,10 @@ coverage:
     kcov --merge ./.coverage/all ./.coverage/test ./.coverage/test-utils ./.coverage/test-e2e ./.coverage/test-zlint
 
 # Run benchmarks. Optionally specify a `--release` mode.
-bench mode="safe":
+bench mode="fast":
     @mkdir -p tmp
     zig build --release={{mode}}
-    hyperfine --shell=none --warmup 2 --export-csv tmp/bench.csv 'zig-out/bin/zlint' 
+    hyperfine --shell=none --warmup 3 --min-runs 10 -i --export-csv tmp/bench.csv 'zig-out/bin/zlint' 
 
 
 # Format the codebase, writing changes to disk

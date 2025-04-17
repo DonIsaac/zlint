@@ -102,7 +102,7 @@ pub fn lintSource(
 ) (LintError || Allocator.Error)!void {
     // FIXME: empty sources break something but i forget what
     if (source.text().len == 0) return;
-    var builder = SemanticBuilder.init(self.allocator);
+    var builder = Semantic.Builder.init(self.allocator);
     builder.withSource(source);
     defer builder.deinit();
 
@@ -126,8 +126,7 @@ pub fn lintSource(
     // destroyed (not the errors it contains.)
     defer if (diagnostics_) |*d| d.deinit();
     self.linter.runOnSource(&semantic, source, &diagnostics_) catch |e| {
-        if (diagnostics_ == null) return e;
-        var diagnostics = diagnostics_ orelse unreachable;
+        var diagnostics = diagnostics_ orelse return e;
 
         // FIXME: take errors from ctx. requires using Error instead of Diagnostic
         // when fix is false
@@ -178,7 +177,6 @@ const util = @import("util");
 const fs = std.fs;
 
 const reporters = @import("../reporter.zig");
-const walk = @import("../walk/Walker.zig");
 
 const Thread = std.Thread;
 const Allocator = std.mem.Allocator;
@@ -189,4 +187,4 @@ const Fix = @import("fix.zig").Fix;
 const Fixer = @import("fix.zig").Fixer;
 const Error = @import("../Error.zig");
 
-const SemanticBuilder = @import("../semantic.zig").SemanticBuilder;
+const Semantic = @import("../semantic.zig").Semantic;

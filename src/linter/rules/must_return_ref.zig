@@ -86,6 +86,8 @@ pub fn runOnNode(_: *const MustReturnRef, wrapper: NodeWrapper, ctx: *LinterCont
     var buf: [1]Node.Index = undefined;
     // SAFETY: fn decls always have a fn proto
     const decl = ctx.ast().fullFnProto(&buf, wrapper.idx) orelse unreachable;
+    const body = wrapper.node.data.rhs;
+    std.debug.assert(body != Semantic.NULL_NODE);
     const return_type = decl.ast.return_type;
     const returned_ident = a.getRightmostIdentifier(ctx, return_type) orelse return;
     if (!types_to_check.has(returned_ident)) return;
@@ -93,10 +95,11 @@ pub fn runOnNode(_: *const MustReturnRef, wrapper: NodeWrapper, ctx: *LinterCont
     // look for member accesses in return statements
     var visitor = ReturnVisitor.new(ctx, returned_ident);
     var stackAlloc = std.heap.stackFallback(512, ctx.gpa);
-    var walker = walk.Walker(ReturnVisitor, ReturnVisitor.VisitError).init(
+    var walker = walk.Walker(ReturnVisitor, ReturnVisitor.VisitError).initAtNode(
         stackAlloc.get(),
         ctx.ast(),
         &visitor,
+        body,
     ) catch @panic("oom");
     defer walker.deinit();
     walker.walk() catch @panic("oom");
@@ -121,7 +124,7 @@ const ReturnVisitor = struct {
 
     pub fn visit_return(self: *ReturnVisitor, node: Node.Index) VisitError!walk.WalkState {
         const returned = self.datas[node].lhs;
-        if (returned == Semantic.NULL_NODE) return .Continue; // type error
+        if (returned == Semantic.NULL_NODE) return .Continue; // fn is missing return type, which is a semantic error
         // todo: check that leftmost ident is `this`.
         if (self.tags[returned] != .field_access) return .Continue;
 
@@ -179,6 +182,53 @@ test MustReturnRef {
         \\    return self.createArena();
         \\  }
         \\};
+        ,
+        \\pub fn copyLatin1IntoUTF16(comptime Buffer: type, buf_: Buffer, comptime Type: type, latin1_: Type) EncodeIntoResult {
+        \\    var buf = buf_;
+        \\    var latin1 = latin1_;
+        \\    while (buf.len > 0 and latin1.len > 0) {
+        \\        const to_write = strings.firstNonASCII(latin1) orelse @as(u32, @truncate(@min(latin1.len, buf.len)));
+        \\        if (comptime std.meta.alignment(Buffer) != @alignOf(u16)) {
+        \\            strings.copyU8IntoU16WithAlignment(std.meta.alignment(Buffer), buf, latin1[0..to_write]);
+        \\        } else {
+        \\            strings.copyU8IntoU16(buf, latin1[0..to_write]);
+        \\        }
+        \\
+        \\        latin1 = latin1[to_write..];
+        \\        buf = buf[to_write..];
+        \\        if (latin1.len > 0 and buf.len >= 1) {
+        \\            buf[0] = latin1ToCodepointBytesAssumeNotASCII16(latin1[0]);
+        \\            latin1 = latin1[1..];
+        \\            buf = buf[1..];
+        \\        }
+        \\    }
+        \\
+        \\    return .{
+        \\        .read = @as(u32, @truncate(buf_.len - buf.len)),
+        \\        .written = @as(u32, @truncate(latin1_.len - latin1.len)),
+        \\    };
+        \\}
+        \\pub fn elementLengthLatin1IntoUTF16(comptime Type: type, latin1_: Type) usize {
+        \\    // latin1 is always at most 1 UTF-16 code unit long
+        \\    if (comptime std.meta.Child([]const u16) == Type) {
+        \\        return latin1_.len;
+        \\    }
+        \\
+        \\    var count: usize = 0;
+        \\    var latin1 = latin1_;
+        \\    while (latin1.len > 0) {
+        \\        const function = comptime if (std.meta.Child(Type) == u8) strings.firstNonASCIIWithType else strings.firstNonASCII16;
+        \\        const to_write = function(Type, latin1) orelse @as(u32, @truncate(latin1.len));
+        \\        count += to_write;
+        \\        latin1 = latin1[to_write..];
+        \\        if (latin1.len > 0) {
+        \\            count += comptime if (std.meta.Child(Type) == u8) 2 else 1;
+        \\            latin1 = latin1[1..];
+        \\        }
+        \\    }
+        \\
+        \\    return count;
+        \\}
     };
 
     // Code your rule should fail on

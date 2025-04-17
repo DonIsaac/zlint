@@ -1,25 +1,23 @@
 const std = @import("std");
-const util = @import("util");
 const ptrs = @import("smart-pointers");
 const fs = std.fs;
 
 const Allocator = std.mem.Allocator;
 const Arc = ptrs.Arc;
 const assert = std.debug.assert;
-const string = util.string;
 
 pub const ArcStr = Arc([:0]u8);
 
 pub const Source = struct {
     // contents: Arc([]const u8),
     contents: ArcStr,
-    pathname: ?string = null,
+    pathname: ?[]const u8 = null,
     gpa: Allocator,
 
     /// Create a source from an opened file. This file must be opened with at least read permissions.
     ///
     /// Both `file` and `pathname` are moved into the source.
-    pub fn init(gpa: Allocator, file: fs.File, pathname: ?string) !Source {
+    pub fn init(gpa: Allocator, file: fs.File, pathname: ?[]const u8) !Source {
         defer file.close();
         const meta = try file.metadata();
         const contents = try gpa.allocSentinel(u8, meta.size(), 0);
@@ -37,7 +35,7 @@ pub const Source = struct {
     /// `contents` and `pathname`.
     ///
     /// Primarily used for testing.
-    pub fn fromString(gpa: Allocator, contents: [:0]u8, pathname: ?string) Allocator.Error!Source {
+    pub fn fromString(gpa: Allocator, contents: [:0]u8, pathname: ?[]const u8) Allocator.Error!Source {
         const contents_arc = try ArcStr.init(gpa, contents);
         return Source{
             .contents = contents_arc,

@@ -47,6 +47,21 @@
 //! };
 //! ```
 //!
+//! #### Whitelisting Types
+//! You may whitelist specific types that are allowed to be initialized to `undefined`.
+//! Any variable with this type will not have a violation triggered, as long as
+//! the type is obvious to ZLint's semantic analyzer. By default the whitelist
+//! contains `ThreadPool`/`Thread.Pool` from `std.Thread.Pool`
+//!
+//! ```zig
+//! // "unsafe-undefined": ["error", { "allow_types": ["CustomBuffer"] }]
+//! const CustomBuffer = [4096]u8;
+//! var buf: CustomBuffer = undefined; // ok
+//! ```
+//! > [!NOTE]
+//! > ZLint does not have a type checker yet, so implicit struct initializations
+//! > will not be ignored.
+//!
 //! #### Destructors
 //! Invalidating freed pointers/data by setting it to `undefined` is helpful for
 //! finding use-after-free bugs. Using `undefined` in destructors will not trigger
@@ -119,6 +134,7 @@ const util = @import("util");
 const mem = std.mem;
 const ascii = std.ascii;
 const Semantic = @import("../../semantic.zig").Semantic;
+const Symbol = Semantic.Symbol;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const Token = Semantic.Token;
@@ -130,6 +146,10 @@ const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
 
 allow_arrays: bool = true,
+allowed_types: []const []const u8 = &[_][]const u8{
+    "ThreadPool",
+    "Thread.Pool",
+},
 
 const UnsafeUndefined = @This();
 pub const meta: Rule.Meta = .{
@@ -169,9 +189,23 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
     const name = ast.getNodeSource(wrapper.idx);
     if (!mem.eql(u8, name, "undefined")) return;
 
+    const tok = ast.nodes.items(.main_token)[wrapper.idx];
+    if (ctx.links().symbols.get(tok)) |symbol_id| {
+        const symbols = ctx.symbols().symbols.slice();
+        const id = symbol_id.into(usize);
+        const flags: Symbol.Flags = symbols.items(.flags)[id];
+        // check if this is an enum, union (etc) member named `undefined`
+        if (flags.s_member) {
+            const symbol_name = symbols.items(.name)[id];
+            if (mem.eql(u8, symbol_name, "undefined")) return;
+        }
+    }
+
     const node_tags: []const Node.Tag = ast.nodes.items(.tag);
     const main_tokens: []const TokenIndex = ast.nodes.items(.main_token);
+    const datas: []const Node.Data = ast.nodes.items(.data);
 
+    const do_type_check = self.allow_arrays or self.allowed_types.len > 0;
     var safety_comment_check = true; // should we look for safety comments?
     var has_safety_comment = false; //  a safety comment has been found
     var it = ctx.links().iterParentIds(wrapper.idx);
@@ -188,16 +222,21 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
             .simple_var_decl,
             => {
                 // first parent?
-                if (self.allow_arrays and i == 1) {
+                if (do_type_check and i == 1) {
                     // SAFETY: tags in case guarantee that a full variable declaration
                     // is present.
                     const decl = ast.fullVarDecl(parent) orelse unreachable;
                     const ty = decl.ast.type_node;
                     if (ty == Semantic.NULL_NODE) break;
                     switch (node_tags[ty]) {
-                        .array_type, .array_type_sentinel => return,
+                        .array_type, .array_type_sentinel => if (self.allow_arrays) {
+                            @branchHint(.likely);
+                            return;
+                        },
                         else => {},
                     }
+                    const typename = ctx.semantic.nodeSlice(ty);
+                    if (self.isIgnoredType(typename)) return;
                 }
                 if (has_safety_comment or (safety_comment_check and hasSafetyComment(ctx, main_tokens[parent]))) return;
                 safety_comment_check = false;
@@ -208,9 +247,13 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
             .container_field_align,
             .container_field,
             => {
-                if (!has_safety_comment) {
-                    ctx.report(undefinedDefault(ctx, node.main_token));
+                if (has_safety_comment) return;
+                const type_node = datas[parent].lhs;
+                if (type_node != Semantic.NULL_NODE) {
+                    const typename = ctx.semantic.nodeSlice(type_node);
+                    if (self.isIgnoredType(typename)) return;
                 }
+                ctx.report(undefinedDefault(ctx, node.main_token));
                 return;
             },
 
@@ -262,6 +305,13 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
     }
 
     ctx.report(undefinedMissingSafetyComment(ctx, node.main_token));
+}
+
+fn isIgnoredType(self: *const UnsafeUndefined, identifier: []const u8) bool {
+    for (self.allowed_types) |allowed| {
+        if (mem.eql(u8, identifier, allowed)) return true;
+    }
+    return false;
 }
 
 /// `undefined` is ok if a `SAFETY: <reason>` comment is present before it.
@@ -334,14 +384,66 @@ test UnsafeUndefined {
         \\  foo.* = undefined;
         \\}
         ,
+        // members named `undefined`
+        \\const A = enum { undefined, hello };
+        ,
+        \\const MyStruct = struct {
+        \\  pub const A = enum { undefined, hello };
+        \\};
+        ,
+        \\const MyStruct = struct {
+        \\  pub fn func() void {
+        \\      const A = enum { undefined, hello };
+        \\  }
+        \\};
+        ,
+        \\const A = union { undefined: Foo, hello: Bar };
+        ,
+        \\const MyStruct = struct {
+        \\  const A = union { undefined: Foo, hello: Bar };
+        \\};
+        ,
+        \\const MyStruct = struct {
+        \\  pub fn func() void {
+        \\      const A = union { undefined: Foo, hello: Bar };
+        \\  }
+        \\};
+        ,
+        \\const A = error { undefined, hello };
+        ,
+        \\const MyStruct = struct {
+        \\  const A = error { undefined, hello };
+        \\};
+        ,
+        \\const MyStruct = struct {
+        \\  pub fn func() void {
+        \\      const A = error { undefined, hello };
+        \\  }
+        \\};
+        ,
+        \\const x = .undefined;
+        ,
+        \\const x = "undefined";
+        // whitelisted types
+        \\fn foo() void {
+        \\  const pool: ThreadPool = undefined;
+        \\  pool.init(.{ .allocator = std.testing.allocator });
+        \\}
+        ,
+        \\const Foo = struct {
+        \\  pool: ThreadPool = undefined,
+        \\};
     };
     const fail = &[_][:0]const u8{
         "const x = undefined;",
         "const slice: []u8 = undefined;",
+        "var slice: []u8 = undefined;",
+        "const slice: []const u8 = undefined;",
         "const slice: [:0]u8 = undefined;",
         "const many_ptr: [*]u8 = undefined;",
         "const many_ptr: [*:0]u8 = undefined;",
-        \\const Foo = struct { bar: u32 = undefined };
+        "const slice: []const []const u8 = undefined;",
+        "const Foo = struct { bar: u32 = undefined };",
         // comparing to undefined is never allowed, even in test blocks and with
         // safety comments
         \\fn foo(x: *Foo) void {

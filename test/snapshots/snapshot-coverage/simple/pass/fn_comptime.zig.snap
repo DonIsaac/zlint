@@ -5,13 +5,13 @@
       "debugName": "@This()", 
       "token": null, 
       "declNode": "root", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["const","struct"], 
       "references": [
         
       ], 
-      "members": [1,3,4,5,7,9,10,11,14,15], 
-      "exports": [], 
+      "members": [3,10], 
+      "exports": [1,4,5,7,9,11,14,15], 
       
     }, 
     {
@@ -19,7 +19,7 @@
       "debugName": "", 
       "token": 1, 
       "declNode": "fn_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["fn"], 
       "references": [
         
@@ -33,7 +33,7 @@
       "debugName": "", 
       "token": 3, 
       "declNode": "identifier", 
-      "scope": util.id.NominalId(u32)(1), 
+      "scope": 1, 
       "flags": ["const","fn_param"], 
       "references": [
         {"symbol":2,"scope":3,"node":"identifier","identifier":"T","flags":["type"]}, 
@@ -49,7 +49,7 @@
       "debugName": "", 
       "token": 12, 
       "declNode": "container_field_init", 
-      "scope": util.id.NominalId(u32)(3), 
+      "scope": 3, 
       "flags": ["member","struct"], 
       "references": [
         
@@ -63,7 +63,7 @@
       "debugName": "", 
       "token": 18, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(3), 
+      "scope": 3, 
       "flags": ["variable","const"], 
       "references": [
         {"symbol":4,"scope":4,"node":"identifier","identifier":"Self","flags":["read"]}, 
@@ -78,7 +78,7 @@
       "debugName": "", 
       "token": 26, 
       "declNode": "fn_decl", 
-      "scope": util.id.NominalId(u32)(3), 
+      "scope": 3, 
       "flags": ["fn"], 
       "references": [
         
@@ -92,7 +92,7 @@
       "debugName": "", 
       "token": 28, 
       "declNode": "ptr_type_aligned", 
-      "scope": util.id.NominalId(u32)(4), 
+      "scope": 4, 
       "flags": ["const","fn_param"], 
       "references": [
         {"symbol":6,"scope":5,"node":"identifier","identifier":"self","flags":["read"]}, 
@@ -107,7 +107,7 @@
       "debugName": "", 
       "token": 46, 
       "declNode": "fn_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["fn"], 
       "references": [
         
@@ -121,7 +121,7 @@
       "debugName": "", 
       "token": 49, 
       "declNode": "identifier", 
-      "scope": util.id.NominalId(u32)(6), 
+      "scope": 6, 
       "flags": ["comptime","const","fn_param"], 
       "references": [
         {"symbol":8,"scope":11,"node":"identifier","identifier":"size","flags":["type"]}, 
@@ -136,7 +136,7 @@
       "debugName": "", 
       "token": 56, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(7), 
+      "scope": 7, 
       "flags": ["variable"], 
       "references": [
         {"symbol":9,"scope":7,"node":"identifier","identifier":"l","flags":["read","write"]}, 
@@ -152,7 +152,7 @@
       "debugName": "", 
       "token": 80, 
       "declNode": "container_field_init", 
-      "scope": util.id.NominalId(u32)(11), 
+      "scope": 11, 
       "flags": ["member","struct"], 
       "references": [
         
@@ -166,7 +166,7 @@
       "debugName": "", 
       "token": 91, 
       "declNode": "fn_decl", 
-      "scope": util.id.NominalId(u32)(0), 
+      "scope": 0, 
       "flags": ["fn"], 
       "references": [
         
@@ -180,7 +180,7 @@
       "debugName": "", 
       "token": 94, 
       "declNode": "identifier", 
-      "scope": util.id.NominalId(u32)(12), 
+      "scope": 12, 
       "flags": ["comptime","const","fn_param"], 
       "references": [
         {"symbol":12,"scope":14,"node":"identifier","identifier":"a","flags":["read"]}, 
@@ -196,7 +196,7 @@
       "debugName": "", 
       "token": 98, 
       "declNode": "identifier", 
-      "scope": util.id.NominalId(u32)(12), 
+      "scope": 12, 
       "flags": ["const","fn_param"], 
       "references": [
         {"symbol":13,"scope":13,"node":"identifier","identifier":"b","flags":["read"]}, 
@@ -211,7 +211,7 @@
       "debugName": "", 
       "token": 107, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(14), 
+      "scope": 14, 
       "flags": ["variable","const"], 
       "references": [
         {"symbol":14,"scope":14,"node":"identifier","identifier":"c","flags":["read"]}, 
@@ -226,7 +226,7 @@
       "debugName": "", 
       "token": 126, 
       "declNode": "simple_var_decl", 
-      "scope": util.id.NominalId(u32)(13), 
+      "scope": 13, 
       "flags": ["variable","const"], 
       "references": [
         {"symbol":15,"scope":13,"node":"identifier","identifier":"a2","flags":["read"]}, 
@@ -243,7 +243,7 @@
     ], 
   }, 
   "scopes": {
-    "id": util.id.NominalId(u32)(0), 
+    "id": 0, 
     "flags": ["top"], 
     "bindings": {
       "@This()": 0, 
@@ -254,7 +254,7 @@
     }, 
     "children": [
       {
-        "id": util.id.NominalId(u32)(1), 
+        "id": 1, 
         "flags": ["function","comptime"], 
         "bindings": {
           "T": 2, 
@@ -262,14 +262,14 @@
         }, 
         "children": [
           {
-            "id": util.id.NominalId(u32)(2), 
+            "id": 2, 
             "flags": ["function","block","comptime"], 
             "bindings": {
               
             }, 
             "children": [
               {
-                "id": util.id.NominalId(u32)(3), 
+                "id": 3, 
                 "flags": ["struct","block","comptime"], 
                 "bindings": {
                   "inner": 3, 
@@ -279,7 +279,7 @@
                 }, 
                 "children": [
                   {
-                    "id": util.id.NominalId(u32)(4), 
+                    "id": 4, 
                     "flags": ["function"], 
                     "bindings": {
                       "self": 6, 
@@ -287,7 +287,7 @@
                     }, 
                     "children": [
                       {
-                        "id": util.id.NominalId(u32)(5), 
+                        "id": 5, 
                         "flags": ["function","block"], 
                         "bindings": {
                           
@@ -307,7 +307,7 @@
         ], 
         
       }, {
-        "id": util.id.NominalId(u32)(6), 
+        "id": 6, 
         "flags": ["function","comptime"], 
         "bindings": {
           "size": 8, 
@@ -315,7 +315,7 @@
         }, 
         "children": [
           {
-            "id": util.id.NominalId(u32)(7), 
+            "id": 7, 
             "flags": ["function","block","comptime"], 
             "bindings": {
               "l": 9, 
@@ -323,14 +323,14 @@
             }, 
             "children": [
               {
-                "id": util.id.NominalId(u32)(8), 
+                "id": 8, 
                 "flags": ["comptime"], 
                 "bindings": {
                   
                 }, 
                 "children": [
                   {
-                    "id": util.id.NominalId(u32)(9), 
+                    "id": 9, 
                     "flags": ["block","comptime"], 
                     "bindings": {
                       
@@ -341,7 +341,7 @@
                 ], 
                 
               }, {
-                "id": util.id.NominalId(u32)(10), 
+                "id": 10, 
                 "flags": ["comptime"], 
                 "bindings": {
                   
@@ -349,7 +349,7 @@
                 "children": [], 
                 
               }, {
-                "id": util.id.NominalId(u32)(11), 
+                "id": 11, 
                 "flags": ["struct","block","comptime"], 
                 "bindings": {
                   "inner": 10, 
@@ -364,7 +364,7 @@
         ], 
         
       }, {
-        "id": util.id.NominalId(u32)(12), 
+        "id": 12, 
         "flags": ["function"], 
         "bindings": {
           "a": 12, 
@@ -373,7 +373,7 @@
         }, 
         "children": [
           {
-            "id": util.id.NominalId(u32)(13), 
+            "id": 13, 
             "flags": ["function","block"], 
             "bindings": {
               "a2": 15, 
@@ -381,7 +381,7 @@
             }, 
             "children": [
               {
-                "id": util.id.NominalId(u32)(14), 
+                "id": 14, 
                 "flags": ["block","comptime"], 
                 "bindings": {
                   "c": 14, 
@@ -389,14 +389,14 @@
                 }, 
                 "children": [
                   {
-                    "id": util.id.NominalId(u32)(15), 
+                    "id": 15, 
                     "flags": ["comptime"], 
                     "bindings": {
                       
                     }, 
                     "children": [
                       {
-                        "id": util.id.NominalId(u32)(16), 
+                        "id": 16, 
                         "flags": ["block","comptime"], 
                         "bindings": {
                           
@@ -407,7 +407,7 @@
                     ], 
                     
                   }, {
-                    "id": util.id.NominalId(u32)(17), 
+                    "id": 17, 
                     "flags": ["comptime"], 
                     "bindings": {
                       

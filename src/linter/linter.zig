@@ -84,9 +84,8 @@ pub const Linter = struct {
 
         var ctx = Context.init(self.gpa, semantic, source);
         defer ctx.deinit();
-        // if (self.options.fix) ctx.fix = Fix.Meta.safe_fix;
         ctx.fix = self.options.fix;
-        const nodes = ctx.semantic.ast.nodes;
+        const nodes = ctx.semantic.nodes();
         assert(nodes.len < std.math.maxInt(u32));
 
         // Some rules do special checks and just need access to the source once.
@@ -165,24 +164,24 @@ pub const Linter = struct {
     ) Allocator.Error!?[]const Rule.WithSeverity {
         const configured_rules = self.rules.rules.items;
         const alloc = self.arena.allocator();
-        var parser = disable_directives.Parser.new(semantic.ast.source);
+        var parser = disable_directives.Parser.new(semantic.source());
         // global disable directives may be placed anywhere before the first
         // non-doc comment token. Doc comments may have global disable directives.
         var start_of_first_non_doc_tok: u32 = 0;
 
         {
-            var toks = semantic.ast.tokens;
+            var toks = semantic.parse.ast.tokens;
             const tok_starts: []const u32 = toks.items(.start);
             const tok_tags: []const Semantic.Token.Tag = toks.items(.tag);
             for (0..toks.len) |i| {
                 switch (tok_tags[i]) {
                     .doc_comment, .container_doc_comment => {
-                        const end: u32 = @truncate(semantic.tokens.items(.loc)[i].end);
+                        const end: u32 = @truncate(semantic.tokens().items(.loc)[i].end);
                         if (try parser.parse(alloc, .{ .start = tok_starts[i], .end = end })) |comment| {
                             // TODO: support next-line diagnostics
                             if (!comment.isGlobal()) continue;
                             return if (comment.disablesAllRules()) null else filterDisabledRules(
-                                semantic.ast.source,
+                                semantic.source(),
                                 rulebuf,
                                 configured_rules,
                                 &comment,
@@ -199,14 +198,14 @@ pub const Linter = struct {
 
         // Look for global disable directives in normal comments by parsing
         // comments up to the first non-comment token.
-        for (0..semantic.comments.len) |i| {
-            const comment = semantic.comments.get(i);
+        for (0..semantic.comments().len) |i| {
+            const comment = semantic.comments().get(i);
             if (comment.start >= start_of_first_non_doc_tok) break;
             const dd = try parser.parse(alloc, comment) orelse continue;
             // TODO: support next-line diagnostics
             if (!dd.isGlobal()) continue;
             return if (dd.disablesAllRules()) null else filterDisabledRules(
-                semantic.ast.source,
+                semantic.source(),
                 rulebuf,
                 configured_rules,
                 &dd,

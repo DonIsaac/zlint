@@ -226,8 +226,9 @@ fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: C
 
     if (loc.label()) |label| {
         try w.writeAll(color.open);
-        const midway = loc.len() / 2;
-        const odd = loc.len() % 2 == 0;
+        const l = loc.len();
+        const odd = l % 2 == 0;
+        const midway = (if (odd) l - 1 else l) / 2;
         const first_len_half = if (odd) midway + 1 else midway;
 
         // ───┬───
@@ -284,7 +285,7 @@ fn highlightFor(self: *GraphicalFormatter, severity: Error.Severity) GraphicalTh
     return highlights[@min(idx, highlights.len - 1)];
 }
 
-fn iconFor(self: *GraphicalFormatter, severity: Error.Severity) util.string {
+fn iconFor(self: *GraphicalFormatter, severity: Error.Severity) []const u8 {
     return switch (severity) {
         .err => self.theme.characters.err,
         .warning => self.theme.characters.warning,
@@ -426,7 +427,7 @@ const ContextInfo = struct {
     location: Location,
     rendered: bool = false,
 
-    pub fn fromSpan(contents: util.string, span: anytype) ContextInfo {
+    pub fn fromSpan(contents: []const u8, span: anytype) ContextInfo {
         const labeled_span: LabeledSpan, const loc: Location = brk: {
             switch (@TypeOf(span)) {
                 Span => {
@@ -457,10 +458,10 @@ const ContextInfo = struct {
     pub inline fn column(self: ContextInfo) u32 {
         return self.location.column;
     }
-    pub inline fn source(self: ContextInfo) util.string {
+    pub inline fn source(self: ContextInfo) []const u8 {
         return self.location.source_line;
     }
-    pub inline fn label(self: ContextInfo) ?util.string {
+    pub inline fn label(self: ContextInfo) ?[]const u8 {
         if (self.span.label) |l| {
             const label_text = l.borrow();
             return if (label_text.len == 0) null else label_text;

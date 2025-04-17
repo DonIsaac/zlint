@@ -136,16 +136,6 @@ const Ctx = struct {
 fn replaceWithTry(ctx: Ctx, builder: Fix.Builder) !Fix {
     const catch_node = ctx.catch_node;
     const tried_expr = ctx.tried_expr;
-    // const ast = builder.ctx.ast();
-    // const end_of_catch = ast.lastToken(
-    //     ast.nodes.items(.data)[catch_node].rhs
-    // )
-    // const span = builder.spanCovering(.node, catch_node);
-    // const pos_of_semi_or_comma = span.end + 1;
-    // const semi_or_comma: u8 = switch (builder.source()[pos_of_semi_or_comma]) {
-    //     inline ';', ',' => |c| c,
-    //     else => |c| std.debug.panic("found unexpected terminator character '{c}'", .{c}),
-    // };
     var span = builder.spanCovering(.node, catch_node);
     span.end = ctx.end;
 
@@ -169,9 +159,7 @@ test NoCatchReturn {
     var runner = RuleTester.init(t.allocator, no_catch_return.rule());
     defer runner.deinit();
 
-    // Code your rule should pass on
     const pass = &[_][:0]const u8{
-        // TODO: add test cases
         "fn bar() !u32 { return 1; }\nfn foo() !u32 { try bar(); return 1; }",
         \\const std = @import("std");
         \\fn bar() !u32 { return 1; }
@@ -189,7 +177,6 @@ test NoCatchReturn {
         \\}
     };
 
-    // Code your rule should fail on
     const fail = &[_][:0]const u8{
         \\fn bar() !void { }
         \\fn foo() !void {

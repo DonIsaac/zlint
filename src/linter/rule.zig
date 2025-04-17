@@ -1,9 +1,9 @@
 const std = @import("std");
 const util = @import("util");
 const semantic = @import("../semantic.zig");
+const AllRules = @import("./rules.zig");
 
 const Ast = std.zig.Ast;
-const string = util.string;
 const Symbol = semantic.Symbol;
 const Severity = @import("../Error.zig").Severity;
 const Fix = @import("./fix.zig").Fix;
@@ -41,20 +41,16 @@ const VTable = struct {
 /// those methods and, if they exist, stores pointers to them. These then get
 /// used by the `Linter` to check for violations.
 pub const Rule = struct {
-    // name: string,
     meta: Meta,
     id: Id,
     ptr: *anyopaque,
     vtable: VTable,
-    // runOnceFn: RunOnceFn,
-    // runOnNodeFn: RunOnNodeFn,
-    // runOnSymbolFn: RunOnSymbolFn,
 
     /// Rules must have a constant with this name of type `Rule.Meta`.
     const META_FIELD_NAME = "meta";
-    pub const MAX_SIZE: usize = 16;
+    pub const MAX_SIZE: usize = 32;
     pub const Meta = struct {
-        name: string,
+        name: []const u8,
         category: Category,
         /// Default severity when no config file is provided. Rules that are
         /// `.off` do not get run at all.
@@ -90,7 +86,10 @@ pub const Rule = struct {
             };
         };
         if (@sizeOf(ptr_info.child) > MAX_SIZE) {
-            @compileError("Rule " ++ @typeName(ptr_info.child) ++ " is too large. Maximum size is " ++ MAX_SIZE);
+            @compileError(std.fmt.comptimePrint(
+                "Rule " ++ @typeName(ptr_info.child) ++ " is too large. Maximum size is {d}",
+                .{MAX_SIZE},
+            ));
         }
         const meta: Meta = if (@hasDecl(ptr_info.child, META_FIELD_NAME))
             @field(ptr_info.child, META_FIELD_NAME)
@@ -109,13 +108,13 @@ pub const Rule = struct {
             }
             pub fn runOnNode(pointer: *const anyopaque, node: NodeWrapper, ctx: *LinterContext) anyerror!void {
                 if (@hasDecl(ptr_info.child, "runOnNode")) {
-                    const self: T = @ptrCast(@constCast(pointer));
+                    const self: T = @ptrCast(@alignCast(@constCast(pointer)));
                     return ptr_info.child.runOnNode(self, node, ctx);
                 }
             }
             pub fn runOnSymbol(pointer: *const anyopaque, symbol: Symbol.Id, ctx: *LinterContext) anyerror!void {
                 if (@hasDecl(ptr_info.child, "runOnSymbol")) {
-                    const self: T = @ptrCast(@constCast(pointer));
+                    const self: T = @ptrCast(@alignCast(@constCast(pointer)));
                     return ptr_info.child.runOnSymbol(self, symbol, ctx);
                 }
             }
@@ -158,7 +157,6 @@ pub const Rule = struct {
 const IdMap = std.StaticStringMap(Rule.Id);
 const rule_ids: IdMap = ids: {
     const Type = std.builtin.Type;
-    const AllRules = @import("./rules.zig");
     const RuleDecls: []const Type.Declaration = @typeInfo(AllRules).@"struct".decls;
     var ids: [RuleDecls.len]struct { []const u8, Rule.Id } = undefined;
     for (RuleDecls, 0..) |decl, i| {
@@ -177,7 +175,7 @@ test rule_ids {
     const t = std.testing;
     comptime {
         try t.expectEqual(
-            @typeInfo(@import("./rules.zig")).@"struct".decls.len,
+            @typeInfo(AllRules).@"struct".decls.len,
             rule_ids.kvs.len,
         );
         try t.expect(rule_ids.get("unsafe-undefined") != null);

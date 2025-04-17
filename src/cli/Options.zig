@@ -25,14 +25,14 @@ fix: bool = false,
 /// Like `--fix`, but also enable potentially dangerous fixes.
 fix_dangerously: bool = false,
 /// Positional arguments
-args: std.ArrayListUnmanaged(util.string) = .{},
+args: std.ArrayListUnmanaged([]const u8) = .{},
 
 pub const usage =
     \\Usage: zlint [options] [<dirs>]
 ;
 const help =
     \\--print-ast <file>  Parse a file and print its AST as JSON
-    \\-f, --format <fmt>  Choose an output format (default, graphical, github, gh)
+    \\-f, --format <fmt>  Choose an output format (default, graphical, json, github, gh)
     \\--no-summary        Do not print a summary after linting
     \\-S, --stdin         Lint filepaths received from stdin (newline separated)
     \\--fix               Apply automatic fixes where possible
@@ -142,15 +142,15 @@ const Error = @import("../Error.zig");
 const t = std.testing;
 
 test parse {
-    const List = std.ArrayListUnmanaged(util.string);
+    const List = std.ArrayListUnmanaged([]const u8);
     const Case = std.meta.Tuple(&[_]type{ []const u8, Options });
 
     const src_list: List = brk: {
-        const items = &[_]util.string{"src"};
+        const items = &[_][]const u8{"src"};
         break :brk List{ .items = @constCast(items) };
     };
     const src_test_list: List = brk: {
-        const items = &[_]util.string{ "src", "test" };
+        const items = &[_][]const u8{ "src", "test" };
         break :brk List{ .items = @constCast(items) };
     };
 

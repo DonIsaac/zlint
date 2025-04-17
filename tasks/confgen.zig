@@ -1,16 +1,25 @@
 const std = @import("std");
-const zlint = @import("zlint");
 const gen = @import("./gen_utils.zig");
+const zlint = @import("zlint");
+const Allocator = std.mem.Allocator;
+const ArenaAllocator = std.heap.ArenaAllocator;
+const Schema = zlint.json.Schema;
+const Config = zlint.lint.Config;
 
 const fs = std.fs;
-const rules = zlint.lint.rules;
+const panic = std.debug.panic;
 
-const OUT_FILE = "src/linter/config/rules_config.zig";
+const CONFIG_OUT = "src/linter/config/rules_config.zig";
+const SCHEMA_OUT = "zlint.schema.json";
+const RULES_DIR = "src/linter/rules";
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
-    const out = try fs.cwd().createFile(OUT_FILE, .{});
+    var stack = std.heap.stackFallback(256, allocator);
+    const stackalloc = stack.get();
+
+    const out = try fs.cwd().createFile(CONFIG_OUT, .{});
     defer out.close();
     const w = out.writer();
 
@@ -26,15 +35,50 @@ pub fn main() !void {
     defer w.writeAll("};\n") catch @panic("failed to write closing curlies for RulesConfig.");
 
     for (gen.RuleInfo.all_rules) |rule_info| {
-        const name = rule_info.meta.name;
-        const snake_name = try allocator.dupe(u8, name);
-        @memcpy(snake_name, name);
-        std.mem.replaceScalar(u8, snake_name, '-', '_');
+        const snake_name = try rule_info.snakeName(stackalloc);
+        defer stackalloc.free(snake_name);
 
         // e.g. homeless_try: RuleConfig(rules.HomelessTry) = .{},
         try w.print(
             "    {s}: RuleConfig(rules.{s}) = .{{}},\n",
-            .{ snake_name, rule_info.name_pascale },
+            .{ snake_name, rule_info.name(.pascale) },
         );
     }
+    try createJsonSchema(allocator);
+}
+
+fn createJsonSchema(allocator: Allocator) !void {
+    var arena = ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    var ctx = Schema.Context.init(allocator);
+    const root = try ctx.genSchema(Config);
+    const rules_config: *Schema.Object = &ctx.getSchema(Config.RulesConfig).?.object;
+
+    var source_arena = ArenaAllocator.init(allocator);
+    defer arena.deinit();
+
+    const root_dir = std.fs.cwd();
+    for (gen.RuleInfo.all_rules) |rule| {
+        const alloc = source_arena.allocator();
+        defer {
+            _ = arena.reset(.retain_capacity);
+        }
+
+        std.log.info("Rule: {s}", .{rule.path});
+        const source = try gen.readSourceFile(alloc, root_dir, rule.path);
+        const rule_docs = try gen.getModuleDocs(source, alloc) orelse panic(
+            "Reached EOF on rule '{s}' before finding docs and/or rule impl.",
+            .{rule.name(.kebab)},
+        );
+        const rule_schema = rules_config.properties.getPtr(rule.name(.kebab)).?;
+        const copied = try ctx.allocator.dupe(u8, rule_docs);
+        var common = rule_schema.common();
+        common.description = copied;
+        try common.extra_values.put(ctx.allocator, "markdownDescription", .{ .string = copied });
+    }
+
+    const schema = try ctx.toJson(root);
+    var out = try fs.cwd().createFile(SCHEMA_OUT, .{});
+    defer out.close();
+    try std.json.stringify(schema, .{ .whitespace = .indent_4 }, out.writer());
 }

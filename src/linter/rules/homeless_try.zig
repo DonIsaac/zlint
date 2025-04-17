@@ -136,9 +136,12 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
 
     var buf: [1]Node.Index = undefined;
     const proto: Ast.full.FnProto = ctx.ast().fullFnProto(&buf, decl_node) orelse @panic(".fn_decl nodes always have a full fn proto available.");
-    const return_type = proto.ast.return_type;
+    const return_type: Node.Index = proto.ast.return_type;
 
     if (a.hasErrorUnion(ctx.ast(), return_type)) return;
+    if (a.getRightmostIdentifier(ctx, return_type)) |ident| {
+        if (std.mem.endsWith(u8, ident, "Error")) return;
+    }
 
     var e = ctx.diagnostic(
         "`try` cannot be used in functions that do not return errors.",
@@ -284,6 +287,32 @@ test HomelessTry {
         \\    return;
         \\  }
         \\  return 0;
+        \\}
+        ,
+        // returning errors directly
+        \\const FooError = error{ Foo, Bar };
+        \\pub fn foo() FooError {
+        \\  return FooError.Foo;
+        \\}
+        \\fn bar() FooError {
+        \\  try foo();
+        \\  return error.Bar;
+        \\}
+        ,
+        //https://github.com/DonIsaac/zlint/issues/258
+        \\fn getValue(value: u8) !u8 {
+        \\    if (value == 1) return error.Test;
+        \\
+        \\    return value - 1;
+        \\}
+        \\
+        \\pub fn main() !void {
+        \\    loop: switch (3) {
+        \\        3 => continue :loop try getValue(3),
+        \\        2 => continue :loop try getValue(2),
+        \\        1 => {},
+        \\        else => unreachable
+        \\    }
         \\}
     };
 

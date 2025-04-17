@@ -35,7 +35,7 @@ pub const meta: Rule.Meta = .{
     .default = .warning,
 };
 
-pub fn fileDiagnosticWithMessage(ctx: *LinterContext, msg: util.string) Error {
+pub fn fileDiagnosticWithMessage(ctx: *LinterContext, msg: []const u8) Error {
     const filename = ctx.source.pathname orelse "anonymous source file";
     return ctx.diagnosticf("{s} {s}", .{ filename, msg }, .{});
 }
@@ -43,7 +43,7 @@ pub fn fileDiagnosticWithMessage(ctx: *LinterContext, msg: util.string) Error {
 // Runs once per source file. Useful for unique checks
 pub fn runOnce(_: *const EmptyFile, ctx: *LinterContext) void {
     const source = ctx.source.text();
-    var message: ?util.string = null;
+    var message: ?[]const u8 = null;
     if (source.len == 0) {
         message = "has zero bytes";
     } else if (std.mem.indexOfNone(u8, source, &std.ascii.whitespace) == null) {

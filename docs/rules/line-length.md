@@ -34,3 +34,9 @@ fn Get123Constant() u32 {
     return 123;
 }
 ```
+
+## Configuration
+
+This rule accepts the following options:
+
+- max_length: int
