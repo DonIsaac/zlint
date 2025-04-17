@@ -32,9 +32,9 @@ const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
 
 // Rule metadata
-const SnakeCaseFn = @This();
+const CamelCaseFn = @This();
 pub const meta: Rule.Meta = .{
-    .name = "snake-case-fn",
+    .name = "camel-case-fn",
     // TODO: set the category to an appropriate value
     .category = .style,
 };
@@ -80,7 +80,7 @@ pub fn functionNameDiagnostic(ctx: *LinterContext, fn_name: []const u8, case: Ca
     return ctx.diagnosticf("Function {s} name is in {s}. It should be camelCase", .{ fn_name, @tagName(case) }, .{});
 }
 
-pub fn runOnSymbol(_: *const SnakeCaseFn, symbol: Symbol.Id, ctx: *LinterContext) void {
+pub fn runOnSymbol(_: *const CamelCaseFn, symbol: Symbol.Id, ctx: *LinterContext) void {
     const nodes = ctx.ast().nodes;
     const symbols = ctx.symbols().symbols.slice();
     const symbol_flags: []const Symbol.Flags = symbols.items(.flags);
@@ -104,16 +104,16 @@ pub fn runOnSymbol(_: *const SnakeCaseFn, symbol: Symbol.Id, ctx: *LinterContext
 }
 
 // Used by the Linter to register the rule so it can be run.
-pub fn rule(self: *SnakeCaseFn) Rule {
+pub fn rule(self: *CamelCaseFn) Rule {
     return Rule.init(self);
 }
 
 const RuleTester = @import("../tester.zig");
-test SnakeCaseFn {
+test CamelCaseFn {
     const t = std.testing;
 
-    var snake_case_fn = SnakeCaseFn{};
-    var runner = RuleTester.init(t.allocator, snake_case_fn.rule());
+    var camel_case_fn = CamelCaseFn{};
+    var runner = RuleTester.init(t.allocator, camel_case_fn.rule());
     defer runner.deinit();
 
     // Code your rule should pass on
