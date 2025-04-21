@@ -16,24 +16,19 @@
 //! ```
 
 const std = @import("std");
-const util = @import("util");
-const _source = @import("../../source.zig");
 const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
-const Symbol = semantic.Symbol;
-const Loc = std.zig.Loc;
 const Span = _span.Span;
+const Symbol = semantic.Symbol;
 const LabeledSpan = _span.LabeledSpan;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
-const NodeWrapper = _rule.NodeWrapper;
 
 const Error = @import("../../Error.zig");
-const Cow = util.Cow(false);
 
 // Rule metadata
 const CamelCaseFn = @This();
@@ -50,7 +45,12 @@ fn hasDashes(string: []const u8) bool {
 }
 
 fn hasUppercaseFirstLetter(string: []const u8) bool {
-    return std.ascii.isUpper(string[0]);
+    for (string) |c| {
+        if (std.ascii.isAlphabetic(c)) {
+            return std.ascii.isUpper(c);
+        }
+    }
+    return false;
 }
 
 fn hasUnderline(string: []const u8) bool {
@@ -77,11 +77,11 @@ fn getCase(string: []const u8) CaseType {
     return .camelCase;
 }
 
-pub fn functionNameDiagnostic(ctx: *LinterContext, fn_name: []const u8, case: CaseType) Error {
+pub fn functionNameDiagnostic(ctx: *LinterContext, fn_name: []const u8, case: CaseType, span: Span) Error {
     if (case == .NotCamelCase) {
-        return ctx.diagnosticf("Function {s} name is not in camelCase", .{fn_name}, .{});
+        return ctx.diagnosticf("Function {s} name is not in camelCase", .{fn_name}, .{LabeledSpan{ .span = span }});
     }
-    return ctx.diagnosticf("Function {s} name is in {s}. It should be camelCase", .{ fn_name, @tagName(case) }, .{});
+    return ctx.diagnosticf("Function {s} name is in {s}. It should be camelCase", .{ fn_name, @tagName(case) }, .{LabeledSpan{ .span = span }});
 }
 
 pub fn runOnSymbol(_: *const CamelCaseFn, symbol: Symbol.Id, ctx: *LinterContext) void {
@@ -103,7 +103,9 @@ pub fn runOnSymbol(_: *const CamelCaseFn, symbol: Symbol.Id, ctx: *LinterContext
     const fn_name = symbols.items(.name)[id];
     const case = getCase(fn_name);
     if (case != .camelCase) {
-        ctx.report(functionNameDiagnostic(ctx, fn_name, case));
+        const ast = ctx.ast();
+        const span = ast.nodeToSpan(decl);
+        ctx.report(functionNameDiagnostic(ctx, fn_name, case, .{ .start = span.start, .end = span.end }));
     }
 }
 
