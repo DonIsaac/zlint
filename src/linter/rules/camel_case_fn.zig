@@ -133,6 +133,8 @@ test CamelCaseFn {
         "fn ThisFunctionIsInPascalCase() void {}",
         "fn @\"this-one-is-in-kebab-case\"() void {}",
         "fn this_one_is_in_snake_case() void {}",
+        "fn @\"This-is-both-Pascal-and-Kebab-kinda\"() void {}",
+        "fn This_is_both_snake_case_and_pascal_kinda() void {}",
     };
 
     try runner

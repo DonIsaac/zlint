@@ -1,5 +1,5 @@
-Passed: 97.40485% (563/578)
-Panics: 0% (0/578)
+Passed: 96.82204% (457/472)
+Panics: 0% (0/472)
 
 src/bun.js/test/expect.zig: error.FullMismatch
 src/bun.js/webcore/request.zig: error.FullMismatch
@@ -13,6 +13,6 @@ src/install/extract_tarball.zig: error.FullMismatch
 src/install/install.zig: error.FullMismatch
 src/install/lockfile.zig: error.FullMismatch
 src/install/npm.zig: error.FullMismatch
-src/shell/Builtin.zig: error.FullMismatch
+src/shell/interpreter.zig: error.FullMismatch
 src/string.zig: error.FullMismatch
 src/sys.zig: error.FullMismatch
