@@ -4,8 +4,8 @@ const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 
-const Walker = @import("./walk.zig").Walker;
-const WalkState = @import("./walk.zig").WalkState;
+const Walker = @import("walk.zig").Walker;
+const WalkState = @import("walk.zig").WalkState;
 
 const t = std.testing;
 const expect = t.expect;

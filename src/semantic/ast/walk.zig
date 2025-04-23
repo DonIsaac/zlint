@@ -1217,7 +1217,7 @@ comptime {
 
 const std = @import("std");
 const util = @import("util");
-const semantic = @import("../semantic.zig");
+const Semantic = @import("../Semantic.zig");
 const mem = std.mem;
 const assert = std.debug.assert;
 
@@ -1225,7 +1225,6 @@ const Allocator = mem.Allocator;
 const Ast = std.zig.Ast;
 const full = Ast.full;
 const Node = Ast.Node;
-const Semantic = semantic.Semantic;
 
 // =============================================================================
 const expectEqual = std.testing.expectEqual;

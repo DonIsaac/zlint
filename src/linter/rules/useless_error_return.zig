@@ -63,7 +63,6 @@ const util = @import("util");
 const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
 const a = @import("../ast_utils.zig");
-const walk = @import("../../visit/walk.zig");
 
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
@@ -72,6 +71,7 @@ const Token = Semantic.Token;
 const TokenIndex = Ast.TokenIndex;
 const Symbol = semantic.Symbol;
 const Semantic = semantic.Semantic;
+const walk = Semantic.walk;
 
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
