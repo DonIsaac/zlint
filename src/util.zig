@@ -46,7 +46,13 @@ pub inline fn assert(condition: bool, comptime fmt: []const u8, args: anytype) v
     }
 }
 
-pub inline fn debugAssert(condition: bool, comptime fmt: []const u8, args: anytype) void {
+pub inline fn debugAssert(ok: bool) void {
+    if (comptime IS_DEBUG) {
+        if (!ok) unreachable;
+    }
+}
+
+pub inline fn debugAssertf(condition: bool, comptime fmt: []const u8, args: anytype) void {
     if (comptime IS_DEBUG) {
         if (!condition) std.debug.panic(fmt, args);
     }

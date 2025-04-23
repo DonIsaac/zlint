@@ -576,10 +576,8 @@ pub fn Walker(Visitor: type, Error: ?type) type {
                 },
                 // lhs/rhs both ignored
                 .unset, .token, .token_unset, .unset_token => {},
-                else => |kind| if (comptime util.IS_DEBUG) std.debug.panic(
-                    "todo: {s} ({s})",
-                    .{ @tagName(kind), @tagName(tag) },
-                ),
+                // all these cases are have full nodes
+                .extra, .extra_node, .extra_unconditional => unreachable,
             }
         }
 
@@ -833,7 +831,7 @@ const NodeDataKind = enum {
             // standard assignment LHS (which must be evaluated as an lvalue).
             // There may be a preceding `comptime` token, which does not create a
             // corresponding `comptime` node so must be manually detected.
-            .assign_destructure => K.extra_node,
+            // .assign_destructure => K.extra_node,
             // `lhs || rhs`. main_token is the `||`.
             .merge_error_sets => K.node_unconditional,
             // `lhs * rhs`. main_token is the `*`.
