@@ -44,6 +44,10 @@ pub const WalkState = enum {
 /// pub fn visit_fn_decl(this: *Visitor, node: Node.Index) Error!WalkState;
 /// ```
 ///
+/// If your visitor does not need to handle errors, you can pass `null` for `Error`.
+///
+/// ### Full Node Visitors
+///
 /// Some nodes have a "full" representation in the AST, as defined by
 /// [Ast.full].  Like tag visitors, full node visitors are called with a mutable
 /// pointer to the visitor and the node id. However, they also receive a pointer
@@ -77,17 +81,17 @@ pub const WalkState = enum {
 /// get called before and after visiting each node, respectively. Just like
 /// visit methods, these are also passed a mutable pointer to a Visitor instance
 /// and the current node's id.
-pub fn Walker(Visitor: type, Error: type) type {
+pub fn Walker(Visitor: type, Error: ?type) type {
     const tag_info = @typeInfo(Node.Tag).@"enum";
+    const VisitResult = if (Error) |Error_| Error_!WalkState else WalkState;
+    const fallible = if (Error) |_| true else false;
 
-    const VisitFn = fn (visitor: *Visitor, node: Node.Index) Error!WalkState;
+    const VisitFn = fn (visitor: *Visitor, node: Node.Index) VisitResult;
     const VisitFull = struct {
         fn VisitFull(Full: type) type {
-            return fn (visitor: *Visitor, node: Node.Index, var_decl: *const Full) Error!WalkState;
+            return fn (visitor: *Visitor, node: Node.Index, var_decl: *const Full) VisitResult;
         }
     }.VisitFull;
-    // const VisitFullVarDeclFn = fn (visitor: *Visitor, node: Node.Index, var_decl: Ast.full.VarDecl) Error!WalkState;
-    // const VisitFullFnProto
 
     const WalkerVTable = struct {
         // SAFETY: set immediately when iterating over tag infos. Only one
@@ -119,9 +123,8 @@ pub fn Walker(Visitor: type, Error: type) type {
     // when visiting a `fn_proto` node, a pointer to `visit_fn_proto` gets
     // stored in the vtable at the int index for `fn_proto`.
     comptime var vtable: WalkerVTable = .{};
-
-    // comptime var vtable: [tag_info.fields.len]?*const VisitFn = undefined;
     comptime var has_any_methods = false;
+
     for (tag_info.fields) |field| {
         const id: usize = field.value;
         // e.g. visit_if_stmt, visit_less_than, visit_greater_than
@@ -175,7 +178,7 @@ pub fn Walker(Visitor: type, Error: type) type {
         alloc: Allocator,
 
         const Self = @This();
-        const WalkError = Error || Allocator.Error;
+        const WalkError = if (Error) |Error_| Error_ || Allocator.Error else Allocator.Error;
 
         /// Initialize this walker's stack in preparation for a walk. It is
         /// recommended to use an arena for `allocator`.
@@ -227,7 +230,7 @@ pub fn Walker(Visitor: type, Error: type) type {
             };
         }
 
-        inline fn enterNode(self: *Self, node: Node.Index) Error!void {
+        inline fn enterNode(self: *Self, node: Node.Index) if (Error) |Error_| Error_!void else void {
             if (@hasDecl(Visitor, "enterNode")) return self.visitor.enterNode(node);
         }
 
@@ -265,7 +268,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                 print("[{}] enter: {s} ({})\n", .{ self.stack.items.len, @tagName(tag), entry.id });
                 print("{s}\n", .{self.ast.getNodeSource(entry.id)});
 
-                try self.enterNode(node);
+                if (comptime Error) |_| try self.enterNode(node) else self.enterNode(node);
 
                 // micro-optimization: avoid using`ast.fullFooNode` to 1) remove
                 // redundant switch and 2) avoid passing &buffer when possible
@@ -339,20 +342,34 @@ pub fn Walker(Visitor: type, Error: type) type {
                     => self.walkFull(full.ContainerDecl, node, tag, .visitContainerDecl, .fullContainerDecl, .{&buf2}),
 
                     // ast.fullSwitchCase
-                    .switch_case_one, .switch_case_inline_one, .switch_case, .switch_case_inline => self.walkFull(full.SwitchCase, node, tag, .visitSwitchCase, .fullSwitchCase, .{}),
+                    .switch_case_one,
+                    .switch_case_inline_one,
+                    .switch_case,
+                    .switch_case_inline,
+                    => self.walkFull(full.SwitchCase, node, tag, .visitSwitchCase, .fullSwitchCase, .{}),
 
                     // ast.fullAsm
                     .asm_simple, .@"asm" => self.walkFull(full.Asm, node, tag, .visitAsm, .fullAsm, .{}),
 
                     // ast.fullCall
-                    .call, .call_comma, .async_call, .async_call_comma => self.walkFull(full.Call, node, tag, .visitCall, .callFull, .{}),
-                    .call_one, .call_one_comma, .async_call_one, .async_call_one_comma => self.walkFull(full.Call, node, tag, .visitCall, .callOne, .{&buf}),
+                    .call,
+                    .call_comma,
+                    .async_call,
+                    .async_call_comma,
+                    => self.walkFull(full.Call, node, tag, .visitCall, .callFull, .{}),
+                    .call_one,
+                    .call_one_comma,
+                    .async_call_one,
+                    .async_call_one_comma,
+                    => self.walkFull(full.Call, node, tag, .visitCall, .callOne, .{&buf}),
 
                     else => tag_visit: {
-                        const state: WalkState = if (vtable.tag_table[@intFromEnum(tag)]) |visit_fn|
-                            try @call(.auto, visit_fn, .{ self.visitor, node })
-                        else
-                            WalkState.Continue;
+                        const state: WalkState = if (vtable.tag_table[@intFromEnum(tag)]) |visit_fn| blk: {
+                            break :blk if (fallible)
+                                try @call(.auto, visit_fn, .{ self.visitor, node })
+                            else
+                                @call(.auto, visit_fn, .{ self.visitor, node });
+                        } else WalkState.Continue;
 
                         switch (state) {
                             .Continue => {
@@ -413,12 +430,17 @@ pub fn Walker(Visitor: type, Error: type) type {
 
             // Call the full visitor if one exists. Fall back to tag visitors.
             // Either way, the full node is still traversed correctly.
-            const state: WalkState = if (visit_full_fn) |visitFullFn|
-                try visitFullFn(self.visitor, node, &full_node)
-            else if (vtable.tag_table[@intFromEnum(tag)]) |visitTagFn|
-                try visitTagFn(self.visitor, node)
-            else
-                WalkState.Continue;
+            const state: WalkState = if (visit_full_fn) |visitFullFn| blk: {
+                break :blk if (fallible)
+                    try visitFullFn(self.visitor, node, &full_node)
+                else
+                    visitFullFn(self.visitor, node, &full_node);
+            } else if (vtable.tag_table[@intFromEnum(tag)]) |visitTagFn| blk: {
+                break :blk if (fallible)
+                    try visitTagFn(self.visitor, node)
+                else
+                    visitTagFn(self.visitor, node);
+            } else WalkState.Continue;
 
             switch (state) {
                 .Continue => try self.pushFullNode(Full.Components, node, full_node.ast),
@@ -561,25 +583,39 @@ pub fn Walker(Visitor: type, Error: type) type {
             }
         }
 
-        const PushOpts = struct { maybe_null: bool = true, assume_capacity: bool = false };
-        /// Push a child node onto the stack.
+        const PushOptions = struct {
+            /// If true, the node will not be pushed if it is null. When false,
+            /// a runtime safety check is performed to ensure the node is not null.
+            maybe_null: bool = true,
+            /// If true, the stack's capacity is assumed to be sufficient
+            /// for the new node, and this method will use `appendAssumeCapacity`.
+            /// Useful for pushing many nodes at once.
+            assume_capacity: bool = false,
+        };
+
+        /// Push a child node onto the stack. Nodes will be walked in the reverse
+        /// order they are pushed.
+        ///
+        /// Options:
         /// - `maybe_null`: if true, the node will not be pushed if it is null. When false,
         ///   a runtime safety check is performed to ensure the node is not null.
         /// - `assume_capacity`: if true, the stack's capacity is assumed to be sufficient
         ///   for the new node, and this method will use `appendAssumeCapacity`. Useful for
         ///   pushing many nodes at once.
-        inline fn push(self: *Self, node: Node.Index, comptime opts: PushOpts) if (opts.assume_capacity) void else Allocator.Error!void {
+        pub fn push(
+            self: *Self,
+            node: Node.Index,
+            comptime opts: PushOptions,
+        ) callconv(util.@"inline") if (opts.assume_capacity) void else Allocator.Error!void {
             if (comptime opts.maybe_null) {
                 if (node == Semantic.NULL_NODE) return;
             }
             if (comptime util.RUNTIME_SAFETY) self.assertInRange(node);
-            if (comptime opts.assume_capacity) {
-                self.stack.appendAssumeCapacity(.{ .id = node, .kind = .exit });
-                self.stack.appendAssumeCapacity(.{ .id = node, .kind = .enter });
-            } else {
-                try self.stack.append(self.alloc, .{ .id = node, .kind = .exit });
-                return self.stack.append(self.alloc, .{ .id = node, .kind = .enter });
-            }
+            if (comptime !opts.assume_capacity)
+                try self.stack.ensureUnusedCapacity(self.alloc, 2);
+
+            self.stack.appendAssumeCapacity(.{ .id = node, .kind = .exit });
+            self.stack.appendAssumeCapacity(.{ .id = node, .kind = .enter });
         }
 
         /// Push many nodes, assuming none of them are null
@@ -598,6 +634,8 @@ pub fn Walker(Visitor: type, Error: type) type {
             try self.stack.ensureUnusedCapacity(self.alloc, 2 * node_count);
         }
 
+        /// Ensures `node` is not null and is in range.
+        ///
         /// Sanity check that is only enabled in safe/debug builds. Inlined so
         /// compiler can optimize away checks that aren't needed.
         inline fn assertInRange(self: *Self, node: Node.Index) void {
@@ -617,6 +655,7 @@ pub fn Walker(Visitor: type, Error: type) type {
             if (comptime util.IS_DEBUG) self.checkForVisitLoop(node);
         }
 
+        /// Panics if there's a visit loop within the visit stack.
         fn checkForVisitLoop(self: *const Self, node: Node.Index) void {
             @branchHint(.cold);
             for (self.stack.items) |seen| {

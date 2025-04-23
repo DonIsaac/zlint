@@ -32,6 +32,26 @@ test "Walker calls generic tag visitors if special cases aren't present" {
     try t.expect(visitor.seen_var_decl);
 }
 
+test "Walker may not have an error type" {
+    const TestVisitor = struct {
+        seen_var_decl: bool = false,
+
+        pub fn visit_simple_var_decl(self: *@This(), _: Node.Index) WalkState {
+            self.seen_var_decl = true;
+            return .Continue;
+        }
+    };
+
+    var ast = try Ast.parse(t.allocator, "const x = 1;", .zig);
+    defer ast.deinit(t.allocator);
+    var visitor: TestVisitor = .{};
+    var walker = try Walker(TestVisitor, null).init(t.allocator, &ast, &visitor);
+    defer walker.deinit();
+
+    try walker.walk();
+    try t.expect(visitor.seen_var_decl);
+}
+
 // =============================================================================
 
 const XVisitor = struct {
