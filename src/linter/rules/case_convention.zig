@@ -31,9 +31,9 @@ const Rule = _rule.Rule;
 const Error = @import("../../Error.zig");
 
 // Rule metadata
-const CamelCaseFn = @This();
+const CaseConvention = @This();
 pub const meta: Rule.Meta = .{
-    .name = "camel-case-fn",
+    .name = "case-convention",
     .category = .style,
 };
 
@@ -89,7 +89,7 @@ pub fn functionNameDiagnostic(ctx: *LinterContext, fn_name: []const u8, case: Ca
     return ctx.diagnosticf("Function {s} name is in {s}. It should be camelCase", .{ fn_name, @tagName(case) }, .{LabeledSpan{ .span = span }});
 }
 
-pub fn runOnSymbol(_: *const CamelCaseFn, symbol: Symbol.Id, ctx: *LinterContext) void {
+pub fn runOnSymbol(_: *const CaseConvention, symbol: Symbol.Id, ctx: *LinterContext) void {
     const nodes = ctx.ast().nodes;
     const symbols = ctx.symbols().symbols.slice();
     const symbol_flags: []const Symbol.Flags = symbols.items(.flags);
@@ -115,16 +115,16 @@ pub fn runOnSymbol(_: *const CamelCaseFn, symbol: Symbol.Id, ctx: *LinterContext
 }
 
 // Used by the Linter to register the rule so it can be run.
-pub fn rule(self: *CamelCaseFn) Rule {
+pub fn rule(self: *CaseConvention) Rule {
     return Rule.init(self);
 }
 
 const RuleTester = @import("../tester.zig");
-test CamelCaseFn {
+test CaseConvention {
     const t = std.testing;
 
-    var camel_case_fn = CamelCaseFn{};
-    var runner = RuleTester.init(t.allocator, camel_case_fn.rule());
+    var case_convention = CaseConvention{};
+    var runner = RuleTester.init(t.allocator, case_convention.rule());
     defer runner.deinit();
 
     // Code your rule should pass on

@@ -1,4 +1,4 @@
-# `camel-case-fn`
+# `case-convention`
 
 > Category: style
 >

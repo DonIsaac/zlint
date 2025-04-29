@@ -86,6 +86,28 @@
                         }
                     ]
                 },
+                "case-convention": {
+                    "description": "## What This Rule Does\nChecks for function names that are not in camel case. Specially coming from Rust,\nsome people may be used to use snake_case for their functions, which can lead to\ninconsistencies in the code\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nfn this_one_is_in_snake_case() void {}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn thisFunctionIsInCamelCase() void {}\n```",
+                    "default": "off",
+                    "markdownDescription": "## What This Rule Does\nChecks for function names that are not in camel case. Specially coming from Rust,\nsome people may be used to use snake_case for their functions, which can lead to\ninconsistencies in the code\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nfn this_one_is_in_snake_case() void {}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn thisFunctionIsInCamelCase() void {}\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.case_convention"
+                                }
+                            ]
+                        }
+                    ]
+                },
                 "unused-decls": {
                     "description": "## What This Rule Does\n\nDisallows container-scoped variables that are declared but never used. Note\nthat top-level declarations are included.\n\nThe Zig compiler checks for unused parameters, payloads bound by `if`,\n`catch`, etc, and `const`/`var` declaration within functions. However,\nvariables and functions declared in container scopes are not given the same\ntreatment. This rule handles those cases.\n\n> [!WARNING]\n> ZLint's semantic analyzer does not yet record references to variables on\n> member access expressions (e.g. `bar` on `foo.bar`). It also does not\n> handle method calls correctly. Until these features are added, only\n> top-level `const` variable declarations are checked.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\n// `std` used, but `Allocator` is not.\nconst std = @import(\"std\");\nconst Allocator = std.mem.Allocator;\n\n// Variables available to other code, either via `export` or `pub`, are not\n// reported.\npub const x = 1;\nexport fn foo(x: u32) void {}\n\n// `extern` functions are not reported\nextern fn bar(a: i32) void;\n```\n\nExamples of **correct** code for this rule:\n```zig\n// Discarded variables are considered \"used\".\nconst x = 1;\n_ = x;\n\n// non-container scoped variables are allowed by this rule but banned by the\n// compiler. `x`, `y`, and `z` are ignored by this rule.\npub fn foo(x: u32) void {\n  const y = true;\n  var z: u32 = 1;\n}\n```",
                     "default": "warn",
@@ -305,28 +327,6 @@
                             ]
                         }
                     ]
-                },
-                "camel-case-fn": {
-                    "description": "## What This Rule Does\nChecks for function names that are not in camel case. Specially coming from Rust,\nsome people may be used to use snake_case for their functions, which can lead to\ninconsistencies in the code\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nfn this_one_is_in_snake_case() void {}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn thisFunctionIsInCamelCase() void {}\n```",
-                    "default": "off",
-                    "markdownDescription": "## What This Rule Does\nChecks for function names that are not in camel case. Specially coming from Rust,\nsome people may be used to use snake_case for their functions, which can lead to\ninconsistencies in the code\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nfn this_one_is_in_snake_case() void {}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn thisFunctionIsInCamelCase() void {}\n```",
-                    "oneOf": [
-                        {
-                            "$ref": "#/definitions/Error.Severity"
-                        },
-                        {
-                            "type": "array",
-                            "items": false,
-                            "prefixItems": [
-                                {
-                                    "$ref": "#/definitions/Error.Severity"
-                                },
-                                {
-                                    "$ref": "#/definitions/linter.rules.camel_case_fn"
-                                }
-                            ]
-                        }
-                    ]
                 }
             }
         },
@@ -361,11 +361,6 @@
             "title": "empty-file config",
             "properties": {}
         },
-        "linter.rules.camel_case_fn": {
-            "type": "object",
-            "title": "camel-case-fn config",
-            "properties": {}
-        },
         "linter.rules.no_catch_return": {
             "type": "object",
             "title": "no-catch-return config",
@@ -374,6 +369,11 @@
         "linter.rules.must_return_ref": {
             "type": "object",
             "title": "must-return-ref config",
+            "properties": {}
+        },
+        "linter.rules.case_convention": {
+            "type": "object",
+            "title": "case-convention config",
             "properties": {}
         },
         "linter.rules.line_length": {
