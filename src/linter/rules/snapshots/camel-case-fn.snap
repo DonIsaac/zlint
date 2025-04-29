@@ -1,30 +1,30 @@
   𝙭 camel-case-fn: Function ThisFunctionIsInPascalCase name is in PascalCase. It should be camelCase
-   ╭─[camel-case-fn.zig:1:1]
+   ╭─[camel-case-fn.zig:1:4]
  1 │ fn ThisFunctionIsInPascalCase() void {}
-   · ───────────────────────────────────────
+   ·    ──────────────────────────
    ╰────
 
   𝙭 camel-case-fn: Function @"this-one-is-in-kebab-case" name is in kebab-case. It should be camelCase
-   ╭─[camel-case-fn.zig:1:1]
+   ╭─[camel-case-fn.zig:1:4]
  1 │ fn @"this-one-is-in-kebab-case"() void {}
-   · ─────────────────────────────────────────
+   ·    ────────────────────────────
    ╰────
 
   𝙭 camel-case-fn: Function this_one_is_in_snake_case name is in snake_case. It should be camelCase
-   ╭─[camel-case-fn.zig:1:1]
+   ╭─[camel-case-fn.zig:1:4]
  1 │ fn this_one_is_in_snake_case() void {}
-   · ──────────────────────────────────────
+   ·    ─────────────────────────
    ╰────
 
   𝙭 camel-case-fn: Function @"This-is-both-Pascal-and-Kebab-kinda" name is not in camelCase
-   ╭─[camel-case-fn.zig:1:1]
+   ╭─[camel-case-fn.zig:1:4]
  1 │ fn @"This-is-both-Pascal-and-Kebab-kinda"() void {}
-   · ───────────────────────────────────────────────────
+   ·    ──────────────────────────────────────
    ╰────
 
   𝙭 camel-case-fn: Function This_is_both_snake_case_and_pascal_kinda name is not in camelCase
-   ╭─[camel-case-fn.zig:1:1]
+   ╭─[camel-case-fn.zig:1:4]
  1 │ fn This_is_both_snake_case_and_pascal_kinda() void {}
-   · ─────────────────────────────────────────────────────
+   ·    ────────────────────────────────────────
    ╰────
 

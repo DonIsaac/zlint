@@ -34,11 +34,16 @@ const Error = @import("../../Error.zig");
 const CamelCaseFn = @This();
 pub const meta: Rule.Meta = .{
     .name = "camel-case-fn",
-    // TODO: set the category to an appropriate value
     .category = .style,
 };
 
-const CaseType = enum { @"kebab-case", PascalCase, snake_case, camelCase, NotCamelCase };
+const CaseType = enum {
+    @"kebab-case",
+    PascalCase,
+    snake_case,
+    camelCase,
+    NotCamelCase,
+};
 
 fn hasDashes(string: []const u8) bool {
     return std.mem.indexOfScalar(u8, string, '-') != null;
@@ -90,8 +95,6 @@ pub fn runOnSymbol(_: *const CamelCaseFn, symbol: Symbol.Id, ctx: *LinterContext
     const symbol_flags: []const Symbol.Flags = symbols.items(.flags);
     const id = symbol.into(usize);
 
-    // 1. look for function declarations
-
     const flags = symbol_flags[symbol.into(usize)];
     if (!flags.s_fn) return;
 
@@ -104,7 +107,9 @@ pub fn runOnSymbol(_: *const CamelCaseFn, symbol: Symbol.Id, ctx: *LinterContext
     const case = getCase(fn_name);
     if (case != .camelCase) {
         const ast = ctx.ast();
-        const span = ast.nodeToSpan(decl);
+        const fn_keyword_token_idx = ast.nodes.items(.main_token)[id];
+        const name_token_idx = fn_keyword_token_idx + 1;
+        const span = ast.tokenToSpan(name_token_idx);
         ctx.report(functionNameDiagnostic(ctx, fn_name, case, .{ .start = span.start, .end = span.end }));
     }
 }
