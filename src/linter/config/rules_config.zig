@@ -16,4 +16,5 @@ pub const RulesConfig = struct {
     useless_error_return: RuleConfig(rules.UselessErrorReturn) = .{},
     empty_file: RuleConfig(rules.EmptyFile) = .{},
     avoid_as: RuleConfig(rules.AvoidAs) = .{},
+    case_convention: RuleConfig(rules.CaseConvention) = .{},
 };

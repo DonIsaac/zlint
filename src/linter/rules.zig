@@ -10,3 +10,4 @@ pub const UnusedDecls = @import("./rules/unused_decls.zig");
 pub const UselessErrorReturn = @import("./rules/useless_error_return.zig");
 pub const EmptyFile = @import("./rules/empty_file.zig");
 pub const AvoidAs = @import("./rules/avoid_as.zig");
+pub const CaseConvention = @import("./rules/case_convention.zig");
