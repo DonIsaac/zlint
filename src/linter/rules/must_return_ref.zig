@@ -52,9 +52,9 @@ const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
 
 const a = @import("../ast_utils.zig");
-const walk = @import("../../visit/walk.zig");
 
 const Semantic = semantic.Semantic;
+const walk = Semantic.walk;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const LinterContext = @import("../lint_context.zig");

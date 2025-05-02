@@ -146,7 +146,7 @@ const LintVisitor = struct {
     }
 
     fn isIncluded(self: *const LintVisitor, entry: *const walk.Entry) bool {
-        util.debugAssert(
+        util.debugAssertf(
             entry.kind != .directory,
             "isIncluded should only be passed file-like things, got a dir.",
             .{},

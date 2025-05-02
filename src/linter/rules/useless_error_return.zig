@@ -63,7 +63,6 @@ const util = @import("util");
 const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
 const a = @import("../ast_utils.zig");
-const walk = @import("../../visit/walk.zig");
 
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
@@ -72,6 +71,7 @@ const Token = Semantic.Token;
 const TokenIndex = Ast.TokenIndex;
 const Symbol = semantic.Symbol;
 const Semantic = semantic.Semantic;
+const walk = Semantic.walk;
 
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
@@ -149,7 +149,7 @@ pub fn runOnSymbol(_: *const UselessErrorReturn, symbol: Symbol.Id, ctx: *Linter
     var buf: [1]Node.Index = undefined;
     // SAFETY: LHS of a fn_decl is always some variant of fn_proto
     const fn_proto = ctx.ast().fullFnProto(&buf, data.lhs) orelse unreachable;
-    util.debugAssert(fn_proto.ast.return_type != Semantic.NULL_NODE, "fns always have a return type", .{});
+    util.debugAssertf(fn_proto.ast.return_type != Semantic.NULL_NODE, "fns always have a return type", .{});
     const err_type: Node.Index = a.unwrapNode(a.getErrorUnion(ctx.ast(), fn_proto.ast.return_type)) orelse return;
     const err_ident: ?[]const u8 = switch (tags[err_type]) {
         .error_union => blk: {
@@ -283,7 +283,7 @@ const Visitor = struct {
     pub fn exitNode(self: *Visitor, node: Node.Index) void {
         if (self.curr_return == node) {
             // TODO: @branchHint(.unlikely) after 0.14 is released
-            util.debugAssert(node != Semantic.NULL_NODE, "null node should never be visited", .{});
+            util.debugAssertf(node != Semantic.NULL_NODE, "null node should never be visited", .{});
             self.curr_return = Semantic.NULL_NODE;
         } else if (self.err_stack.getLastOrNull()) |err| {
             if (err.node == node) {

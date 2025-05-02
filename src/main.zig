@@ -65,6 +65,5 @@ pub fn main() !u8 {
 
 test {
     std.testing.refAllDecls(@This());
-    std.testing.refAllDecls(@import("visit/walk.zig"));
     std.testing.refAllDecls(@import("json.zig"));
 }

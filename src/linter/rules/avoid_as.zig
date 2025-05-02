@@ -156,7 +156,7 @@ const VarFixer = struct {
             var tok = nodes.items(.main_token)[this.var_decl];
             const var_prelude = Span.new(@intCast(tok_locs[start_tok].start), @intCast(tok_locs[tok].end));
             tok += 1; // next tok is the identifier
-            util.debugAssert(tok_tags[tok] == .identifier, "Expected identifier, got {}", .{tok_tags[tok]});
+            util.debugAssertf(tok_tags[tok] == .identifier, "Expected identifier, got {}", .{tok_tags[tok]});
 
             const prelude = var_prelude.snippet(builder.ctx.source.text());
             const ident = builder.ctx.semantic.tokenSlice(tok);

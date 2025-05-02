@@ -184,7 +184,7 @@ pub const Fixer = struct {
             if (self.did_fix) {
                 self.source.deinit(allocator);
             } else {
-                util.debugAssert(
+                util.debugAssertf(
                     self.source.items.len == 0,
                     "invariant violation: no-fix Result has non-empty fixed source.",
                     .{},
