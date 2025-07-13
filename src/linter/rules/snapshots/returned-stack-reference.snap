@@ -1,0 +1,14 @@
+  𝙭 returned-stack-reference: Returning a reference to stack-allocated memory is undefined behavior.
+   ╭─[returned-stack-reference.zig:1:21]
+ 1 │ fn foo() *u32 { var x: u32 = 1; return &x; }
+   ·                     ─
+   ·                                        ──
+   ╰────
+
+  𝙭 returned-stack-reference: Returning a reference to stack-allocated memory is undefined behavior.
+   ╭─[returned-stack-reference.zig:1:22]
+ 1 │ fn foo() !*u32 { var x: u32 = 1; return &x; }
+   ·                      ─
+   ·                                         ──
+   ╰────
+

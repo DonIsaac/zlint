@@ -43,6 +43,36 @@ pub fn isBlock(tags: []const Node.Tag, node: Node.Index) bool {
         else => false,
     };
 }
+pub inline fn isStructInit(tag: Node.Tag) bool {
+    return switch (tag) {
+        .struct_init,
+        .struct_init_comma,
+        .struct_init_dot,
+        .struct_init_dot_comma,
+        .struct_init_dot_two,
+        .struct_init_dot_two_comma,
+        .struct_init_one,
+        .struct_init_one_comma,
+        => true,
+        else => false,
+    };
+}
+pub inline fn isArrayInit(tag: Node.Tag) bool {
+    return switch (tag) {
+        .array_init,
+        .array_init_comma,
+        .array_init_dot,
+        .array_init_dot_comma,
+        .array_init_dot_two,
+        .array_init_dot_two_comma,
+        .array_init_one,
+        .array_init_one_comma,
+        .array_init_two,
+        .array_init_two_comma,
+        => true,
+        else => false,
+    };
+}
 
 /// Check if some type node is or has an error union.
 ///
@@ -77,6 +107,39 @@ pub fn getErrorUnion(ast: *const Ast, node: Node.Index) Node.Index {
             break :blk if (tok_tags[prev_tok] == .bang) node else NULL_NODE;
         },
     };
+}
+
+/// Check if a type node's inner type is a pointer type.
+///
+/// Examples where this returns true:
+/// ```
+///   *T
+///   []T
+///   ?*T
+///   Allocator.Error!*T
+/// ```
+pub fn isPointerType(ctx: *const Context, node: Node.Index) bool {
+    const nodes = ctx.ast().nodes;
+    const tags: []const Node.Tag = nodes.items(.tag);
+    var curr = node;
+    while (true) {
+        switch (tags[curr]) {
+            Node.Tag.ptr_type,
+            Node.Tag.ptr_type_aligned,
+            Node.Tag.ptr_type_sentinel,
+            Node.Tag.ptr_type_bit_range,
+            => return true,
+            .optional_type => {
+                // ?lhs
+                curr = nodes.items(.data)[curr].lhs;
+            },
+            .error_union => {
+                // lhs!rhs
+                curr = nodes.items(.data)[curr].rhs;
+            },
+            else => return false,
+        }
+    }
 }
 
 /// Returns `null` if `node` is the null node. Identity function otherwise.

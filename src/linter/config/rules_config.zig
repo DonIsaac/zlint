@@ -17,4 +17,5 @@ pub const RulesConfig = struct {
     empty_file: RuleConfig(rules.EmptyFile) = .{},
     avoid_as: RuleConfig(rules.AvoidAs) = .{},
     case_convention: RuleConfig(rules.CaseConvention) = .{},
+    returned_stack_reference: RuleConfig(rules.ReturnedStackReference) = .{},
 };

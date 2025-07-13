@@ -69,6 +69,7 @@ pub const Rule = struct {
         restriction,
         pedantic,
         style,
+        nursery,
     };
 
     pub const WithSeverity = struct {

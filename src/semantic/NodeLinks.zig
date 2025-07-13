@@ -58,6 +58,20 @@ pub inline fn setScope(self: *NodeLinks, node_id: NodeIndex, scope_id: Scope.Id)
     self.scopes.items[node_id] = scope_id;
 }
 
+pub inline fn getScope(self: *const NodeLinks, node_id: NodeIndex) ?Scope.Id {
+    if (node_id == ROOT_NODE_ID) {
+        @branchHint(.cold);
+        return null;
+    }
+    assert(
+        node_id < self.scopes.items.len,
+        "Node id out of bounds (id {d} >= {d})",
+        .{ node_id, self.scopes.items.len },
+    );
+    const scope_id = self.scopes.items[node_id];
+    return if (scope_id == ROOT_SCOPE_ID) null else scope_id;
+}
+
 pub inline fn setParent(self: *NodeLinks, child_id: NodeIndex, parent_id: NodeIndex) void {
     assert(child_id != parent_id, "AST nodes cannot be children of themselves", .{});
     assert(child_id != NULL_NODE, "Re-assigning the root node's parent is illegal behavior", .{});

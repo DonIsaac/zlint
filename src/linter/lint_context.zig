@@ -104,6 +104,15 @@ pub inline fn labelT(
     };
 }
 
+// pub inline fn sliceOf(
+//     self: *const Context,
+//     comptime kind: enum { node, token },
+//     id: u32,
+// ) LabeledSpan {
+//     const span = if (kind == .node)
+//         self.semantic.nodeSpan()
+// }
+
 /// Create a new `Error` with a static message string.
 pub fn diagnostic(
     self: *Context,
@@ -114,7 +123,14 @@ pub fn diagnostic(
 ) Error {
     var e = Error.newStatic(message);
     e.labels.ensureTotalCapacityPrecise(self.gpa, spans.len) catch @panic("OOM");
-    e.labels.appendSliceAssumeCapacity(&spans);
+
+    const info = @typeInfo(@TypeOf(spans));
+    if (info == .pointer and info.pointer.size == .slice) {
+        e.labels.appendSliceAssumeCapacity(spans);
+    } else {
+        e.labels.appendSliceAssumeCapacity(&spans);
+    }
+
     return e;
 }
 
@@ -122,7 +138,14 @@ pub fn diagnostic(
 pub fn diagnosticf(self: *Context, comptime template: []const u8, args: anytype, spans: anytype) Error {
     var e = Error.fmt(self.gpa, template, args) catch @panic("OOM");
     e.labels.ensureTotalCapacityPrecise(self.gpa, spans.len) catch @panic("OOM");
-    e.labels.appendSliceAssumeCapacity(&spans);
+
+    const info = @typeInfo(@TypeOf(spans));
+    if (info == .pointer and info.pointer.size == .slice) {
+        e.labels.appendSliceAssumeCapacity(spans);
+    } else {
+        e.labels.appendSliceAssumeCapacity(&spans);
+    }
+
     return e;
 }
 
