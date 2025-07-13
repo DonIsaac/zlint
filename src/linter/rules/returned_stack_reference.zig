@@ -1,5 +1,8 @@
 //! ## What This Rule Does
 //! Checks for functions that return references to stack-allocated memory.
+//! 
+//! > [!NOTE]
+//! > This rule is still in early development. PRs to improve it are welcome.
 //!
 //! It is illegal to use stack-allocated memory outside of the function that
 //! allocated it. Once that function returns and the stack is popped, the memory
