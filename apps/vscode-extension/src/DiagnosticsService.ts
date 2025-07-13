@@ -1,3 +1,4 @@
+// oxlint-disable block-scoped-var
 import * as vscode from 'vscode'
 import {
   Diagnostic,
