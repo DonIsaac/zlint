@@ -1,6 +1,6 @@
 //! ## What This Rule Does
 //! Checks for functions that return references to stack-allocated memory.
-//! 
+//!
 //! > [!NOTE]
 //! > This rule is still in early development. PRs to improve it are welcome.
 //!
