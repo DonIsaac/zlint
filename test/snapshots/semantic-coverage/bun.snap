@@ -1,5 +1,5 @@
-Passed: 97.377426% (854/877)
-Panics: 0% (0/877)
+Passed: 97.37443% (853/876)
+Panics: 0% (0/876)
 
 src/bun.js/api/BunObject.zig: error.FullMismatch
 src/bun.js/node/util/parse_args.zig: error.FullMismatch
