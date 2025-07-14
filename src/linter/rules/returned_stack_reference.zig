@@ -282,10 +282,10 @@ const StackReferenceVisitor = struct {
                     //   const x: u32 = comptime blk: { break :blk 1; };
                     //   return &x;
                     .@"comptime" => return .no,
-                    else => {}
+                    else => {},
                 }
             },
-            else => {}
+            else => {},
         }
 
         const ident_token = tokens[symbol_id.into(usize)].unwrap() orelse return .no;
