@@ -132,6 +132,7 @@ const StackReferenceVisitor = struct {
     fn_body_scope: Scope.Id,
     ctx: *LinterContext,
     return_depth: u8,
+    call_depth: u8,
     tags: []const Node.Tag,
     data: []const Node.Data,
 
@@ -139,6 +140,7 @@ const StackReferenceVisitor = struct {
         return .{
             .ctx = ctx,
             .return_depth = 0,
+            .call_depth = 0,
             .tags = ctx.ast().nodes.items(.tag),
             .data = ctx.ast().nodes.items(.data),
             .fn_body_scope = fn_body_scope,
@@ -149,22 +151,8 @@ const StackReferenceVisitor = struct {
 
     pub fn enterNode(self: *StackReferenceVisitor, node: Node.Index) Err!void {
         switch (self.tags[node]) {
-            .@"return" => {
-                self.return_depth += 1;
-            },
-            .address_of,
-            => |tag| {
-                if (self.return_depth == 0) return;
-                const deref_target = self.data[node].lhs;
-                const info = self.isDeclaredLocally(deref_target);
-                if (info.is_local) {
-                    const diagnostic = if (tag == .address_of)
-                        stackRefDiagnostic(self.ctx, node, info.decl_loc, false)
-                    else
-                        stackRefDiagnostic(self.ctx, node, info.decl_loc, true);
-                    self.ctx.report(diagnostic);
-                }
-            },
+            .@"return" => self.return_depth += 1,
+            .call, .call_comma, .call_one, .call_one_comma => self.call_depth += 1,
             .slice,
             .slice_open,
             .slice_sentinel,
@@ -176,9 +164,22 @@ const StackReferenceVisitor = struct {
     }
 
     pub fn exitNode(self: *StackReferenceVisitor, node: Node.Index) void {
-        if (self.tags[node] == .@"return") {
-            self.return_depth -= 1;
+        switch (self.tags[node]) {
+            .@"return" => self.return_depth -= 1,
+            .call, .call_comma, .call_one, .call_one_comma => self.call_depth -= 1,
+            else => {},
         }
+    }
+
+    pub fn visit_address_of(self: *StackReferenceVisitor, node: Node.Index) Err!walk.WalkState {
+        if (self.return_depth == 0 or self.call_depth > 0) return .Continue;
+
+        const deref_target = self.data[node].lhs;
+        const info = self.isDeclaredLocally(deref_target);
+        if (info.is_local) {
+            self.ctx.report(stackRefDiagnostic(self.ctx, node, info.decl_loc, false));
+        }
+        return .Continue;
     }
 
     const IsLocal = struct {
@@ -240,13 +241,21 @@ test ReturnedStackReference {
         ,
         "fn foo(buf: []u8) []u8 { return buf[0..]; }",
         "fn foo() []u8 { return &[_]u8{}; }",
+        \\fn len(slice: *[]const u8) usize {
+        \\  return slice.len;
+        \\}
+        \\fn foo() []u8 {
+        \\  var arr = [_]u8{1, 2, 3};
+        \\  return len(&arr);
+        \\}
     };
 
     // Code your rule should fail on
     const fail = &[_][:0]const u8{
         // TODO: add test cases
-        "fn foo() *u32 { var x: u32 = 1; return &x; }",
+        "fn foo()  *u32 { var x: u32 = 1; return &x; }",
         "fn foo() !*u32 { var x: u32 = 1; return &x; }",
+        "fn foo() ?*u32 { var x: u32 = 1; return &x; }",
         // FIXME
         // "fn foo() error{}!*u32 { var x: u32 = 1; return &x; }",
         // \\const Foo = struct { x: *u32 };
