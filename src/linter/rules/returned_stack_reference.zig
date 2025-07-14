@@ -66,6 +66,7 @@ const NodeWrapper = _rule.NodeWrapper;
 
 const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
+const NULL_NODE = semantic.Semantic.NULL_NODE;
 
 // Rule metadata
 const ReturnedStackReference = @This();
@@ -102,16 +103,55 @@ fn stackRefDiagnostic(
 
 pub fn runOnNode(_: *const ReturnedStackReference, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const node = wrapper.node;
-    const node_id = wrapper.idx;
+    const ast = ctx.ast();
     if (node.tag != .fn_decl) return;
+    const func_body = node.data.rhs;
+    const func_proto = node.data.lhs;
+    util.assertUnsafe(func_body != NULL_NODE and func_proto != NULL_NODE);
 
-    // find the function's return type. we want pointer-like ones.
+    // note: we could pass the fn decl here, but since we know its an fn_decl
+    // node, we can save a level of indirection by just passing the fn_proto
+    // directly.
     var buffer: [1]Ast.Node.Index = undefined;
-    const func = ctx.ast().fullFnProto(&buffer, node_id) orelse return;
-    if (!ast_utils.isPointerType(ctx, func.ast.return_type)) return;
+    const func: Ast.full.FnProto = ast.fullFnProto(&buffer, func_proto) orelse return;
 
-    const func_body = wrapper.node.data.rhs;
-    std.debug.assert(func_body != semantic.Semantic.NULL_NODE);
+    // filter out functions that probably don't return pointers or containers
+    // with pointer fields.
+    // todo: handle complex return types, e.g. `foo() if (comptime_cond) *u32 else void`
+    do_we_care: {
+        var curr = func.ast.return_type;
+        const tags: []const Node.Tag = ast.nodes.items(.tag);
+        const datas: []const Node.Data = ast.nodes.items(.data);
+        while (true) {
+            switch (tags[curr]) {
+                Node.Tag.ptr_type,
+                Node.Tag.ptr_type_aligned,
+                Node.Tag.ptr_type_sentinel,
+                Node.Tag.ptr_type_bit_range,
+                => break :do_we_care,
+                .optional_type => {
+                    // ?lhs
+                    curr = datas[curr].lhs;
+                },
+                .error_union => {
+                    // lhs!rhs
+                    curr = datas[curr].rhs;
+                },
+                .identifier => {
+                    // Assume capitalized types are containers. these _could_
+                    // contain pointers, so we need to check them.
+                    const name = ctx.semantic.tokenSlice(ast.nodes.items(.main_token)[curr]);
+                    if (name.len > 0 and std.ascii.isUpper(name[0])) {
+                        break :do_we_care;
+                    } else {
+                        return;
+                    }
+                },
+                else => return,
+            }
+        }
+    }
+
     const links = &ctx.semantic.node_links;
     // FIXME: this is the fn body's parent
     const body_scope = links.getScope(func_body) orelse return;
@@ -255,9 +295,7 @@ test ReturnedStackReference {
     var runner = RuleTester.init(t.allocator, returned_stack_reference.rule());
     defer runner.deinit();
 
-    // Code your rule should pass on
     const pass = &[_][:0]const u8{
-        // TODO: add test cases
         \\const std = @import("std");
         \\fn foo(allocator: std.mem.Allocator) *u32 {
         \\  var x: *u32 = allocator.create(u32);
@@ -290,6 +328,26 @@ test ReturnedStackReference {
         \\        return &final;
         \\    };
         \\}
+        ,
+        \\const std = @import("std");
+        \\const builtin = @import("builtin");
+        \\fn checkPath(pathbuf: []const u8) bool {
+        \\  var buf: [1024]u8 = undefined;
+        \\  return switch (builtin.target.os.tag) {
+        \\    .windows => blk: {
+        \\      var curr: usize = 0;
+        \\      for (pathbuf) |char| {
+        \\        if (char == '/' or char == '\\') continue;
+        \\        buf[curr] = char;
+        \\        curr += 1;
+        \\      }
+        \\      buf[curr] = 0;
+        \\      var thing = SomeStruct { .x = &buf };
+        \\      return thing.bar();
+        \\    },
+        \\    else => pathbuf.len > 0,
+        \\  };
+        \\}
     };
 
     // Code your rule should fail on
@@ -298,6 +356,12 @@ test ReturnedStackReference {
         "fn foo()  *u32 { var x: u32 = 1; return &x; }",
         "fn foo() !*u32 { var x: u32 = 1; return &x; }",
         "fn foo() ?*u32 { var x: u32 = 1; return &x; }",
+        \\const X = struct { p: *u32 };
+        \\fn foo() X {
+        \\  var x: u32 = 1;
+        \\  return .{ .p = &x };
+        \\}
+        ,
         // FIXME
         // "fn foo() error{}!*u32 { var x: u32 = 1; return &x; }",
         // \\const Foo = struct { x: *u32 };

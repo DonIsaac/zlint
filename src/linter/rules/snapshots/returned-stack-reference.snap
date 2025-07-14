@@ -25,3 +25,14 @@
    ·                                          ╰── This pointer refers to a local variable
    ╰────
 
+  𝙭 returned-stack-reference: Returning a reference to stack-allocated memory is undefined behavior.
+   ╭─[returned-stack-reference.zig:3:7]
+ 2 │ fn foo() X {
+ 3 │   var x: u32 = 1;
+   ·       ┬
+   ·       ╰── Variable is declared locally here
+ 4 │   return .{ .p = &x };
+   ·                  ─┬─
+   ·                   ╰── This pointer refers to a local variable
+   ╰────
+
