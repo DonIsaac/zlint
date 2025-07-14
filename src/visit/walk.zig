@@ -44,6 +44,9 @@ pub const WalkState = enum {
 /// pub fn visit_fn_decl(this: *Visitor, node: Node.Index) Error!WalkState;
 /// ```
 ///
+/// > ### IMPORTANT
+/// > Make sure you mark your visitor methods as `pub`!
+///
 /// Some nodes have a "full" representation in the AST, as defined by
 /// [Ast.full].  Like tag visitors, full node visitors are called with a mutable
 /// pointer to the visitor and the node id. However, they also receive a pointer

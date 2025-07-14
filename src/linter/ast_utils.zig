@@ -7,6 +7,10 @@ const Token = Semantic.Token;
 
 const NULL_NODE = Semantic.NULL_NODE;
 
+/// Get the right-most identifier in a field access chain.
+///
+/// This is the opposite of `getLeftmostIdentifier`.
+///
 /// - `foo` -> `foo`
 /// - `foo.bar` -> `bar`
 /// - `foo()` -> `foo`
@@ -21,6 +25,39 @@ pub fn getRightmostIdentifier(ctx: *Context, id: Node.Index) ?[]const u8 {
         .call, .call_comma, .call_one, .call_one_comma => getRightmostIdentifier(ctx, nodes.items(.data)[id].lhs),
         else => null,
     };
+}
+
+/// Get the left-most identifier in a field access chain.
+///
+/// This is the opposite of `getRightmostIdentifier`.
+///
+/// ```zig
+/// foo.bar.baz     // "foo"
+/// foo.bar().baz.? // "foo"
+/// ```
+pub fn getLeftmostIdentifier(ctx: *Context, id: Node.Index, comptime ignore_call: bool) ?Node.Index {
+    const nodes = ctx.ast().nodes;
+    const tags: []const Node.Tag = nodes.items(.tag);
+    const datas: []const Node.Data = nodes.items(.data);
+
+    var curr = id;
+    while (true) {
+        switch (tags[curr]) {
+            .identifier => return curr,
+            // lhs(...)
+            .call,
+            .call_comma,
+            .call_one,
+            .call_one_comma,
+            => {
+                if (ignore_call) return null else curr = datas[curr].lhs;
+            },
+            .field_access, // lhs.a
+            .unwrap_optional, // lhs.?
+            => curr = datas[curr].lhs,
+            else => return null,
+        }
+    }
 }
 
 pub fn isInTest(ctx: *const Context, node: Node.Index) bool {
@@ -40,6 +77,38 @@ pub fn isInTest(ctx: *const Context, node: Node.Index) bool {
 pub fn isBlock(tags: []const Node.Tag, node: Node.Index) bool {
     return switch (tags[node]) {
         .block, .block_semicolon, .block_two, .block_two_semicolon => true,
+        else => false,
+    };
+}
+
+pub inline fn isStructInit(tag: Node.Tag) bool {
+    return switch (tag) {
+        .struct_init,
+        .struct_init_comma,
+        .struct_init_dot,
+        .struct_init_dot_comma,
+        .struct_init_dot_two,
+        .struct_init_dot_two_comma,
+        .struct_init_one,
+        .struct_init_one_comma,
+        => true,
+        else => false,
+    };
+}
+
+pub inline fn isArrayInit(tag: Node.Tag) bool {
+    return switch (tag) {
+        .array_init,
+        .array_init_comma,
+        .array_init_dot,
+        .array_init_dot_comma,
+        .array_init_dot_two,
+        .array_init_dot_two_comma,
+        .array_init_one,
+        .array_init_one_comma,
+        .array_init_two,
+        .array_init_two_comma,
+        => true,
         else => false,
     };
 }
@@ -77,6 +146,39 @@ pub fn getErrorUnion(ast: *const Ast, node: Node.Index) Node.Index {
             break :blk if (tok_tags[prev_tok] == .bang) node else NULL_NODE;
         },
     };
+}
+
+/// Check if a type node's inner type is a pointer type.
+///
+/// Examples where this returns true:
+/// ```
+///   *T
+///   []T
+///   ?*T
+///   Allocator.Error!*T
+/// ```
+pub fn isPointerType(ctx: *const Context, node: Node.Index) bool {
+    const nodes = ctx.ast().nodes;
+    const tags: []const Node.Tag = nodes.items(.tag);
+    var curr = node;
+    while (true) {
+        switch (tags[curr]) {
+            Node.Tag.ptr_type,
+            Node.Tag.ptr_type_aligned,
+            Node.Tag.ptr_type_sentinel,
+            Node.Tag.ptr_type_bit_range,
+            => return true,
+            .optional_type => {
+                // ?lhs
+                curr = nodes.items(.data)[curr].lhs;
+            },
+            .error_union => {
+                // lhs!rhs
+                curr = nodes.items(.data)[curr].rhs;
+            },
+            else => return false,
+        }
+    }
 }
 
 /// Returns `null` if `node` is the null node. Identity function otherwise.

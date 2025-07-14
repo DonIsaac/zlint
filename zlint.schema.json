@@ -218,6 +218,28 @@
                         }
                     ]
                 },
+                "returned-stack-reference": {
+                    "description": "## What This Rule Does\nChecks for functions that return references to stack-allocated memory.\n\n> [!NOTE]\n> This rule is still in early development. PRs to improve it are welcome.\n\nIt is illegal to use stack-allocated memory outside of the function that\nallocated it. Once that function returns and the stack is popped, the memory\nis no longer valid and may cause segfaults or undefined behavior.\n\n```zig\nconst std = @import(\"std\");\nfn foo() *u32 {\n  var x: u32 = 1; // x is on the stack\n  return &x;\n}\nfn bar() void {\n  const x = foo();\n  std.debug.print(\"{d}\\n\", .{x}); // crashes\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst std = @import(\"std\");\nfn foo() *u32 {\n  var x: u32 = 1;\n  return &x;\n}\nfn bar() []u32 {\n  var x: [1]u32 = .{1};\n  return x[0..];\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn foo() *u32 {\n  var x = std.heap.page_allocator.create(u32);\n  x.* = 1;\n  return x;\n}\n```",
+                    "default": "off",
+                    "markdownDescription": "## What This Rule Does\nChecks for functions that return references to stack-allocated memory.\n\n> [!NOTE]\n> This rule is still in early development. PRs to improve it are welcome.\n\nIt is illegal to use stack-allocated memory outside of the function that\nallocated it. Once that function returns and the stack is popped, the memory\nis no longer valid and may cause segfaults or undefined behavior.\n\n```zig\nconst std = @import(\"std\");\nfn foo() *u32 {\n  var x: u32 = 1; // x is on the stack\n  return &x;\n}\nfn bar() void {\n  const x = foo();\n  std.debug.print(\"{d}\\n\", .{x}); // crashes\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst std = @import(\"std\");\nfn foo() *u32 {\n  var x: u32 = 1;\n  return &x;\n}\nfn bar() []u32 {\n  var x: [1]u32 = .{1};\n  return x[0..];\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn foo() *u32 {\n  var x = std.heap.page_allocator.create(u32);\n  x.* = 1;\n  return x;\n}\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.returned_stack_reference"
+                                }
+                            ]
+                        }
+                    ]
+                },
                 "no-unresolved": {
                     "description": "## What This Rule Does\n\nChecks for imports to files that do not exist.\n\nThis rule only checks for file-based imports. Modules added by `build.zig`\nare not checked. More precisely, imports to paths ending in `.zig` will be\nresolved. This rule checks that a file exists at the imported path and is\nnot a directory. Symlinks are allowed but are not followed.\n\n## Examples\nAssume the following directory structure:\n```plaintext\n.\n├── foo.zig\n├── mod\n│   └── bar.zig\n├── not_a_file.zig\n│   └── baz.zig\n└── root.zig\n```\n\nExamples of **incorrect** code for this rule:\n```zig\n// root.zig\nconst x = @import(\"mod/foo.zig\");    // foo.zig is in the root directory.\nconst y = @import(\"not_a_file.zig\"); // directory, not a file\n```\n\nExamples of **correct** code for this rule:\n```zig\n// root.zig\nconst x = @import(\"foo.zig\");\nconst y = @import(\"mod/bar.zig\");\n```",
                     "default": "error",
@@ -416,6 +438,11 @@
                     "default": true
                 }
             }
+        },
+        "linter.rules.returned_stack_reference": {
+            "type": "object",
+            "title": "returned-stack-reference config",
+            "properties": {}
         }
     }
 }

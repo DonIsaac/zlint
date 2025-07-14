@@ -1,0 +1,63 @@
+  𝙭 returned-stack-reference: Returning a reference to stack-allocated memory is undefined behavior.
+   ╭─[returned-stack-reference.zig:1:22]
+ 1 │ fn foo()  *u32 { var x: u32 = 1; return &x; }
+   ·                      ┬
+   ·                      ╰── Variable is declared locally here
+   ·                                         ─┬─
+   ·                                          ╰── This pointer refers to a local variable
+   ╰────
+
+  𝙭 returned-stack-reference: Returning a reference to stack-allocated memory is undefined behavior.
+   ╭─[returned-stack-reference.zig:1:22]
+ 1 │ fn foo() !*u32 { var x: u32 = 1; return &x; }
+   ·                      ┬
+   ·                      ╰── Variable is declared locally here
+   ·                                         ─┬─
+   ·                                          ╰── This pointer refers to a local variable
+   ╰────
+
+  𝙭 returned-stack-reference: Returning a reference to stack-allocated memory is undefined behavior.
+   ╭─[returned-stack-reference.zig:1:22]
+ 1 │ fn foo() ?*u32 { var x: u32 = 1; return &x; }
+   ·                      ┬
+   ·                      ╰── Variable is declared locally here
+   ·                                         ─┬─
+   ·                                          ╰── This pointer refers to a local variable
+   ╰────
+
+  𝙭 returned-stack-reference: Returning a reference to stack-allocated memory is undefined behavior.
+   ╭─[returned-stack-reference.zig:3:7]
+ 2 │ fn foo() X {
+ 3 │   var x: u32 = 1;
+   ·       ┬
+   ·       ╰── Variable is declared locally here
+ 4 │   return .{ .p = &x };
+   ·                  ─┬─
+   ·                   ╰── This pointer refers to a local variable
+   ╰────
+
+  𝙭 returned-stack-reference: Returning a reference to stack-allocated memory is undefined behavior.
+   ╭─[returned-stack-reference.zig:2:7]
+ 1 │ fn foo(a: bool) *u32 {
+ 2 │   var x: u32 = 1;
+   ·       ┬
+   ·       ╰── Variable is declared locally here
+ 3 │   return if (a) &x else @panic("ahh");
+   ·                 ─┬─
+   ·                  ╰── This pointer refers to a local variable
+   ╰────
+
+  𝙭 returned-stack-reference: Returning a reference to stack-allocated memory is undefined behavior.
+   ╭─[returned-stack-reference.zig:2:7]
+ 1 │ fn foo(a: bool) *u32 {
+ 2 │   var x: u32 = 1;
+   ·       ┬
+   ·       ╰── Variable is declared locally here
+ 3 │   return blk: {
+ 4 │     x += 1;
+ 5 │     break :blk &x;
+   ·                ─┬─
+   ·                 ╰── This pointer refers to a local variable
+ 6 │   };
+   ╰────
+

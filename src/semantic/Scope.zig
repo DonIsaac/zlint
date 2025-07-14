@@ -126,11 +126,22 @@ pub const Tree = struct {
         return self.bindings.items[scope_id.int()].items;
     }
 
+    /// Iterate over parent scopes, starting at `scope_id`. `scope_id` is the first
+    /// item yielded.
     pub fn iterParents(self: *const Scope.Tree, scope_id: Scope.Id) ScopeParentIterator {
         return .{
             .curr = scope_id.into(Id.Optional),
             .parents = self.scopes.items(.parent),
         };
+    }
+
+    /// Returns `true` if `parent_id` contains `child_id` as a descendant.
+    pub fn isParentOf(self: *const Scope.Tree, parent_id: Scope.Id, child_id: Scope.Id) bool {
+        var it = self.iterParents(child_id);
+        while (it.next()) |scope| {
+            if (scope == parent_id) return true;
+        }
+        return false;
     }
 
     pub fn deinit(self: *Scope.Tree, alloc: Allocator) void {
