@@ -53,6 +53,7 @@ const _span = @import("../../span.zig");
 const ast_utils = @import("../ast_utils.zig");
 const walk = @import("../../visit/walk.zig");
 
+const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const Symbol = semantic.Symbol;
@@ -156,15 +157,15 @@ pub fn runOnNode(_: *const ReturnedStackReference, wrapper: NodeWrapper, ctx: *L
     // FIXME: this is the fn body's parent
     const body_scope = links.getScope(func_body) orelse return;
 
-    var stackfb = std.heap.stackFallback(256, ctx.gpa);
-    const allocator = stackfb.get();
+    var walk_stackfb = std.heap.stackFallback(256, ctx.gpa);
 
     var visitor = StackReferenceVisitor.init(
         ctx,
         Scope.Id.new(body_scope.int() + 1),
     );
+
     var walker = StackReferenceWalker.initAtNode(
-        allocator,
+        walk_stackfb.get(),
         ctx.ast(),
         &visitor,
         func_body,
@@ -187,7 +188,10 @@ const StackReferenceVisitor = struct {
     /// How many `call` statements have been seen above the currently-visited node.
     call_depth: u8,
 
-    fn init(ctx: *LinterContext, fn_body_scope: Scope.Id) StackReferenceVisitor {
+    fn init(
+        ctx: *LinterContext,
+        fn_body_scope: Scope.Id,
+    ) StackReferenceVisitor {
         const nodes = ctx.ast().nodes;
         return .{
             .ctx = ctx,
@@ -202,7 +206,8 @@ const StackReferenceVisitor = struct {
     pub const Err = error{};
 
     pub fn enterNode(self: *StackReferenceVisitor, node: Node.Index) Err!void {
-        switch (self.tags[node]) {
+        const tag = self.tags[node];
+        switch (tag) {
             .@"return" => self.return_depth += 1,
             .call, .call_comma, .call_one, .call_one_comma => self.call_depth += 1,
             .slice, .slice_open, .slice_sentinel => {
@@ -213,7 +218,8 @@ const StackReferenceVisitor = struct {
     }
 
     pub fn exitNode(self: *StackReferenceVisitor, node: Node.Index) void {
-        switch (self.tags[node]) {
+        const tag = self.tags[node];
+        switch (tag) {
             .@"return" => self.return_depth -= 1,
             .call, .call_comma, .call_one, .call_one_comma => self.call_depth -= 1,
             else => {},
@@ -232,6 +238,16 @@ const StackReferenceVisitor = struct {
             return .Skip;
         }
         return .Continue;
+    }
+
+    pub fn visit_local_var_decl(_: *StackReferenceVisitor, _: Node.Index) Err!walk.WalkState {
+        return .Skip;
+    }
+    pub fn visit_simple_var_decl(_: *StackReferenceVisitor, _: Node.Index) Err!walk.WalkState {
+        return .Skip;
+    }
+    pub fn visit_aligned_var_decl(_: *StackReferenceVisitor, _: Node.Index) Err!walk.WalkState {
+        return .Skip;
     }
 
     const IsLocal = struct {
