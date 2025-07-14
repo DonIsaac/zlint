@@ -7,6 +7,10 @@ const Token = Semantic.Token;
 
 const NULL_NODE = Semantic.NULL_NODE;
 
+/// Get the right-most identifier in a field access chain.
+///
+/// This is the opposite of `getLeftmostIdentifier`.
+///
 /// - `foo` -> `foo`
 /// - `foo.bar` -> `bar`
 /// - `foo()` -> `foo`
@@ -21,6 +25,39 @@ pub fn getRightmostIdentifier(ctx: *Context, id: Node.Index) ?[]const u8 {
         .call, .call_comma, .call_one, .call_one_comma => getRightmostIdentifier(ctx, nodes.items(.data)[id].lhs),
         else => null,
     };
+}
+
+/// Get the left-most identifier in a field access chain.
+///
+/// This is the opposite of `getRightmostIdentifier`.
+///
+/// ```zig
+/// foo.bar.baz     // "foo"
+/// foo.bar().baz.? // "foo"
+/// ```
+pub fn getLeftmostIdentifier(ctx: *Context, id: Node.Index, comptime ignore_call: bool) ?Node.Index {
+    const nodes = ctx.ast().nodes;
+    const tags: []const Node.Tag = nodes.items(.tag);
+    const datas: []const Node.Data = nodes.items(.data);
+
+    var curr = id;
+    while (true) {
+        switch (tags[curr]) {
+            .identifier => return curr,
+            // lhs(...)
+            .call,
+            .call_comma,
+            .call_one,
+            .call_one_comma,
+            => {
+                if (ignore_call) return null else curr = datas[curr].lhs;
+            },
+            .field_access, // lhs.a
+            .unwrap_optional, // lhs.?
+            => curr = datas[curr].lhs,
+            else => return null,
+        }
+    }
 }
 
 pub fn isInTest(ctx: *const Context, node: Node.Index) bool {
@@ -43,6 +80,7 @@ pub fn isBlock(tags: []const Node.Tag, node: Node.Index) bool {
         else => false,
     };
 }
+
 pub inline fn isStructInit(tag: Node.Tag) bool {
     return switch (tag) {
         .struct_init,
@@ -57,6 +95,7 @@ pub inline fn isStructInit(tag: Node.Tag) bool {
         else => false,
     };
 }
+
 pub inline fn isArrayInit(tag: Node.Tag) bool {
     return switch (tag) {
         .array_init,

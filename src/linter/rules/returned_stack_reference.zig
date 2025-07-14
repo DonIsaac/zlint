@@ -224,9 +224,12 @@ const StackReferenceVisitor = struct {
         if (self.return_depth == 0 or self.call_depth > 0) return .Continue;
 
         const deref_target = self.data[node].lhs;
-        const info = self.isDeclaredLocally(deref_target);
-        if (info.is_local) {
-            self.ctx.report(stackRefDiagnostic(self.ctx, node, info.decl_loc, false));
+        if (self.tags[deref_target] == .identifier) {
+            const info = self.isDeclaredLocally(deref_target);
+            if (info.is_local) {
+                self.ctx.report(stackRefDiagnostic(self.ctx, node, info.decl_loc, false));
+            }
+            return .Skip;
         }
         return .Continue;
     }
@@ -266,6 +269,25 @@ const StackReferenceVisitor = struct {
         if (decl_scope_flags.s_comptime) {
             return .no;
         }
+        const is_local = sema.scopes.isParentOf(self.fn_body_scope, declared_in);
+        const decl_node: Node.Index = sema.symbols.symbols.items(.decl)[symbol_id.into(usize)];
+
+        // check for allowed cases
+        switch (self.tags[decl_node]) {
+            .local_var_decl, .simple_var_decl, .aligned_var_decl => {
+                const var_init = self.data[decl_node].rhs;
+                switch (self.tags[var_init]) {
+                    // references to comptime variables are ok
+                    //
+                    //   const x: u32 = comptime blk: { break :blk 1; };
+                    //   return &x;
+                    .@"comptime" => return .no,
+                    else => {}
+                }
+            },
+            else => {}
+        }
+
         const ident_token = tokens[symbol_id.into(usize)].unwrap() orelse return .no;
         if (comptime util.IS_DEBUG) {
             const decl_ident = sema.tokenSlice(ident_token.int());
@@ -277,7 +299,6 @@ const StackReferenceVisitor = struct {
         }
 
         const decl_span = sema.tokenSpan(ident_token.into(Ast.TokenIndex));
-        const is_local = sema.scopes.isParentOf(self.fn_body_scope, declared_in);
 
         return .{ .is_local = is_local, .decl_loc = decl_span };
     }
@@ -348,9 +369,28 @@ test ReturnedStackReference {
         \\    else => pathbuf.len > 0,
         \\  };
         \\}
+        ,
+        \\fn foo() *const u32 {
+        \\  const x: u32 = comptime blk: {
+        \\    comptime var i = 0;
+        \\    i += 1;
+        \\    break :blk i;
+        \\  };
+        \\  return &x;
+        \\}
+        ,
+        // FIXME
+        // \\ const F = fn (a: bool) u32;
+        // \\fn foo() *const F {
+        // \\  const bar = struct {
+        // \\    fn barImpl(a: bool) u32 {
+        // \\      return if (a) 1 else 2;
+        // \\    }
+        // \\  }.barImpl;
+        // \\  return &bar;
+        // \\}
     };
 
-    // Code your rule should fail on
     const fail = &[_][:0]const u8{
         // TODO: add test cases
         "fn foo()  *u32 { var x: u32 = 1; return &x; }",
@@ -360,6 +400,19 @@ test ReturnedStackReference {
         \\fn foo() X {
         \\  var x: u32 = 1;
         \\  return .{ .p = &x };
+        \\}
+        ,
+        \\fn foo(a: bool) *u32 {
+        \\  var x: u32 = 1;
+        \\  return if (a) &x else @panic("ahh");
+        \\}
+        ,
+        \\fn foo(a: bool) *u32 {
+        \\  var x: u32 = 1;
+        \\  return blk: {
+        \\    x += 1;
+        \\    break :blk &x;
+        \\  };
         \\}
         ,
         // FIXME
