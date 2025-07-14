@@ -68,6 +68,7 @@ pub fn run(self: *TestSuite) !void {
     while (try self.walker.next()) |ent| {
         if (ent.kind != .file) continue;
         if (!std.mem.endsWith(u8, ent.path, ".zig")) continue;
+        if (std.mem.startsWith(u8, ent.path, ".git")) continue;
         if (std.mem.indexOfScalar(u8, ent.path, 0) != null) {
             std.debug.print("bad path: {s}\n", .{ent.path});
             @panic("fuck");

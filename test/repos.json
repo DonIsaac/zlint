@@ -2,16 +2,16 @@
     {
         "name": "zig",
         "repo_url": "https://github.com/ziglang/zig.git",
-        "hash": "95fdbc579fc1df3c575baded7ec5edc1c3ce6e6d"
+        "hash": "e7b18a7ce69f30c85f21ec8ad6a70211abf5f24b"
     },
     {
         "name": "bun",
         "repo_url": "https://github.com/oven-sh/bun.git",
-        "hash": "e75d2269431045c5b9b3867d7c7da949c81b19ff"
+        "hash": "499eac0d4929e1abea298161abf07c13d8c57237"
     },
     {
         "name": "ghostty",
         "repo_url": "https://github.com/ghostty-org/ghostty",
-        "hash": "6f7977fef186faa9b9afe7707dc21a2eff59883b"
+        "hash": "1c0677faabf79b5dbaf96eef058e0a16983d0538"
     }
 ]

@@ -1,17 +1,25 @@
-Passed: 97.40485% (563/578)
-Panics: 0% (0/578)
+Passed: 97.37443% (853/876)
+Panics: 0% (0/876)
 
+src/bun.js/api/BunObject.zig: error.FullMismatch
+src/bun.js/node/util/parse_args.zig: error.FullMismatch
 src/bun.js/test/expect.zig: error.FullMismatch
-src/bun.js/webcore/request.zig: error.FullMismatch
-src/bun.js/webcore/streams.zig: error.FullMismatch
+src/bun.js/webcore/ByteStream.zig: error.FullMismatch
+src/bun.js/webcore/Request.zig: error.FullMismatch
+src/cli.zig: error.FullMismatch
+src/cli/audit_command.zig: error.FullMismatch
 src/cli/pack_command.zig: error.FullMismatch
+src/cli/pm_view_command.zig: error.FullMismatch
 src/css/css_parser.zig: error.FullMismatch
 src/css/small_list.zig: error.FullMismatch
 src/css/values/number.zig: error.FullMismatch
-src/install/bun.lock.zig: error.FullMismatch
+src/install/PackageInstaller.zig: error.FullMismatch
+src/install/PackageManager/PackageManagerEnqueue.zig: error.FullMismatch
+src/install/PackageManager/install_with_manager.zig: error.FullMismatch
+src/install/PackageManager/patchPackage.zig: error.FullMismatch
 src/install/extract_tarball.zig: error.FullMismatch
-src/install/install.zig: error.FullMismatch
 src/install/lockfile.zig: error.FullMismatch
+src/install/lockfile/bun.lock.zig: error.FullMismatch
 src/install/npm.zig: error.FullMismatch
 src/shell/Builtin.zig: error.FullMismatch
 src/string.zig: error.FullMismatch

@@ -1,5 +1,5 @@
-Passed: 97.51616% (2866/2939)
-Panics: 0% (0/2939)
+Passed: 97.01594% (2861/2949)
+Panics: 0% (0/2949)
 
 doc/langref/destructuring_mixed.zig: error.FullMismatch
 doc/langref/destructuring_to_existing.zig: error.FullMismatch
@@ -13,20 +13,34 @@ lib/compiler/aro/aro/Type.zig: error.FullMismatch
 lib/compiler/aro/aro/text_literal.zig: error.FullMismatch
 lib/compiler/reduce/Walk.zig: error.FullMismatch
 lib/compiler_rt/divmodei4.zig: error.FullMismatch
+lib/std/Build/Module.zig: error.AnalysisFailed
 lib/std/Progress.zig: error.FullMismatch
+lib/std/Target.zig: error.AnalysisFailed
 lib/std/Target/Query.zig: error.FullMismatch
+lib/std/builtin.zig: error.AnalysisFailed
 lib/std/os/linux/IoUring.zig: error.FullMismatch
+lib/std/time.zig: error.FullMismatch
 lib/std/zig/Ast.zig: error.FullMismatch
 lib/std/zig/AstGen.zig: error.FullMismatch
 lib/std/zig/AstRlAnnotate.zig: error.FullMismatch
-src/Sema.zig: error.FullMismatch
+lib/std/zig/llvm/Builder.zig: error.AnalysisFailed
+src/Compilation.zig: error.AnalysisFailed
+src/Sema.zig: error.AnalysisFailed
+src/Type.zig: error.AnalysisFailed
 src/Zcu.zig: error.FullMismatch
 src/arch/x86_64/CodeGen.zig: error.FullMismatch
+src/codegen/llvm.zig: error.AnalysisFailed
+src/crash_report.zig: error.FullMismatch
+src/libs/libcxx.zig: error.AnalysisFailed
+src/libs/libtsan.zig: error.AnalysisFailed
+src/libs/libunwind.zig: error.AnalysisFailed
+src/libs/mingw.zig: error.AnalysisFailed
 src/link/Dwarf.zig: error.FullMismatch
 src/link/Elf/Atom.zig: error.FullMismatch
 src/link/Wasm/Flush.zig: error.FullMismatch
 src/link/Wasm/Object.zig: error.FullMismatch
-src/main.zig: error.FullMismatch
+src/main.zig: error.AnalysisFailed
+src/target.zig: error.AnalysisFailed
 test/behavior/destructure.zig: error.FullMismatch
 test/cases/compile_errors/Issue_6823_dont_allow_._to_be_followed_by_.zig: error.AnalysisFailed
 test/cases/compile_errors/assign_to_constant_destructure.zig: error.FullMismatch
@@ -74,3 +88,4 @@ test/cases/compile_errors/tab_inside_comment.zig: error.AnalysisFailed
 test/cases/compile_errors/tab_inside_doc_comment.zig: error.AnalysisFailed
 test/cases/compile_errors/tab_inside_multiline_string.zig: error.AnalysisFailed
 test/cases/compile_errors/tab_inside_string.zig: error.AnalysisFailed
+test/standalone/stack_iterator/build.zig: error.AnalysisFailed

@@ -470,6 +470,8 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         => return self.visit(data[node_id].lhs),
         // lhs for these nodes is always `undefined`.
         .@"defer" => return self.visit(self.getNodeData(node_id).rhs),
+        // `continue :lhs rhs`. lhs is a token index.
+        .@"continue" => return self.visit(data[node_id].rhs),
 
         else => return self.visitRecursive(node_id),
     }
@@ -1855,10 +1857,14 @@ fn debugNodeStack(self: *const SemanticBuilder) void {
         const source = if (id == Semantic.ROOT_NODE_ID) "" else ast.getNodeSource(id);
         const loc = ast.tokenLocation(token_offset, main_token);
         const snippet =
-            if (source.len > 48) mem.concat(
+            if (source.len > 128) mem.concat(
                 self._gpa,
                 u8,
-                &[_][]const u8{ source[0..32], " ... ", source[(source.len - 16)..source.len] },
+                &[_][]const u8{
+                    std.mem.trim(u8, source[0..64], &std.ascii.whitespace),
+                    " ... ",
+                    std.mem.trim(u8, source[(source.len - 64)..source.len], &std.ascii.whitespace),
+                },
             ) catch @panic("Out of memory") else source;
         print("  - [{d}, {d}:{d}] {any} - {s}\n", .{ id, loc.line, loc.column, tag, snippet });
         if (!mem.eql(u8, source, snippet)) {
