@@ -228,7 +228,7 @@ const Tasks = struct {
         docgen_exe.root_module.addImport("zlint", zlint);
         const docgen_run = l.b.addRunArtifact(docgen_exe);
 
-        const bunx_prettier = Tasks.bunx(l, "prettier", &[_][]const u8{ "--write", "docs/rules/*.md" });
+        const bunx_prettier = Tasks.bunx(l, "prettier@3", &[_][]const u8{ "--write", "docs/rules/*.md" });
         bunx_prettier.step.dependOn(&docgen_run.step);
 
         const docgen = l.b.step("docs:rules", "Generate lint rule documentation");
