@@ -433,11 +433,11 @@ test ReturnedStackReference {
         ,
         // FIXME
         // "fn foo() error{}!*u32 { var x: u32 = 1; return &x; }",
-        // \\const Foo = struct { x: *u32 };
-        // \\fn foo() Foo {
-        // \\  const local: u32 = 1;
-        // \\  return .{ .x = &local };
-        // \\}
+        \\const Foo = struct { x: *u32 };
+        \\fn foo() Foo {
+        \\  const local: u32 = 1;
+        \\  return .{ .x = &local };
+        \\}
     };
 
     try runner
