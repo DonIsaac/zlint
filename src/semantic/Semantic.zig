@@ -154,3 +154,4 @@ pub const Scope = @import("Scope.zig");
 pub const Symbol = @import("Symbol.zig");
 pub const Reference = @import("Reference.zig");
 pub const ModuleRecord = @import("ModuleRecord.zig");
+pub const walk = @import("ast/walk.zig");

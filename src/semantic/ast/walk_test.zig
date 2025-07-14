@@ -4,8 +4,8 @@ const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
 
-const Walker = @import("./walk.zig").Walker;
-const WalkState = @import("./walk.zig").WalkState;
+const Walker = @import("walk.zig").Walker;
+const WalkState = @import("walk.zig").WalkState;
 
 const t = std.testing;
 const expect = t.expect;
@@ -26,6 +26,26 @@ test "Walker calls generic tag visitors if special cases aren't present" {
     defer ast.deinit(t.allocator);
     var visitor: TestVisitor = .{};
     var walker = try Walker(TestVisitor, TestVisitor.Error).init(t.allocator, &ast, &visitor);
+    defer walker.deinit();
+
+    try walker.walk();
+    try t.expect(visitor.seen_var_decl);
+}
+
+test "Walker may not have an error type" {
+    const TestVisitor = struct {
+        seen_var_decl: bool = false,
+
+        pub fn visit_simple_var_decl(self: *@This(), _: Node.Index) WalkState {
+            self.seen_var_decl = true;
+            return .Continue;
+        }
+    };
+
+    var ast = try Ast.parse(t.allocator, "const x = 1;", .zig);
+    defer ast.deinit(t.allocator);
+    var visitor: TestVisitor = .{};
+    var walker = try Walker(TestVisitor, null).init(t.allocator, &ast, &visitor);
     defer walker.deinit();
 
     try walker.walk();

@@ -583,7 +583,7 @@ fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
     const tags: []const Token.Tag = self.AST().tokens.items(.tag);
 
     var curr_tok = self.getNodeData(node_id).rhs;
-    util.debugAssert(tags[curr_tok] == Token.Tag.r_brace, "error_set_decl rhs should be an rbrace token.", .{});
+    util.debugAssertf(tags[curr_tok] == Token.Tag.r_brace, "error_set_decl rhs should be an rbrace token.", .{});
     curr_tok -= 1;
 
     try self.enterScope(.{ .flags = .{ .s_error = true } });
@@ -615,7 +615,7 @@ fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
                 // in debug builds we want to know if we're missing something or
                 // handling errors incorrectly. in release mode we can safely
                 // ignore it.
-                util.debugAssert(false, "unexpected token in error container: {any}", .{tags[curr_tok]});
+                util.debugAssertf(false, "unexpected token in error container: {any}", .{tags[curr_tok]});
                 break;
             },
         }
@@ -1023,8 +1023,6 @@ fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnProto) !v
     defer self.exitScope();
 
     if (fn_proto.name_token) |name_token| {
-        // const prev = self._curr_symbol_flags;
-        // defer self._curr_symbol_flags = prev;
         var flags: Symbol.Flags = .{ .s_fn = true };
         if (fn_proto.extern_export_inline_token) |tok| {
             const ast = self.AST();
@@ -1107,10 +1105,18 @@ fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) callconv(util.@"inlin
             if (ast.source[start + 2] == 't') {
                 // extern
                 flags.s_extern = true;
+                if (util.IS_DEBUG) {
+                    const kw = ast.source[start.."extern".len];
+                    util.assert(std.mem.eql(u8, kw, "extern"), "expected 'extern' keyword, got '{s}'", .{kw});
+                }
             } else {
                 // export
                 assert(ast.source[start + 2] == 'p');
                 flags.s_export = true;
+                if (util.IS_DEBUG) {
+                    const kw = ast.source[start.."export".len];
+                    util.assert(std.mem.eql(u8, kw, "export"), "expected 'export' keyword, got '{s}'", .{kw});
+                }
             }
         }
     }
