@@ -169,7 +169,7 @@ pub fn runOnNode(_: *const AllocatorFirstParam, wrapper: NodeWrapper, ctx: *Lint
                         const symbol_id = ctx.semantic.resolveBinding(scope, type_name, .{}) orelse break :check_self;
                         const decl_node: Node.Index = ctx.symbols().symbols.items(.decl)[symbol_id.int()];
                         var parents = ctx.links().iterParentIds(ty);
-                        while(parents.next()) |parent| {
+                        while (parents.next()) |parent| {
                             if (parent == decl_node) {
                                 self_pos = i;
                                 break :check_self;
