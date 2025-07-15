@@ -1,0 +1,36 @@
+  𝙭 allocator-first-param: Allocators should be the first parameter of a function
+   ╭─[allocator-first-param.zig:1:16]
+ 1 │ fn foo(x: u32, allocator: Allocator) void { }
+   ·                ─────────
+   ╰────
+
+  𝙭 allocator-first-param: Allocators should be the first parameter of a function
+   ╭─[allocator-first-param.zig:1:16]
+ 1 │ fn foo(x: u32, allocator: SomeExoticAllocatorThatIsWeird) void { }
+   ·                ─────────
+   ╰────
+
+  𝙭 allocator-first-param: Allocators should be the first parameter of a function
+   ╭─[allocator-first-param.zig:1:16]
+ 1 │ fn foo(x: u32, thingy: Allocator) void {  }
+   ·                ──────
+   ╰────
+
+  𝙭 allocator-first-param: Allocators should be the first parameter of a function
+   ╭─[allocator-first-param.zig:1:16]
+ 1 │ fn foo(x: u32, thingy: std.mem.Allocator) void {  }
+   ·                ──────
+   ╰────
+
+  𝙭 allocator-first-param: Allocators should be the first parameter of a function
+   ╭─[allocator-first-param.zig:1:16]
+ 1 │ fn foo(x: u32, y: std.heap.ArenaAllocator) void {  }
+   ·                ─
+   ╰────
+
+  𝙭 allocator-first-param: Allocators should be the first parameter of a function
+   ╭─[allocator-first-param.zig:1:53]
+ 1 │ const Foo = struct { pub fn bar(self: *Foo, x: u32, allocator: Allocator) void {} };
+   ·                                                     ─────────
+   ╰────
+
