@@ -113,7 +113,7 @@ const config: Config = {
           items: [
             {
               label: 'Rules',
-              to: '/docs/rules',
+              to: '/docs/category/rules',
             },
           ],
         },
