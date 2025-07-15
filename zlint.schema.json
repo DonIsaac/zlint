@@ -1,9 +1,6 @@
 {
     "type": "object",
     "properties": {
-        "extends": {
-            "$ref": "#/definitions/linter.Config.Extend"
-        },
         "rules": {
             "$ref": "#/definitions/linter.config.rules_config.RulesConfig"
         },
@@ -21,11 +18,6 @@
     },
     "$schema": "https://json-schema.org/draft-07/schema#",
     "definitions": {
-        "linter.rules.returned_stack_reference": {
-            "type": "object",
-            "title": "returned-stack-reference config",
-            "properties": {}
-        },
         "linter.rules.unused_decls": {
             "type": "object",
             "title": "unused-decls config",
@@ -447,13 +439,10 @@
                 }
             }
         },
-        "linter.Config.Extend": {
-            "type": "string",
-            "enum": [
-                "none",
-                "default",
-                "empty"
-            ]
+        "linter.rules.returned_stack_reference": {
+            "type": "object",
+            "title": "returned-stack-reference config",
+            "properties": {}
         }
     }
 }
