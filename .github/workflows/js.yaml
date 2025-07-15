@@ -52,8 +52,24 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
       - name: Install Dependencies
-        working-directory: apps/vscode-extension
         run: bun install --frozen-lockfile
       - name: Typecheck
         working-directory: apps/vscode-extension
         run: bun tsc --noEmit
+
+  check-site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+      - name: Typecheck
+        working-directory: apps/site
+        run: bun typecheck
+      - name: Build
+        working-directory: apps/site
+        run: bun run build
+        

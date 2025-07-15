@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" xmlns:bx="https://boxy-svg.com">
+  <!-- <text style="fill: rgb(247, 164, 29); font-family: &quot;Abyssinica SIL&quot;; font-size: 28px; stroke: rgb(0, 0, 0); stroke-width: 0.227534px; white-space: pre;" transform="matrix(21.675251, 0, 0, 13.484374, -4025.300537, -2592.563232)" x="189.207" y="220.109">Z</text> -->
+  <text class="yellow" x="12" y="50">Z</text>
+  <defs>
+    <style bx:fonts="Abyssinica SIL">
+        @import url(https://fonts.googleapis.com/css2?family=Abyssinica+SIL%3Aital%2Cwght%400%2C400&amp;display=swap);
+        .yellow {
+            fill: #f7a41d;
+        }
+        .black {
+            fill: #000000;
+        }
+        text {
+            font-size: 64px;
+        }
+    </style>
+  </defs>
+</svg>

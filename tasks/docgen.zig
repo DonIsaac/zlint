@@ -20,7 +20,18 @@ const Schema = zlint.json.Schema;
 const panic = std.debug.panic;
 const assert = std.debug.assert;
 
-const OUT_DIR = "docs/rules";
+const OUT_DIR = "apps/site/docs/rules";
+const OUT_KIND = MdKind.mdx;
+const MdKind = enum {
+    md,
+    mdx,
+    fn ext(self: MdKind) []const u8 {
+        return switch (self) {
+            .md => ".md",
+            .mdx => ".mdx",
+        };
+    }
+};
 
 const Context = struct {
     alloc: Allocator,
@@ -73,7 +84,7 @@ pub fn main() !void {
 
 fn generateDocFile(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
     const outfile: fs.File = b: {
-        const name = try mem.concat(ctx.alloc, u8, &[_][]const u8{ rule.meta.name, ".md" });
+        const name = try mem.concat(ctx.alloc, u8, &[_][]const u8{ rule.meta.name, comptime OUT_KIND.ext() });
         defer ctx.alloc.free(name);
         const outpath = try path.join(ctx.alloc, &[_][]const u8{ OUT_DIR, name });
         defer ctx.alloc.free(outpath);
@@ -90,23 +101,35 @@ fn generateDocFile(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
 
 fn renderDocs(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
     try ctx.writer.print("# `{s}`\n\n", .{rule.name(.kebab)});
-    const enabled_message = switch (rule.meta.default) {
-        .off => "No",
-        .err => "Yes (error)",
-        .warning => "Yes (warning)",
-        .notice => "Yes (notice)",
-    };
+    // const enabled_message = switch (rule.meta.default) {
+    //     .off => "No",
+    //     .err => "Yes (error)",
+    //     .warning => "Yes (warning)",
+    //     .notice => "Yes (notice)",
+    // };
+    // try ctx.writer.print(
+    //     \\> Category: {s}
+    //     \\>
+    //     \\> Enabled by default?: {s}
+    //     \\
+    // ,
+    //     .{
+    //         @tagName(rule.meta.category),
+    //         enabled_message,
+    //     },
+    // );
     try ctx.writer.print(
-        \\> Category: {s}
-        \\> 
-        \\> Enabled by default?: {s}
-        \\
-    ,
-        .{
-            @tagName(rule.meta.category),
-            enabled_message,
-        },
-    );
+        \\<RuleBanner category="{s}" default="{s}" 
+    , .{
+        @tagName(rule.meta.category),
+        @tagName(rule.meta.default),
+    });
+    if (rule.meta.fix.kind != .none) {
+        try ctx.writer.writeAll("fix={");
+        defer ctx.writer.writeByte('}') catch unreachable;
+        try std.json.stringify(rule.meta.fix, .{}, ctx.writer);
+    }
+    try ctx.writer.writeAll(" />");
     try ctx.writer.writeByteNTimes('\n', 2);
     try ctx.writer.writeAll(docs);
     try ctx.writer.writeByteNTimes('\n', 2);

@@ -1,0 +1,20 @@
+.ruleBanner {
+  margin-top: calc(var(--ifm-h1-vertical-rhythm-bottom) * -0.5rem);
+}
+
+.severityBanner {
+  padding: 0.5rem;
+  margin: var(--ifm-spacing-horizontal) 0;
+
+  &.warning {
+    --ifm-alert-color-foreground: var(--ifm-color-warning);
+    --ifm-alert-color: var(--ifm-color-warning);
+    /* background-color: var(--ifm-color-warning); */
+  }
+  &.error {
+    background-color: var(--ifm-color-warning);
+  }
+  &.notice {
+    background-color: var(--ifm-color-info);
+  }
+}
