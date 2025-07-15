@@ -1,5 +1,5 @@
-import {themes as prismThemes} from 'prism-react-renderer';
-import type {Config} from '@docusaurus/types';
+import { themes as prismThemes } from 'prism-react-renderer';
+import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
@@ -24,9 +24,11 @@ const config: Config = {
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'DonIsaac', // Usually your GitHub org/user name.
   projectName: 'zlint', // Usually your repo name.
+  deploymentBranch: 'gh-pages',
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
+  trailingSlash: false,
 
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you
@@ -34,6 +36,11 @@ const config: Config = {
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
+  },
+  customFields: {
+    social: {
+      github: 'https://github.com/DonIsaac/zlint',
+    }
   },
 
   presets: [
@@ -72,8 +79,13 @@ const config: Config = {
   themeConfig: {
     // Replace with your project's social card
     image: 'img/docusaurus-social-card.jpg',
+    docs: {
+      sidebar: {
+        autoCollapseCategories: true,
+      }
+    },
     navbar: {
-      title: 'My Site',
+      title: 'ZLint',
       logo: {
         alt: 'My Site Logo',
         src: 'img/logo.svg',
@@ -81,13 +93,13 @@ const config: Config = {
       items: [
         {
           type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
+          sidebarId: 'docs',
           position: 'left',
-          label: 'Tutorial',
+          label: 'Docs',
         },
-        {to: '/blog', label: 'Blog', position: 'left'},
+        { to: '/blog', label: 'Blog', position: 'left' },
         {
-          href: 'https://github.com/facebook/docusaurus',
+          href: 'https://github.com/DonIsaac/zlint',
           label: 'GitHub',
           position: 'right',
         },
@@ -100,26 +112,26 @@ const config: Config = {
           title: 'Docs',
           items: [
             {
-              label: 'Tutorial',
-              to: '/docs/intro',
+              label: 'Rules',
+              to: '/docs/rules',
             },
           ],
         },
         {
           title: 'Community',
           items: [
-            {
-              label: 'Stack Overflow',
-              href: 'https://stackoverflow.com/questions/tagged/docusaurus',
-            },
+            // {
+            //   label: 'Stack Overflow',
+            //   href: 'https://stackoverflow.com/questions/tagged/docusaurus',
+            // },
             {
               label: 'Discord',
-              href: 'https://discordapp.com/invite/docusaurus',
+              href: 'https://discord.gg/UcB7HjJxcG',
             },
-            {
-              label: 'X',
-              href: 'https://x.com/docusaurus',
-            },
+            // {
+            //   label: 'X',
+            //   href: 'https://x.com/docusaurus',
+            // },
           ],
         },
         {
@@ -131,12 +143,12 @@ const config: Config = {
             },
             {
               label: 'GitHub',
-              href: 'https://github.com/facebook/docusaurus',
+              href: 'https://github.com/DonIsaac/zlint',
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Don Isaac.`,
     },
     prism: {
       theme: prismThemes.github,
