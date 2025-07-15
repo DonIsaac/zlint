@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkzlint=self.webpackChunkzlint||[]).push([[472],{5513:e=>{e.exports=JSON.parse('{"title":"Recent posts","items":[{"title":"Blog","permalink":"/zlint/blog/index","unlisted":false,"date":"2025-07-15T04:16:47.000Z"}]}')}}]);

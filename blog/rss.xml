@@ -4,7 +4,7 @@
         <title>ZLint Blog</title>
         <link>https://donisaac.github.io/zlint/blog</link>
         <description>ZLint Blog</description>
-        <lastBuildDate>Tue, 15 Jul 2025 04:16:47 GMT</lastBuildDate>
+        <lastBuildDate>Tue, 15 Jul 2025 21:57:52 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
@@ -12,7 +12,7 @@
             <title><![CDATA[Blog]]></title>
             <link>https://donisaac.github.io/zlint/blog/index</link>
             <guid>https://donisaac.github.io/zlint/blog/index</guid>
-            <pubDate>Tue, 15 Jul 2025 04:16:47 GMT</pubDate>
+            <pubDate>Tue, 15 Jul 2025 21:57:52 GMT</pubDate>
             <description><![CDATA[Blog has not been implemented yet.]]></description>
             <content:encoded><![CDATA[<p>Blog has not been implemented yet.</p>]]></content:encoded>
         </item>

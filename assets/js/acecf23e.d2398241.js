@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkzlint=self.webpackChunkzlint||[]).push([[903],{1912:t=>{t.exports=JSON.parse('{"blogBasePath":"/zlint/blog","blogTitle":"Blog","authorsListPath":"/zlint/blog/authors"}')}}]);
