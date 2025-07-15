@@ -1,0 +1,30 @@
+name: Deploy Docs Site
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  BUN_VERSION: latest
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: bun install
+        run: bun install --frozen-lockfile
+
+      - name: build
+        run: bun run build
+        working-directory: apps/site
+
+      - name: deploy
+        run: bun run deploy
+        working-directory: apps/site
+        

@@ -42,7 +42,7 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
       - name: Oxlint
-        run: bunx oxlint@latest --format github  -D correctness -D suspicious -D perf
+        run: bunx oxlint@latest --format github -D correctness -D suspicious -D perf
 
   check-vscode:
     runs-on: ubuntu-latest

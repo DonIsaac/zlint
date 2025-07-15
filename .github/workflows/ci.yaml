@@ -9,8 +9,10 @@ on:
       - "*.md"
       - ".vscode/*"
       - zls.json
+      - ".github/ISSUE_TEMPLATE/*"
       - ".github/workflows/*"
       - "!.github/workflows/ci.yaml"
+      - "apps/*"
   push:
     branches:
       - main
@@ -18,8 +20,10 @@ on:
       - "*.md"
       - ".vscode/*"
       - zls.json
+      - ".github/ISSUE_TEMPLATE/*"
       - ".github/workflows/*"
       - "!.github/workflows/ci.yaml"
+      - "apps/*"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -88,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        optimize: ["Debug", "ReleaseSafe", "ReleaseFast"]
+        optimize: ["ReleaseSafe", "ReleaseFast"]
     steps:
       - uses: actions/checkout@v4
       # Install tooling
