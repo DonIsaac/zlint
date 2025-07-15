@@ -1,8 +1,0 @@
-  𝙭 no-return-try: This error union can be directly returned.
-   ╭─[no-return-try.zig:2:18]
- 1 │ fn foo() !void { return; }
- 2 │ fn bar() !void { return try foo(); }
-   ·                  ──────────
-   ╰────
-  help: Replace `return try` with `return`
-

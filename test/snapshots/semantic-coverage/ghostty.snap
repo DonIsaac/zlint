@@ -1,6 +1,0 @@
-Passed: 99.42197% (516/519)
-Panics: 0% (0/519)
-
-src/cli/list_themes.zig: error.FullMismatch
-src/terminal/PageList.zig: error.FullMismatch
-src/terminal/Parser.zig: error.FullMismatch
