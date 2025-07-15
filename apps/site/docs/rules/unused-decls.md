@@ -15,11 +15,14 @@ The Zig compiler checks for unused parameters, payloads bound by `if`,
 variables and functions declared in container scopes are not given the same
 treatment. This rule handles those cases.
 
-> [!WARNING]
-> ZLint's semantic analyzer does not yet record references to variables on
-> member access expressions (e.g. `bar` on `foo.bar`). It also does not
-> handle method calls correctly. Until these features are added, only
-> top-level `const` variable declarations are checked.
+:::warning
+
+ZLint's semantic analyzer does not yet record references to variables on
+member access expressions (e.g. `bar` on `foo.bar`). It also does not
+handle method calls correctly. Until these features are added, only
+top-level `const` variable declarations are checked.
+
+:::
 
 ## Examples
 

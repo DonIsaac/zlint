@@ -1,6 +1,9 @@
 {
     "type": "object",
     "properties": {
+        "extends": {
+            "$ref": "#/definitions/linter.Config.Extend"
+        },
         "rules": {
             "$ref": "#/definitions/linter.config.rules_config.RulesConfig"
         },
@@ -18,6 +21,11 @@
     },
     "$schema": "https://json-schema.org/draft-07/schema#",
     "definitions": {
+        "linter.rules.returned_stack_reference": {
+            "type": "object",
+            "title": "returned-stack-reference config",
+            "properties": {}
+        },
         "linter.rules.unused_decls": {
             "type": "object",
             "title": "unused-decls config",
@@ -109,9 +117,9 @@
                     ]
                 },
                 "unused-decls": {
-                    "description": "## What This Rule Does\n\nDisallows container-scoped variables that are declared but never used. Note\nthat top-level declarations are included.\n\nThe Zig compiler checks for unused parameters, payloads bound by `if`,\n`catch`, etc, and `const`/`var` declaration within functions. However,\nvariables and functions declared in container scopes are not given the same\ntreatment. This rule handles those cases.\n\n> [!WARNING]\n> ZLint's semantic analyzer does not yet record references to variables on\n> member access expressions (e.g. `bar` on `foo.bar`). It also does not\n> handle method calls correctly. Until these features are added, only\n> top-level `const` variable declarations are checked.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\n// `std` used, but `Allocator` is not.\nconst std = @import(\"std\");\nconst Allocator = std.mem.Allocator;\n\n// Variables available to other code, either via `export` or `pub`, are not\n// reported.\npub const x = 1;\nexport fn foo(x: u32) void {}\n\n// `extern` functions are not reported\nextern fn bar(a: i32) void;\n```\n\nExamples of **correct** code for this rule:\n```zig\n// Discarded variables are considered \"used\".\nconst x = 1;\n_ = x;\n\n// non-container scoped variables are allowed by this rule but banned by the\n// compiler. `x`, `y`, and `z` are ignored by this rule.\npub fn foo(x: u32) void {\n  const y = true;\n  var z: u32 = 1;\n}\n```",
+                    "description": "## What This Rule Does\n\nDisallows container-scoped variables that are declared but never used. Note\nthat top-level declarations are included.\n\nThe Zig compiler checks for unused parameters, payloads bound by `if`,\n`catch`, etc, and `const`/`var` declaration within functions. However,\nvariables and functions declared in container scopes are not given the same\ntreatment. This rule handles those cases.\n\n:::warning\n\nZLint's semantic analyzer does not yet record references to variables on\nmember access expressions (e.g. `bar` on `foo.bar`). It also does not\nhandle method calls correctly. Until these features are added, only\ntop-level `const` variable declarations are checked.\n\n:::\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\n// `std` used, but `Allocator` is not.\nconst std = @import(\"std\");\nconst Allocator = std.mem.Allocator;\n\n// Variables available to other code, either via `export` or `pub`, are not\n// reported.\npub const x = 1;\nexport fn foo(x: u32) void {}\n\n// `extern` functions are not reported\nextern fn bar(a: i32) void;\n```\n\nExamples of **correct** code for this rule:\n```zig\n// Discarded variables are considered \"used\".\nconst x = 1;\n_ = x;\n\n// non-container scoped variables are allowed by this rule but banned by the\n// compiler. `x`, `y`, and `z` are ignored by this rule.\npub fn foo(x: u32) void {\n  const y = true;\n  var z: u32 = 1;\n}\n```",
                     "default": "warn",
-                    "markdownDescription": "## What This Rule Does\n\nDisallows container-scoped variables that are declared but never used. Note\nthat top-level declarations are included.\n\nThe Zig compiler checks for unused parameters, payloads bound by `if`,\n`catch`, etc, and `const`/`var` declaration within functions. However,\nvariables and functions declared in container scopes are not given the same\ntreatment. This rule handles those cases.\n\n> [!WARNING]\n> ZLint's semantic analyzer does not yet record references to variables on\n> member access expressions (e.g. `bar` on `foo.bar`). It also does not\n> handle method calls correctly. Until these features are added, only\n> top-level `const` variable declarations are checked.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\n// `std` used, but `Allocator` is not.\nconst std = @import(\"std\");\nconst Allocator = std.mem.Allocator;\n\n// Variables available to other code, either via `export` or `pub`, are not\n// reported.\npub const x = 1;\nexport fn foo(x: u32) void {}\n\n// `extern` functions are not reported\nextern fn bar(a: i32) void;\n```\n\nExamples of **correct** code for this rule:\n```zig\n// Discarded variables are considered \"used\".\nconst x = 1;\n_ = x;\n\n// non-container scoped variables are allowed by this rule but banned by the\n// compiler. `x`, `y`, and `z` are ignored by this rule.\npub fn foo(x: u32) void {\n  const y = true;\n  var z: u32 = 1;\n}\n```",
+                    "markdownDescription": "## What This Rule Does\n\nDisallows container-scoped variables that are declared but never used. Note\nthat top-level declarations are included.\n\nThe Zig compiler checks for unused parameters, payloads bound by `if`,\n`catch`, etc, and `const`/`var` declaration within functions. However,\nvariables and functions declared in container scopes are not given the same\ntreatment. This rule handles those cases.\n\n:::warning\n\nZLint's semantic analyzer does not yet record references to variables on\nmember access expressions (e.g. `bar` on `foo.bar`). It also does not\nhandle method calls correctly. Until these features are added, only\ntop-level `const` variable declarations are checked.\n\n:::\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\n// `std` used, but `Allocator` is not.\nconst std = @import(\"std\");\nconst Allocator = std.mem.Allocator;\n\n// Variables available to other code, either via `export` or `pub`, are not\n// reported.\npub const x = 1;\nexport fn foo(x: u32) void {}\n\n// `extern` functions are not reported\nextern fn bar(a: i32) void;\n```\n\nExamples of **correct** code for this rule:\n```zig\n// Discarded variables are considered \"used\".\nconst x = 1;\n_ = x;\n\n// non-container scoped variables are allowed by this rule but banned by the\n// compiler. `x`, `y`, and `z` are ignored by this rule.\npub fn foo(x: u32) void {\n  const y = true;\n  var z: u32 = 1;\n}\n```",
                     "oneOf": [
                         {
                             "$ref": "#/definitions/Error.Severity"
@@ -439,10 +447,13 @@
                 }
             }
         },
-        "linter.rules.returned_stack_reference": {
-            "type": "object",
-            "title": "returned-stack-reference config",
-            "properties": {}
+        "linter.Config.Extend": {
+            "type": "string",
+            "enum": [
+                "none",
+                "default",
+                "empty"
+            ]
         }
     }
 }
