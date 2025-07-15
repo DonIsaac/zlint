@@ -2,7 +2,7 @@
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
     <channel>
         <title>ZLint Blog</title>
-        <link>https://your-docusaurus-site.example.com/zlint/blog</link>
+        <link>https://donisaac.github.io/zlint/blog</link>
         <description>ZLint Blog</description>
         <lastBuildDate>Tue, 15 Jul 2025 04:16:47 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
@@ -10,8 +10,8 @@
         <language>en</language>
         <item>
             <title><![CDATA[Blog]]></title>
-            <link>https://your-docusaurus-site.example.com/zlint/blog/index</link>
-            <guid>https://your-docusaurus-site.example.com/zlint/blog/index</guid>
+            <link>https://donisaac.github.io/zlint/blog/index</link>
+            <guid>https://donisaac.github.io/zlint/blog/index</guid>
             <pubDate>Tue, 15 Jul 2025 04:16:47 GMT</pubDate>
             <description><![CDATA[Blog has not been implemented yet.]]></description>
             <content:encoded><![CDATA[<p>Blog has not been implemented yet.</p>]]></content:encoded>
