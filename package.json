@@ -1,0 +1,11 @@
+{
+    "name": "zlint",
+    "private": true,
+    "license": "MIT",
+    "categories": [
+        "Linters"
+    ],
+    "workspaces": [
+        "apps/*"
+    ]
+}
