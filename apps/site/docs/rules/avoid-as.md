@@ -1,0 +1,44 @@
+# `avoid-as`
+
+> Category: pedantic
+> 
+> Enabled by default?: Yes (warning)
+
+
+## What This Rule Does
+
+Disallows using `@as()` when types can be otherwise inferred.
+
+Zig has powerful [Result Location Semantics](https://ziglang.org/documentation/master/#Result-Location-Semantics) for inferring what type
+something should be. This happens in function parameters, return types,
+and type annotations. `@as()` is a last resort when no other contextual
+information is available. In any other case, other type inference mechanisms
+should be used.
+
+> [!NOTE]
+> Checks for function parameters and return types are not yet implemented.
+
+## Examples
+
+Examples of **incorrect** code for this rule:
+```zig
+const x = @as(u32, 1);
+
+fn foo(x: u32) u64 {
+  return @as(u64, x); // type is inferred from return type
+}
+foo(@as(u32, 1)); // type is inferred from function signature
+```
+
+Examples of **correct** code for this rule:
+```zig
+const x: u32 = 1;
+
+fn foo(x: u32) void {
+  // ...
+}
+foo(1);
+```
+
+## Configuration
+This rule has no configuration.

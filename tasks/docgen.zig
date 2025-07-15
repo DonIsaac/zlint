@@ -20,7 +20,7 @@ const Schema = zlint.json.Schema;
 const panic = std.debug.panic;
 const assert = std.debug.assert;
 
-const OUT_DIR = "docs/rules";
+const OUT_DIR = "apps/site/docs/rules";
 
 const Context = struct {
     alloc: Allocator,
