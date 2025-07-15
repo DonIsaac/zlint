@@ -59,7 +59,7 @@
 //! const CustomBuffer = [4096]u8;
 //! var buf: CustomBuffer = undefined; // ok
 //! ```
-//! 
+//!
 //! :::warning
 //! ZLint does not have a type checker yet, so implicit struct initializations
 //! will not be ignored.
