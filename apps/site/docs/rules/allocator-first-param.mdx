@@ -1,0 +1,52 @@
+# `allocator-first-param`
+
+<RuleBanner category="style" default="warning"  />
+
+## What This Rule Does
+
+Checks that functions taking allocators as parameters have the allocator as
+the first parameter. This conforms to common Zig conventions.
+
+## Rule Details
+This rule looks for functions take an `Allocator` parameter and reports a
+violation if
+- it is not the first parameter, or
+- there is a `self` parameter, and the allocator does not immediately follow it.
+
+Parameters are considered to be an allocator if
+- the are named `allocator`, `alloc`, `gpa`, or `arena`, or one of those
+  with leading/trailing underscores,
+- their type ends with `Allocator`
+
+Parameters are considered to be a `self` parameter if they are named `self`,
+`this`, or one of those with leading/trailing underscores.
+
+## Examples
+
+Examples of **incorrect** code for this rule:
+```zig
+fn foo(x: u32, allocator: Allocator) !*u32 {
+  const heap_x = try allocator.create(u32);
+  heap_x.* = x;
+  return heap_x;
+}
+```
+
+Examples of **correct** code for this rule:
+```zig
+fn foo(allocator: Allocator, x: u32) !*u32 {
+  const heap_x = try allocator.create(u32);
+  heap_x.* = x;
+  return heap_x;
+}
+const Foo = struct {
+  list: std.ArrayListUnmanaged(u32) = .{},
+  // when writing methods, `self` must be the first parameter
+  pub fn expandCapacity(self: *Foo, allocator: Allocator, new_len: usize) !void {
+    try self.list.ensureTotalCapacity(allocator, new_len);
+  }
+};
+```
+
+## Configuration
+This rule has no configuration.

@@ -18,4 +18,5 @@ pub const RulesConfig = struct {
     avoid_as: RuleConfig(rules.AvoidAs) = .{},
     case_convention: RuleConfig(rules.CaseConvention) = .{},
     returned_stack_reference: RuleConfig(rules.ReturnedStackReference) = .{},
+    allocator_first_param: RuleConfig(rules.AllocatorFirstParam) = .{},
 };
