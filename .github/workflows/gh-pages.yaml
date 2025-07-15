@@ -11,6 +11,9 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      pages: write # deploy to gh pages
+      id-token: write # to verify the deployment originates from an appropriate source
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -27,4 +30,6 @@ jobs:
       - name: deploy
         run: bun run deploy
         working-directory: apps/site
+        env:
+          USE_SSH: true
         
