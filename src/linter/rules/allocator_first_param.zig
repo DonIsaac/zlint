@@ -14,8 +14,11 @@
 //!   with leading/trailing underscores,
 //! - their type ends with `Allocator`
 //!
-//! Parameters are considered to be a `self` parameter if they are named `self`,
-//! `this`, or one of those with leading/trailing underscores.
+//! Parameters are considered to be a `self` parameter if
+//! - they are named `self`, `this`, or one of those with leading/trailing underscores.
+//! - their type is `@This()`, `*@This()`, etc.
+//! - their type is a Capitalized and the function is within the definition of a
+//!   similarly named container (e.g. a struct).
 //!
 //! ## Examples
 //!
@@ -54,7 +57,9 @@ const ast_utils = @import("../ast_utils.zig");
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
+const TokenIndex = Ast.TokenIndex;
 const Symbol = semantic.Symbol;
+const Scope = semantic.Scope;
 const Loc = std.zig.Loc;
 const Span = _span.Span;
 const LabeledSpan = _span.LabeledSpan;
@@ -70,7 +75,7 @@ const AllocatorFirstParam = @This();
 pub const meta: Rule.Meta = .{
     .name = "allocator-first-param",
     .category = .style,
-    .default = .warning,
+    .default = .off,
 };
 
 fn allocatorFirstParamDiagnostic(ctx: *LinterContext, param: Ast.TokenIndex) Error {
@@ -121,24 +126,73 @@ pub fn runOnNode(_: *const AllocatorFirstParam, wrapper: NodeWrapper, ctx: *Lint
     var alloc_name_token: ?Ast.TokenIndex = null;
     var it = fn_proto.iterate(ast);
     var i: u32 = 0;
+
     while (it.next()) |param| {
         defer i += 1;
-        const name_token = param.name_token orelse continue;
-        const name = ctx.semantic.tokenSlice(name_token);
-        if (self_pos == null and self_names.get(name) != null) {
-            self_pos = i;
-            continue;
+        if (self_pos != null and allocator_pos != null) {
+            break;
         }
-        if (allocator_pos != null) {
-            continue;
-        } else if (allocator_names.get(name)) |_| {
-            allocator_pos = i;
-            alloc_name_token = name_token;
-        } else {
-            const right_ident = ast_utils.getRightmostIdentifier(ctx, param.type_expr) orelse continue;
-            if (std.mem.endsWith(u8, right_ident, "Allocator")) {
+
+        const name_token = param.name_token orelse continue;
+        const type_expr = param.type_expr;
+        const name = ctx.semantic.tokenSlice(name_token);
+        util.assertUnsafe(type_expr != semantic.Semantic.NULL_NODE);
+
+        // look for a self parameter
+        check_self: {
+            if (self_pos == null) {
+                if (self_names.get(name) != null) {
+                    self_pos = i;
+                    continue;
+                }
+
+                // `?*@This()` -> `@This()`
+                const ty = ast_utils.getInnerType(ast, type_expr);
+                const tag: Node.Tag = ast.nodes.items(.tag)[ty];
+                switch (tag) {
+                    // check for `@This()`. we can ignore .builtin_call b/c
+                    // @This() will never have >2 parameters
+                    .builtin_call_two, .builtin_call_two_comma => {
+                        const builtin_name = ctx.semantic.tokenSlice(ast.nodes.items(.main_token)[ty]);
+                        if (std.mem.eql(u8, builtin_name, "@This")) {
+                            self_pos = i;
+                            continue;
+                        }
+                    },
+                    .identifier => {
+                        // name of referenced type
+                        const type_name = ctx.semantic.tokenSlice(ast.nodes.items(.main_token)[ty]);
+                        // assume struct names start with uppercase letters
+                        if (std.ascii.isLower(type_name[0])) break :check_self;
+                        const scope: Scope.Id = ctx.links().getScope(ty) orelse break :check_self;
+                        // find where it's declared
+                        const symbol_id = ctx.semantic.resolveBinding(scope, type_name, .{}) orelse break :check_self;
+                        const decl_node: Node.Index = ctx.symbols().symbols.items(.decl)[symbol_id.int()];
+                        var parents = ctx.links().iterParentIds(ty);
+                        while(parents.next()) |parent| {
+                            if (parent == decl_node) {
+                                self_pos = i;
+                                break :check_self;
+                            }
+                        }
+                    },
+                    else => {},
+                }
+            }
+        }
+
+        // look for an allocator parameter
+        if (allocator_pos == null) {
+            const is_named_alloc = allocator_names.get(name) != null;
+            if (is_named_alloc) {
                 allocator_pos = i;
                 alloc_name_token = name_token;
+            } else {
+                const right_ident = ast_utils.getRightmostIdentifier(ctx, param.type_expr) orelse continue;
+                if (std.mem.endsWith(u8, right_ident, "Allocator")) {
+                    allocator_pos = i;
+                    alloc_name_token = name_token;
+                }
             }
         }
     }
@@ -188,6 +242,21 @@ test AllocatorFirstParam {
         \\    _ = allocator;
         \\    _ = this;
         \\  }
+        \\};
+        ,
+        \\const Foo = struct {
+        \\  pub fn doThing(foo: *@This(), allocator: Allocator) void {
+        \\    _ = allocator;
+        \\    _ = foo;
+        \\  }
+        \\};
+        ,
+        \\const Foo = struct {
+        \\  pub fn doThing(foo: Foo, allocator: Allocator) void { }
+        \\};
+        ,
+        \\const Foo = struct {
+        \\  pub fn doThing(foo: *Foo, allocator: Allocator) void { }
         \\};
         ,
     };
