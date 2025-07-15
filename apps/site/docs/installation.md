@@ -35,5 +35,5 @@ zig build --release=safe
 ```
 
 :::tip
-Full setup instructions are available [here](./contributing/index.md).
+Full setup instructions are available [here](./contributing/index.mdx).
 :::

@@ -5,7 +5,7 @@ example, we'll be creating [`no-undefined`](https://github.com/DonIsaac/zlint/bl
 
 :::info
 
-Make sure you've followed the [setup guide](./index.md) first.
+Make sure you've followed the [setup guide](./index.mdx) first.
 
 :::
 
