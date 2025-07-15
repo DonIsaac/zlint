@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?><?xml-stylesheet type="text/xsl" href="atom.xsl"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-    <id>https://your-docusaurus-site.example.com/blog</id>
+    <id>https://your-docusaurus-site.example.com/zlint/blog</id>
     <title>ZLint Blog</title>
     <updated>2025-07-15T04:16:47.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
-    <link rel="alternate" href="https://your-docusaurus-site.example.com/blog"/>
+    <link rel="alternate" href="https://your-docusaurus-site.example.com/zlint/blog"/>
     <subtitle>ZLint Blog</subtitle>
-    <icon>https://your-docusaurus-site.example.com/img/favicon.ico</icon>
+    <icon>https://your-docusaurus-site.example.com/zlint/img/favicon.ico</icon>
     <entry>
         <title type="html"><![CDATA[Blog]]></title>
-        <id>https://your-docusaurus-site.example.com/blog/index</id>
-        <link href="https://your-docusaurus-site.example.com/blog/index"/>
+        <id>https://your-docusaurus-site.example.com/zlint/blog/index</id>
+        <link href="https://your-docusaurus-site.example.com/zlint/blog/index"/>
         <updated>2025-07-15T04:16:47.000Z</updated>
         <summary type="html"><![CDATA[Blog has not been implemented yet.]]></summary>
         <content type="html"><![CDATA[<p>Blog has not been implemented yet.</p>]]></content>
