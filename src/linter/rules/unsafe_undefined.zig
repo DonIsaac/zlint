@@ -27,9 +27,10 @@
 //! };
 //! ```
 //!
-//! > [!NOTE]
-//! > Oviously unsafe usages of `undefined`, such `x == undefined`, are not
+//! :::info
+//! Obviously unsafe usages of `undefined`, such `x == undefined`, are not
 //! allowed even in these exceptions.
+//! :::
 //!
 //! #### Arrays
 //! Array-typed variable declarations may be initialized to undefined.
@@ -58,9 +59,11 @@
 //! const CustomBuffer = [4096]u8;
 //! var buf: CustomBuffer = undefined; // ok
 //! ```
-//! > [!NOTE]
-//! > ZLint does not have a type checker yet, so implicit struct initializations
-//! > will not be ignored.
+//! 
+//! :::warning
+//! ZLint does not have a type checker yet, so implicit struct initializations
+//! will not be ignored.
+//! :::
 //!
 //! #### Destructors
 //! Invalidating freed pointers/data by setting it to `undefined` is helpful for

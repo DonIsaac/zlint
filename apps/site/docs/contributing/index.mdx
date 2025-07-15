@@ -1,3 +1,6 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 # Contributing
 
 Thanks for your interest in contributing to ZLint! This document outlines how to
@@ -6,9 +9,20 @@ set up your development environment and contribution guidelines.
 ## Setup
 
 You'll obviously need to have [Zig](https://ziglang.org/) installed. Right now
-we are using version `0.13.0`.
+we are using version `0.14.0`.
 
 ### Tl;Dr
+
+If your machine has homebrew or `apt-get`, run the setup script to install
+necessary tools. Note that this will not install [just](https://github.com/casey/just).
+
+```sh
+just init
+# or run it directly
+bash tasks/init.sh
+```
+
+#### Tools
 
 We use the following tools:
 
@@ -23,14 +37,26 @@ We use the following tools:
 install them with `cargo install` (or even better, with [`cargo
 binstall`](https://github.com/cargo-bins/cargo-binstall).
 
-> NOTE: both crates are also available on Homebrew under the same name.
+<Tabs>
+  <TabItem value="cargo-binstall" label="cargo-binstall" default>
+    ```sh
+    cargo install cargo-binstall
+    cargo binstall just typos-cli
+    ```
+  </TabItem>
+  <TabItem value="cargo" label="cargo">
+    ```sh
+    cargo install just typos-cli
+    ```
+  </TabItem>
+  <TabItem value="homebrew" label="homebrew">
+    ```sh
+    brew install just typos-cli
+    ```
+  </TabItem>
+</Tabs>
 
-```sh
-cargo binstall just typos-cli
-```
-
-Otherwise, you can
-follow their respective installation instructions.
+Otherwise, you can follow their respective installation instructions.
 
 - [just installation
   guide](https://github.com/casey/just?tab=readme-ov-file#installation)
@@ -41,11 +67,18 @@ You'll also want `entr`. We use it for checking code on save. You only need it
 to run `just watch`, but you'll definitely want to have this. Install it using
 your package manager of choice.
 
-```sh
-apt install entr
-# or
-brew install entr
-```
+<Tabs>
+  <TabItem value="brew" label="brew" default>
+    ```sh
+    brew install entr
+    ```
+  </TabItem>
+  <TabItem value="apt" label="apt">
+    ```sh
+    apt install entr
+    ```
+  </TabItem>
+</Tabs>
 
 ## Building, Testing, etc.
 
@@ -60,12 +93,14 @@ just e2e -Dsingle-threaded
 ```
 
 ## Contributing New Rules
+
 Check out the [Creating
 Rules](https://github.com/DonIsaac/zlint/wiki/Creating-Rules) guide for how to
 write new lint rules. A list of rules we want to implement can be found on the
 [Rule Ideas board](https://github.com/DonIsaac/zlint/issues/3).
 
 ## Conventions
+
 Please follow these conventions when contributing to ZLint.
 
 ### Constructors and Destructors

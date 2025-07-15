@@ -2,19 +2,11 @@ import React, { JSX, PropsWithChildren } from 'react'
 import Link from '@docusaurus/Link'
 import clsx from 'clsx'
 import styles from './Button.module.css'
+import { Size, Variant } from '../theme/types'
 
 interface BaseButtonProps {
-    size?: 'sm' | 'md' | 'lg'
-    variant?:
-        | 'primary'
-        | 'secondary'
-        | 'success'
-        | 'info'
-        | 'warning'
-        | 'danger'
-        | 'link'
-        | null
-        | undefined
+    size?: Size
+    variant?: Variant
     outline?: boolean
 }
 interface LinkButtonProps

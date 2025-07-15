@@ -8,8 +8,11 @@
 //! information is available. In any other case, other type inference mechanisms
 //! should be used.
 //!
-//! > [!NOTE]
-//! > Checks for function parameters and return types are not yet implemented.
+//! :::warning
+//!
+//! Checks for function parameters and return types are not yet implemented.
+//!
+//! :::
 //!
 //! ## Examples
 //!
