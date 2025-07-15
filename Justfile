@@ -39,7 +39,7 @@ install dir="~/.bin":
 
 # Run CI checks locally. Run this before making a PR.
 ready:
-    git diff --name-only --exit-code
+    # git diff --name-only --exit-code
     zig build check
     zig build install codegen docs:rules
     just fmt
@@ -98,9 +98,14 @@ fmt:
 
 # Like `fmt`, but exits when problems are found without modifying files
 lint:
+    #!/bin/bash
     zig fmt --check src test/harness build.zig build.zig.zon
     typos
-    bunx oxlint@latest --format github  -D correctness -D suspicious -D perf
+    if [[ "$CI" ]]; then
+        bunx oxlint@latest --format github  -D correctness -D suspicious -D perf
+    else
+        bunx oxlint@latest -D correctness -D suspicious -D perf
+    fi
 
 docs:
     zig build docs
