@@ -8,12 +8,12 @@ Checks that functions taking allocators as parameters have the allocator as
 the first parameter. This conforms to common Zig conventions.
 
 ## Rule Details
-This rule looks for functions take an `Allocator` parameter and reports a 
+This rule looks for functions take an `Allocator` parameter and reports a
 violation if
 - it is not the first parameter, or
 - there is a `self` parameter, and the allocator does not immediately follow it.
 
-Parameters are considered to be an allocator if 
+Parameters are considered to be an allocator if
 - the are named `allocator`, `alloc`, `gpa`, or `arena`, or one of those
   with leading/trailing underscores,
 - their type ends with `Allocator`
