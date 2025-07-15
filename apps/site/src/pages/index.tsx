@@ -6,21 +6,22 @@ import HomepageFeatures from '@site/src/components/HomepageFeatures'
 import Heading from '@theme/Heading'
 
 import styles from './index.module.css'
-import { GithubIcon } from 'lucide-react'
+import { GithubIcon, BookOpenIcon  } from 'lucide-react'
 import Button from '../components/Button'
 
 function HomepageHeader() {
     const { siteConfig } = useDocusaurusContext()
     return (
-        <header className={clsx('hero hero--primary', styles.heroBanner)}>
+        <header className={clsx('hero hero--dark', styles.heroBanner)}>
             <div className="container">
                 <Heading as="h1" className="hero__title">
-                    {siteConfig.title}
+                    <span className="font-abyssinica text--primary">Z</span>
+                    <span className="text--black">Lint</span>
                 </Heading>
                 <p className="hero__subtitle">{siteConfig.tagline}</p>
                 <Button.Row>
                     <Button href="/docs/installation" variant="secondary">
-                        Get Started
+                        <BookOpenIcon /> Get Started
                     </Button>
                     <Button
                         href={

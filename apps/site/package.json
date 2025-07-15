@@ -12,7 +12,8 @@
     "serve": "docusaurus serve",
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "build:favicon": "pushd static/img && magick -background transparent -define 'icon:auto-resize=16,24,32,64' logo.svg favicon.ico"
   },
   "dependencies": {
     "@docusaurus/core": "3.8.1",
