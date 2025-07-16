@@ -72,6 +72,10 @@ const Cow = util.Cow(false);
 
 // Rule metadata
 const AllocatorFirstParam = @This();
+
+/// List of function names to ignore.
+ignore: []const []const u8 = &[_][]const u8{},
+
 pub const meta: Rule.Meta = .{
     .name = "allocator-first-param",
     .category = .style,
@@ -108,7 +112,7 @@ const allocator_names = std.StaticStringMap(void).initComptime(&[_]struct { []co
     .{"_arena"},
 });
 
-pub fn runOnNode(_: *const AllocatorFirstParam, wrapper: NodeWrapper, ctx: *LinterContext) void {
+pub fn runOnNode(self: *const AllocatorFirstParam, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const node = wrapper.node;
     const node_id = wrapper.idx;
     const ast = ctx.ast();
@@ -136,7 +140,6 @@ pub fn runOnNode(_: *const AllocatorFirstParam, wrapper: NodeWrapper, ctx: *Lint
         const name_token = param.name_token orelse continue;
         const type_expr = param.type_expr;
         const name = ctx.semantic.tokenSlice(name_token);
-        util.assertUnsafe(type_expr != semantic.Semantic.NULL_NODE);
 
         // look for a self parameter
         check_self: {
@@ -206,6 +209,14 @@ pub fn runOnNode(_: *const AllocatorFirstParam, wrapper: NodeWrapper, ctx: *Lint
     } else 0;
 
     if (alloc_param_pos != expected_pos) {
+        if (self.ignore.len and fn_proto.name_token != null) {
+            const fn_name = ctx.semantic.tokenSlice(fn_proto.name_token.?);
+            for (self.ignore) |ignored| {
+                if (std.mem.eql(u8, fn_name, ignored)) {
+                    return;
+                }
+            }
+        }
         ctx.report(allocatorFirstParamDiagnostic(ctx, alloc_name_token.?));
     }
 }

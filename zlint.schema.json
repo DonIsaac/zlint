@@ -41,7 +41,15 @@
         "linter.rules.allocator_first_param": {
             "type": "object",
             "title": "allocator-first-param config",
-            "properties": {}
+            "properties": {
+                "ignore": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
         },
         "Error.Severity": {
             "title": "Severity",
