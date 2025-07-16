@@ -8,6 +8,10 @@
 .docusaurus
 .cache-loader
 
+# codegen'd files (that we don't want in git)
+# `just docs`
+static/lib-docs
+
 # Misc
 .DS_Store
 .env.local

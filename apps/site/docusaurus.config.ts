@@ -78,7 +78,7 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    // image: 'img/docusaurus-social-card.jpg',
     docs: {
       sidebar: {
         autoCollapseCategories: true,
@@ -91,7 +91,7 @@ const config: Config = {
     navbar: {
       title: 'ZLint',
       logo: {
-        alt: 'My Site Logo',
+        alt: 'ZLint Logo',
         src: 'img/logo.svg',
       },
       items: [
@@ -102,6 +102,7 @@ const config: Config = {
           label: 'Docs',
         },
         { to: '/blog', label: 'Blog', position: 'left' },
+        { to: 'pathname:///lib-docs/index.html', label: 'Zig Docs', position: 'left' },
         {
           href: 'https://github.com/DonIsaac/zlint',
           label: 'GitHub',
