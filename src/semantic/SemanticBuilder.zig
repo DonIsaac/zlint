@@ -1936,6 +1936,7 @@ const t = std.testing;
 test {
     t.refAllDecls(@import("test/modules_test.zig"));
     t.refAllDecls(@import("test/scope_flags_test.zig"));
+    t.refAllDecls(@import("test/scopes_test.zig"));
     t.refAllDecls(@import("test/symbol_decl_test.zig"));
     t.refAllDecls(@import("test/symbol_ref_test.zig"));
     t.refAllDecls(@import("test/members_and_exports_test.zig"));
