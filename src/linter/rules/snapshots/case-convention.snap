@@ -28,3 +28,16 @@
    ·    ────────────────────────────────────────
    ╰────
 
+  𝙭 case-convention: Function This_is_both_snake_case_and_pascal_kinda name is not in camelCase
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn This_is_both_snake_case_and_pascal_kinda(a: u32, b: u32, c: u32, d: u32) void {}
+   ·    ────────────────────────────────────────
+   ╰────
+
+  𝙭 case-convention: Function 'fooBar' returns a type, but does not use PascalCase
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn fooBar() type { return u32; }
+   ·    ──────
+   ╰────
+  help: By convention, Zig uses PascalCase for structs, generics, and all other type variables.
+
