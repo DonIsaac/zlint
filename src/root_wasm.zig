@@ -18,17 +18,16 @@ export fn free_string(ptr: [*]const u8, len: usize) void {
 }
 
 const AnalyzeRes = extern struct {
-  len: u32,
-  ptr: [*]const u8,
+    len: u32,
+    ptr: [*]const u8,
 };
- 
+
 /// result must be returned with free_string! (tbh haven't tested)
 export fn analyze(ptr: [*]const u8, len: usize) [*]const u8 {
     _ = ptr;
     _ = len;
     const fake_result = "hello world!";
-    const result = std.heap.wasm_allocator.allocWithOptions(u8, @sizeOf(usize) + fake_result.len, @alignOf(usize), null)
-        catch @panic("OOM");
+    const result = std.heap.wasm_allocator.allocWithOptions(u8, @sizeOf(usize) + fake_result.len, @alignOf(usize), null) catch @panic("OOM");
     @memcpy(result[0..@sizeOf(usize)], &std.mem.toBytes(fake_result.len));
     @memcpy(result[@sizeOf(usize)..], fake_result);
     return result.ptr;
