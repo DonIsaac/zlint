@@ -41,3 +41,9 @@
    ╰────
   help: By convention, Zig uses PascalCase for structs, generics, and all other type variables.
 
+  𝙭 case-convention: Function NotGeneric name is in PascalCase. It should be camelCase
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn NotGeneric(T: type) T { return T{}; }
+   ·    ──────────
+   ╰────
+
