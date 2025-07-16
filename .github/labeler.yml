@@ -8,7 +8,7 @@ A-linter:
 
 A-semantic:
   - changed-files:
-      - any-glob-to-any-file: ["src/semantic/**", "src/semantic.zig"]
+      - any-glob-to-any-file: ["src/Semantic/**", "src/Semantic.zig"]
 
 A-reporter:
   - changed-files:

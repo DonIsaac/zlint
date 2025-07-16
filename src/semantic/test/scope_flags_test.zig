@@ -1,13 +1,13 @@
 const std = @import("std");
-const semantic = @import("../../semantic.zig");
+const Semantic = @import("../../Semantic.zig");
 
 const t = std.testing;
 const print = std.debug.print;
 const build = @import("./util.zig").build;
 const Tuple = std.meta.Tuple;
 
-const Scope = semantic.Scope;
-const Symbol = semantic.Symbol;
+const Scope = Semantic.Scope;
+const Symbol = Semantic.Symbol;
 
 const TestCase = Tuple(&[_]type{ [:0]const u8, Scope.Flags });
 
