@@ -215,9 +215,8 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Printer = @import("./Printer.zig");
 
-const _semantic = @import("../semantic.zig");
-const Semantic = _semantic.Semantic;
-const Symbol = _semantic.Symbol;
-const Scope = _semantic.Scope;
-const Reference = _semantic.Reference;
+const Semantic = @import("../Semantic.zig");
+const Symbol = Semantic.Symbol;
+const Scope = Semantic.Scope;
+const Reference = Semantic.Reference;
 const Node = std.zig.Ast.Node;

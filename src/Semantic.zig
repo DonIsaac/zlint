@@ -135,22 +135,22 @@ pub fn deinit(self: *Semantic) void {
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
-const Ast = std.zig.Ast;
-const Span = @import("../span.zig").Span;
+const Span = @import("span.zig").Span;
 const assert = std.debug.assert;
 
-const _ast = @import("./ast.zig");
-const _tokenizer = @import("./tokenizer.zig");
-const CommentList = _tokenizer.CommentList;
+const _ast = @import("Semantic/ast.zig");
+const _tokenizer = @import("Semantic/tokenizer.zig");
 const TokenIndex = _ast.TokenIndex;
 
+// re-exports
+pub const Ast = std.zig.Ast;
+pub const Builder = @import("Semantic/SemanticBuilder.zig");
+pub const CommentList = _tokenizer.CommentList;
+pub const ModuleRecord = @import("Semantic/ModuleRecord.zig");
+pub const NodeLinks = @import("Semantic/NodeLinks.zig");
+pub const Parse = @import("Semantic/Parse.zig");
+pub const Reference = @import("Semantic/Reference.zig");
+pub const Scope = @import("Semantic/Scope.zig");
+pub const Symbol = @import("Semantic/Symbol.zig");
 pub const Token = _tokenizer.Token;
 pub const TokenList = _tokenizer.TokenList;
-
-pub const Builder = @import("SemanticBuilder.zig");
-pub const Parse = @import("Parse.zig");
-pub const NodeLinks = @import("NodeLinks.zig");
-pub const Scope = @import("Scope.zig");
-pub const Symbol = @import("Symbol.zig");
-pub const Reference = @import("Reference.zig");
-pub const ModuleRecord = @import("ModuleRecord.zig");

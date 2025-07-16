@@ -1,6 +1,6 @@
 const std = @import("std");
 const _source = @import("../source.zig");
-const _semantic = @import("../semantic.zig");
+const Semantic = @import("../Semantic.zig");
 
 const _rule = @import("rule.zig");
 const Context = @import("lint_context.zig");
@@ -11,7 +11,6 @@ const Fix = @import("fix.zig").Fix;
 const Error = @import("../Error.zig");
 const Severity = Error.Severity;
 const Source = _source.Source;
-const Semantic = _semantic.Semantic;
 
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;

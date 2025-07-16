@@ -1,7 +1,7 @@
 const std = @import("std");
 const LinterContext = @import("../lint_context.zig");
 const Fix = @import("../fix.zig").Fix;
-const Semantic = @import("../../semantic.zig").Semantic;
+const Semantic = @import("../../Semantic.zig");
 const _span = @import("../../span.zig");
 const Source = @import("../../source.zig").Source;
 

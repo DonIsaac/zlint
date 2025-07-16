@@ -12,7 +12,7 @@ const Allocator = std.mem.Allocator;
 
 const Options = @import("../cli/Options.zig");
 const Source = @import("../source.zig").Source;
-const Semantic = @import("../semantic.zig").Semantic;
+const Semantic = @import("../Semantic.zig");
 
 const Printer = @import("../printer/Printer.zig");
 const AstPrinter = @import("../printer/AstPrinter.zig");

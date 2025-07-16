@@ -5,7 +5,7 @@ const ArenaAllocator = std.heap.ArenaAllocator;
 const lint = @import("../../lint.zig");
 const Linter = lint.Linter;
 const Config = lint.Config;
-const Semantic = @import("../../semantic.zig").Semantic;
+const Semantic = @import("../../Semantic.zig");
 
 const Source = @import("../../source.zig").Source;
 

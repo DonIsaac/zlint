@@ -49,16 +49,16 @@
 //! ```
 
 const std = @import("std");
-const semantic = @import("../../semantic.zig");
+const Semantic = @import("../../Semantic.zig");
 const _rule = @import("../rule.zig");
 const _fix = @import("../fix.zig");
 const _span = @import("../../span.zig");
 const Error = @import("../../Error.zig");
 
 const Span = _span.Span;
-const Symbol = semantic.Symbol;
-const Scope = semantic.Scope;
-const Node = semantic.Ast.Node;
+const Symbol = Semantic.Symbol;
+const Scope = Semantic.Scope;
+const Node = Semantic.Ast.Node;
 const LinterContext = @import("../lint_context.zig");
 const Fix = _fix.Fix;
 const Rule = _rule.Rule;
@@ -82,7 +82,7 @@ fn unusedDeclDiagnostic(ctx: *LinterContext, name: []const u8, span: _span.Label
 pub fn runOnSymbol(_: *const UnusedDecls, symbol: Symbol.Id, ctx: *LinterContext) void {
     const s = symbol.into(usize);
     const symbols = ctx.symbols().symbols.slice();
-    const references: []const semantic.Reference.Id = symbols.items(.references)[s].items;
+    const references: []const Semantic.Reference.Id = symbols.items(.references)[s].items;
     // TODO: ignore write references
     // TODO: check for references by variables that are themselves unused. for
     // example, both `foo` and `bar` should be reported:
@@ -114,7 +114,7 @@ pub fn runOnSymbol(_: *const UnusedDecls, symbol: Symbol.Id, ctx: *LinterContext
     // are too many false positives for non-root constants. Once such references
     // are reliably resolved, remove this check.
     const scope: Scope.Id = symbols.items(.scope)[s];
-    if (!scope.eql(semantic.Semantic.ROOT_SCOPE_ID)) return;
+    if (!scope.eql(Semantic.ROOT_SCOPE_ID)) return;
 
     if (flags.s_variable and flags.s_const) {
         const span = ctx.spanT(symbols.items(.token)[s].unwrap().?.int());

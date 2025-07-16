@@ -39,7 +39,7 @@
 
 const std = @import("std");
 const util = @import("util");
-const semantic = @import("../../semantic.zig");
+const Semantic = @import("../../Semantic.zig");
 const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 
@@ -72,7 +72,7 @@ pub fn runOnNode(_: *const NoReturnTry, wrapper: NodeWrapper, ctx: *LinterContex
     const ast = ctx.ast();
     const node = wrapper.node;
     const returned_id = node.data.lhs;
-    if (node.tag != .@"return" or returned_id == semantic.Semantic.NULL_NODE) return;
+    if (node.tag != .@"return" or returned_id == Semantic.NULL_NODE) return;
 
     const returned: Node.Tag = ast.nodes.items(.tag)[returned_id];
     if (returned != .@"try") return;

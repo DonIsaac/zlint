@@ -1,10 +1,10 @@
 const std = @import("std");
 const util = @import("util");
-const semantic = @import("../semantic.zig");
+const Semantic = @import("../Semantic.zig");
 const AllRules = @import("./rules.zig");
 
-const Ast = std.zig.Ast;
-const Symbol = semantic.Symbol;
+const Ast = Semantic.Ast;
+const Symbol = Semantic.Symbol;
 const Severity = @import("../Error.zig").Severity;
 const Fix = @import("./fix.zig").Fix;
 
