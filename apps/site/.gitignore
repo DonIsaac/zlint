@@ -4,6 +4,9 @@
 # Production
 /build
 
+# temp wasm test
+static/wasm/*
+
 # Generated files
 .docusaurus
 .cache-loader
