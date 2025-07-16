@@ -15,6 +15,8 @@ those that return types should use PascalCase. Specially coming from Rust,
 some people may be used to use snake_case for their functions, which can
 lead to inconsistencies in the code.
 
+Note that `extern`  functions are not checked since you cannot change
+their names.
 
 ## Examples
 
@@ -28,6 +30,7 @@ Examples of **correct** code for this rule:
 ```zig
 fn thisFunctionIsInCamelCase() void {}
 fn Generic(T: type) T { return T{}; }
+extern fn this_is_declared_in_c() void;
 ```
 
 ## Configuration

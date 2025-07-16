@@ -11,6 +11,8 @@
 //! some people may be used to use snake_case for their functions, which can
 //! lead to inconsistencies in the code.
 //!
+//! Note that `extern`  functions are not checked since you cannot change
+//! their names.
 //!
 //! ## Examples
 //!
@@ -24,6 +26,7 @@
 //! ```zig
 //! fn thisFunctionIsInCamelCase() void {}
 //! fn Generic(T: type) T { return T{}; }
+//! extern fn this_is_declared_in_c() void;
 //! ```
 
 const std = @import("std");
@@ -125,7 +128,7 @@ pub fn runOnSymbol(_: *const CaseConvention, symbol: Symbol.Id, ctx: *LinterCont
     const id = symbol.into(usize);
 
     const flags = symbol_flags[id];
-    if (!flags.s_fn) return;
+    if (!flags.s_fn or flags.s_extern) return;
 
     const decl: Node.Index = symbols.items(.decl)[id];
     // if (tag != .fn_decl and tag != .fn_proto) return; // could be .fn_proto for e.g. fn types
@@ -185,6 +188,7 @@ test CaseConvention {
         "fn thisFunctionIsInCamelCase() void {}",
         "fn Generic(T: type) type { return *T; }",
         "fn FooBar() type { return u32; }",
+        "extern fn this_is_declared_in_c() void;",
     };
 
     const fail = &[_][:0]const u8{
