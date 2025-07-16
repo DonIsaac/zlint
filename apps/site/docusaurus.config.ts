@@ -84,6 +84,10 @@ const config: Config = {
         autoCollapseCategories: true,
       }
     },
+    colorMode: {
+      respectPrefersColorScheme: true,
+      defaultMode: 'dark',
+    },
     navbar: {
       title: 'ZLint',
       logo: {
