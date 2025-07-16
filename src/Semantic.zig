@@ -194,5 +194,4 @@ test Semantic {
     // symbols
     // implicit file container + `add` + `a` + `b` = 4 symbols
     try std.testing.expectEqual(4, semantic.symbols.symbols.len);
-
 }
