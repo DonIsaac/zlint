@@ -75,6 +75,32 @@ pub fn build(b: *std.Build) void {
     l.link(if (v14) exe.root_module else &exe.root_module, false, .{});
     b.installArtifact(exe);
 
+    const web_target_query = std.Target.Query{
+        .cpu_arch = .wasm32,
+        .os_tag = .freestanding,
+        .cpu_features_add = std.Target.wasm.featureSet(&.{
+            .atomics,
+            .multivalue,
+            .bulk_memory,
+        }),
+    };
+
+    const web_target = b.resolveTargetQuery(web_target_query);
+
+    const playground_wasm = b.addExecutable(.{
+        .name = "playground",
+        .root_source_file = b.path("src/root_wasm.zig"),
+        .single_threaded = single_threaded,
+        .target = web_target,
+        .optimize = if (debug_release) .Debug else .ReleaseSmall,
+        .strip = true,
+    });
+    // FIXME: dylib no worky, staticlib definitely no worky
+    playground_wasm.entry = .disabled;
+    playground_wasm.rdynamic = true;
+
+    b.installArtifact(playground_wasm);
+
     const e2e = b.addExecutable(.{
         .name = "test-e2e",
         .root_source_file = b.path("test/test_e2e.zig"),
