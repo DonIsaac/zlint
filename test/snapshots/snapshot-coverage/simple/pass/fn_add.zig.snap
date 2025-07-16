@@ -1,0 +1,100 @@
+{
+  "symbols": [
+    {
+      "name": "", 
+      "debugName": "@This()", 
+      "token": null, 
+      "declNode": "root", 
+      "scope": 0, 
+      "flags": ["const"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [1], 
+      
+    }, 
+    {
+      "name": "add", 
+      "debugName": "", 
+      "token": 1, 
+      "declNode": "fn_decl", 
+      "scope": 0, 
+      "flags": ["fn"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "x", 
+      "debugName": "", 
+      "token": 3, 
+      "declNode": "identifier", 
+      "scope": 1, 
+      "flags": ["const","fn_param"], 
+      "references": [
+        {"symbol":2,"scope":2,"node":"identifier","identifier":"x","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "y", 
+      "debugName": "", 
+      "token": 7, 
+      "declNode": "identifier", 
+      "scope": 1, 
+      "flags": ["const","fn_param"], 
+      "references": [
+        {"symbol":3,"scope":2,"node":"identifier","identifier":"y","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "unresolvedReferences": [],
+  "modules": {
+    "imports": [
+    ], 
+  }, 
+  "scopes": {
+    "id": 0, 
+    "flags": ["top"], 
+    "bindings": {
+      "@This()": 0, 
+      "add": 1, 
+      
+    }, 
+    "children": [
+      {
+        "id": 1, 
+        "flags": ["function"], 
+        "bindings": {
+          "x": 2, 
+          "y": 3, 
+          
+        }, 
+        "children": [
+          {
+            "id": 2, 
+            "flags": ["function","block"], 
+            "bindings": {
+              
+            }, 
+            "children": [], 
+            
+          }, 
+        ], 
+        
+      }, 
+    ], 
+    
+  }, 
+}
