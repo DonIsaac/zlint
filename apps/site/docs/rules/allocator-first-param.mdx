@@ -1,6 +1,6 @@
 # `allocator-first-param`
 
-<RuleBanner category="style" default="warning"  />
+<RuleBanner category="style" default="off"  />
 
 ## What This Rule Does
 
@@ -18,8 +18,11 @@ Parameters are considered to be an allocator if
   with leading/trailing underscores,
 - their type ends with `Allocator`
 
-Parameters are considered to be a `self` parameter if they are named `self`,
-`this`, or one of those with leading/trailing underscores.
+Parameters are considered to be a `self` parameter if
+- they are named `self`, `this`, or one of those with leading/trailing underscores.
+- their type is `@This()`, `*@This()`, etc.
+- their type is a Capitalized and the function is within the definition of a
+  similarly named container (e.g. a struct).
 
 ## Examples
 
@@ -49,4 +52,5 @@ const Foo = struct {
 ```
 
 ## Configuration
-This rule has no configuration.
+This rule accepts the following options:
+- ignore: array

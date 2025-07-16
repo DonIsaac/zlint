@@ -181,6 +181,30 @@ pub fn isPointerType(ctx: *const Context, node: Node.Index) bool {
     }
 }
 
+/// Get the type inside a series of pointer/optional/error union/etc types.
+/// - `*T` -> `T`
+/// - `?T` -> `T`
+/// - `Error!?T` -> `T`
+///
+pub fn getInnerType(ast: *const Ast, node: Node.Index) Node.Index {
+    const nodes = ast.nodes;
+    const tags: []const Node.Tag = nodes.items(.tag);
+    const datas: []const Node.Data = nodes.items(.data);
+    var curr = node;
+    while (true) {
+        switch (tags[curr]) {
+            .ptr_type,
+            .ptr_type_aligned,
+            .ptr_type_sentinel,
+            => curr = datas[curr].rhs,
+            .optional_type => curr = datas[curr].lhs,
+            .error_union => curr = datas[curr].rhs,
+            else => break,
+        }
+    }
+    return curr;
+}
+
 /// Returns `null` if `node` is the null node. Identity function otherwise.
 pub inline fn unwrapNode(node: Node.Index) ?Node.Index {
     return if (node == NULL_NODE) null else node;

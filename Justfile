@@ -40,9 +40,9 @@ install dir="~/.bin":
 # Run CI checks locally. Run this before making a PR.
 ready:
     # git diff --name-only --exit-code
+    just fmt
     zig build check
     zig build install codegen docs:rules
-    just fmt
     zig build test
     zig build test-e2e
     git status
