@@ -22,15 +22,16 @@ globalThis.onmessage = async (ev) => {
   const array = new Uint8Array(wexp.memory.buffer, ptr, zigSrc.length);
   new TextEncoder().encodeInto(zigSrc, array);
 
-  const resultPtr = wexp.analyze(ptr, array.byteLength);
-  const resultView = new DataView(wexp.memory.buffer, resultPtr, 4);
+  const resultStructPtr = wexp.analyze(ptr, array.byteLength);
+  const resultView = new DataView(wexp.memory.buffer, resultStructPtr, 8);
   const resultStringLen = resultView.getUint32(0, true);
-  const resultStringPtr = resultPtr + 4;
+  const resultStringPtr = resultView.getUint32(4, true);
   const result = new TextDecoder().decode(new Uint8Array(wexp.memory.buffer, resultStringPtr, resultStringLen));
 
   postMessage({ result });
 
-  wexp.free_string(ptr);
+  wexp.free_string(ptr, zigSrc.length);
+  wexp.free_string(resultStringPtr, zigSrc.length);
 };
 
 
