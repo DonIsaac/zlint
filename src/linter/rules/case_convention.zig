@@ -109,6 +109,7 @@ fn functionNameDiagnostic(ctx: *LinterContext, fn_name: []const u8, case: CaseTy
         .{ctx.spanT(name)},
     );
 }
+
 fn genericsArePascaleCase(ctx: *LinterContext, fn_name: []const u8, name: Ast.TokenIndex) Error {
     var d = ctx.diagnosticf(
         "Function '{s}' returns a type, but does not use PascalCase",
@@ -164,7 +165,8 @@ fn fnReturnsType(ctx: *LinterContext, fn_proto: *const Ast.full.FnProto) bool {
         @branchHint(.cold);
         return false;
     }
-    return std.ascii.isUpper(return_type[0]) or std.mem.eql(u8, return_type, "type");
+
+    return std.mem.eql(u8, return_type, "type");
 }
 
 // Used by the Linter to register the rule so it can be run.
@@ -180,9 +182,23 @@ test CaseConvention {
     var runner = RuleTester.init(t.allocator, case_convention.rule());
     defer runner.deinit();
 
-    const pass = &[_][:0]const u8{ "fn alllowercasefunctionsarealwaysgreen() void {}", "fn thisFunctionIsInCamelCase() void {}", "fn Generic(T: type) T { return T{}; }", "fn FooBar() type { return u32; }" };
+    const pass = &[_][:0]const u8{
+        "fn alllowercasefunctionsarealwaysgreen() void {}",
+        "fn thisFunctionIsInCamelCase() void {}",
+        "fn Generic(T: type) type { return *T; }",
+        "fn FooBar() type { return u32; }",
+    };
 
-    const fail = &[_][:0]const u8{ "fn ThisFunctionIsInPascalCase() void {}", "fn @\"this-one-is-in-kebab-case\"() void {}", "fn this_one_is_in_snake_case() void {}", "fn @\"This-is-both-Pascal-and-Kebab-kinda\"() void {}", "fn This_is_both_snake_case_and_pascal_kinda() void {}", "fn This_is_both_snake_case_and_pascal_kinda(a: u32, b: u32, c: u32, d: u32) void {}", "fn fooBar() type { return u32; }" };
+    const fail = &[_][:0]const u8{
+        "fn ThisFunctionIsInPascalCase() void {}",
+        "fn @\"this-one-is-in-kebab-case\"() void {}",
+        "fn this_one_is_in_snake_case() void {}",
+        "fn @\"This-is-both-Pascal-and-Kebab-kinda\"() void {}",
+        "fn This_is_both_snake_case_and_pascal_kinda() void {}",
+        "fn This_is_both_snake_case_and_pascal_kinda(a: u32, b: u32, c: u32, d: u32) void {}",
+        "fn fooBar() type { return u32; }",
+        "fn NotGeneric(T: type) T { return T{}; }",
+    };
 
     try runner
         .withPass(pass)
