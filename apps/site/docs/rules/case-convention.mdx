@@ -6,8 +6,11 @@
 Enforces Zig's naming convention.
 
 :::warning
-Only functions are checked at this time.
+Only functions and function parameters are checked at this time.
 :::
+
+In general: if a symbol is a type or returns a type, it should be in
+PascalCase.
 
 ## Functions
 In general, functions that return values should use camelCase names while
@@ -15,19 +18,28 @@ those that return types should use PascalCase. Specially coming from Rust,
 some people may be used to use snake_case for their functions, which can
 lead to inconsistencies in the code.
 
+## Variables
+Most variables should be in lower_snake_case, while type variables (e.g. structs)
+should be in PascalCase;
+
+
 
 ## Examples
 
 Examples of **incorrect** code for this rule:
 ```zig
 fn this_one_is_in_snake_case() void {}
-fn generic(T: type) T { return T{}; }
+fn generic(T: type) type { return *const T; }
+
+fn Generic(foo_bar: type) type { return *const foo_bar; } // `foo_bar` should be `FooBar`
 ```
 
 Examples of **correct** code for this rule:
 ```zig
 fn thisFunctionIsInCamelCase() void {}
-fn Generic(T: type) T { return T{}; }
+fn Generic(T: type) type { return *const T; }
+
+fn Generic(FooBar: type) type { return *const FooBar; }
 ```
 
 ## Configuration

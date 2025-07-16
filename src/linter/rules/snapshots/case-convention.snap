@@ -47,3 +47,27 @@
    ·    ──────────
    ╰────
 
+  𝙭 case-convention: Type parameter `t` should be in PascalCase
+   ╭─[case-convention.zig:1:8]
+ 1 │ fn foo(t: type, x: t) t { return x; }
+   ·        ─
+   ╰────
+
+  𝙭 case-convention: Type parameter `t` should be in PascalCase
+   ╭─[case-convention.zig:1:17]
+ 1 │ fn foo(comptime t: type, x: T) t { return x; }
+   ·                 ─
+   ╰────
+
+  𝙭 case-convention: Parameter `X` should be in lower_snake_case
+   ╭─[case-convention.zig:1:8]
+ 1 │ fn foo(X: u32) u32 { return @as(u32, X); }
+   ·        ─
+   ╰────
+
+  𝙭 case-convention: Type parameter `fooBar` should be in PascalCase
+   ╭─[case-convention.zig:1:8]
+ 1 │ fn foo(fooBar: type) void { _ = fooBar; }
+   ·        ──────
+   ╰────
+
