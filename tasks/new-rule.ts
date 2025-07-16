@@ -16,11 +16,14 @@ class RuleData {
     underscored: string
     /** RuleName */
     StructName: string
+    camelCaseName: string
 
     constructor(name: string) {
         this.name = name.replaceAll(' ', '-').replaceAll('_', '-').toLowerCase()
         this.StructName = kebabToPascal(this.name)
         this.underscored = this.name.replaceAll('-', '_')
+        const [first, ...segs] = this.name.split('-')
+        this.camelCaseName = first + segs.map(seg => seg[0].toUpperCase + seg.slice(1)).join("")
     }
 
     get path(): string {
@@ -75,7 +78,7 @@ const updateConfig = async (rule: RuleData) => {
     await fs.promises.writeFile(p(CONFIG_PATH), ruleConfig)
 }
 
-const createRule = ({ name, StructName, underscored }: RuleData) => {
+const createRule = ({ name, StructName, underscored, camelCaseName }: RuleData) => {
     return /* zig */ `
 //! ## What This Rule Does
 //! Explain what this rule checks for. Also explain why this is a problem.
@@ -92,6 +95,7 @@ const createRule = ({ name, StructName, underscored }: RuleData) => {
 
 const std = @import("std");
 const util = @import("util");
+const ast_utils = @import("../ast_utils.zig");
 const _source = @import("../../source.zig");
 const semantic = @import("../../semantic.zig");
 const _rule = @import("../rule.zig");
@@ -99,7 +103,9 @@ const _span = @import("../../span.zig");
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
+const TokenIndex = Ast.TokenIndex;
 const Symbol = semantic.Symbol;
+const Scope = semantic.Scope;
 const Loc = std.zig.Loc;
 const Span = _span.Span;
 const LabeledSpan = _span.LabeledSpan;
@@ -117,6 +123,16 @@ pub const meta: Rule.Meta = .{
     // TODO: set the category to an appropriate value
     .category = .correctness,
 };
+
+fn ${camelCaseName}Diagnostic(ctx: *LinterContext, node: Node.Index) Error {
+    return ctx.diagnosticf(
+       "something {s} happened here",
+       .{"bad"},
+       // use 'ctx.labelT' for tokens, or 'ctx.span{T,N}' to not use a label
+       // if you use tokens, change the ^node parameter to 'token: TokenIndex'.
+       ctx.labelN(node, "its bad because of {s}", .{"some reason"}),
+    );
+}
 
 // Runs once per source file. Useful for unique checks
 pub fn runOnce(_: *const ${StructName}, ctx: *LinterContext) void {
