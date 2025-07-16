@@ -23,10 +23,9 @@ globalThis.onmessage = async (ev) => {
   new TextEncoder().encodeInto(zigSrc, array);
 
   const resultPtr = wexp.analyze(ptr, array.byteLength);
-  const ANALYZE_RES_SIZE = 8;
-  const resultView = new DataView(wexp.memory.buffer, resultPtr, ANALYZE_RES_SIZE);
+  const resultView = new DataView(wexp.memory.buffer, resultPtr, 4);
   const resultStringLen = resultView.getUint32(0, true);
-  const resultStringPtr = resultView.getUint32(4, true);
+  const resultStringPtr = resultPtr + 4;
   const result = new TextDecoder().decode(new Uint8Array(wexp.memory.buffer, resultStringPtr, resultStringLen));
 
   postMessage({ result });

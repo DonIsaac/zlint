@@ -22,12 +22,14 @@ const AnalyzeRes = extern struct {
   ptr: [*]const u8,
 };
  
-export fn analyze(ptr: [*]const u8, len: usize) AnalyzeRes {
+/// result must be returned with free_string! (tbh haven't tested)
+export fn analyze(ptr: [*]const u8, len: usize) [*]const u8 {
     _ = ptr;
     _ = len;
     const fake_result = "hello world!";
-    return .{
-        .len = fake_result.len,
-        .ptr = fake_result.ptr,
-    };
+    const result = std.heap.wasm_allocator.allocWithOptions(u8, @sizeOf(usize) + fake_result.len, @alignOf(usize), null)
+        catch @panic("OOM");
+    @memcpy(result[0..@sizeOf(usize)], &std.mem.toBytes(fake_result.len));
+    @memcpy(result[@sizeOf(usize)..], fake_result);
+    return result.ptr;
 }
