@@ -154,3 +154,44 @@ pub const Scope = @import("Semantic/Scope.zig");
 pub const Symbol = @import("Semantic/Symbol.zig");
 pub const Token = _tokenizer.Token;
 pub const TokenList = _tokenizer.TokenList;
+
+test Semantic {
+    const Source = @import("source.zig").Source;
+    const source_text = "pub fn add(a: u32, b: u32) u32 { return a + b; }";
+    const allocator = std.testing.allocator;
+
+    // use Source.init to read from a file. the fromString API is clunky but
+    // only used for testing.
+    var src = try Source.fromString(
+        allocator,
+        try allocator.dupeZ(u8, source_text),
+        try allocator.dupe(u8, "test.zig"),
+    );
+    defer src.deinit();
+
+    // parse the source and analyze it. spits out a result with the final Semantic
+    // plus any Errors (diagnostics) that were encountered.
+    var builder = Semantic.Builder.init(allocator);
+    defer builder.deinit();
+    builder.withSource(&src);
+    var result = try builder.build(src.text());
+
+    // use .deinit() to free everything. if you plan on taking ownership of the Semantic,
+    // you want .deinitErrors()
+    defer result.deinitErrors();
+    var semantic = result.value;
+    defer semantic.deinit();
+
+    if (result.hasErrors()) {
+        try std.testing.expect(result.errors.items.len != 0);
+        // do something with errors here
+    }
+
+    // time to use it
+
+    // ast nodes
+    try std.testing.expect(semantic.nodes().len != 0);
+    // symbols
+    // implicit file container + `add` + `a` + `b` = 4 symbols
+    try std.testing.expectEqual(4, semantic.symbols.symbols.len);
+}

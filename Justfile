@@ -109,6 +109,7 @@ lint:
 
 docs:
     zig build docs
+    cp -r zig-out/docs apps/site/static/lib-docs
 
 codegen:
     zig build codegen
