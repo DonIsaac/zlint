@@ -187,4 +187,4 @@ const Fix = @import("fix.zig").Fix;
 const Fixer = @import("fix.zig").Fixer;
 const Error = @import("../Error.zig");
 
-const Semantic = @import("../semantic.zig").Semantic;
+const Semantic = @import("../Semantic.zig");

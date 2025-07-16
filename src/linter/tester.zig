@@ -361,7 +361,7 @@ const Linter = @import("linter.zig").Linter;
 const Rule = @import("rule.zig").Rule;
 const Fix = @import("fix.zig").Fix;
 const Fixer = @import("fix.zig").Fixer;
-const Semantic = @import("../semantic.zig").Semantic;
+const Semantic = @import("../Semantic.zig");
 const Source = @import("../source.zig").Source;
 const GraphicalFormatter = @import("../reporter.zig").formatter.Graphical;
 

@@ -9,7 +9,7 @@ const TestFolders = utils.TestFolders;
 const Printer = zlint.printer.Printer;
 const SemanticPrinter = zlint.printer.SemanticPrinter;
 
-const Semantic = zlint.semantic.Semantic;
+const Semantic = zlint.Semantic;
 
 const FailError = error{
     ExpectedSemanticFailure,

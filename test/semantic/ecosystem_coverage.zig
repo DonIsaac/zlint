@@ -51,7 +51,7 @@ fn testSemantic(alloc: Allocator, source: *const Source) !void {
         else
             print("\n", .{});
     }
-    var builder = zlint.semantic.Semantic.Builder.init(alloc);
+    var builder = zlint.Semantic.Builder.init(alloc);
     defer builder.deinit();
     var res = try builder.build(source.text());
     defer res.deinit();

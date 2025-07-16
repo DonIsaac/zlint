@@ -60,7 +60,7 @@
 const std = @import("std");
 const util = @import("util");
 
-const semantic = @import("../../semantic.zig");
+const Semantic = @import("../../Semantic.zig");
 const _rule = @import("../rule.zig");
 const a = @import("../ast_utils.zig");
 const walk = @import("../../visit/walk.zig");
@@ -70,8 +70,7 @@ const Ast = std.zig.Ast;
 const Node = Ast.Node;
 const Token = Semantic.Token;
 const TokenIndex = Ast.TokenIndex;
-const Symbol = semantic.Symbol;
-const Semantic = semantic.Semantic;
+const Symbol = Semantic.Symbol;
 
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;

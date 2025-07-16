@@ -280,7 +280,7 @@ const mem = std.mem;
 const util = @import("util");
 const _rule = @import("rule.zig");
 const _source = @import("../source.zig");
-const _semantic = @import("../semantic.zig");
+const Semantic = @import("../Semantic.zig");
 
 const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
@@ -288,7 +288,6 @@ const Error = @import("../Error.zig");
 const Severity = Error.Severity;
 const LabeledSpan = @import("../span.zig").LabeledSpan;
 const Rule = _rule.Rule;
-const Semantic = _semantic.Semantic;
 const Source = _source.Source;
 
 const Fix = @import("./fix.zig").Fix;

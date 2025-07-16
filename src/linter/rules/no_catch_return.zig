@@ -39,7 +39,7 @@
 
 const std = @import("std");
 const util = @import("util");
-const semantic = @import("../../semantic.zig");
+const Semantic = @import("../../Semantic.zig");
 const _rule = @import("../rule.zig");
 
 const Ast = std.zig.Ast;
@@ -76,7 +76,7 @@ pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterCont
     const tags: []const Node.Tag = ctx.ast().nodes.items(.tag);
     const tok_tags: []const Token.Tag = ctx.ast().tokens.items(.tag);
     const datas: []const Node.Data = ctx.ast().nodes.items(.data);
-    const NULL_NODE = semantic.Semantic.NULL_NODE;
+    const NULL_NODE = Semantic.NULL_NODE;
     const node = wrapper.node;
 
     if (node.tag != .@"catch") return;
