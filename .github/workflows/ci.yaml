@@ -30,7 +30,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ZIG_VERSION: 0.14.0
+  ZIG_VERSION: 0.14.1
 
 jobs:
   check:
@@ -42,7 +42,7 @@ jobs:
       - uses: extractions/setup-just@v2
         with:
           just-version: ${{ env.JUST_VERSION }}
-      - uses: mlugg/setup-zig@v1
+      - uses: mlugg/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
       # Run checks
@@ -58,7 +58,7 @@ jobs:
       - uses: actions/checkout@v4
       # Install tooling
       - uses: extractions/setup-just@v2
-      - uses: mlugg/setup-zig@v1
+      - uses: mlugg/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
       # Run tests
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/checkout@v4
       # Install tooling
       - uses: extractions/setup-just@v2
-      - uses: mlugg/setup-zig@v1
+      - uses: mlugg/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
       - run: zig build --fetch
@@ -97,7 +97,7 @@ jobs:
       - uses: actions/checkout@v4
       # Install tooling
       - uses: extractions/setup-just@v2
-      - uses: mlugg/setup-zig@v1
+      - uses: mlugg/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
       - run: rm -rf ~/.cache/zig
@@ -117,7 +117,7 @@ jobs:
         with:
           bun-version: latest
       - uses: extractions/setup-just@v2
-      - uses: mlugg/setup-zig@v1
+      - uses: mlugg/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
       - run: zig build docs codegen

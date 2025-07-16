@@ -8,7 +8,7 @@ on:
       - main
 
 env:
-  ZIG_VERSION: 0.14.0
+  ZIG_VERSION: 0.14.1
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,7 +25,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y kcov
       - uses: extractions/setup-just@v2
-      - uses: mlugg/setup-zig@v1
+      - uses: mlugg/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
 
