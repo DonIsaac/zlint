@@ -1,9 +1,6 @@
 const std = @import("std");
 const Source = @import("../../source.zig").Source;
 
-const path = std.fs.path;
-const json = std.json;
-
 // const allocator = std.testing.allocator;
 const print_command = @import("../print_command.zig");
 

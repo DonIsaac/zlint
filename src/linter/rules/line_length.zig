@@ -66,7 +66,7 @@ pub fn runOnce(self: *const LineLength, ctx: *LinterContext) void {
     const newline_offset = getNewlineOffset(lines.first());
     lines.reset();
     while (lines.next()) |line| {
-        const line_length = @as(u32, @intCast(line.len));
+        const line_length: u32 = @intCast(line.len);
         if (line.len > self.max_length) {
             ctx.report(lineLengthDiagnostic(ctx, line_start_idx, line_length));
         }

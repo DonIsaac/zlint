@@ -11,7 +11,6 @@ const panic = std.debug.panic;
 
 const CONFIG_OUT = "src/linter/config/rules_config.zig";
 const SCHEMA_OUT = "zlint.schema.json";
-const RULES_DIR = "src/linter/rules";
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};

@@ -2,13 +2,11 @@ const std = @import("std");
 const zlint = @import("zlint");
 const mem = std.mem;
 const Allocator = mem.Allocator;
-const ArenaAllocator = std.heap.ArenaAllocator;
 
 const Schema = zlint.json.Schema;
 const Rule = zlint.lint.Rule;
 const Config = zlint.lint.Config;
 const RulesConfig = Config.RulesConfig;
-const assert = std.debug.assert;
 
 pub const RULES_DIR = "src/linter/rules";
 /// ZLint assumes files are less than 2^32 (~4GB) in size.

@@ -35,9 +35,7 @@ const ast_utils = @import("../ast_utils.zig");
 
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
-const Span = _span.Span;
 const Symbol = Semantic.Symbol;
-const LabeledSpan = _span.LabeledSpan;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
 

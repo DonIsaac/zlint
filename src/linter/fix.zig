@@ -223,7 +223,6 @@ const std = @import("std");
 const heap = std.heap;
 const mem = std.mem;
 const util = @import("util");
-const Semantic = @import("../Semantic.zig");
 
 const Allocator = std.mem.Allocator;
 const Span = @import("../span.zig").Span;

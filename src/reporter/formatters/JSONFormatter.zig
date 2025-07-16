@@ -75,4 +75,3 @@ const Writer = std.io.AnyWriter;
 const Error = @import("../../Error.zig");
 const _span = @import("../../span.zig");
 const LabeledSpan = _span.LabeledSpan;
-const Location = _span.Location;
