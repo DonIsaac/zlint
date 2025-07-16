@@ -31,10 +31,5 @@ globalThis.onmessage = async (ev) => {
   postMessage({ result });
 
   wexp.free_string(ptr, zigSrc.length);
-  wexp.free_string(resultStringPtr, zigSrc.length);
+  wexp.free_string(resultStringPtr, resultStringLen);
 };
-
-
-
-
-// what you want with result

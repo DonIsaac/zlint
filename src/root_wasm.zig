@@ -24,7 +24,7 @@ const AnalyzeRes = extern struct {
 
 export var analyze_res = AnalyzeRes{ .len = 0, .ptr = null };
 
-/// caller must free result.ptr with free_string! (tbh haven't tested)
+/// caller must free result.ptr with free_string!
 export fn analyze(ptr: [*]const u8, len: usize) *AnalyzeRes {
     const input = ptr[0..len];
     const result = std.heap.wasm_allocator.dupe(u8, input) catch @panic("OOM");
