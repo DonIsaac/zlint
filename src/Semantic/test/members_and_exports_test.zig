@@ -1,12 +1,9 @@
 const std = @import("std");
-const meta = std.meta;
 const test_util = @import("util.zig");
 
 const Symbol = @import("../Symbol.zig");
-const Reference = @import("../Reference.zig");
 
 const t = std.testing;
-const panic = std.debug.panic;
 const print = std.debug.print;
 const build = test_util.build;
 

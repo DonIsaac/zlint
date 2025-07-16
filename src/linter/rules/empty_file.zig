@@ -20,7 +20,6 @@
 
 const std = @import("std");
 const _rule = @import("../rule.zig");
-const util = @import("util");
 
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;

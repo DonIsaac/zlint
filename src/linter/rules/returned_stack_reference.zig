@@ -49,19 +49,14 @@
 
 const std = @import("std");
 const util = @import("util");
-const _source = @import("../../source.zig");
 const Semantic = @import("../../Semantic.zig");
 const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
-const ast_utils = @import("../ast_utils.zig");
 const walk = @import("../../visit/walk.zig");
 
-const Allocator = std.mem.Allocator;
 const Ast = std.zig.Ast;
 const Node = Ast.Node;
-const Symbol = Semantic.Symbol;
 const Scope = Semantic.Scope;
-const Loc = std.zig.Loc;
 const Span = _span.Span;
 const LabeledSpan = _span.LabeledSpan;
 const LinterContext = @import("../lint_context.zig");
@@ -69,7 +64,6 @@ const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
 
 const Error = @import("../../Error.zig");
-const Cow = util.Cow(false);
 const NULL_NODE = Semantic.NULL_NODE;
 
 // Rule metadata

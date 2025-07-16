@@ -14,7 +14,6 @@ const path = fs.path;
 const Allocator = mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Writer = fs.File.Writer;
-const Config = zlint.lint.Config;
 const Schema = zlint.json.Schema;
 
 const panic = std.debug.panic;

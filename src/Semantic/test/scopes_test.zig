@@ -2,12 +2,9 @@ const std = @import("std");
 const Semantic = @import("../../Semantic.zig");
 
 const t = std.testing;
-const print = std.debug.print;
 const build = @import("./util.zig").build;
-const Tuple = std.meta.Tuple;
 
 const Scope = Semantic.Scope;
-const Symbol = Semantic.Symbol;
 
 test "functions create a parameter list + function body scope" {
     const source =
