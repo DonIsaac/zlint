@@ -209,7 +209,7 @@ pub fn runOnNode(self: *const AllocatorFirstParam, wrapper: NodeWrapper, ctx: *L
     } else 0;
 
     if (alloc_param_pos != expected_pos) {
-        if (self.ignore.len and fn_proto.name_token != null) {
+        if (self.ignore.len > 0 and fn_proto.name_token != null) {
             const fn_name = ctx.semantic.tokenSlice(fn_proto.name_token.?);
             for (self.ignore) |ignored| {
                 if (std.mem.eql(u8, fn_name, ignored)) {
