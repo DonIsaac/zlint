@@ -14,7 +14,7 @@ export default function Playground() {
   const outputDiv = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    worker.current = new Worker("/js/worker.js");
+    worker.current = new Worker("/zlint/js/worker.js");
     worker.current.onmessage = ({ data }) => {
       if (outputDiv.current === null) return;
       outputDiv.current.textContent = data.result

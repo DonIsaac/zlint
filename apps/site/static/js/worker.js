@@ -1,26 +1,37 @@
-const wasm = WebAssembly.compileStreaming(fetch("/wasm/playground.wasm"));
+// @ts-check
 
-/** @param {MessageEvent} */
-window.onmessage = ({ data }) => {
+// TODO: can't do this efficient one liner cuz docusaurus is serving locally as HTML mimetype
+//const wasmPromise = WebAssembly.instantiateStreaming(fetch("/zlint/wasm/playground.wasm"));
+const wasmPromise = (async () => {
+  const wasmResp = await fetch("/zlint/wasm/playground.wasm");
+  const wasmBytes = await wasmResp.arrayBuffer();
+  const wasm = WebAssembly.instantiate(wasmBytes);
+  return wasm;
+})();
+
+/** @param {MessageEvent} ev */
+globalThis.onmessage = async (ev) => {
+  const wasm = await wasmPromise;
+  const { data } = ev;
   if (data.type !== "analyze") throw Error("unexpected message type");
 
   const zigSrc = data.zigCode;
 
-  const ptr = wasm.exports.alloc_string(zigSrc.length)
-  const array = new Uint8Array(wasm.exports.memory.buffer, ptr, zigSrc.length);
-  new TextEncoder("utf8").encodeInto(zigSrc, array.byteLength);
+  const wexp = wasm.instance.exports;
+  const ptr = wexp.alloc_string(zigSrc.length)
+  const array = new Uint8Array(wexp.memory.buffer, ptr, zigSrc.length);
+  new TextEncoder().encodeInto(zigSrc, array);
 
-
-  const resultPtr = wasm.exports.analyze(ptr, array.byteLength);
+  const resultPtr = wexp.analyze(ptr, array.byteLength);
   const ANALYZE_RES_SIZE = 8;
-  const resultView = new DataView(wasm.exports.memory.buffer, resultPtr, ANALYZE_RES_SIZE);
+  const resultView = new DataView(wexp.memory.buffer, resultPtr, ANALYZE_RES_SIZE);
   const resultStringLen = resultView.getUint32(0, true);
   const resultStringPtr = resultView.getUint32(4, true);
-  const result = new TextDecoder().decode(new Uint8Array(wasm.exports.memory.buffer, resultStringPtr, resultStringLen));
+  const result = new TextDecoder().decode(new Uint8Array(wexp.memory.buffer, resultStringPtr, resultStringLen));
 
   postMessage({ result });
 
-  wasm.exports.free_string(ptr);
+  wexp.free_string(ptr);
 };
 
 
