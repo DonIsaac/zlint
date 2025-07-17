@@ -1,7 +1,7 @@
 //! Rule config generator task. This does two things:
 //! 1. Generates the rules config struct from all registered rules.
 //! 2. Generates a JSON schema for `zlint.json`.
-//! 
+//!
 //! Note that rules config is a subset of zlint's full config.
 const std = @import("std");
 const gen = @import("gen_utils.zig");
@@ -14,7 +14,6 @@ const Config = zlint.lint.Config;
 
 const fs = std.fs;
 const panic = std.debug.panic;
-
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
