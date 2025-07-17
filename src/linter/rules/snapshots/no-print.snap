@@ -1,0 +1,27 @@
+  𝙭 no-print: Using `std.debug.print` is not allowed.
+   ╭─[no-print.zig:3:13]
+ 2 │ fn foo() void {
+ 3 │   std.debug.print("This should not be here: {d}\n", .{42});
+   ·             ─────
+ 4 │ }
+   ╰────
+  help: End-users don't want to see debug logs. Use `std.log` instead.
+
+  𝙭 no-print: Using `std.debug.print` is not allowed.
+   ╭─[no-print.zig:4:9]
+ 3 │ fn foo() void {
+ 4 │   debug.print("This should not be here: {d}\n", .{42});
+   ·         ─────
+ 5 │ }
+   ╰────
+  help: End-users don't want to see debug logs. Use `std.log` instead.
+
+  𝙭 no-print: Using `std.debug.print` is not allowed.
+   ╭─[no-print.zig:4:3]
+ 3 │ fn foo() void {
+ 4 │   print("This should not be here: {d}\n", .{42});
+   ·   ─────
+ 5 │ }
+   ╰────
+  help: End-users don't want to see debug logs. Use `std.log` instead.
+

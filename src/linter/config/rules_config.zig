@@ -4,19 +4,20 @@ const rules = @import("../rules.zig");
 
 pub const RulesConfig = struct {
     pub usingnamespace @import("./rules_config.methods.zig").RulesConfigMethods(@This());
+    allocator_first_param: RuleConfig(rules.AllocatorFirstParam) = .{},
+    avoid_as: RuleConfig(rules.AvoidAs) = .{},
+    case_convention: RuleConfig(rules.CaseConvention) = .{},
+    empty_file: RuleConfig(rules.EmptyFile) = .{},
     homeless_try: RuleConfig(rules.HomelessTry) = .{},
     line_length: RuleConfig(rules.LineLength) = .{},
     must_return_ref: RuleConfig(rules.MustReturnRef) = .{},
     no_catch_return: RuleConfig(rules.NoCatchReturn) = .{},
+    no_print: RuleConfig(rules.NoPrint) = .{},
     no_return_try: RuleConfig(rules.NoReturnTry) = .{},
     no_unresolved: RuleConfig(rules.NoUnresolved) = .{},
+    returned_stack_reference: RuleConfig(rules.ReturnedStackReference) = .{},
     suppressed_errors: RuleConfig(rules.SuppressedErrors) = .{},
     unsafe_undefined: RuleConfig(rules.UnsafeUndefined) = .{},
     unused_decls: RuleConfig(rules.UnusedDecls) = .{},
     useless_error_return: RuleConfig(rules.UselessErrorReturn) = .{},
-    empty_file: RuleConfig(rules.EmptyFile) = .{},
-    avoid_as: RuleConfig(rules.AvoidAs) = .{},
-    case_convention: RuleConfig(rules.CaseConvention) = .{},
-    returned_stack_reference: RuleConfig(rules.ReturnedStackReference) = .{},
-    allocator_first_param: RuleConfig(rules.AllocatorFirstParam) = .{},
 };

@@ -23,7 +23,7 @@ class RuleData {
         this.StructName = kebabToPascal(this.name)
         this.underscored = this.name.replaceAll('-', '_')
         const [first, ...segs] = this.name.split('-')
-        this.camelCaseName = first + segs.map(seg => seg[0].toUpperCase + seg.slice(1)).join("")
+        this.camelCaseName = first + segs.map(seg => seg[0].toUpperCase() + seg.slice(1)).join("")
     }
 
     get path(): string {
@@ -131,7 +131,7 @@ fn ${camelCaseName}Diagnostic(ctx: *LinterContext, node: Node.Index) Error {
        .{"bad"},
        // use 'ctx.labelT' for tokens, or 'ctx.span{T,N}' to not use a label
        // if you use tokens, change the ^node parameter to 'token: TokenIndex'.
-       ctx.labelN(node, "its bad because of {s}", .{"some reason"}),
+       .{ ctx.labelN(node, "its bad because of {s}", .{"some reason"}) },
     );
 }
 

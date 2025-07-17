@@ -18,26 +18,6 @@
     },
     "$schema": "https://json-schema.org/draft-07/schema#",
     "definitions": {
-        "linter.rules.unused_decls": {
-            "type": "object",
-            "title": "unused-decls config",
-            "properties": {}
-        },
-        "linter.rules.suppressed_errors": {
-            "type": "object",
-            "title": "suppressed-errors config",
-            "properties": {}
-        },
-        "linter.rules.useless_error_return": {
-            "type": "object",
-            "title": "useless-error-return config",
-            "properties": {}
-        },
-        "linter.rules.avoid_as": {
-            "type": "object",
-            "title": "avoid-as config",
-            "properties": {}
-        },
         "linter.rules.allocator_first_param": {
             "type": "object",
             "title": "allocator-first-param config",
@@ -50,6 +30,26 @@
                     }
                 }
             }
+        },
+        "linter.rules.avoid_as": {
+            "type": "object",
+            "title": "avoid-as config",
+            "properties": {}
+        },
+        "linter.rules.suppressed_errors": {
+            "type": "object",
+            "title": "suppressed-errors config",
+            "properties": {}
+        },
+        "linter.rules.unused_decls": {
+            "type": "object",
+            "title": "unused-decls config",
+            "properties": {}
+        },
+        "linter.rules.useless_error_return": {
+            "type": "object",
+            "title": "useless-error-return config",
+            "properties": {}
         },
         "Error.Severity": {
             "title": "Severity",
@@ -76,28 +76,6 @@
             "type": "object",
             "description": "Configure which rules are enabled and how.",
             "properties": {
-                "useless-error-return": {
-                    "description": "## What This Rule Does\n\nDetects functions that have an error union return type but never actually return an error.\nThis can happen in two ways:\n1. The function never returns an error value\n2. The function catches all errors internally and never propagates them to the caller\n\nHaving an error union return type when errors are never returned makes the code less clear\nand forces callers to handle errors that will never occur.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\n// Function declares error return but only returns void\nfn foo() !void {\n    return;\n}\n\n// Function catches all errors internally\npub fn init(allocator: std.mem.Allocator) !Foo {\n    const new = allocator.create(Foo) catch @panic(\"OOM\");\n    new.* = .{};\n    return new;\n}\n\n// Function only returns success value\nfn bar() !void {\n    const e = baz();\n    return e;\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\n// Function properly propagates errors\nfn foo() !void {\n    return error.Oops;\n}\n\n// Function returns result of fallible operation\nfn bar() !void {\n    return baz();\n}\n\n// Function propagates caught errors\nfn qux() !void {\n    bar() catch |e| return e;\n}\n\n// Function with conditional error return\nfn check(x: bool) !void {\n    return if (x) error.Invalid else {};\n}\n\n// Empty error set is explicitly allowed\nfn noErrors() error{}!void {}\n```",
-                    "default": "off",
-                    "markdownDescription": "## What This Rule Does\n\nDetects functions that have an error union return type but never actually return an error.\nThis can happen in two ways:\n1. The function never returns an error value\n2. The function catches all errors internally and never propagates them to the caller\n\nHaving an error union return type when errors are never returned makes the code less clear\nand forces callers to handle errors that will never occur.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\n// Function declares error return but only returns void\nfn foo() !void {\n    return;\n}\n\n// Function catches all errors internally\npub fn init(allocator: std.mem.Allocator) !Foo {\n    const new = allocator.create(Foo) catch @panic(\"OOM\");\n    new.* = .{};\n    return new;\n}\n\n// Function only returns success value\nfn bar() !void {\n    const e = baz();\n    return e;\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\n// Function properly propagates errors\nfn foo() !void {\n    return error.Oops;\n}\n\n// Function returns result of fallible operation\nfn bar() !void {\n    return baz();\n}\n\n// Function propagates caught errors\nfn qux() !void {\n    bar() catch |e| return e;\n}\n\n// Function with conditional error return\nfn check(x: bool) !void {\n    return if (x) error.Invalid else {};\n}\n\n// Empty error set is explicitly allowed\nfn noErrors() error{}!void {}\n```",
-                    "oneOf": [
-                        {
-                            "$ref": "#/definitions/Error.Severity"
-                        },
-                        {
-                            "type": "array",
-                            "items": false,
-                            "prefixItems": [
-                                {
-                                    "$ref": "#/definitions/Error.Severity"
-                                },
-                                {
-                                    "$ref": "#/definitions/linter.rules.useless_error_return"
-                                }
-                            ]
-                        }
-                    ]
-                },
                 "avoid-as": {
                     "description": "## What This Rule Does\n\nDisallows using `@as()` when types can be otherwise inferred.\n\nZig has powerful [Result Location Semantics](https://ziglang.org/documentation/master/#Result-Location-Semantics) for inferring what type\nsomething should be. This happens in function parameters, return types,\nand type annotations. `@as()` is a last resort when no other contextual\ninformation is available. In any other case, other type inference mechanisms\nshould be used.\n\n:::warning\n\nChecks for function parameters and return types are not yet implemented.\n\n:::\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst x = @as(u32, 1);\n\nfn foo(x: u32) u64 {\n  return @as(u64, x); // type is inferred from return type\n}\nfoo(@as(u32, 1)); // type is inferred from function signature\n```\n\nExamples of **correct** code for this rule:\n```zig\nconst x: u32 = 1;\n\nfn foo(x: u32) void {\n  // ...\n}\nfoo(1);\n```",
                     "default": "warn",
@@ -159,6 +137,28 @@
                                 },
                                 {
                                     "$ref": "#/definitions/linter.rules.allocator_first_param"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "useless-error-return": {
+                    "description": "## What This Rule Does\n\nDetects functions that have an error union return type but never actually return an error.\nThis can happen in two ways:\n1. The function never returns an error value\n2. The function catches all errors internally and never propagates them to the caller\n\nHaving an error union return type when errors are never returned makes the code less clear\nand forces callers to handle errors that will never occur.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\n// Function declares error return but only returns void\nfn foo() !void {\n    return;\n}\n\n// Function catches all errors internally\npub fn init(allocator: std.mem.Allocator) !Foo {\n    const new = allocator.create(Foo) catch @panic(\"OOM\");\n    new.* = .{};\n    return new;\n}\n\n// Function only returns success value\nfn bar() !void {\n    const e = baz();\n    return e;\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\n// Function properly propagates errors\nfn foo() !void {\n    return error.Oops;\n}\n\n// Function returns result of fallible operation\nfn bar() !void {\n    return baz();\n}\n\n// Function propagates caught errors\nfn qux() !void {\n    bar() catch |e| return e;\n}\n\n// Function with conditional error return\nfn check(x: bool) !void {\n    return if (x) error.Invalid else {};\n}\n\n// Empty error set is explicitly allowed\nfn noErrors() error{}!void {}\n```",
+                    "default": "off",
+                    "markdownDescription": "## What This Rule Does\n\nDetects functions that have an error union return type but never actually return an error.\nThis can happen in two ways:\n1. The function never returns an error value\n2. The function catches all errors internally and never propagates them to the caller\n\nHaving an error union return type when errors are never returned makes the code less clear\nand forces callers to handle errors that will never occur.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\n// Function declares error return but only returns void\nfn foo() !void {\n    return;\n}\n\n// Function catches all errors internally\npub fn init(allocator: std.mem.Allocator) !Foo {\n    const new = allocator.create(Foo) catch @panic(\"OOM\");\n    new.* = .{};\n    return new;\n}\n\n// Function only returns success value\nfn bar() !void {\n    const e = baz();\n    return e;\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\n// Function properly propagates errors\nfn foo() !void {\n    return error.Oops;\n}\n\n// Function returns result of fallible operation\nfn bar() !void {\n    return baz();\n}\n\n// Function propagates caught errors\nfn qux() !void {\n    bar() catch |e| return e;\n}\n\n// Function with conditional error return\nfn check(x: bool) !void {\n    return if (x) error.Invalid else {};\n}\n\n// Empty error set is explicitly allowed\nfn noErrors() error{}!void {}\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.useless_error_return"
                                 }
                             ]
                         }
@@ -230,6 +230,28 @@
                         }
                     ]
                 },
+                "empty-file": {
+                    "description": "## What This Rule Does\nThis rule checks for empty .zig files in the project.\nA file should be deemed empty if it has no content (zero bytes) or only comments and whitespace characters,\nas defined by the standard library in [`std.ascii.whitespace`](https://ziglang.org/documentation/master/std/#std.ascii.whitespace).\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n\n\n```zig\n// an \"empty\" file is actually a file without meaningful code: just comments (doc or normal) or whitespace\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn exampleFunction() void {\n}\n```",
+                    "default": "warn",
+                    "markdownDescription": "## What This Rule Does\nThis rule checks for empty .zig files in the project.\nA file should be deemed empty if it has no content (zero bytes) or only comments and whitespace characters,\nas defined by the standard library in [`std.ascii.whitespace`](https://ziglang.org/documentation/master/std/#std.ascii.whitespace).\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n\n\n```zig\n// an \"empty\" file is actually a file without meaningful code: just comments (doc or normal) or whitespace\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn exampleFunction() void {\n}\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.empty_file"
+                                }
+                            ]
+                        }
+                    ]
+                },
                 "line-length": {
                     "description": "## What This Rule Does\n\nChecks if any line goes beyond a given number of columns.\n\n## Examples\n\nExamples of **incorrect** code for this rule (with a threshold of 120 columns):\n```zig\nconst std = @import(\"std\");\nconst longStructDeclarationInOneLine = struct { max_length: u32 = 120, a: usize = 123, b: usize = 12354, c: usize = 1234352 };\nfn reallyExtraVerboseFunctionNameToThePointOfBeingACodeSmellAndProbablyAHintThatYouCanGetAwayWithAnotherNameOrSplittingThisIntoSeveralFunctions() u32 {\n    return 123;\n}\n```\n\nExamples of **correct** code for this rule (with a threshold of 120 columns):\n```zig\nconst std = @import(\"std\");\nconst longStructInMultipleLines = struct {\n    max_length: u32 = 120,\n    a: usize = 123,\n    b: usize = 12354,\n    c: usize = 1234352,\n};\nfn Get123Constant() u32 {\n    return 123;\n}\n```",
                     "default": "off",
@@ -252,10 +274,10 @@
                         }
                     ]
                 },
-                "empty-file": {
-                    "description": "## What This Rule Does\nThis rule checks for empty .zig files in the project.\nA file should be deemed empty if it has no content (zero bytes) or only comments and whitespace characters,\nas defined by the standard library in [`std.ascii.whitespace`](https://ziglang.org/documentation/master/std/#std.ascii.whitespace).\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n\n\n```zig\n// an \"empty\" file is actually a file without meaningful code: just comments (doc or normal) or whitespace\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn exampleFunction() void {\n}\n```",
+                "no-print": {
+                    "description": "## What This Rule Does\nDisallows the use of `std.debug.print`.\n\n`print` statements are great for debugging, but they should be removed\nbefore code gets merged. When you need debug logs in production, use\n`std.log` instead.\n\nThis rule makes a best-effort attempt to ensure `print` calls are actually\nfrom `std.debug.print`. It will not report calls to custom print functions\nif they are defined within the same file. If you are getting false positives\nbecause you import a custom print function, consider disabling this rule on\na file-by-file basis instead of turning it off globally.\n\n### Tests\nBy default, this rule ignores `print`s in test blocks and files. Files are\nconsidered to be a test file if they end with `test.zig`. You may disable\nthis by setting `allow_tests` to `false` in the rule's metadata.\n\n```json\n{\n  \"rules\": {\n    \"no-print\": [\"warn\", { \"allow_tests\": false }]\n  }\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst std = @import(\"std\");\nconst debug = std.debug;\nconst print = std.debug.print;\nfn main() void {\n    std.debug.print(\"This should not be here: {d}\\n\", .{42});\n    debug.print(\"This should not be here: {d}\\n\", .{42});\n    print(\"This should not be here: {d}\\n\", .{42});\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nconst std = @import(\"std\");\nfn foo() u32 {\n    std.log.debug(\"running foo\", .{});\n    return 1;\n}\n\ntest foo {\n    std.debug.print(\"testing foo\\n\", .{});\n    try std.testing.expectEqual(1, foo());\n}\n```\n\n```zig\nfn print(comptime msg: []const u8, args: anytype) void {\n    // ...\n}\nfn main() void {\n    print(\"Staring program\", .{});\n}\n```",
                     "default": "warn",
-                    "markdownDescription": "## What This Rule Does\nThis rule checks for empty .zig files in the project.\nA file should be deemed empty if it has no content (zero bytes) or only comments and whitespace characters,\nas defined by the standard library in [`std.ascii.whitespace`](https://ziglang.org/documentation/master/std/#std.ascii.whitespace).\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n\n\n```zig\n// an \"empty\" file is actually a file without meaningful code: just comments (doc or normal) or whitespace\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn exampleFunction() void {\n}\n```",
+                    "markdownDescription": "## What This Rule Does\nDisallows the use of `std.debug.print`.\n\n`print` statements are great for debugging, but they should be removed\nbefore code gets merged. When you need debug logs in production, use\n`std.log` instead.\n\nThis rule makes a best-effort attempt to ensure `print` calls are actually\nfrom `std.debug.print`. It will not report calls to custom print functions\nif they are defined within the same file. If you are getting false positives\nbecause you import a custom print function, consider disabling this rule on\na file-by-file basis instead of turning it off globally.\n\n### Tests\nBy default, this rule ignores `print`s in test blocks and files. Files are\nconsidered to be a test file if they end with `test.zig`. You may disable\nthis by setting `allow_tests` to `false` in the rule's metadata.\n\n```json\n{\n  \"rules\": {\n    \"no-print\": [\"warn\", { \"allow_tests\": false }]\n  }\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst std = @import(\"std\");\nconst debug = std.debug;\nconst print = std.debug.print;\nfn main() void {\n    std.debug.print(\"This should not be here: {d}\\n\", .{42});\n    debug.print(\"This should not be here: {d}\\n\", .{42});\n    print(\"This should not be here: {d}\\n\", .{42});\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nconst std = @import(\"std\");\nfn foo() u32 {\n    std.log.debug(\"running foo\", .{});\n    return 1;\n}\n\ntest foo {\n    std.debug.print(\"testing foo\\n\", .{});\n    try std.testing.expectEqual(1, foo());\n}\n```\n\n```zig\nfn print(comptime msg: []const u8, args: anytype) void {\n    // ...\n}\nfn main() void {\n    print(\"Staring program\", .{});\n}\n```",
                     "oneOf": [
                         {
                             "$ref": "#/definitions/Error.Severity"
@@ -268,7 +290,7 @@
                                     "$ref": "#/definitions/Error.Severity"
                                 },
                                 {
-                                    "$ref": "#/definitions/linter.rules.empty_file"
+                                    "$ref": "#/definitions/linter.rules.no_print"
                                 }
                             ]
                         }
@@ -413,14 +435,24 @@
             "title": "homeless-try config",
             "properties": {}
         },
+        "linter.rules.no_print": {
+            "type": "object",
+            "title": "no-print config",
+            "properties": {
+                "allow_tests": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
+        },
         "linter.rules.empty_file": {
             "type": "object",
             "title": "empty-file config",
             "properties": {}
         },
-        "linter.rules.no_catch_return": {
+        "linter.rules.case_convention": {
             "type": "object",
-            "title": "no-catch-return config",
+            "title": "case-convention config",
             "properties": {}
         },
         "linter.rules.must_return_ref": {
@@ -428,9 +460,9 @@
             "title": "must-return-ref config",
             "properties": {}
         },
-        "linter.rules.case_convention": {
+        "linter.rules.no_catch_return": {
             "type": "object",
-            "title": "case-convention config",
+            "title": "no-catch-return config",
             "properties": {}
         },
         "linter.rules.line_length": {
@@ -454,6 +486,11 @@
             "title": "no-unresolved config",
             "properties": {}
         },
+        "linter.rules.returned_stack_reference": {
+            "type": "object",
+            "title": "returned-stack-reference config",
+            "properties": {}
+        },
         "linter.rules.unsafe_undefined": {
             "type": "object",
             "title": "unsafe-undefined config",
@@ -473,11 +510,6 @@
                     "default": true
                 }
             }
-        },
-        "linter.rules.returned_stack_reference": {
-            "type": "object",
-            "title": "returned-stack-reference config",
-            "properties": {}
         }
     }
 }
