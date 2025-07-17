@@ -1,0 +1,76 @@
+# `no-print`
+
+<RuleBanner category="restriction" default="warning" />
+
+## What This Rule Does
+
+Disallows the use of `std.debug.print`.
+
+`print` statements are great for debugging, but they should be removed
+before code gets merged. When you need debug logs in production, use
+`std.log` instead.
+
+This rule makes a best-effort attempt to ensure `print` calls are actually
+from `std.debug.print`. It will not report calls to custom print functions
+if they are defined within the same file. If you are getting false positives
+because you import a custom print function, consider disabling this rule on
+a file-by-file basis instead of turning it off globally.
+
+### Tests
+
+By default, this rule ignores `print`s in test blocks and files. Files are
+considered to be a test file if they end with `test.zig`. You may disable
+this by setting `allow_tests` to `false` in the rule's metadata.
+
+```json
+{
+  "rules": {
+    "no-print": ["warn", { "allow_tests": false }]
+  }
+}
+```
+
+## Examples
+
+Examples of **incorrect** code for this rule:
+
+```zig
+const std = @import("std");
+const debug = std.debug;
+const print = std.debug.print;
+fn main() void {
+    std.debug.print("This should not be here: {d}\n", .{42});
+    debug.print("This should not be here: {d}\n", .{42});
+    print("This should not be here: {d}\n", .{42});
+}
+```
+
+Examples of **correct** code for this rule:
+
+```zig
+const std = @import("std");
+fn foo() u32 {
+    std.log.debug("running foo", .{});
+    return 1;
+}
+
+test foo {
+    std.debug.print("testing foo\n", .{});
+    try std.testing.expectEqual(1, foo());
+}
+```
+
+```zig
+fn print(comptime msg: []const u8, args: anytype) void {
+    // ...
+}
+fn main() void {
+    print("Staring program", .{});
+}
+```
+
+## Configuration
+
+This rule accepts the following options:
+
+- allow_tests: boolean
