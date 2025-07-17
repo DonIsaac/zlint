@@ -2,6 +2,24 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "check",
+            "command": "zig",
+            "args": ["check"],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": ["$zig"],
+            "presentation": {
+                "echo": true,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true,
+            }
+        },
+        {
             "label": "build",
             "command": "zig",
             "args": ["build"],
@@ -12,7 +30,7 @@
             "problemMatcher": ["$zig"],
             "presentation": {
                 "echo": true,
-                "reveal": "silent",
+                "reveal": "never",
                 "focus": false,
                 "panel": "shared",
                 "showReuseMessage": false,

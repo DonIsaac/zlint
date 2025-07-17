@@ -2,13 +2,13 @@ const std = @import("std");
 const zlint = @import("zlint");
 const mem = std.mem;
 const Allocator = mem.Allocator;
+const c = @import("constants.zig");
 
 const Schema = zlint.json.Schema;
 const Rule = zlint.lint.Rule;
 const Config = zlint.lint.Config;
 const RulesConfig = Config.RulesConfig;
 
-pub const RULES_DIR = "src/linter/rules";
 /// ZLint assumes files are less than 2^32 (~4GB) in size.
 pub const MAX = std.math.maxInt(u32);
 
@@ -30,7 +30,7 @@ pub const RuleInfo = struct {
             mem.replaceScalar(u8, &snake_case_name, '-', '_');
             rule_infos[i] = RuleInfo{
                 .meta = rule_meta,
-                .path = RULES_DIR ++ "/" ++ snake_case_name ++ ".zig",
+                .path = c.@"linter/rules" ++ "/" ++ snake_case_name ++ ".zig",
                 .name_pascale = rule_decl.name,
             };
             i += 1;

@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const Build = std.Build;
 const Module = std.Build.Module;
+const codegen = @import("tasks/codegen_task.zig");
 
 const v14 = builtin.zig_version.minor >= 14;
 

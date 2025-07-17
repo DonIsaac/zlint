@@ -53,7 +53,7 @@ run *ARGS:
 
 # Build in debug mode
 build *ARGS:
-    zig build --summary all {{ARGS}}
+    zig build --prominent-compile-errors --summary all {{ARGS}}
 
 # Check for syntax and semantic errors
 check:
@@ -68,7 +68,7 @@ watch cmd="check":
 
 # Run unit tests
 test:
-    zig build test --summary all
+    zig build test --prominent-compile-errors --summary all
 
 # Run end-to-end tests
 e2e *ARGS:

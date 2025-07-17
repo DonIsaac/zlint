@@ -2,6 +2,11 @@
   "name": "zlint",
   "version": "0.0.0",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DonIsaac/zlint",
+    "directory": "apps/site"
+  },
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
