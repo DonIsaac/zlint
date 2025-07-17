@@ -1,8 +1,9 @@
 # `homeless-try`
 
-<RuleBanner category="compiler" default="err"  />
+<RuleBanner category="compiler" default="err" />
 
 ## What This Rule Does
+
 Checks for `try` statements used outside of error-returning functions.
 
 As a `compiler`-level lint, this rule checks for errors also caught by the
@@ -11,6 +12,7 @@ Zig compiler.
 ## Examples
 
 Examples of **incorrect** code for this rule:
+
 ```zig
 const std = @import("std");
 
@@ -28,6 +30,7 @@ fn bar() !void {
 ```
 
 Examples of **correct** code for this rule:
+
 ```zig
 fn foo() !void {
   var my_str = try std.heap.page_allocator.alloc(u8, 8);
@@ -36,6 +39,7 @@ fn foo() !void {
 
 Zig allows `try` in comptime scopes in or nested within functions. This rule
 does not flag these cases.
+
 ```zig
 const std = @import("std");
 fn foo(x: u32) void {
@@ -52,6 +56,7 @@ fn bar(x: u32) !void {
 Zig also allows `try` on functions whose error union sets are empty. ZLint
 does _not_ respect this case. Please refactor such functions to not return
 an error union.
+
 ```zig
 const std = @import("std");
 fn foo() !u32 {
@@ -65,4 +70,5 @@ fn bar() u32 {
 ```
 
 ## Configuration
+
 This rule has no configuration.

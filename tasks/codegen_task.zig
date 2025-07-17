@@ -12,75 +12,82 @@ pub const CodegenTasks = struct {
     target: ?Build.ResolvedTarget = null,
     optimize: std.builtin.OptimizeMode = .Debug,
 
-    _docgen_mod: ?*Module = null,
-    _confgen_mod: ?*Module = null,
+    _docgen_exe: ?*Step.Compile = null,
+    _confgen_exe: ?*Step.Compile = null,
 
-    pub fn docgenStep(self: *CodegenTasks) *Step {
+    /// `zig build docs`
+    pub fn docs(self: *CodegenTasks) *Step {
         const b = self.b;
-        const docgen_exe = b.addExecutable(Build.ExecutableOptions{
-            .name = "docgen",
-            .root_module = self.docgen(),
-            .optimize = self.optimize,
-            .target = self.target,
-        });
+        const docgen_exe = self.docgen();
+        const fmt_docs = bun(
+            self.b,
+            "run",
+            &[_][]const u8{ "fmt:some", c.@"docs/rules" },
+        );
+
         const docgen_run = b.addRunArtifact(docgen_exe);
+        fmt_docs.step.dependOn(&docgen_run.step);
 
-        const docgen_step = b.step("docgen", "Generate lint rule docs");
-        docgen_step.dependOn(&docgen_run.step);
-        docgen_step.dependOn(bun(self.b, "run", .{ "fmt:some", c.@"docs/rules" }));
+        const docs_step = b.step("docs", "Generate lint rule docs + zlint library docs");
+        docs_step.dependOn(&docgen_run.step);
+        docs_step.dependOn(&fmt_docs.step);
 
-        return docgen_step;
+        return docs_step;
     }
 
-    pub fn confgenStep(self: *CodegenTasks) *Step {
+    /// `zig build config`
+    pub fn config(self: *CodegenTasks) *Step {
         const b = self.b;
-        const confgen_exe = b.addExecutable(Build.ExecutableOptions{
-            .name = "confgen",
-            .root_module = self.confgen(),
-            .optimize = self.optimize,
-            .target = self.target,
-        });
+        const confgen_exe = self.confgen();
         const confgen_run = b.addRunArtifact(confgen_exe);
 
         const fmt_rule_docs = b.addSystemCommand(
             &[_][]const u8{ "zig", "fmt", c.@"rules_config.zig" },
         );
 
-        const confgen_step = b.step("confgen", "Generate rules config");
-        confgen_step.dependOn(&confgen_run.step);
-        confgen_step.dependOn(&fmt_rule_docs.step);
+        const config_step = b.step("config", "Generate rules config");
+        config_step.dependOn(&confgen_run.step);
+        config_step.dependOn(&fmt_rule_docs.step);
 
-        return confgen_step;
+        return config_step;
     }
 
-    pub fn docgen(self: *CodegenTasks) *Module {
-        return self._docgen_mod orelse new: {
-            const b = self.b;
-            self._docgen_mod = b.createModule(Module.CreateOptions{
-                .root_source_file = b.path("tasks/docgen.zig"),
-                .optimize = self.optimize,
-                .target = self.target,
-                .imports = &[_]Module.Import{
-                    .{ .name = "zlint", .module = self.zlint },
-                },
-            });
-            break :new self._docgen_mod.?;
-        };
+    pub fn docgen(self: *CodegenTasks) *Step.Compile {
+        if (self._docgen_exe) |exe| return exe;
+        const b = self.b;
+        const docgen_mod = b.createModule(Module.CreateOptions{
+            .root_source_file = b.path("tasks/docgen.zig"),
+            .optimize = self.optimize,
+            .target = self.target,
+            .imports = &[_]Module.Import{
+                .{ .name = "zlint", .module = self.zlint },
+            },
+        });
+        self._docgen_exe = b.addExecutable(.{
+            .name = "docgen",
+            .root_module = docgen_mod,
+            .optimize = self.optimize,
+        });
+        return self._docgen_exe.?;
     }
 
-    pub fn confgen(self: *CodegenTasks) *Module {
-        return self._confgen_mod orelse new: {
-            const b = self.b;
-            self._confgen_mod = b.createModule(Module.CreateOptions{
-                .root_source_file = b.path("tasks/confgen.zig"),
-                .optimize = self.optimize,
-                .target = self.target,
-                .imports = &[_]Module.Import{
-                    .{ .name = "zlint", .module = self.zlint },
-                },
-            });
-            break :new self._confgen_mod.?;
-        };
+    pub fn confgen(self: *CodegenTasks) *Step.Compile {
+        if (self._confgen_exe) |exe| return exe;
+        const b = self.b;
+        const confgen_mod = b.createModule(Module.CreateOptions{
+            .root_source_file = b.path("tasks/confgen.zig"),
+            .optimize = self.optimize,
+            .target = self.target,
+            .imports = &[_]Module.Import{
+                .{ .name = "zlint", .module = self.zlint },
+            },
+        });
+        self._confgen_exe = b.addExecutable(.{
+            .name = "confgen",
+            .root_module = confgen_mod,
+            .optimize = self.optimize,
+        });
+        return self._confgen_exe.?;
     }
 };
 

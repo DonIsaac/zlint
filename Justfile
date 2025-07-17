@@ -41,8 +41,9 @@ install dir="~/.bin":
 ready:
     # git diff --name-only --exit-code
     just fmt
-    zig build check
-    zig build install codegen docs:rules
+    zig build check --prominent-compile-errors
+    zig build codegen
+    zig build install
     zig build test
     zig build test-e2e
     git status
@@ -107,12 +108,9 @@ lint:
         bunx oxlint@latest -D correctness -D suspicious -D perf
     fi
 
-docs:
-    zig build docs
-    cp -r zig-out/docs apps/site/static/lib-docs
-
 codegen:
     zig build codegen
+    cp -r zig-out/docs apps/site/static/lib-docs
 
 # Remove build and test artifacts
 clean:

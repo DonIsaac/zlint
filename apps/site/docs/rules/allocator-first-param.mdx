@@ -1,6 +1,6 @@
 # `allocator-first-param`
 
-<RuleBanner category="style" default="off"  />
+<RuleBanner category="style" default="off" />
 
 ## What This Rule Does
 
@@ -8,17 +8,21 @@ Checks that functions taking allocators as parameters have the allocator as
 the first parameter. This conforms to common Zig conventions.
 
 ## Rule Details
+
 This rule looks for functions take an `Allocator` parameter and reports a
 violation if
+
 - it is not the first parameter, or
 - there is a `self` parameter, and the allocator does not immediately follow it.
 
 Parameters are considered to be an allocator if
+
 - the are named `allocator`, `alloc`, `gpa`, or `arena`, or one of those
   with leading/trailing underscores,
 - their type ends with `Allocator`
 
 Parameters are considered to be a `self` parameter if
+
 - they are named `self`, `this`, or one of those with leading/trailing underscores.
 - their type is `@This()`, `*@This()`, etc.
 - their type is a Capitalized and the function is within the definition of a
@@ -27,6 +31,7 @@ Parameters are considered to be a `self` parameter if
 ## Examples
 
 Examples of **incorrect** code for this rule:
+
 ```zig
 fn foo(x: u32, allocator: Allocator) !*u32 {
   const heap_x = try allocator.create(u32);
@@ -36,6 +41,7 @@ fn foo(x: u32, allocator: Allocator) !*u32 {
 ```
 
 Examples of **correct** code for this rule:
+
 ```zig
 fn foo(allocator: Allocator, x: u32) !*u32 {
   const heap_x = try allocator.create(u32);
@@ -52,5 +58,7 @@ const Foo = struct {
 ```
 
 ## Configuration
+
 This rule accepts the following options:
+
 - ignore: array

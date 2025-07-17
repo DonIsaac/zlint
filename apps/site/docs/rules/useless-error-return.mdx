@@ -1,11 +1,12 @@
 # `useless-error-return`
 
-<RuleBanner category="suspicious" default="off"  />
+<RuleBanner category="suspicious" default="off" />
 
 ## What This Rule Does
 
 Detects functions that have an error union return type but never actually return an error.
 This can happen in two ways:
+
 1. The function never returns an error value
 2. The function catches all errors internally and never propagates them to the caller
 
@@ -15,6 +16,7 @@ and forces callers to handle errors that will never occur.
 ## Examples
 
 Examples of **incorrect** code for this rule:
+
 ```zig
 // Function declares error return but only returns void
 fn foo() !void {
@@ -36,6 +38,7 @@ fn bar() !void {
 ```
 
 Examples of **correct** code for this rule:
+
 ```zig
 // Function properly propagates errors
 fn foo() !void {
@@ -62,4 +65,5 @@ fn noErrors() error{}!void {}
 ```
 
 ## Configuration
+
 This rule has no configuration.

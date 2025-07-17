@@ -1,8 +1,9 @@
 # `must-return-ref`
 
-<RuleBanner category="suspicious" default="warning"  />
+<RuleBanner category="suspicious" default="warning" />
 
 ## What This Rule Does
+
 Disallows returning copies of types that store a `capacity`.
 
 Zig does not have move semantics. Returning a value by value copies it.
@@ -31,6 +32,7 @@ pub fn main() !void {
 ## Examples
 
 Examples of **incorrect** code for this rule:
+
 ```zig
 fn foo(self: *Foo) std.ArrayList(u32) {
   return self.list;
@@ -38,6 +40,7 @@ fn foo(self: *Foo) std.ArrayList(u32) {
 ```
 
 Examples of **correct** code for this rule:
+
 ```zig
 // pass by reference
 fn foo(self: *Foo) *std.ArrayList(u32) {
@@ -51,4 +54,5 @@ fn foo() ArenaAllocator {
 ```
 
 ## Configuration
+
 This rule has no configuration.

@@ -1,6 +1,6 @@
 # `unused-decls`
 
-<RuleBanner category="correctness" default="warning" fix={{"kind":"fix","dangerous":true}} />
+<RuleBanner category="correctness" default="warning" fix={{ kind: 'fix', dangerous: true }} />
 
 ## What This Rule Does
 
@@ -24,6 +24,7 @@ top-level `const` variable declarations are checked.
 ## Examples
 
 Examples of **incorrect** code for this rule:
+
 ```zig
 // `std` used, but `Allocator` is not.
 const std = @import("std");
@@ -39,6 +40,7 @@ extern fn bar(a: i32) void;
 ```
 
 Examples of **correct** code for this rule:
+
 ```zig
 // Discarded variables are considered "used".
 const x = 1;
@@ -53,4 +55,5 @@ pub fn foo(x: u32) void {
 ```
 
 ## Configuration
+
 This rule has no configuration.

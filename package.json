@@ -16,7 +16,7 @@
     ],
     "scripts": {
         "fmt": "prettier -u --write .",
-        "fmt:some": "prettier -u"
+        "fmt:some": "prettier -u --write"
     },
     "devDependencies": {
         "@types/bun": "latest"

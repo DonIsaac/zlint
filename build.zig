@@ -152,24 +152,27 @@ pub fn build(b: *std.Build) void {
         test_all_step.dependOn(&run_e2e.step);
     }
 
-    // zig build docs
+    // zig build (docs, confgen, codegen
+    var ct = codegen.CodegenTasks{
+        .b = b,
+        .optimize = l.optimize,
+        .target = l.target,
+        .zlint = zlint,
+    };
     {
-        const docs_step = b.step("docs", "Generate documentation");
-        const docs_rules_step = Tasks.generateRuleDocs(&l);
+        const config_step = ct.config();
+        const docs_step = ct.docs();
+
         const lib_docs = b.addInstallDirectory(.{
             .source_dir = lib.getEmittedDocs(),
             .install_dir = .prefix,
             .install_subdir = "docs",
         });
-        docs_step.dependOn(docs_rules_step);
         docs_step.dependOn(&lib_docs.step);
-    }
 
-    // zig build codegen
-    {
-        const codegen = b.step("codegen", "Codegen");
-        const confgen_task = Tasks.generateRulesConfig(&l);
-        codegen.dependOn(confgen_task);
+        const codegen_step = b.step("codegen", "Generate all codegen artifacts");
+        codegen_step.dependOn(config_step);
+        codegen_step.dependOn(docs_step);
     }
 
     // check is down here because it's weird. We create mocks of each artifacts
@@ -187,8 +190,8 @@ pub fn build(b: *std.Build) void {
             l.link(&check_e2e.root_module, true, .{"recover"});
         }
         // tasks
-        const check_docgen = b.addExecutable(.{ .name = "docgen", .root_source_file = b.path("tasks/docgen.zig"), .target = l.target });
-        const check_confgen = b.addExecutable(.{ .name = "confgen", .root_source_file = b.path("tasks/confgen.zig"), .target = l.target });
+        const check_docgen = ct.docgen();
+        const check_confgen = ct.confgen();
 
         // these compilation targets depend on zlint as a module
         const needs_zlint = .{ check_e2e, check_docgen, check_confgen };
@@ -216,52 +219,6 @@ pub fn build(b: *std.Build) void {
         }
     }
 }
-
-const Tasks = struct {
-    fn generateRuleDocs(l: *Linker) *Build.Step {
-        const docgen_exe = l.b.addExecutable(.{
-            .name = "docgen",
-            .root_source_file = l.b.path("tasks/docgen.zig"),
-            .target = l.target,
-            .optimize = l.optimize,
-        });
-        const zlint = l.b.modules.get("zlint") orelse @panic("Missing module: zlint");
-        docgen_exe.root_module.addImport("zlint", zlint);
-        const docgen_run = l.b.addRunArtifact(docgen_exe);
-
-        const bunx_prettier = Tasks.bunx(l, "prettier@3", &[_][]const u8{ "--write", "docs/rules/*.md" });
-        bunx_prettier.step.dependOn(&docgen_run.step);
-
-        const docgen = l.b.step("docs:rules", "Generate lint rule documentation");
-        docgen.dependOn(&bunx_prettier.step);
-        return docgen;
-    }
-
-    fn generateRulesConfig(l: *Linker) *Build.Step {
-        const confgen_exe = l.b.addExecutable(.{
-            .name = "confgen",
-            .root_source_file = l.b.path("tasks/confgen.zig"),
-            .target = l.target,
-            .optimize = l.optimize,
-        });
-        const zlint = l.b.modules.get("zlint") orelse @panic("Missing module: zlint");
-        confgen_exe.root_module.addImport("zlint", zlint);
-        const confgen_run = l.b.addRunArtifact(confgen_exe);
-        const confgen = l.b.step("codegen:rules-config", "Generate RulesConfig");
-        confgen.dependOn(&confgen_run.step);
-        return confgen;
-    }
-    fn bunx(l: *Linker, comptime cmd: []const u8, comptime args: []const []const u8) *Build.Step.Run {
-        const b = l.b;
-        return b.addSystemCommand(.{ "bunx", cmd } ++ args);
-    }
-    // fn generateLibDocs(l: *Linker) *Build.Step {
-    //     const b = l.b;
-    // }
-    // fn formatDocs(l: *Linker) *Build.Step {
-    //     const b = l.b;
-    // }
-};
 
 /// Stores modules and dependencies. Use `link` to register them as imports.
 const Linker = struct {

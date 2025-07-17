@@ -1,8 +1,9 @@
 # `returned-stack-reference`
 
-<RuleBanner category="nursery" default="off"  />
+<RuleBanner category="nursery" default="off" />
 
 ## What This Rule Does
+
 Checks for functions that return references to stack-allocated memory.
 
 :::warning
@@ -30,6 +31,7 @@ fn bar() void {
 ## Examples
 
 Examples of **incorrect** code for this rule:
+
 ```zig
 const std = @import("std");
 fn foo() *u32 {
@@ -43,6 +45,7 @@ fn bar() []u32 {
 ```
 
 Examples of **correct** code for this rule:
+
 ```zig
 fn foo() *u32 {
   var x = std.heap.page_allocator.create(u32);
@@ -52,4 +55,5 @@ fn foo() *u32 {
 ```
 
 ## Configuration
+
 This rule has no configuration.
