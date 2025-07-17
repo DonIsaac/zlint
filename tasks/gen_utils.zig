@@ -81,7 +81,6 @@ pub fn ruleSchemaMap(allocator: Allocator) !struct { *Schema.Context, *SchemaMap
     inline for (info.fields) |rule_config| {
         const RuleConfig = @FieldType(RulesConfig, rule_config.name);
         const rule_schema = try ctx.addSchema(RuleConfig);
-        std.debug.print("{s}: {any}\n", .{ RuleConfig.name, rule_schema });
         try map.put(RuleConfig.name, rule_schema.*);
     }
 
