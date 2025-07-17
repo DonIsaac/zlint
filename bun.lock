@@ -3,6 +3,9 @@
   "workspaces": {
     "": {
       "name": "zlint",
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
     },
     "apps/site": {
       "name": "zlint",
