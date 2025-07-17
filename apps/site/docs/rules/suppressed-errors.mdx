@@ -1,14 +1,16 @@
 # `suppressed-errors`
 
-<RuleBanner category="suspicious" default="warning"  />
+<RuleBanner category="suspicious" default="warning" />
 
 ## What This Rule Does
+
 Disallows suppressing or otherwise mishandling caught errors.
 
 Functions that return error unions could error during "normal" execution.
 If they didn't, they would not return an error or would panic instead.
 
 This rule enforces that errors are
+
 1. Propagated up to callers either implicitly or by returning a new error,
    ```zig
    const a = try foo();
@@ -33,6 +35,7 @@ This rule enforces that errors are
 ## Examples
 
 Examples of **incorrect** code for this rule:
+
 ```zig
 const x = foo() catch {};
 const y = foo() catch {
@@ -43,6 +46,7 @@ const y = foo() catch unreachable
 ```
 
 Examples of **correct** code for this rule:
+
 ```zig
 const x = foo() catch @panic("foo failed.");
 const y = foo() catch {
@@ -59,4 +63,5 @@ test foo {
 ```
 
 ## Configuration
+
 This rule has no configuration.

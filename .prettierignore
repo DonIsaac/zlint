@@ -1,1 +1,6 @@
 zlint.schema.json
+.zig-cache
+zig-out
+**/.docusaurus
+**/build
+.github

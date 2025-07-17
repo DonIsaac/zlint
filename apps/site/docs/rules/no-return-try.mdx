@@ -1,6 +1,6 @@
 # `no-return-try`
 
-<RuleBanner category="pedantic" default="off"  />
+<RuleBanner category="pedantic" default="off" />
 
 ## What This Rule Does
 
@@ -12,6 +12,7 @@ it and then returning the result.
 ## Examples
 
 Examples of **incorrect** code for this rule:
+
 ```zig
 const std = @import("std");
 
@@ -25,6 +26,7 @@ fn bar() !void {
 ```
 
 Examples of **correct** code for this rule:
+
 ```zig
 const std = @import("std");
 
@@ -42,4 +44,5 @@ fn bar() !void {
 ```
 
 ## Configuration
+
 This rule has no configuration.

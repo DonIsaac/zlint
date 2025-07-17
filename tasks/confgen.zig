@@ -1,6 +1,12 @@
+//! Rule config generator task. This does two things:
+//! 1. Generates the rules config struct from all registered rules.
+//! 2. Generates a JSON schema for `zlint.json`.
+//!
+//! Note that rules config is a subset of zlint's full config.
 const std = @import("std");
-const gen = @import("./gen_utils.zig");
+const gen = @import("gen_utils.zig");
 const zlint = @import("zlint");
+const c = @import("constants.zig");
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Schema = zlint.json.Schema;
@@ -9,16 +15,13 @@ const Config = zlint.lint.Config;
 const fs = std.fs;
 const panic = std.debug.panic;
 
-const CONFIG_OUT = "src/linter/config/rules_config.zig";
-const SCHEMA_OUT = "zlint.schema.json";
-
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
     var stack = std.heap.stackFallback(256, allocator);
     const stackalloc = stack.get();
 
-    const out = try fs.cwd().createFile(CONFIG_OUT, .{});
+    const out = try fs.cwd().createFile(c.@"rules_config.zig", .{});
     defer out.close();
     const w = out.writer();
 
@@ -77,7 +80,7 @@ fn createJsonSchema(allocator: Allocator) !void {
     }
 
     const schema = try ctx.toJson(root);
-    var out = try fs.cwd().createFile(SCHEMA_OUT, .{});
+    var out = try fs.cwd().createFile(c.@"zlint.schema.json", .{});
     defer out.close();
     try std.json.stringify(schema, .{ .whitespace = .indent_4 }, out.writer());
 }

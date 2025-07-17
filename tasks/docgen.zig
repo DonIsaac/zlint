@@ -1,11 +1,12 @@
 //! Generates rule documentation markdown files from all registered rules.
 //!
 //! Rules are read from the rules module (src/linter/rules.zig) and saved to
-//! `docs/rules`.
+//! the docs folder (`OUT_DIR`).
 
 const std = @import("std");
 const gen = @import("./gen_utils.zig");
 const zlint = @import("zlint");
+const RULE_DOCS_DIR = @import("./constants.zig").@"docs/rules";
 const fs = std.fs;
 const log = std.log;
 const mem = std.mem;
@@ -100,23 +101,6 @@ fn generateDocFile(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
 
 fn renderDocs(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
     try ctx.writer.print("# `{s}`\n\n", .{rule.name(.kebab)});
-    // const enabled_message = switch (rule.meta.default) {
-    //     .off => "No",
-    //     .err => "Yes (error)",
-    //     .warning => "Yes (warning)",
-    //     .notice => "Yes (notice)",
-    // };
-    // try ctx.writer.print(
-    //     \\> Category: {s}
-    //     \\>
-    //     \\> Enabled by default?: {s}
-    //     \\
-    // ,
-    //     .{
-    //         @tagName(rule.meta.category),
-    //         enabled_message,
-    //     },
-    // );
     try ctx.writer.print(
         \\<RuleBanner category="{s}" default="{s}" 
     , .{
@@ -137,7 +121,9 @@ fn renderDocs(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
 
 fn renderConfigSection(ctx: *Context, rule: gen.RuleInfo) !void {
     // SAFETY: allocator only used
-    var schema: ?Schema = ctx.schemas.get(rule.name(.kebab)).?;
+    var schema: ?Schema = ctx.schemas.get(rule.name(.kebab)) orelse {
+        panic("Could not find schema for rule '{s}'", .{rule.meta.name});
+    };
     while (true) {
         const s: Schema = schema orelse break;
         switch (s) {

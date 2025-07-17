@@ -2,10 +2,24 @@
     "name": "zlint",
     "private": true,
     "license": "MIT",
+    "author": "Don Isaac",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/DonIsaac/zlint"
+    },
     "categories": [
         "Linters"
     ],
+    "packageManager": "bun@1.2.19",
     "workspaces": [
         "apps/*"
-    ]
+    ],
+    "scripts": {
+        "fmt": "prettier -u --write .",
+        "fmt:some": "prettier -u --write"
+    },
+    "devDependencies": {
+        "@types/bun": "latest",
+        "prettier": "^3.6.2"
+    }
 }

@@ -1,8 +1,9 @@
 # `no-catch-return`
 
-<RuleBanner category="pedantic" default="warning" fix={{"kind":"fix","dangerous":false}} />
+<RuleBanner category="pedantic" default="warning" fix={{ kind: 'fix', dangerous: false }} />
 
 ## What This Rule Does
+
 Disallows `catch` blocks that immediately return the caught error.
 
 Catch blocks that do nothing but return their error can and should be
@@ -12,6 +13,7 @@ have side effects such as printing the error or switching over it.
 ## Examples
 
 Examples of **incorrect** code for this rule:
+
 ```zig
 fn foo() !void {
   riskyOp() catch |e| return e;
@@ -20,6 +22,7 @@ fn foo() !void {
 ```
 
 Examples of **correct** code for this rule:
+
 ```zig
 const std = @import("std");
 
@@ -42,4 +45,5 @@ fn baz() !void {
 ```
 
 ## Configuration
+
 This rule has no configuration.

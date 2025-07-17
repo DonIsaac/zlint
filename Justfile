@@ -41,8 +41,9 @@ install dir="~/.bin":
 ready:
     # git diff --name-only --exit-code
     just fmt
-    zig build check
-    zig build install codegen docs:rules
+    zig build check --prominent-compile-errors
+    zig build codegen
+    zig build install
     zig build test
     zig build test-e2e
     git status
@@ -53,7 +54,7 @@ run *ARGS:
 
 # Build in debug mode
 build *ARGS:
-    zig build --summary all {{ARGS}}
+    zig build --prominent-compile-errors --summary all {{ARGS}}
 
 # Check for syntax and semantic errors
 check:
@@ -68,7 +69,7 @@ watch cmd="check":
 
 # Run unit tests
 test:
-    zig build test --summary all
+    zig build test --prominent-compile-errors --summary all
 
 # Run end-to-end tests
 e2e *ARGS:
@@ -107,12 +108,9 @@ lint:
         bunx oxlint@latest -D correctness -D suspicious -D perf
     fi
 
-docs:
-    zig build docs
-    cp -r zig-out/docs apps/site/static/lib-docs
-
 codegen:
     zig build codegen
+    cp -r zig-out/docs apps/site/static/lib-docs
 
 # Remove build and test artifacts
 clean:
