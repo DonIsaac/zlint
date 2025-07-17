@@ -19,6 +19,7 @@
         "fmt:some": "prettier -u --write"
     },
     "devDependencies": {
-        "@types/bun": "latest"
+        "@types/bun": "latest",
+        "prettier": "^3.6.2"
     }
 }
