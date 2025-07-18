@@ -2,6 +2,8 @@
 
 This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
 
+> NOTE: Docusarus uses [infirma](https://infima.dev/docs/getting-started/introduction) css for styling.
+
 ## Installation
 
 ```bash

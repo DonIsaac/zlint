@@ -28,6 +28,8 @@
   --ifm-color-primary-lighter: #febc51;
   --ifm-color-primary-lightest: #fbbb54;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --ifm-color-info: #1c61ec;
+  --ifm-color-warning: #ce9908;
 }
 
 /* .alert {

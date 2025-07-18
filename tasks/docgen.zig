@@ -100,6 +100,12 @@ fn generateDocFile(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
 }
 
 fn renderDocs(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
+    try ctx.writer.writeAll(
+        \\---
+        \\rule: '
+    );
+    try std.json.stringify(rule.meta, .{}, ctx.writer);
+    try ctx.writer.writeAll("'\n---\n\n");
     try ctx.writer.print("# `{s}`\n\n", .{rule.name(.kebab)});
     try ctx.writer.print(
         \\<RuleBanner category="{s}" default="{s}" 
