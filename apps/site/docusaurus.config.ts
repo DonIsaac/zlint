@@ -86,7 +86,7 @@ const config: Config = {
       github: 'https://github.com/DonIsaac/zlint',
     },
   },
-  plugins: [rulesPlugin],
+  plugins: [rulesPlugin as PluginModule<any>],
 
   presets: [
     [
