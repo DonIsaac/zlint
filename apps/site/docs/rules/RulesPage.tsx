@@ -3,11 +3,13 @@ import Badge from '@site/src/components/Badge'
 import FlexRow from '@site/src/components/Row'
 import { Rule } from '@site/src/types'
 import { SearchIcon } from 'lucide-react'
-import { FC, useDeferredValue, useMemo, useState } from 'react'
+import { FC, useDeferredValue, useMemo, useState, memo } from 'react'
 import styles from './RulesPage.module.css'
 import clsx from 'clsx'
 import { Variant } from '@site/src/theme/types'
 import Link from '@docusaurus/Link'
+import Markdown from 'react-markdown'
+
 type RuleMetadata = Record<string, { meta: Rule.Meta; tldr: string }>
 
 export default function RulesPage() {
@@ -44,22 +46,26 @@ export default function RulesPage() {
   )
 }
 
-const RuleCard: FC<FinalRuleMeta> = ({ name, tldr, category, severity }) => {
-  return (
-    <Link to={`rules/${name}`} className={clsx('card', styles.ruleCard)}>
-      <div className={clsx('card__header', styles.cardHeader)}>
-        <h3>{name}</h3>
-        <FlexRow>
-          <Badge variant="info">{category}</Badge>
-          {severity !== 'off' && <Badge variant={severityVariants[severity]}>{severity}</Badge>}
-        </FlexRow>
-      </div>
-      <div className={clsx('card__body', styles.cardBody)}>
-        <p>{tldr}</p>
-      </div>
-    </Link>
-  )
-}
+const RuleCard: FC<FinalRuleMeta> = memo(
+  ({ name, tldr, category, severity }) => {
+    return (
+      <Link to={`rules/${name}`} className={clsx('card', styles.ruleCard)}>
+        <div className={clsx('card__header', styles.cardHeader)}>
+          <h3>{name}</h3>
+          <FlexRow>
+            <Badge variant="info">{category}</Badge>
+            {severity !== 'off' && <Badge variant={severityVariants[severity]}>{severity}</Badge>}
+          </FlexRow>
+        </div>
+        <div className={clsx('card__body', styles.cardBody)}>
+          <Markdown>{tldr}</Markdown>
+        </div>
+      </Link>
+    )
+  },
+  (prev, curr) => prev.name === curr.name
+)
+
 const severityVariants: Record<Rule.Severity, Variant> = {
   off: 'secondary',
   notice: 'info',

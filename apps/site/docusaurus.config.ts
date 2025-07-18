@@ -7,7 +7,7 @@ import assert from 'assert'
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
-const rulesPlugin: PluginModule<Record<string, { meta: any, tldr: string }>> = (_ctx, _options) => {
+const rulesPlugin: PluginModule<Record<string, { meta: any; tldr: string }>> = (_ctx, _options) => {
   return {
     name: 'zlint-rules-plugin',
     async loadContent() {
@@ -20,30 +20,27 @@ const rulesPlugin: PluginModule<Record<string, { meta: any, tldr: string }>> = (
       const ruleDocs: string[] = await Promise.all(ruleDocPaths.map((r) => fs.readFile(r, 'utf8')))
       let ruleMetas: Record<string, any> = {}
       for (const rule of ruleDocs) {
-        let start = rule.indexOf("rule: ");
-        assert(start >= 0);
-        while (rule.charAt(start) != '{') start++;
-        let end = rule.indexOf('\n', start);
-        while(["'", " "].includes(rule.charAt(end))) end--;
-        end -= 1;
-        assert(end > start);
-        const meta = JSON.parse(rule.slice(start, end));
+        let start = rule.indexOf('rule: ')
+        assert(start >= 0)
+        while (rule.charAt(start) != '{') start++
+        let end = rule.indexOf('\n', start)
+        while (["'", ' '].includes(rule.charAt(end))) end--
+        end -= 1
+        assert(end > start)
+        const meta = JSON.parse(rule.slice(start, end))
 
         const ruleDocsStartMarker = 'What This Rule Does'
         let ruleDocsStart = rule.indexOf(ruleDocsStartMarker)
-        assert(ruleDocsStart >= 0);
-        ruleDocsStart += ruleDocsStartMarker.length;
-        const tldr = rule.slice(ruleDocsStart).trimStart().split('\n').at(0);
+        assert(ruleDocsStart >= 0)
+        ruleDocsStart += ruleDocsStartMarker.length
+        const tldr = rule.slice(ruleDocsStart).trimStart().split('\n').at(0)
 
         ruleMetas[meta.name] = { meta, tldr }
-
-
       }
       return ruleMetas
     },
     async contentLoaded({ content, actions }) {
       actions.setGlobalData({ rules: content })
-      
     },
   }
 }
