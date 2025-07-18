@@ -59,7 +59,7 @@ const RuleCard: FC<FinalRuleMeta> = ({ name, tldr, category, severity }) => {
     </div>
   )
 }
-const severityVariants:  Record<Rule.Severity, Variant> = {
+const severityVariants: Record<Rule.Severity, Variant> = {
   off: 'secondary',
   notice: 'info',
   warning: 'warning',
