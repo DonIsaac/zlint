@@ -168,7 +168,7 @@ pub fn build(b: *std.Build) void {
             .install_dir = .prefix,
             .install_subdir = "docs",
         });
-        lib_docs.dependOn(docs_step);
+        lib_docs.step.dependOn(docs_step);
 
         const codegen_step = b.step("codegen", "Generate all codegen artifacts");
         codegen_step.dependOn(config_step);
