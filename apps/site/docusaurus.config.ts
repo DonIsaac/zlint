@@ -1,8 +1,52 @@
-import { themes as prismThemes } from 'prism-react-renderer';
-import type { Config } from '@docusaurus/types';
-import type * as Preset from '@docusaurus/preset-classic';
+import { themes as prismThemes } from 'prism-react-renderer'
+import type { Config, PluginModule } from '@docusaurus/types'
+import type * as Preset from '@docusaurus/preset-classic'
+import path from 'path'
+import fs from 'fs/promises'
+import assert from 'assert'
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
+
+const rulesPlugin: PluginModule<Record<string, { meta: any, tldr: string }>> = (ctx, options) => {
+  return {
+    name: 'zlint-rules-plugin',
+    async loadContent() {
+      const dir = path.resolve('docs/rules')
+      const ruleDocPaths: string[] = await fs
+        .readdir(dir)
+        .then((rules) =>
+          rules.filter((r) => r.endsWith('.mdx') && !r.startsWith('index')).map((r) => path.join(dir, r))
+        )
+      const ruleDocs: string[] = await Promise.all(ruleDocPaths.map((r) => fs.readFile(r, 'utf8')))
+      let ruleMetas: Record<string, any> = {}
+      for (const rule of ruleDocs) {
+        let start = rule.indexOf("rule: ");
+        assert(start >= 0);
+        while (rule.charAt(start) != '{') start++;
+        let end = rule.indexOf('\n', start);
+        while(["'", " "].includes(rule.charAt(end))) end--;
+        end -= 1;
+        assert(end > start);
+        const meta = JSON.parse(rule.slice(start, end));
+
+        const ruleDocsStartMarker = 'What This Rule Does'
+        let ruleDocsStart = rule.indexOf(ruleDocsStartMarker)
+        assert(ruleDocsStart >= 0);
+        ruleDocsStart += ruleDocsStartMarker.length;
+        const tldr = rule.slice(ruleDocsStart).trimStart().split('\n').at(0);
+
+        ruleMetas[meta.name] = { meta, tldr }
+
+
+      }
+      return ruleMetas
+    },
+    async contentLoaded({ content, actions }) {
+      actions.setGlobalData({ rules: content })
+      
+    },
+  }
+}
 
 const config: Config = {
   title: 'ZLint',
@@ -40,8 +84,9 @@ const config: Config = {
   customFields: {
     social: {
       github: 'https://github.com/DonIsaac/zlint',
-    }
+    },
   },
+  plugins: [rulesPlugin],
 
   presets: [
     [
@@ -51,8 +96,7 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/DonIsaac/zlint/tree/main/apps/site',
+          editUrl: 'https://github.com/DonIsaac/zlint/tree/main/apps/site',
         },
         blog: {
           showReadingTime: true,
@@ -62,8 +106,7 @@ const config: Config = {
           },
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/DonIsaac/zlint/tree/main/apps/site',
+          editUrl: 'https://github.com/DonIsaac/zlint/tree/main/apps/site',
           // Useful options to enforce blogging best practices
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
@@ -82,7 +125,7 @@ const config: Config = {
     docs: {
       sidebar: {
         autoCollapseCategories: true,
-      }
+      },
     },
     colorMode: {
       respectPrefersColorScheme: true,
@@ -163,11 +206,11 @@ const config: Config = {
         {
           className: 'theme-code-block-highlighted-line',
           line: 'highlight-next-line',
-          block: {start: 'highlight-start', end: 'highlight-end'},
+          block: { start: 'highlight-start', end: 'highlight-end' },
         },
       ],
     },
   } satisfies Preset.ThemeConfig,
-};
+}
 
-export default config;
+export default config

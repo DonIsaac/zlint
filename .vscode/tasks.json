@@ -3,8 +3,9 @@
     "tasks": [
         {
             "label": "check",
+            "detail": "zig build check",
             "command": "zig",
-            "args": ["check"],
+            "args": ["build", "check"],
             "group": {
                 "kind": "build",
                 "isDefault": false
@@ -21,6 +22,7 @@
         },
         {
             "label": "build",
+            "detail": "zig build",
             "command": "zig",
             "args": ["build"],
             "group": {
@@ -93,6 +95,22 @@
                 "create tmp/ast.json",
                 "build -Dsingle-threaded"
             ]
-        }
+        },
+        {
+            "label": "codegen",
+            "detail": "just codegen",
+            "command": "just",
+            "args": ["codegen"],
+            "group": "build",
+            "problemMatcher": ["$zig"],
+            "presentation": {
+                "echo": true,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true,
+            }
+        },
     ],
 }

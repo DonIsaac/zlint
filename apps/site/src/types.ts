@@ -15,4 +15,12 @@ export namespace Rule {
     "'compiler' | 'correctness' | 'suspicious' | 'restriction' | 'pedantic' | 'style' | 'nursery'"
   )
   export type Category = typeof Category.infer
+
+  export const Meta = type({
+    name: 'string',
+    category: Category,
+    fix: FixMeta,
+    default: Severity,
+  })
+  export type Meta = typeof Meta.infer;
 }
