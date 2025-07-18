@@ -7,7 +7,7 @@ import assert from 'assert'
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
-const rulesPlugin: PluginModule<Record<string, { meta: any, tldr: string }>> = (ctx, options) => {
+const rulesPlugin: PluginModule<Record<string, { meta: any, tldr: string }>> = (_ctx, _options) => {
   return {
     name: 'zlint-rules-plugin',
     async loadContent() {
