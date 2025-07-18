@@ -7,6 +7,7 @@ import { FC, useDeferredValue, useMemo, useState } from 'react'
 import styles from './RulesPage.module.css'
 import clsx from 'clsx'
 import { Variant } from '@site/src/theme/types'
+import Link from '@docusaurus/Link'
 type RuleMetadata = Record<string, { meta: Rule.Meta; tldr: string }>
 
 export default function RulesPage() {
@@ -45,7 +46,7 @@ export default function RulesPage() {
 
 const RuleCard: FC<FinalRuleMeta> = ({ name, tldr, category, severity }) => {
   return (
-    <div className={clsx('card', styles.ruleCard)}>
+    <Link to={`rules/${name}`} className={clsx('card', styles.ruleCard)}>
       <div className={clsx('card__header', styles.cardHeader)}>
         <h3>{name}</h3>
         <FlexRow>
@@ -56,7 +57,7 @@ const RuleCard: FC<FinalRuleMeta> = ({ name, tldr, category, severity }) => {
       <div className={clsx('card__body', styles.cardBody)}>
         <p>{tldr}</p>
       </div>
-    </div>
+    </Link>
   )
 }
 const severityVariants: Record<Rule.Severity, Variant> = {
