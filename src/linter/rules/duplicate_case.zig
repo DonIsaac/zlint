@@ -116,13 +116,14 @@ test DuplicateCase {
         \\  const x = switch (1) {
         \\    1 => 1,
         \\    2 => 2,
+        \\    else => 3,
         \\  };
         \\}
         ,
         \\fn foo(y: u32) void {
         \\  const x = switch (1) {
         \\    1 => y - 1,
-        \\    1 => 1 - y,
+        \\    else => 1 - y,
         \\  };
         \\}
     };
@@ -131,14 +132,14 @@ test DuplicateCase {
         \\fn foo() void {
         \\  const x = switch (1) {
         \\    1 => 1,
-        \\    1 => 1,
+        \\    else => 1,
         \\  };
         \\}
         ,
         \\fn foo(y: u32) void {
         \\  const x = switch (1) {
         \\    1 => y + 1,
-        \\    1 => 1 + y,
+        \\    else => 1 + y,
         \\  };
         \\}
     };
