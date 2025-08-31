@@ -6,5 +6,8 @@
         ".coverage": true,
         ".zig-cache": true,
         "zig-out": true,
+    },
+    "search.exclude": {
+        "bun.lock": true
     }
 }

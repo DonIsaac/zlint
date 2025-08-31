@@ -20,4 +20,5 @@ pub const RulesConfig = struct {
     unsafe_undefined: RuleConfig(rules.UnsafeUndefined) = .{},
     unused_decls: RuleConfig(rules.UnusedDecls) = .{},
     useless_error_return: RuleConfig(rules.UselessErrorReturn) = .{},
+    duplicate_case: RuleConfig(rules.DuplicateCase) = .{},
 };
