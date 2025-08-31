@@ -67,12 +67,11 @@ const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
 const AstComparator = @import("../../visit/AstComparator.zig");
 
-// Rule metadata
 const DuplicateCase = @This();
 pub const meta: Rule.Meta = .{
     .name = "duplicate-case",
-    // TODO: set the category to an appropriate value
-    .category = .correctness,
+    .category = .suspicious,
+    .default = .off,
 };
 
 fn duplicateCaseDiagnostic(ctx: *LinterContext, first: Node.Index, second: Node.Index) Error {
@@ -100,7 +99,6 @@ pub fn runOnNode(_: *const DuplicateCase, wrapper: NodeWrapper, ctx: *LinterCont
     }
 }
 
-// Used by the Linter to register the rule so it can be run.
 pub fn rule(self: *DuplicateCase) Rule {
     return Rule.init(self);
 }
@@ -113,9 +111,7 @@ test DuplicateCase {
     var runner = RuleTester.init(t.allocator, duplicate_case.rule());
     defer runner.deinit();
 
-    // Code your rule should pass on
     const pass = &[_][:0]const u8{
-        // TODO: add test cases
         \\fn foo() void {
         \\  const x = switch (1) {
         \\    1 => 1,
@@ -131,9 +127,7 @@ test DuplicateCase {
         \\}
     };
 
-    // Code your rule should fail on
     const fail = &[_][:0]const u8{
-        // TODO: add test cases
         \\fn foo() void {
         \\  const x = switch (1) {
         \\    1 => 1,
@@ -149,7 +143,6 @@ test DuplicateCase {
         \\}
     };
 
-    // _ = pass;
     try runner
         .withPass(pass)
         .withFail(fail)
