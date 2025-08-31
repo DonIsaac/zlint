@@ -33,9 +33,10 @@ jobs:
         run: bun run build
         working-directory: apps/site
 
-      - name: deploy
-        run: bun run deploy
-        working-directory: apps/site
-        env:
-          USE_SSH: true
+      # TODO: add permissions and uncomment this
+      # - name: deploy
+      #   run: bun run deploy
+      #   working-directory: apps/site
+      #   env:
+      #     USE_SSH: true
         
