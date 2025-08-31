@@ -318,6 +318,28 @@
                         }
                     ]
                 },
+                "duplicate-case": {
+                    "description": "## What This Rule Does\nChecks for duplicate cases in switch statements.\n\nThis rule identifies when switch statements have case branches that could\nbe merged together without affecting program behavior.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nfn foo() void {\n  const x = switch (1) {\n    1 => 1,\n    1 => 1,  // Duplicate case expression\n  };\n}\n\nfn bar(y: u32) void {\n  const x = switch (y) {\n    1 => y + 1,\n    1 => 1 + y,  // Duplicate case\n    2 => y * 2,\n  };\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn foo() void {\n  const x = switch (1) {\n    1 => 1,\n    2 => 2,\n  };\n}\n\nfn bar(y: u32) void {\n  const x = switch (y) {\n    1 => y + 1,\n    2 => y * 2,\n    3 => y - 1,\n  };\n}\n```",
+                    "default": "off",
+                    "markdownDescription": "## What This Rule Does\nChecks for duplicate cases in switch statements.\n\nThis rule identifies when switch statements have case branches that could\nbe merged together without affecting program behavior.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nfn foo() void {\n  const x = switch (1) {\n    1 => 1,\n    1 => 1,  // Duplicate case expression\n  };\n}\n\nfn bar(y: u32) void {\n  const x = switch (y) {\n    1 => y + 1,\n    1 => 1 + y,  // Duplicate case\n    2 => y * 2,\n  };\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn foo() void {\n  const x = switch (1) {\n    1 => 1,\n    2 => 2,\n  };\n}\n\nfn bar(y: u32) void {\n  const x = switch (y) {\n    1 => y + 1,\n    2 => y * 2,\n    3 => y - 1,\n  };\n}\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.duplicate_case"
+                                }
+                            ]
+                        }
+                    ]
+                },
                 "no-unresolved": {
                     "description": "## What This Rule Does\n\nChecks for imports to files that do not exist.\n\nThis rule only checks for file-based imports. Modules added by `build.zig`\nare not checked. More precisely, imports to paths ending in `.zig` will be\nresolved. This rule checks that a file exists at the imported path and is\nnot a directory. Symlinks are allowed but are not followed.\n\n## Examples\nAssume the following directory structure:\n```plaintext\n.\n├── foo.zig\n├── mod\n│   └── bar.zig\n├── not_a_file.zig\n│   └── baz.zig\n└── root.zig\n```\n\nExamples of **incorrect** code for this rule:\n```zig\n// root.zig\nconst x = @import(\"mod/foo.zig\");    // foo.zig is in the root directory.\nconst y = @import(\"not_a_file.zig\"); // directory, not a file\n```\n\nExamples of **correct** code for this rule:\n```zig\n// root.zig\nconst x = @import(\"foo.zig\");\nconst y = @import(\"mod/bar.zig\");\n```",
                     "default": "error",
@@ -429,6 +451,11 @@
                     ]
                 }
             }
+        },
+        "linter.rules.duplicate_case": {
+            "type": "object",
+            "title": "duplicate-case config",
+            "properties": {}
         },
         "linter.rules.homeless_try": {
             "type": "object",
