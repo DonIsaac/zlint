@@ -2,7 +2,9 @@
 //! Checks for duplicate cases in switch statements.
 //!
 //! This rule identifies when switch statements have case branches that could
-//! be merged together without affecting program behavior.
+//! be merged together without affecting program behavior. It does _not_ check
+//! that the value being switched over is the same; rather it checks whether
+//! the target expressions are duplicates.
 //!
 //! ## Examples
 //!
@@ -11,15 +13,15 @@
 //! fn foo() void {
 //!   const x = switch (1) {
 //!     1 => 1,
-//!     1 => 1,  // Duplicate case expression
+//!     else => 1,
 //!   };
 //! }
 //!
 //! fn bar(y: u32) void {
 //!   const x = switch (y) {
 //!     1 => y + 1,
-//!     1 => 1 + y,  // Duplicate case
-//!     2 => y * 2,
+//!     2 => 1 + y,
+//!     else => y * 2,
 //!   };
 //! }
 //! ```
@@ -126,6 +128,13 @@ test DuplicateCase {
         \\    else => 1 - y,
         \\  };
         \\}
+        ,
+        // empty switch
+        \\fn foo() void {
+        \\  const x = switch (1) {
+        \\  };
+        \\}
+        ,
     };
 
     const fail = &[_][:0]const u8{
@@ -142,6 +151,14 @@ test DuplicateCase {
         \\    else => 1 + y,
         \\  };
         \\}
+        ,
+        \\fn foo(y: u32) void {
+        \\  const x = switch (y) {
+        \\    1 => 1 * y + 1,
+        \\    else => 1 + y * 1,
+        \\  };
+        \\}
+        ,
     };
 
     try runner
