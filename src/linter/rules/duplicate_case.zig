@@ -135,6 +135,37 @@ test DuplicateCase {
         \\  };
         \\}
         ,
+        // calls
+        \\ const thing = @import("./thing.zig");
+        \\fn foo(bar: u32, cond: bool) u32 {
+        \\  const x = switch (bar) {
+        \\    1 => thing.f(bar),
+        \\    2 => thing.g(bar),
+        \\    else => 0,
+        \\  };
+        \\  return x;
+        \\}
+        ,
+        \\ const thing = @import("./thing.zig");
+        \\fn foo(bar: u32, cond: bool) u32 {
+        \\  const x = switch (bar) {
+        \\    1 => thing.f(bar),
+        \\    2 => thing.f(bar, bar),
+        \\    else => 0,
+        \\  };
+        \\  return x;
+        \\}
+        ,
+        // if statements
+        \\fn foo(bar: u32, cond: bool) u32 {
+        \\  const x = switch (bar) {
+        \\    1 => if (cond) 1 else 2,  
+        \\    2 => if (cond) 2 else 1,  
+        \\    else => 0
+        \\  };
+        \\  return x;
+        \\}
+        ,
     };
 
     const fail = &[_][:0]const u8{
@@ -159,6 +190,38 @@ test DuplicateCase {
         \\  };
         \\}
         ,
+        // calls
+        \\const thing = @import("./thing.zig");
+        \\const f = thing.f;
+        \\fn foo(bar: u32, cond: bool) u32 {
+        \\  const x = switch (bar) {
+        \\    1 => f(bar),
+        \\    2 => f(bar),
+        \\    else => 0,
+        \\  };
+        \\  return x;
+        \\}
+        ,
+        \\const thing = @import("./thing.zig");
+        \\fn foo(bar: u32, cond: bool) u32 {
+        \\  const x = switch (bar) {
+        \\    1 => thing.f(bar),
+        \\    2 => thing.f(bar),
+        \\    else => 0,
+        \\  };
+        \\  return x;
+        \\}
+        ,
+        // // if statements
+        // \\fn foo(bar: u32, cond: bool) u32 {
+        // \\  const x = switch (bar) {
+        // \\    1 => if (cond) 1 else 2,  
+        // \\    2 => if (cond) 1 else 2,  
+        // \\    else => 0
+        // \\  };
+        // \\  return x;
+        // \\}
+        // ,
     };
 
     try runner

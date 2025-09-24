@@ -1,6 +1,7 @@
 //! Compares two AST subtrees for equality.
 const AstComparator = @This();
 
+// todo: store token list to avoid re-parsing when comparing toks.
 ast: *const Ast,
 
 pub fn eql(ast: *const Ast, a: Node.Index, b: Node.Index) bool {
@@ -23,22 +24,38 @@ fn eqlInner(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
 
     return switch (@as(Node.Tag, x)) {
         .if_simple => eqlIfSimple(self, a, b),
-        .call_one, .call_one_comma, .call_comma, .call => eqlCall(self, a, b),
-        .sub, .div, .mod, .block_two, .block_two_semicolon => binExprEql(self, a, b),
-        .add, .mul, .bit_and, .bit_or => binExprEqlReflexive(self, a, b),
-        .block, .block_semicolon => eqlBlock(self, a, b),
-        .negation, .negation_wrap, .bit_not, .address_of => innerEql(self, a, b, .lhs),
+        .call_one, .call_one_comma, .call_comma, .call => self.eqlCall(a, b),
+        .sub, .div, .mod, .block_two, .block_two_semicolon => self.binExprEql(a, b),
+        .add, .mul, .bit_and, .bit_or => self.binExprEqlReflexive(a, b),
+        .field_access => self.eqlFieldAccess(a, b),
+        .block, .block_semicolon => self.eqlBlock(a, b),
+        .negation, .negation_wrap, .bit_not, .address_of => self.innerEql(a, b, .lhs),
         .number_literal,
         .string_literal,
         .enum_literal,
         .char_literal,
         .identifier,
-        => mainTokensEql(self, a, b),
+        => self.mainTokensEql(a, b),
         .unreachable_literal,
         .root, // null node
         => true,
         else => false,
     };
+}
+
+/// check if two `.field_access` expressions (`foo.bar`) are equal
+fn eqlFieldAccess(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
+    const data = self.nodeData();
+    const left = data[a];
+    const right = data[b];
+
+    const leftMember = self.ast.tokenSlice(left.rhs);
+    const rightMember = self.ast.tokenSlice(right.rhs);
+    if (!mem.eql(u8, leftMember, rightMember)) {
+        return false;
+    }
+
+    return self.eqlInner(left.lhs, right.lhs);
 }
 
 fn eqlBlock(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {

@@ -25,3 +25,21 @@
    ·     ─────────────────
    ╰────
 
+  𝙭 duplicate-case: Switch statement has duplicate cases
+   ╭─[duplicate-case.zig:5:5]
+ 4 │   const x = switch (bar) {
+ 5 │     1 => f(bar),
+   ·     ───────────
+ 6 │     2 => f(bar),
+   ·     ───────────
+   ╰────
+
+  𝙭 duplicate-case: Switch statement has duplicate cases
+   ╭─[duplicate-case.zig:4:5]
+ 3 │   const x = switch (bar) {
+ 4 │     1 => thing.f(bar),
+   ·     ─────────────────
+ 5 │     2 => thing.f(bar),
+   ·     ─────────────────
+   ╰────
+
