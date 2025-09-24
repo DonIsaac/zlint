@@ -23,13 +23,25 @@ fn eqlInner(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
     if (x != y) return false;
 
     return switch (@as(Node.Tag, x)) {
-        .if_simple => eqlIfSimple(self, a, b),
+        .if_simple => self.eqlIfSimple(a, b),
+        .@"if" => self.eqlIf(a, b),
         .call_one, .call_one_comma, .call_comma, .call => self.eqlCall(a, b),
-        .sub, .div, .mod, .block_two, .block_two_semicolon => self.binExprEql(a, b),
-        .add, .mul, .bit_and, .bit_or => self.binExprEqlReflexive(a, b),
         .field_access => self.eqlFieldAccess(a, b),
         .block, .block_semicolon => self.eqlBlock(a, b),
         .negation, .negation_wrap, .bit_not, .address_of => self.innerEql(a, b, .lhs),
+        .sub,
+        .div,
+        .mod,
+        .block_two,
+        .block_two_semicolon,
+        => self.binExprEql(a, b),
+        .add,
+        .mul,
+        .bit_and,
+        .bit_or,
+        .equal_equal,
+        .bang_equal,
+        => self.binExprEqlReflexive(a, b),
         .number_literal,
         .string_literal,
         .enum_literal,
@@ -83,6 +95,28 @@ fn eqlIfSimple(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
         self.eqlInner(ifnode.ast.else_expr, other.ast.else_expr);
 }
 
+fn eqlIf(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
+    const ifTokFields = [_][]const u8{ "payload_token", "error_token" };
+    const left = self.ast.ifFull(a);
+    const right = self.ast.ifFull(b);
+
+    inline for (ifTokFields) |fieldname| {
+        if (!self.maybeTokensEql(@field(left, fieldname), @field(right, fieldname))) {
+            return false;
+        }
+    }
+
+    if ((left.else_token == 0) !=
+        (right.else_token == 0))
+    {
+        return false;
+    }
+
+    return self.eqlInner(left.ast.cond_expr, right.ast.cond_expr) and
+        self.eqlInner(left.ast.then_expr, right.ast.then_expr) and
+        self.eqlInner(left.ast.else_expr, right.ast.else_expr);
+}
+
 /// Compare two nodes by checking that their left/right subtrees are equal.
 ///
 /// `a.lhs == b.lhs and a.rhs == b.rhs`
@@ -116,12 +150,23 @@ fn areAllEql(self: *const AstComparator, a: []const Node.Index, b: []const Node.
     return true;
 }
 
-/// compares nodes that only have main tokens via string equality on their
+/// compares nodes that only have main tokens via string equality on their[g]
 /// token's slices
 fn mainTokensEql(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
     const toks = self.mainTokens();
-    const left = self.ast.tokenSlice(toks[a]);
-    const right = self.ast.tokenSlice(toks[b]);
+    return self.tokensEql(toks[a], toks[b]);
+}
+
+fn maybeTokensEql(self: *const AstComparator, a: ?TokenIndex, b: ?TokenIndex) bool {
+    // one is null but the other isn't
+    if ((a == null) != (b == null)) return false;
+    return if (a) |x| self.tokensEql(x, b.?) else true;
+}
+
+fn tokensEql(self: *const AstComparator, a: Ast.TokenIndex, b: Ast.TokenIndex) bool {
+    // TODO: source tokens from TokenList.Slice to avoid re-parsing
+    const left = self.ast.tokenSlice(a);
+    const right = self.ast.tokenSlice(b);
     return mem.eql(u8, left, right);
 }
 
@@ -148,3 +193,4 @@ const mem = std.mem;
 const Ast = @import("../Semantic.zig").Ast;
 const Node = Ast.Node;
 const NodeList = Ast.NodeList;
+const TokenIndex = Ast.TokenIndex;

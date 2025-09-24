@@ -176,6 +176,7 @@ test DuplicateCase {
         \\  };
         \\}
         ,
+        // reflexive binary expressions
         \\fn foo(y: u32) void {
         \\  const x = switch (1) {
         \\    1 => y + 1,
@@ -190,6 +191,14 @@ test DuplicateCase {
         \\  };
         \\}
         ,
+        \\fn foo(y: u32) void {
+        \\  const x = switch (1) {
+        \\    1 => y == 1,
+        \\    else => 1 == y,
+        \\  };
+        \\}
+        ,
+
         // calls
         \\const thing = @import("./thing.zig");
         \\const f = thing.f;
@@ -212,16 +221,16 @@ test DuplicateCase {
         \\  return x;
         \\}
         ,
-        // // if statements
-        // \\fn foo(bar: u32, cond: bool) u32 {
-        // \\  const x = switch (bar) {
-        // \\    1 => if (cond) 1 else 2,  
-        // \\    2 => if (cond) 1 else 2,  
-        // \\    else => 0
-        // \\  };
-        // \\  return x;
-        // \\}
-        // ,
+        // if statements
+        \\fn foo(bar: u32, cond: bool) u32 {
+        \\  const x = switch (bar) {
+        \\    1 => if (cond) 1 else 2,
+        \\    2 => if (cond) 1 else 2,
+        \\    else => 0
+        \\  };
+        \\  return x;
+        \\}
+        ,
     };
 
     try runner
