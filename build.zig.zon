@@ -43,6 +43,7 @@
         "build.zig",
         "build.zig.zon",
         "src",
+        "tasks",
         "LICENSE",
         "README.md",
     },
