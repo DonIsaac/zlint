@@ -1,0 +1,60 @@
+---
+rule: '{"name":"duplicate-case","category":"suspicious","default":"off","fix":{"kind":"none","dangerous":false}}'
+---
+
+# `duplicate-case`
+
+<RuleBanner category="suspicious" default="off" />
+
+## What This Rule Does
+
+Checks for duplicate cases in switch statements.
+
+This rule identifies when switch statements have case branches that could
+be merged together without affecting program behavior. It does _not_ check
+that the value being switched over is the same; rather it checks whether
+the target expressions are duplicates.
+
+## Examples
+
+Examples of **incorrect** code for this rule:
+
+```zig
+fn foo() void {
+  const x = switch (1) {
+    1 => 1,
+    else => 1,
+  };
+}
+
+fn bar(y: u32) void {
+  const x = switch (y) {
+    1 => y + 1,
+    2 => 1 + y,
+    else => y * 2,
+  };
+}
+```
+
+Examples of **correct** code for this rule:
+
+```zig
+fn foo() void {
+  const x = switch (1) {
+    1 => 1,
+    2 => 2,
+  };
+}
+
+fn bar(y: u32) void {
+  const x = switch (y) {
+    1 => y + 1,
+    2 => y * 2,
+    3 => y - 1,
+  };
+}
+```
+
+## Configuration
+
+This rule has no configuration.

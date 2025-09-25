@@ -14,3 +14,4 @@ pub const SuppressedErrors = @import("./rules/suppressed_errors.zig");
 pub const UnsafeUndefined = @import("./rules/unsafe_undefined.zig");
 pub const UnusedDecls = @import("./rules/unused_decls.zig");
 pub const UselessErrorReturn = @import("./rules/useless_error_return.zig");
+pub const DuplicateCase = @import("./rules/duplicate_case.zig");
