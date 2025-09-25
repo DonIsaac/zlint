@@ -238,6 +238,36 @@ test DuplicateCase {
         \\  return x;
         \\}
         ,
+        \\fn foo(bar: u32, cond: bool) u32 {
+        \\  const x = switch (bar) {
+        \\    1 => { return 1; },
+        \\    2 => { return 1; },
+        \\    else => 0
+        \\  };
+        \\  return x;
+        \\}
+        ,
+        \\fn foo(bar: u32, cond: bool) u32 {
+        \\  const x = switch (bar) {
+        \\    1 => {
+        \\      if (cond) {
+        \\        const y = x + 2;
+        \\        return y;
+        \\      }
+        \\      return 0;
+        \\    },
+        \\    2 => {
+        \\      if (cond) {
+        \\        const y = x + 2;
+        \\        return y;
+        \\      }
+        \\      return 0;
+        \\    },
+        \\    else => 0
+        \\  };
+        \\  return x;
+        \\}
+        ,
     };
 
     try runner

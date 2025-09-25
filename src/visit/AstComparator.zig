@@ -28,7 +28,14 @@ fn eqlInner(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
         .call_one, .call_one_comma, .call_comma, .call => self.eqlCall(a, b),
         .field_access => self.eqlFieldAccess(a, b),
         .block, .block_semicolon => self.eqlBlock(a, b),
-        .negation, .negation_wrap, .bit_not, .address_of => self.innerEql(a, b, .lhs),
+        .negation,
+        .negation_wrap,
+        .bit_not,
+        .address_of,
+        .@"return",
+        .unwrap_optional,
+        => self.innerEql(a, b, .lhs),
+        .@"defer" => self.innerEql(a, b, .rhs),
         .sub,
         .div,
         .mod,
@@ -48,6 +55,7 @@ fn eqlInner(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
         .char_literal,
         .identifier,
         => self.mainTokensEql(a, b),
+        .local_var_decl, .aligned_var_decl, .simple_var_decl => self.eqlVarDecl(a, b),
         .unreachable_literal,
         .root, // null node
         => true,
@@ -84,7 +92,6 @@ fn eqlCall(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
 
     return self.eqlInner(left.ast.fn_expr, right.ast.fn_expr) and
         self.areAllEql(left.ast.params, right.ast.params);
-    // self.eqlInner(left.ast.params, right.ast.params);
 }
 
 fn eqlIfSimple(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
@@ -117,13 +124,41 @@ fn eqlIf(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
         self.eqlInner(left.ast.else_expr, right.ast.else_expr);
 }
 
+fn eqlVarDecl(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
+    const left = self.ast.fullVarDecl(a) orelse return false;
+    const right = self.ast.fullVarDecl(b) orelse return false;
+
+    // Compare identifier names
+    const left_main_token = self.ast.nodes.items(.main_token)[a];
+    const right_main_token = self.ast.nodes.items(.main_token)[b];
+    if (!self.tokensEql(left_main_token + 1, right_main_token + 1)) return false;
+
+    // Compare optional tokens
+    if (!self.maybeTokensEql(left.visib_token, right.visib_token)) return false;
+    if (!self.maybeTokensEql(left.comptime_token, right.comptime_token)) return false;
+    if (!self.maybeTokensEql(left.extern_export_token, right.extern_export_token)) return false;
+
+    // Compare AST components
+    if (!self.maybeNodesEql(left.ast.type_node, right.ast.type_node)) return false;
+    if (!self.maybeNodesEql(left.ast.align_node, right.ast.align_node)) return false;
+    if (!self.maybeNodesEql(left.ast.section_node, right.ast.section_node)) return false;
+    if (!self.maybeNodesEql(left.ast.addrspace_node, right.ast.addrspace_node)) return false;
+
+    // Compare init node
+    if (!self.maybeNodesEql(left.ast.init_node, right.ast.init_node)) return false;
+
+    return true;
+}
+
 /// Compare two nodes by checking that their left/right subtrees are equal.
 ///
 /// `a.lhs == b.lhs and a.rhs == b.rhs`
 fn binExprEql(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
     const datas = self.nodeData();
-    return self.eqlInner(datas[a].lhs, datas[b].lhs) and
-        self.eqlInner(datas[a].rhs, datas[b].rhs);
+    const left = datas[a];
+    const right = datas[b];
+    return self.eqlInner(left.lhs, right.lhs) and
+        self.eqlInner(left.rhs, right.rhs);
 }
 
 /// Compare two nodes with left/right subtrees, where `a` and `b` are reflexive.
@@ -161,6 +196,12 @@ fn maybeTokensEql(self: *const AstComparator, a: ?TokenIndex, b: ?TokenIndex) bo
     // one is null but the other isn't
     if ((a == null) != (b == null)) return false;
     return if (a) |x| self.tokensEql(x, b.?) else true;
+}
+
+fn maybeNodesEql(self: *const AstComparator, a: ?Node.Index, b: ?Node.Index) bool {
+    // one is null but the other isn't
+    if ((a == null) != (b == null)) return false;
+    return if (a) |x| self.eqlInner(x, b.?) else true;
 }
 
 fn tokensEql(self: *const AstComparator, a: Ast.TokenIndex, b: Ast.TokenIndex) bool {
