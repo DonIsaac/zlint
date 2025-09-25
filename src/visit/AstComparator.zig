@@ -185,7 +185,7 @@ fn areAllEql(self: *const AstComparator, a: []const Node.Index, b: []const Node.
     return true;
 }
 
-/// compares nodes that only have main tokens via string equality on their[g]
+/// compares nodes that only have main tokens via string equality on their
 /// token's slices
 fn mainTokensEql(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
     const toks = self.mainTokens();
