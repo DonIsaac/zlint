@@ -198,6 +198,13 @@ test DuplicateCase {
         \\  };
         \\}
         ,
+        \\fn foo(y: u32) void {
+        \\  const x = switch (1) {
+        \\    1 => ~y,
+        \\    else => ~y,
+        \\  };
+        \\}
+        ,
 
         // calls
         \\const thing = @import("./thing.zig");
