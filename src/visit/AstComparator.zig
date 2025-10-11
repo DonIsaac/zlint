@@ -1,19 +1,21 @@
 //! Compares two AST subtrees for equality.
 const AstComparator = @This();
 
-// todo: store token list to avoid re-parsing when comparing toks.
 ast: *const Ast,
+/// Providing this optional token list provides a performance boost when
+/// comparing identifiers.
+///
+/// Tl;Dr: `Ast` does not presert token end offsets, so getting the source text
+/// of non-lexeme tokens requires re-tokenization. See commentary in the
+/// `Semantic` module for details.
+tokens: ?*const TokenSlice = null,
 
-pub fn eql(ast: *const Ast, a: Node.Index, b: Node.Index) bool {
+pub fn eql(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
     if (a == b) {
         @branchHint(.unlikely);
         return true;
     }
-    const tag: Node.Tag = ast.nodes.items(.tag)[a];
-    const other: Node.Tag = ast.nodes.items(.tag)[b];
-    if (tag != other) return false;
-    const comparator = AstComparator{ .ast = ast };
-    return comparator.eqlInner(a, b);
+    return self.eqlInner(a, b);
 }
 
 fn eqlInner(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
@@ -69,11 +71,11 @@ fn eqlFieldAccess(self: *const AstComparator, a: Node.Index, b: Node.Index) bool
     const left = data[a];
     const right = data[b];
 
-    const leftMember = self.ast.tokenSlice(left.rhs);
-    const rightMember = self.ast.tokenSlice(right.rhs);
-    if (!mem.eql(u8, leftMember, rightMember)) {
-        return false;
+    if (util.IS_DEBUG) {
+        std.debug.assert(self.ast.tokens.items(.tag)[left.rhs] == .identifier);
+        std.debug.assert(self.ast.tokens.items(.tag)[right.rhs] == .identifier);
     }
+    if (!self.tokensEql(left.rhs, right.rhs, true)) return false;
 
     return self.eqlInner(left.lhs, right.lhs);
 }
@@ -131,7 +133,7 @@ fn eqlVarDecl(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
     // Compare identifier names
     const left_main_token = self.ast.nodes.items(.main_token)[a];
     const right_main_token = self.ast.nodes.items(.main_token)[b];
-    if (!self.tokensEql(left_main_token + 1, right_main_token + 1)) return false;
+    if (!self.tokensEql(left_main_token + 1, right_main_token + 1, false)) return false;
 
     // Compare optional tokens
     if (!self.maybeTokensEql(left.visib_token, right.visib_token)) return false;
@@ -189,13 +191,13 @@ fn areAllEql(self: *const AstComparator, a: []const Node.Index, b: []const Node.
 /// token's slices
 fn mainTokensEql(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
     const toks = self.mainTokens();
-    return self.tokensEql(toks[a], toks[b]);
+    return self.tokensEql(toks[a], toks[b], false);
 }
 
 fn maybeTokensEql(self: *const AstComparator, a: ?TokenIndex, b: ?TokenIndex) bool {
     // one is null but the other isn't
     if ((a == null) != (b == null)) return false;
-    return if (a) |x| self.tokensEql(x, b.?) else true;
+    return if (a) |x| self.tokensEql(x, b.?, false) else true;
 }
 
 fn maybeNodesEql(self: *const AstComparator, a: ?Node.Index, b: ?Node.Index) bool {
@@ -204,8 +206,28 @@ fn maybeNodesEql(self: *const AstComparator, a: ?Node.Index, b: ?Node.Index) boo
     return if (a) |x| self.eqlInner(x, b.?) else true;
 }
 
-fn tokensEql(self: *const AstComparator, a: Ast.TokenIndex, b: Ast.TokenIndex) bool {
+fn tokensEql(self: *const AstComparator, a: Ast.TokenIndex, b: Ast.TokenIndex, comptime skip_tag_check: bool) bool {
     // TODO: source tokens from TokenList.Slice to avoid re-parsing
+    if (self.tokens) |tokens| {
+        const left = tokens.get(a);
+        const right = tokens.get(b);
+        if (comptime !skip_tag_check) {
+            if (left.tag != right.tag) return false;
+            // we're comparing keywords or operators; no need to compare source text
+            // (an `orelse` token will always be "orelse")
+            if (left.tag.lexeme()) |_| return true;
+        }
+
+        const left_slice = self.ast.source[left.loc.start..left.loc.end];
+        const right_slice = self.ast.source[right.loc.start..right.loc.end];
+        return mem.eql(u8, left_slice, right_slice);
+    }
+
+    const tok_tags: []Token.Tag = self.ast.tokens.items(.tag);
+    if (comptime !skip_tag_check) {
+        if (tok_tags[a] != tok_tags[b]) return false;
+    }
+
     const left = self.ast.tokenSlice(a);
     const right = self.ast.tokenSlice(b);
     return mem.eql(u8, left, right);
@@ -230,8 +252,12 @@ inline fn mainTokens(self: *const AstComparator) []const Ast.TokenIndex {
 }
 
 const std = @import("std");
+const util = @import("util");
 const mem = std.mem;
-const Ast = @import("../Semantic.zig").Ast;
+const Semantic = @import("../Semantic.zig");
+const Ast = Semantic.Ast;
+const Token = std.zig.Token;
+const TokenSlice = Semantic.TokenList.Slice;
 const Node = Ast.Node;
 const NodeList = Ast.NodeList;
 const TokenIndex = Ast.TokenIndex;
