@@ -5,7 +5,7 @@ ast: *const Ast,
 /// Providing this optional token list provides a performance boost when
 /// comparing identifiers.
 ///
-/// Tl;Dr: `Ast` does not presert token end offsets, so getting the source text
+/// Tl;Dr: `Ast` does not preserve token end offsets, so getting the source text
 /// of non-lexeme tokens requires re-tokenization. See commentary in the
 /// `Semantic` module for details.
 tokens: ?*const TokenSlice = null,
