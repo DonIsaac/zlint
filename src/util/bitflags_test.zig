@@ -11,7 +11,22 @@ const TestFlags = packed struct {
     c: bool = false,
     d: bool = false,
 
-    pub usingnamespace Bitflags(@This());
+    const ThisFlags = Bitflags(@This());
+    pub const Flag = ThisFlags.Flag;
+    pub const Repr = ThisFlags.Repr;
+    pub const all = ThisFlags.all;
+    pub const contains = ThisFlags.contains;
+    pub const empty = ThisFlags.empty;
+    pub const eql = ThisFlags.eql;
+    pub const format = ThisFlags.format;
+    pub const formatNumber = ThisFlags.formatNumber;
+    pub const intersects = ThisFlags.intersects;
+    pub const isEmpty = ThisFlags.isEmpty;
+    pub const jsonStringify = ThisFlags.jsonStringify;
+    pub const merge = ThisFlags.merge;
+    pub const not = ThisFlags.not;
+    pub const repr = ThisFlags.repr;
+    pub const set = ThisFlags.set;
 };
 
 const PaddedFlags = packed struct(u8) {
@@ -21,7 +36,22 @@ const PaddedFlags = packed struct(u8) {
     d: bool = false,
     _: u4 = 0,
 
-    pub usingnamespace Bitflags(@This());
+    const ThisFlags = Bitflags(@This());
+    pub const Flag = ThisFlags.Flag;
+    pub const Repr = ThisFlags.Repr;
+    pub const jsonStringify = ThisFlags.jsonStringify;
+    pub const format = ThisFlags.format;
+    pub const formatNumber = ThisFlags.formatNumber;
+    pub const eql = ThisFlags.eql;
+    pub const intersects = ThisFlags.intersects;
+    pub const contains = ThisFlags.contains;
+    pub const merge = ThisFlags.merge;
+    pub const set = ThisFlags.set;
+    pub const not = ThisFlags.not;
+    pub const repr = ThisFlags.repr;
+    pub const empty = ThisFlags.empty;
+    pub const isEmpty = ThisFlags.isEmpty;
+    pub const all = ThisFlags.all;
 };
 
 test "Bitflags.isEmpty" {
@@ -97,8 +127,8 @@ test "Bitflags.format" {
     const some = TestFlags{ .a = true, .c = true };
     const all = TestFlags{ .a = true, .b = true, .c = true, .d = true };
     try expectFmt("0", "{d}", .{empty});
-    const name = "util.bitflags_test.TestFlags";
-    try expectFmt(name ++ "()", "{}", .{empty});
-    try expectFmt(name ++ "(a | c)", "{}", .{some});
-    try expectFmt(name ++ "(a | b | c | d)", "{}", .{all});
+    const name = "bitflags_test.TestFlags";
+    try expectFmt(name ++ "()", "{f}", .{empty});
+    try expectFmt(name ++ "(a | c)", "{f}", .{some});
+    try expectFmt(name ++ "(a | b | c | d)", "{f}", .{all});
 }

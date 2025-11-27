@@ -52,7 +52,7 @@ pub const Flags = packed struct(FLAGS_REPR) {
     // Padding.
     _: u2 = 0,
 
-    pub usingnamespace util.Bitflags(Flags);
+    const Bitflags = util.Bitflags(Flags);
 
     /// Enable or disable a flag, returning the modified set.
     ///

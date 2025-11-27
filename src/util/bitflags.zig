@@ -148,10 +148,7 @@ pub fn Bitflags(Flags: type) type {
             return @bitCast(self);
         }
 
-        pub fn format(self: Flags, comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
-            if (fmt.len == 1 and fmt[0] == 'd') {
-                return writer.print("{d}", .{@as(Repr, @bitCast(self))});
-            }
+        pub fn format(self: Flags, writer: anytype) !void {
             try writer.writeAll(@typeName(Flags) ++ "(");
 
             var first = true;
@@ -167,6 +164,10 @@ pub fn Bitflags(Flags: type) type {
             }
 
             try writer.writeByte(')');
+        }
+
+        pub fn formatNumber(self: Flags, writer: anytype, _: std.fmt.Number) !void {
+            return writer.print("{d}", .{@as(Repr, @bitCast(self))});
         }
 
         // see: std.json.stringify.WriteStream for docs
@@ -203,7 +204,20 @@ test Bitflags {
         s_right: bool = false,
         s_bottom: bool = false,
 
-        pub usingnamespace Bitflags(@This());
+        const Flags = Bitflags(@This());
+        pub const Flag = Flags.Flag;
+        pub const Repr = Flags.Repr;
+        pub const all = Flags.all;
+        pub const jsonStringify = Flags.jsonStringify;
+        pub const format = Flags.format;
+        pub const eql = Flags.eql;
+        pub const intersects = Flags.intersects;
+        pub const contains = Flags.contains;
+        pub const merge = Flags.merge;
+        pub const set = Flags.set;
+        pub const not = Flags.not;
+        pub const repr = Flags.repr;
+        pub const empty = Flags.empty;
     };
     try std.testing.expectEqual(4, @typeInfo(Position.Flag).@"enum".fields.len);
 
@@ -211,7 +225,7 @@ test Bitflags {
     try std.testing.expectFmt(
         \\["top","left"]
     ,
-        "{}",
+        "{f}",
         .{std.json.fmt(p, .{})},
     );
 }
