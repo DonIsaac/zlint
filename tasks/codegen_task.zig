@@ -42,7 +42,7 @@ pub const CodegenTasks = struct {
         const confgen_run = b.addRunArtifact(confgen_exe);
 
         const fmt_rule_docs = b.addSystemCommand(
-            &[_][]const u8{ "zig", "fmt", c.@"rules_config.zig" },
+            &[_][]const u8{ "zig", "fmt", c.@"rules_config_rules.zig" },
         );
 
         const config_step = b.step("config", "Generate rules config");

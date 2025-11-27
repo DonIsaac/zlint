@@ -38,7 +38,7 @@ const DEFAULT_RULES_CONFIG: RulesConfig = blk: {
         @memcpy(&config_field_name, RuleImpl.meta.name);
         std.mem.replaceScalar(u8, &config_field_name, '-', '_');
 
-        @field(config, &config_field_name) = .{ .severity = RuleImpl.meta.default };
+        @field(config.rules, &config_field_name) = .{ .severity = RuleImpl.meta.default };
     }
 
     break :blk config;
@@ -97,10 +97,10 @@ fn testConfig(source: []const u8, expected: RulesConfig) !void {
         return err;
     };
     defer actual.deinit();
-    const info = @typeInfo(RulesConfig);
+    const info = @typeInfo(RulesConfig.Rules);
     inline for (info.@"struct".fields) |field| {
-        const expected_rule_config = @field(expected, field.name);
-        const actual_rule_config = @field(actual.value, field.name);
+        const expected_rule_config = @field(expected.rules, field.name);
+        const actual_rule_config = @field(actual.value.rules, field.name);
         // TODO: Test that configs are the same, once rule configuration is implemented.
         t.expectEqual(expected_rule_config.severity, actual_rule_config.severity) catch |err| {
             print("Mismatched severity for rule '{s}':\n", .{field.name});
@@ -112,11 +112,11 @@ fn testConfig(source: []const u8, expected: RulesConfig) !void {
 }
 
 test "RulesConfig.jsonParse" {
-    try testConfig("{}", RulesConfig{});
+    try testConfig("{}", RulesConfig{ .rules = .{} });
     try testConfig(
         \\{ "unsafe-undefined": "error" }
     ,
-        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err } },
+        RulesConfig{ .rules = .{ .unsafe_undefined = .{ .severity = Severity.err } } },
     );
     try testConfig(
         \\{
@@ -125,30 +125,32 @@ test "RulesConfig.jsonParse" {
         \\}
     ,
         RulesConfig{
-            .unsafe_undefined = .{ .severity = Severity.off },
-            .homeless_try = .{ .severity = Severity.err },
+            .rules = .{
+                .unsafe_undefined = .{ .severity = Severity.off },
+                .homeless_try = .{ .severity = Severity.err },
+            },
         },
     );
     try testConfig(
         \\{ "unsafe-undefined": ["error"] }
     ,
-        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err } },
+        RulesConfig{ .rules = .{ .unsafe_undefined = .{ .severity = Severity.err } } },
     );
     try testConfig(
         \\{ "unsafe-undefined": ["error", {}] }
     ,
-        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err } },
+        RulesConfig{ .rules = .{ .unsafe_undefined = .{ .severity = Severity.err } } },
     );
     try testConfig(
         \\{ "unsafe-undefined": ["error", { "allow_arrays": true }] }
     ,
-        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err } },
+        RulesConfig{ .rules = .{ .unsafe_undefined = .{ .severity = Severity.err } } },
     );
     var cfg = all_rules.UnsafeUndefined{ .allow_arrays = false };
     try testConfig(
         \\{ "unsafe-undefined": ["error", { "allow_arrays": false }] }
     ,
-        RulesConfig{ .unsafe_undefined = .{ .severity = Severity.err, .rule_impl = @ptrCast(&cfg) } },
+        RulesConfig{ .rules = .{ .unsafe_undefined = .{ .severity = Severity.err, .rule_impl = @ptrCast(&cfg) } } },
     );
 
     {

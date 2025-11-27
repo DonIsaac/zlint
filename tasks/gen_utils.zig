@@ -70,7 +70,7 @@ pub const SchemaMap = std.StringHashMap(Schema);
 ///
 /// This leaks memory, and a lot of it.
 pub fn ruleSchemaMap(allocator: Allocator) !struct { *Schema.Context, *SchemaMap } {
-    const info = @typeInfo(RulesConfig).@"struct";
+    const info = @typeInfo(RulesConfig.Rules).@"struct";
 
     var map = try allocator.create(SchemaMap);
     map.* = SchemaMap.init(allocator);
@@ -79,7 +79,7 @@ pub fn ruleSchemaMap(allocator: Allocator) !struct { *Schema.Context, *SchemaMap
     var ctx = try allocator.create(Schema.Context);
     ctx.* = Schema.Context.init(allocator);
     inline for (info.fields) |rule_config| {
-        const RuleConfig = @FieldType(RulesConfig, rule_config.name);
+        const RuleConfig = @FieldType(RulesConfig.Rules, rule_config.name);
         const rule_schema = try ctx.addSchema(RuleConfig);
         try map.put(RuleConfig.name, rule_schema.*);
     }

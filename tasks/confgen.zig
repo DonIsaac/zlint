@@ -21,7 +21,7 @@ pub fn main() !void {
     var stack = std.heap.stackFallback(256, allocator);
     const stackalloc = stack.get();
 
-    const out = try fs.cwd().createFile(c.@"rules_config.zig", .{});
+    const out = try fs.cwd().createFile(c.@"rules_config_rules.zig", .{});
     defer out.close();
     const w = out.writer();
 
@@ -30,11 +30,7 @@ pub fn main() !void {
         \\const RuleConfig = @import("rule_config.zig").RuleConfig;
         \\const rules = @import("../rules.zig");
         \\
-        \\pub const RulesConfig = struct {
-        \\    pub usingnamespace @import("./rules_config.methods.zig").RulesConfigMethods(@This());
-        \\
     );
-    defer w.writeAll("};\n") catch @panic("failed to write closing curlies for RulesConfig.");
 
     for (gen.RuleInfo.all_rules) |rule_info| {
         const snake_name = try rule_info.snakeName(stackalloc);
@@ -42,7 +38,7 @@ pub fn main() !void {
 
         // e.g. homeless_try: RuleConfig(rules.HomelessTry) = .{},
         try w.print(
-            "    {s}: RuleConfig(rules.{s}) = .{{}},\n",
+            "{s}: RuleConfig(rules.{s}) = .{{}},\n",
             .{ snake_name, rule_info.name(.pascale) },
         );
     }
