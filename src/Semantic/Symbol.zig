@@ -71,7 +71,7 @@ pub const Visibility = enum {
 };
 
 const FLAGS_REPR = u16;
-pub const Flags = packed struct(FLAGS_REPR) {
+pub const Flags = util.Bitflags(packed struct(FLAGS_REPR) {
     /// A container-level or local variable.
     ///
     /// If it's declared with a `const` or `var` keyword, this is true. Note
@@ -126,9 +126,7 @@ pub const Flags = packed struct(FLAGS_REPR) {
     _: u2 = 0,
 
     pub const s_container: Flags = .{ .s_struct = true, .s_enum = true, .s_union = true, .s_error = true };
-
-    pub usingnamespace util.Bitflags(Flags);
-};
+});
 
 /// Stores symbols created and referenced within a Zig program.
 ///

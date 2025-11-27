@@ -20,7 +20,8 @@ const SemanticError = zlint.semantic.Semantic.Builder.SemanticError;
 var is_tty: bool = false;
 
 pub fn globalSetup(alloc: Allocator) !void {
-    is_tty = std.io.getStdErr().isTty();
+    // is_tty = std.io.tty.Config.detect()
+    is_tty = true; // TODO
     var repos_dir_fd = fs.cwd().openDir(REPOS_DIR, .{}) catch |e| {
         switch (e) {
             error.FileNotFound => {

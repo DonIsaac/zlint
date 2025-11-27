@@ -7,7 +7,7 @@ pub const Reporter = struct {
     opts: Options = .{},
     stats: Stats = .{},
 
-    writer: io.BufferedWriter(4096, Writer),
+    writer: io.Writer,
     writer_lock: Mutex = .{},
 
     alloc: Allocator,
@@ -89,7 +89,7 @@ pub const Reporter = struct {
         };
 
         return .{
-            .writer = .{ .unbuffered_writer = writer },
+            .writer = writer,
             .opts = .{
                 .report_stats = meta.report_statistics,
             },
@@ -122,7 +122,7 @@ pub const Reporter = struct {
             var e = err;
             defer e.deinit(alloc);
             if (self.opts.quiet and err.severity != .err) continue;
-            var w = string_writer.writer().any();
+            var w = string_writer.writer();
             self.vtable.format(self.ptr, &w, err) catch |fmt_err| {
                 std.debug.panic("Failed to write error: {any}", .{fmt_err});
             };
@@ -168,7 +168,6 @@ pub const Reporter = struct {
             self.vtable.deinit = &PanicFormatter.deinit;
         }
     }
-    const BufferedWriter = io.BufferedWriter(1024, Writer);
 };
 
 /// Formatter that always panics. Used to check for use-after-free bugs.
@@ -229,7 +228,7 @@ const Stats = struct {
 const std = @import("std");
 const io = std.io;
 const util = @import("util");
-const formatters = @import("./formatter.zig");
+const formatters = @import("formatter.zig");
 const Chameleon = @import("chameleon");
 const Error = @import("../Error.zig");
 const StringWriter = @import("./StringWriter.zig");
@@ -238,7 +237,7 @@ const FormatError = formatters.FormatError;
 
 const AtomicUsize = std.atomic.Value(usize);
 const Mutex = std.Thread.Mutex;
-const Writer = std.io.AnyWriter;
+const Writer = std.io.Writer;
 
 test {
     std.testing.refAllDecls(@This());

@@ -16,7 +16,7 @@ const FLAGS_REPR = u16;
 /// scope.
 ///
 /// TODO: Should this be an enum?
-pub const Flags = packed struct(FLAGS_REPR) {
+pub const Flags = util.Bitflags(packed struct(FLAGS_REPR) {
     /// Top-level "module" scope
     s_top: bool = false,
     /// Created by a function declaration.
@@ -38,15 +38,13 @@ pub const Flags = packed struct(FLAGS_REPR) {
     // Padding
     _: u6 = 0,
 
-    pub const s_container = Flags{ .s_struct = true, .s_enum = true, .s_union = true, .s_error = true };
-
-    pub usingnamespace util.Bitflags(Flags);
+    pub const s_container = @This(){ .s_struct = true, .s_enum = true, .s_union = true, .s_error = true };
 
     /// Returns `true` if this scope can have fields (e.g. a struct).
-    pub inline fn isContainer(self: Flags) bool {
+    pub inline fn isContainer(self: @This()) bool {
         return self.s_struct or self.s_enum or self.s_union or self.s_error;
     }
-};
+});
 
 /// Stores variable scopes created by a zig program.
 pub const Tree = struct {
