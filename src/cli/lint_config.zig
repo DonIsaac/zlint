@@ -255,5 +255,5 @@ test resolveLintConfig {
     defer t.allocator.free(expected_path);
 
     try t.expectStringEndsWith(config.path.?, expected_path);
-    try t.expectEqual(.warning, config.config.rules.unsafe_undefined.severity);
+    try t.expectEqual(.warning, config.config.rules.rules.unsafe_undefined.severity);
 }

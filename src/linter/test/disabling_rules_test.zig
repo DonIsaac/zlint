@@ -44,8 +44,10 @@ test "Enabled rules have their violations reported" {
 
     const config = Config{
         .rules = .{
-            .unsafe_undefined = .{ .severity = .err },
-            .unused_decls = .{ .severity = .err },
+            .rules = .{
+                .unsafe_undefined = .{ .severity = .err },
+                .unused_decls = .{ .severity = .err },
+            },
         },
     };
 
@@ -115,7 +117,9 @@ test "When a rule is configured to 'off', none of its violations are reported" {
 
     const config = Config{
         .rules = .{
-            .unsafe_undefined = .{ .severity = .err },
+            .rules = .{
+                .unsafe_undefined = .{ .severity = .err },
+            },
         },
     };
 
@@ -161,8 +165,10 @@ test "When rules are configured but a specific rule is disabled with 'zlint-disa
 
     const config = Config{
         .rules = .{
-            .unsafe_undefined = .{ .severity = .err },
-            .unused_decls = .{ .severity = .err },
+            .rules = .{
+                .unsafe_undefined = .{ .severity = .err },
+                .unused_decls = .{ .severity = .err },
+            },
         },
     };
 
@@ -208,8 +214,10 @@ test "When rules are configured but disabled with 'zlint-disable', nothing gets 
 
     const config = Config{
         .rules = .{
-            .unsafe_undefined = .{ .severity = .err },
-            .unused_decls = .{ .severity = .err },
+            .rules = .{
+                .unsafe_undefined = .{ .severity = .err },
+                .unused_decls = .{ .severity = .err },
+            },
         },
     };
 
@@ -254,8 +262,10 @@ test "When the global disable directive is misplaced, violations still gets repo
 
     const config = Config{
         .rules = .{
-            .unsafe_undefined = .{ .severity = .err },
-            .unused_decls = .{ .severity = .err },
+            .rules = .{
+                .unsafe_undefined = .{ .severity = .err },
+                .unused_decls = .{ .severity = .err },
+            },
         },
     };
 
@@ -299,10 +309,10 @@ test "When the multiple global directives are set, all rules are honored" {
     };
 
     const config = Config{
-        .rules = .{
+        .rules = .{ .rules = .{
             .unsafe_undefined = .{ .severity = .err },
             .unused_decls = .{ .severity = .err },
-        },
+        } },
     };
 
     var builder = Semantic.Builder.init(t.allocator);

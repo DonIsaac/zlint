@@ -19,7 +19,7 @@ pub const Reporter = struct {
         destroy: *const fn (ctx: *anyopaque, allocator: Allocator) void,
     },
 
-    /// Shorthand for creating a `Reporter` with a `GraphicalFormtter`, since
+    /// Shorthand for creating a `Reporter` with a `GraphicalFormatter`, since
     /// this is so common.
     pub fn graphical(
         writer: Writer,
@@ -164,8 +164,8 @@ pub const Reporter = struct {
         self.vtable.destroy(self.ptr, self.alloc);
 
         if (comptime util.IS_DEBUG) {
-            self.vtable.format = &PanicForamtter.format;
-            self.vtable.deinit = &PanicForamtter.deinit;
+            self.vtable.format = &PanicFormatter.format;
+            self.vtable.deinit = &PanicFormatter.deinit;
         }
     }
     const BufferedWriter = io.BufferedWriter(1024, Writer);
@@ -174,7 +174,7 @@ pub const Reporter = struct {
 /// Formatter that always panics. Used to check for use-after-free bugs.
 ///
 /// Only used in debug builds.
-const PanicForamtter = struct {
+const PanicFormatter = struct {
     fn format(_: *anyopaque, _: *Writer, _: Error) FormatError!void {
         std.debug.panic("Attempted to format an error after this Reporter was freed.", .{});
     }
