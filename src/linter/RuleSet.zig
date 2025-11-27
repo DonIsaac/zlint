@@ -13,9 +13,9 @@ pub fn ensureTotalCapacityForAllRules(self: *RuleSet, arena: Allocator) Allocato
 
 pub fn loadRulesFromConfig(self: *RuleSet, arena: Allocator, config: *const RulesConfig) !void {
     try self.rules.ensureUnusedCapacity(arena, ALL_RULES_SIZE);
-    const info = @typeInfo(RulesConfig);
+    const info = @typeInfo(RulesConfig.Rules);
     inline for (info.@"struct".fields) |field| {
-        const rule = @field(config, field.name);
+        const rule = @field(config.rules, field.name);
         if (rule.severity != Severity.off) {
             self.rules.appendAssumeCapacity(.{
                 .severity = rule.severity,
