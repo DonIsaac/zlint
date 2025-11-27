@@ -35,7 +35,7 @@ const bar: Bar = .{
 ```
 
 > [!NOTE]
-> Oviously unsafe usages of `undefined`, such `x == undefined`, are not
+> Obviously unsafe usages of `undefined`, such `x == undefined`, are not
 > allowed even in these exceptions.
 
 #### Arrays

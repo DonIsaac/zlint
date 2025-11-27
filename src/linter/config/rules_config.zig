@@ -10,8 +10,10 @@ const assert = std.debug.assert;
 
 const ParseError = json.ParseError(json.Scanner);
 
-/// RulesConfig methods are separated out so that they can be easily integrated
-/// with codegen'd struct definitions.
+/// Configuration for all rules.
+///
+/// The bulk of this strict is auto-generated from all registered rules via
+/// `tasks/confgen.zig`.
 pub const RulesConfig = struct {
     pub const Rules = @import("rules_config_rules.zig");
 
