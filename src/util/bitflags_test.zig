@@ -11,7 +11,21 @@ const TestFlags = packed struct {
     c: bool = false,
     d: bool = false,
 
-    pub usingnamespace Bitflags(@This());
+    const BitflagsMixin = Bitflags(@This());
+    pub const Flag = BitflagsMixin.Flag;
+    pub const Repr = BitflagsMixin.Repr;
+    pub const empty = BitflagsMixin.empty;
+    pub const all = BitflagsMixin.all;
+    pub const isEmpty = BitflagsMixin.isEmpty;
+    pub const intersects = BitflagsMixin.intersects;
+    pub const contains = BitflagsMixin.contains;
+    pub const merge = BitflagsMixin.merge;
+    pub const set = BitflagsMixin.set;
+    pub const not = BitflagsMixin.not;
+    pub const eql = BitflagsMixin.eql;
+    pub const repr = BitflagsMixin.repr;
+    pub const format = BitflagsMixin.format;
+    pub const jsonStringify = BitflagsMixin.jsonStringify;
 };
 
 const PaddedFlags = packed struct(u8) {
@@ -21,7 +35,21 @@ const PaddedFlags = packed struct(u8) {
     d: bool = false,
     _: u4 = 0,
 
-    pub usingnamespace Bitflags(@This());
+    const BitflagsMixin = Bitflags(@This());
+    pub const Flag = BitflagsMixin.Flag;
+    pub const Repr = BitflagsMixin.Repr;
+    pub const empty = BitflagsMixin.empty;
+    pub const all = BitflagsMixin.all;
+    pub const isEmpty = BitflagsMixin.isEmpty;
+    pub const intersects = BitflagsMixin.intersects;
+    pub const contains = BitflagsMixin.contains;
+    pub const merge = BitflagsMixin.merge;
+    pub const set = BitflagsMixin.set;
+    pub const not = BitflagsMixin.not;
+    pub const eql = BitflagsMixin.eql;
+    pub const repr = BitflagsMixin.repr;
+    pub const format = BitflagsMixin.format;
+    pub const jsonStringify = BitflagsMixin.jsonStringify;
 };
 
 test "Bitflags.isEmpty" {
