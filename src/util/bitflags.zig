@@ -14,7 +14,7 @@ const meta = std.meta;
 ///   s_right: bool = false,
 ///   s_bottom: bool = false,
 ///
-///   // Add the mthods you need
+///   // Add the methods you need
 ///   const BitflagsMixin = Bitflags(Position);
 ///   pub const Flag = BitflagsMixin.Flag;
 ///   pub const empty = BitflagsMixin.empty;
