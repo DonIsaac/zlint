@@ -11,22 +11,21 @@ const TestFlags = packed struct {
     c: bool = false,
     d: bool = false,
 
-    const ThisFlags = Bitflags(@This());
-    pub const Flag = ThisFlags.Flag;
-    pub const Repr = ThisFlags.Repr;
-    pub const all = ThisFlags.all;
-    pub const contains = ThisFlags.contains;
-    pub const empty = ThisFlags.empty;
-    pub const eql = ThisFlags.eql;
-    pub const format = ThisFlags.format;
-    pub const formatNumber = ThisFlags.formatNumber;
-    pub const intersects = ThisFlags.intersects;
-    pub const isEmpty = ThisFlags.isEmpty;
-    pub const jsonStringify = ThisFlags.jsonStringify;
-    pub const merge = ThisFlags.merge;
-    pub const not = ThisFlags.not;
-    pub const repr = ThisFlags.repr;
-    pub const set = ThisFlags.set;
+    const BitflagsMixin = Bitflags(@This());
+    pub const Flag = BitflagsMixin.Flag;
+    pub const Repr = BitflagsMixin.Repr;
+    pub const empty = BitflagsMixin.empty;
+    pub const all = BitflagsMixin.all;
+    pub const isEmpty = BitflagsMixin.isEmpty;
+    pub const intersects = BitflagsMixin.intersects;
+    pub const contains = BitflagsMixin.contains;
+    pub const merge = BitflagsMixin.merge;
+    pub const set = BitflagsMixin.set;
+    pub const not = BitflagsMixin.not;
+    pub const eql = BitflagsMixin.eql;
+    pub const repr = BitflagsMixin.repr;
+    pub const format = BitflagsMixin.format;
+    pub const jsonStringify = BitflagsMixin.jsonStringify;
 };
 
 const PaddedFlags = packed struct(u8) {
@@ -36,22 +35,21 @@ const PaddedFlags = packed struct(u8) {
     d: bool = false,
     _: u4 = 0,
 
-    const ThisFlags = Bitflags(@This());
-    pub const Flag = ThisFlags.Flag;
-    pub const Repr = ThisFlags.Repr;
-    pub const jsonStringify = ThisFlags.jsonStringify;
-    pub const format = ThisFlags.format;
-    pub const formatNumber = ThisFlags.formatNumber;
-    pub const eql = ThisFlags.eql;
-    pub const intersects = ThisFlags.intersects;
-    pub const contains = ThisFlags.contains;
-    pub const merge = ThisFlags.merge;
-    pub const set = ThisFlags.set;
-    pub const not = ThisFlags.not;
-    pub const repr = ThisFlags.repr;
-    pub const empty = ThisFlags.empty;
-    pub const isEmpty = ThisFlags.isEmpty;
-    pub const all = ThisFlags.all;
+    const BitflagsMixin = Bitflags(@This());
+    pub const Flag = BitflagsMixin.Flag;
+    pub const Repr = BitflagsMixin.Repr;
+    pub const empty = BitflagsMixin.empty;
+    pub const all = BitflagsMixin.all;
+    pub const isEmpty = BitflagsMixin.isEmpty;
+    pub const intersects = BitflagsMixin.intersects;
+    pub const contains = BitflagsMixin.contains;
+    pub const merge = BitflagsMixin.merge;
+    pub const set = BitflagsMixin.set;
+    pub const not = BitflagsMixin.not;
+    pub const eql = BitflagsMixin.eql;
+    pub const repr = BitflagsMixin.repr;
+    pub const format = BitflagsMixin.format;
+    pub const jsonStringify = BitflagsMixin.jsonStringify;
 };
 
 test "Bitflags.isEmpty" {
@@ -127,8 +125,8 @@ test "Bitflags.format" {
     const some = TestFlags{ .a = true, .c = true };
     const all = TestFlags{ .a = true, .b = true, .c = true, .d = true };
     try expectFmt("0", "{d}", .{empty});
-    const name = "bitflags_test.TestFlags";
-    try expectFmt(name ++ "()", "{f}", .{empty});
-    try expectFmt(name ++ "(a | c)", "{f}", .{some});
-    try expectFmt(name ++ "(a | b | c | d)", "{f}", .{all});
+    const name = "util.bitflags_test.TestFlags";
+    try expectFmt(name ++ "()", "{}", .{empty});
+    try expectFmt(name ++ "(a | c)", "{}", .{some});
+    try expectFmt(name ++ "(a | b | c | d)", "{}", .{all});
 }

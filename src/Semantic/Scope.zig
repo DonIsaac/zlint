@@ -16,7 +16,7 @@ const FLAGS_REPR = u16;
 /// scope.
 ///
 /// TODO: Should this be an enum?
-pub const Flags = util.Bitflags(packed struct(FLAGS_REPR) {
+pub const Flags = packed struct(FLAGS_REPR) {
     /// Top-level "module" scope
     s_top: bool = false,
     /// Created by a function declaration.
@@ -38,13 +38,29 @@ pub const Flags = util.Bitflags(packed struct(FLAGS_REPR) {
     // Padding
     _: u6 = 0,
 
-    pub const s_container = @This(){ .s_struct = true, .s_enum = true, .s_union = true, .s_error = true };
+    pub const s_container = Flags{ .s_struct = true, .s_enum = true, .s_union = true, .s_error = true };
+
+    const BitflagsMixin = util.Bitflags(Flags);
+    pub const Flag = BitflagsMixin.Flag;
+    pub const Repr = BitflagsMixin.Repr;
+    pub const empty = BitflagsMixin.empty;
+    pub const all = BitflagsMixin.all;
+    pub const isEmpty = BitflagsMixin.isEmpty;
+    pub const intersects = BitflagsMixin.intersects;
+    pub const contains = BitflagsMixin.contains;
+    pub const merge = BitflagsMixin.merge;
+    pub const set = BitflagsMixin.set;
+    pub const not = BitflagsMixin.not;
+    pub const eql = BitflagsMixin.eql;
+    pub const repr = BitflagsMixin.repr;
+    pub const format = BitflagsMixin.format;
+    pub const jsonStringify = BitflagsMixin.jsonStringify;
 
     /// Returns `true` if this scope can have fields (e.g. a struct).
-    pub inline fn isContainer(self: @This()) bool {
+    pub inline fn isContainer(self: Flags) bool {
         return self.s_struct or self.s_enum or self.s_union or self.s_error;
     }
-});
+};
 
 /// Stores variable scopes created by a zig program.
 pub const Tree = struct {

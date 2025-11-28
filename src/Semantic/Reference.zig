@@ -52,7 +52,21 @@ pub const Flags = packed struct(FLAGS_REPR) {
     // Padding.
     _: u2 = 0,
 
-    const Bitflags = util.Bitflags(Flags);
+    const BitflagsMixin = util.Bitflags(Flags);
+    pub const Flag = BitflagsMixin.Flag;
+    pub const Repr = BitflagsMixin.Repr;
+    pub const empty = BitflagsMixin.empty;
+    pub const all = BitflagsMixin.all;
+    pub const isEmpty = BitflagsMixin.isEmpty;
+    pub const intersects = BitflagsMixin.intersects;
+    pub const contains = BitflagsMixin.contains;
+    pub const merge = BitflagsMixin.merge;
+    pub const set = BitflagsMixin.set;
+    pub const not = BitflagsMixin.not;
+    pub const eql = BitflagsMixin.eql;
+    pub const repr = BitflagsMixin.repr;
+    pub const format = BitflagsMixin.format;
+    pub const jsonStringify = BitflagsMixin.jsonStringify;
 
     /// Enable or disable a flag, returning the modified set.
     ///
