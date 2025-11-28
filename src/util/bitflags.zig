@@ -2,7 +2,7 @@ const std = @import("std");
 const mem = std.mem;
 const meta = std.meta;
 
-/// A mixin that adds bitflag methods and types to a packed struct.
+/// Provides bitflag methods and types for a packed struct.
 ///
 /// ## Example
 /// ```zig
@@ -14,27 +14,23 @@ const meta = std.meta;
 ///   s_right: bool = false,
 ///   s_bottom: bool = false,
 ///
-///   pub usingnamespace util.Bitflags(Position);
+///   // Add the methods you need
+///   const BitflagsMixin = Bitflags(Position);
+///   pub const Flag = BitflagsMixin.Flag;
+///   pub const empty = BitflagsMixin.empty;
+///   pub const all = BitflagsMixin.all;
+///   pub const isEmpty = BitflagsMixin.isEmpty;
+///   pub const intersects = BitflagsMixin.intersects;
+///   pub const contains = BitflagsMixin.contains;
+///   pub const merge = BitflagsMixin.merge;
+///   pub const set = BitflagsMixin.set;
+///   pub const not = BitflagsMixin.not;
+///   pub const eql = BitflagsMixin.eql;
 /// };
 /// ```
 ///
 /// If you use a fixed-sized integer representation, use `_` as the last field
 /// to pad the struct to the correct size.
-///
-/// ## Example
-/// ```zig
-/// const Bitflags = @import("util").Bitflags;
-///
-/// const Position = packed struct(u8) {
-///   s_top: bool = false,
-///   s_left: bool = false,
-///   s_right: bool = false,
-///   s_bottom: bool = false,
-///   _: u4 = 0,
-///
-///   pub usingnamespace util.Bitflags(Position);
-/// };
-/// ```
 pub fn Bitflags(Flags: type) type {
     const info = switch (@typeInfo(Flags)) {
         .@"struct" => |s| s,
@@ -73,13 +69,6 @@ pub fn Bitflags(Flags: type) type {
         ///
         /// ## Example
         /// ```zig
-        /// const Bitflags = @import("util").Bitflags;
-        /// const Flags = packed struct {
-        ///   a: bool = false,
-        ///   b: bool = false,
-        ///   pub usingnamespace Bitflags(@This());
-        /// };
-        ///
         /// const a = Flags{ .a = true };
         /// const b = Flags{ .b = true };
         /// try expect(a.contains(a));
@@ -203,7 +192,9 @@ test Bitflags {
         s_right: bool = false,
         s_bottom: bool = false,
 
-        pub usingnamespace Bitflags(@This());
+        const BitflagsMixin = Bitflags(@This());
+        pub const Flag = BitflagsMixin.Flag;
+        pub const jsonStringify = BitflagsMixin.jsonStringify;
     };
     try std.testing.expectEqual(4, @typeInfo(Position.Flag).@"enum".fields.len);
 
