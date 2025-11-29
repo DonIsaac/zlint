@@ -108,7 +108,7 @@ fn renderDocs(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
         \\---
         \\rule: '
     );
-    var json =  std.json.Stringify{ .writer = &ctx.writer};
+    var json = std.json.Stringify{ .writer = &ctx.writer };
     try json.write(rule.meta);
     try ctx.writer.writeAll("'\n---\n\n");
     try ctx.writer.print("# `{s}`\n\n", .{rule.name(.kebab)});

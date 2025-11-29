@@ -118,7 +118,6 @@ pub const Reporter = struct {
         var w = try std.io.Writer.Allocating.initCapacity(allocator, 256);
         defer w.deinit();
 
-
         for (errors) |err| {
             var e = err;
             defer e.deinit(alloc);

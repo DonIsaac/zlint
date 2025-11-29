@@ -127,7 +127,6 @@ pub fn run(self: *RuleTester) anyerror!void {
             },
             else => return e,
         }
-        
     };
 }
 
@@ -333,7 +332,6 @@ fn saveSnapshot(self: *RuleTester) SnapshotError!void {
         try writer.interface.writeByte('\n');
     }
     try writer.interface.flush();
-    
 }
 
 inline fn newList(self: *RuleTester) Linter.Diagnostic.List {

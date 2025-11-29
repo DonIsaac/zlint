@@ -24,5 +24,4 @@ test {
     std.testing.refAllDeclsRecursive(printer);
     std.testing.refAllDeclsRecursive(zig);
     std.testing.refAllDeclsRecursive(json);
-
 }
