@@ -48,6 +48,7 @@ const ParseError = error{
     InvalidArg,
     InvalidArgValue,
     WriterError,
+    WriteFailed,
 };
 pub fn parseArgv(alloc: Allocator, err: ?*Error) ParseError!Options {
     // NOTE: args() is not supported on WASM and windows. When targeting another

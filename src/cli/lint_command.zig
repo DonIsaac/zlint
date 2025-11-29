@@ -81,7 +81,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
             var msg_buf: [4096]u8 = undefined;
             var stdin = std.fs.File.stdin();
             var reader = stdin.reader(&msg_buf);
-            while (try reader.interface.readUntilDelimiterOrEof(&msg_buf, '\n')) |filepath| {
+            while (try readUntilDelimiterOrEof(&reader.interface, &msg_buf, '\n')) |filepath| {
                 if (!std.mem.endsWith(u8, filepath, ".zig")) continue;
                 const owned = try alloc.dupe(u8, filepath);
                 try service.lintFileParallel(owned);
@@ -174,3 +174,27 @@ const LintVisitor = struct {
         return true;
     }
 };
+
+/// Deprecated: use `streamUntilDelimiter` with FixedBufferStream's writer instead.
+/// Reads from the stream until specified byte is found. If the buffer is not
+/// large enough to hold the entire contents, `error.StreamTooLong` is returned.
+/// If end-of-stream is found, returns the rest of the stream. If this
+/// function is called again after that, returns null.
+/// Returns a slice of the stream data, with ptr equal to `buf.ptr`. The
+/// delimiter byte is written to the output buffer but is not included
+/// in the returned slice.
+pub fn readUntilDelimiterOrEof(self: *std.io.Reader, buffer: []u8, delimiter: u8) anyerror!?[]u8 {
+    var fbs = std.io.fixedBufferStream(buffer);
+    var w = fbs.writer().adaptToNewApi(&.{});
+    const bytes_read = self.streamDelimiter(&w.new_interface, delimiter) catch |err| switch (err) {
+        error.EndOfStream => if (fbs.getWritten().len == 0) {
+            return null;
+        } else return err,
+
+        else => |e| return e,
+    };
+    _ = bytes_read;
+    const output = fbs.getWritten();
+    buffer[output.len] = delimiter; // emulating old behaviour
+    return output;
+}

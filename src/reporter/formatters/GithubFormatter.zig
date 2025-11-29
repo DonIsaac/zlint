@@ -45,7 +45,7 @@ pub fn format(_: *GithubFormatter, w: *io.Writer, e: Error) FormatError!void {
         line,
         col,
         e.code,
-        e.message,
+        e.message.borrow(),
     });
 }
 
