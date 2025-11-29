@@ -4,6 +4,7 @@
 //! the docs folder (`OUT_DIR`).
 
 const std = @import("std");
+const io = std.io;
 const gen = @import("./gen_utils.zig");
 const zlint = @import("zlint");
 const RULE_DOCS_DIR = @import("./constants.zig").@"docs/rules";
@@ -37,9 +38,11 @@ const Context = struct {
     alloc: Allocator,
     ctx: *Schema.Context,
     schemas: *gen.SchemaMap,
-    writer: Writer,
+    writer: io.Writer,
     depth: u32 = 0,
 };
+
+var buf: [1024]u8 = undefined;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -93,7 +96,8 @@ fn generateDocFile(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
     };
     defer outfile.close();
     log.info("Writing docs for rule '{s}'\n", .{rule.meta.name});
-    ctx.writer = outfile.writer();
+    ctx.writer = outfile.writer(&buf).interface;
+    defer ctx.writer.flush() catch @panic("failed to flush writer");
     // safety: no longer valid once file closes
     defer ctx.writer = undefined;
     try renderDocs(ctx, rule, docs);

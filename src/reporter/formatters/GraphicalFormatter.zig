@@ -79,7 +79,7 @@ fn renderContext(self: *GraphicalFormatter, w: *Writer, e: *Error) FormatError!v
     std.sort.insertion(LabeledSpan, e.labels.items, {}, labelsLt);
 
     var alloc = std.heap.stackFallback(@sizeOf(ContextInfo) * 8, self.alloc);
-    var locations = std.ArrayList(ContextInfo).init(alloc.get());
+    var locations = std.array_list.Managed(ContextInfo).init(alloc.get());
     defer locations.deinit();
 
     var largest_line_num: u32 = 0;

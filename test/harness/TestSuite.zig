@@ -134,7 +134,9 @@ fn pushErr(self: *TestSuite, msg: string, err: anytype) void {
 fn writeSnapshot(self: *TestSuite) !void {
     const snapshot = try self.openSnapshotFile();
     defer snapshot.close();
-    const writer = snapshot.writer();
+    var buf: [1024]u8 = undefined;
+    var writer = snapshot.writer(&buf).interface;
+    defer writer.flush() catch @panic("failed to flush writer");
 
     const pass = self.stats.pass.load(.monotonic);
     const panics = self.stats.panic.load(.monotonic);

@@ -15,15 +15,15 @@ allocated can easily lead to memory leaks.
 ```zig
 const std = @import("std");
 pub const Foo = struct {
-  list: std.ArrayList(u32),
-  pub fn getList(self: *Foo) std.ArrayList(u32) {
+  list: std.array_list.Managed(u32),
+  pub fn getList(self: *Foo) std.array_list.Managed(u32) {
       return self.list;
   }
 };
 
 pub fn main() !void {
   var foo: Foo = .{
-    .list = try std.ArrayList(u32).init(std.heap.page_allocator)
+    .list = try std.array_list.Managed(u32).init(std.heap.page_allocator)
   };
   defer foo.list.deinit();
   var list = foo.getList();
@@ -36,7 +36,7 @@ pub fn main() !void {
 Examples of **incorrect** code for this rule:
 
 ```zig
-fn foo(self: *Foo) std.ArrayList(u32) {
+fn foo(self: *Foo) std.array_list.Managed(u32) {
   return self.list;
 }
 ```
@@ -45,7 +45,7 @@ Examples of **correct** code for this rule:
 
 ```zig
 // pass by reference
-fn foo(self: *Foo) *std.ArrayList(u32) {
+fn foo(self: *Foo) *std.array_list.Managed(u32) {
   return &self.list;
 }
 

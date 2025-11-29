@@ -225,15 +225,11 @@ test Cow {
 }
 
 test "Cow.format" {
-    const no_specifier = try std.fmt.allocPrint(t.allocator, "{}", .{Cow(false).static("Hello, world!")});
-    defer t.allocator.free(no_specifier);
-    try t.expectEqualStrings("Cow<false>(borrowed, \"Hello, world!\")", no_specifier);
-
     const any = try std.fmt.allocPrint(t.allocator, "{any}", .{Cow(false).static("Hello, world!")});
     defer t.allocator.free(any);
     try t.expectEqualStrings("Cow<false>(borrowed, \"Hello, world!\")", any);
 
-    const str = try std.fmt.allocPrint(t.allocator, "{s}", .{Cow(false).static("Hello, world!")});
+    const str = try std.fmt.allocPrint(t.allocator, "{s}", .{Cow(false).static("Hello, world!").borrow()});
     defer t.allocator.free(str);
     try t.expectEqualStrings("Hello, world!", str);
 }

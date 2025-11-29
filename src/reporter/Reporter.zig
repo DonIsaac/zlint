@@ -7,7 +7,7 @@ pub const Reporter = struct {
     opts: Options = .{},
     stats: Stats = .{},
 
-    writer: io.BufferedWriter(4096, Writer),
+    writer: io.Writer,
     writer_lock: Mutex = .{},
 
     alloc: Allocator,
@@ -22,7 +22,7 @@ pub const Reporter = struct {
     /// Shorthand for creating a `Reporter` with a `GraphicalFormatter`, since
     /// this is so common.
     pub fn graphical(
-        writer: Writer,
+        writer: io.Writer,
         allocator: Allocator,
         // Optionally override the default theme
         theme: ?formatters.Graphical.Theme,
@@ -56,7 +56,7 @@ pub const Reporter = struct {
     pub fn init(
         comptime Formatter: type,
         formatter: Formatter,
-        writer: Writer,
+        writer: io.Writer,
         allocator: Allocator,
     ) Allocator.Error!Reporter {
         comptime if (!@hasDecl(Formatter, "meta")) {
@@ -89,7 +89,7 @@ pub const Reporter = struct {
         };
 
         return .{
-            .writer = .{ .unbuffered_writer = writer },
+            .writer = writer,
             .opts = .{
                 .report_stats = meta.report_statistics,
             },
@@ -103,7 +103,7 @@ pub const Reporter = struct {
         };
     }
 
-    pub fn reportErrors(self: *Reporter, errors: std.ArrayList(Error)) void {
+    pub fn reportErrors(self: *Reporter, errors: std.array_list.Managed(Error)) void {
         defer errors.deinit();
         self.reportErrorSlice(errors.allocator, errors.items);
     }

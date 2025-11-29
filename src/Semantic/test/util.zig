@@ -9,9 +9,14 @@ const printer = @import("../../root.zig").printer;
 const t = std.testing;
 const print = std.debug.print;
 
+var buf: [1024]u8 = undefined;
+
 pub fn build(src: [:0]const u8) !Semantic {
+    const w = std.fs.File.stderr().writer(&buf);
+    var stderr = w.interface;
+    defer stderr.flush() catch @panic("failed to flush writer");
     var r = try report.Reporter.graphical(
-        std.io.getStdErr().writer().any(),
+        stderr,
         t.allocator,
         report.formatter.Graphical.Theme.unicodeNoColor(),
     );

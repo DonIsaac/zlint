@@ -70,8 +70,11 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     const snapshot = try TestFolders.openSnapshotFile(alloc, "snapshot-coverage/simple/pass", utils.cleanStrSlice(source_name));
     defer snapshot.close();
 
-    const w = snapshot.writer();
-    var printer = Printer.init(alloc, w.any());
+    var buf: [1024]u8 = undefined;
+    const writer = snapshot.writer(&buf);
+    var w = writer.interface;
+    defer w.flush() catch @panic("failed to flush writer");
+    var printer = Printer.init(alloc, w);
     var sem_printer = SemanticPrinter.new(&printer, &semantic);
     defer printer.deinit();
 
@@ -107,8 +110,13 @@ fn runFail(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     const snapshot = try TestFolders.openSnapshotFile(alloc, "snapshot-coverage/simple/fail", utils.cleanStrSlice(source_name));
     defer snapshot.close();
 
+    var buf: [1024]u8 = undefined;
+    const writer = snapshot.writer(&buf);
+    var w = writer.interface;
+    defer w.flush() catch @panic("failed to flush writer");
+
     const formatter = zlint.report.formatter.Graphical.unicode(alloc, false);
-    var reporter = try zlint.report.Reporter.init(@TypeOf(formatter), formatter, snapshot.writer().any(), alloc);
+    var reporter = try zlint.report.Reporter.init(@TypeOf(formatter), formatter, w, alloc);
     defer reporter.deinit();
 
     // run analysis

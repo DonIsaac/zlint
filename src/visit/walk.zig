@@ -436,7 +436,7 @@ pub fn Walker(Visitor: type, Error: type) type {
             if (comptime Full == full.FnProto) {
                 const Item = Node.Index;
                 var temp = std.heap.stackFallback(8 * @sizeOf(Item), self.alloc);
-                var parambuf = std.ArrayList(Item).init(temp.get());
+                var parambuf = std.array_list.Managed(Item).init(temp.get());
                 defer parambuf.deinit();
                 try parambuf.ensureTotalCapacityPrecise(8);
 

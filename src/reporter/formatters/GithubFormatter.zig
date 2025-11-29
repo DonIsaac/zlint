@@ -54,7 +54,7 @@ test GithubFormatter {
     const allocator = std.testing.allocator;
     const expectEqualStrings = std.testing.expectEqualStrings;
 
-    var buf = std.ArrayList(u8).init(allocator);
+    var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
     var f = GithubFormatter{};
     var w = buf.writer().any();
@@ -97,7 +97,7 @@ const std = @import("std");
 const formatter = @import("../formatter.zig");
 const Meta = formatter.Meta;
 const FormatError = formatter.FormatError;
-const Writer = std.io.AnyWriter;
+const Writer = std.io.Writer;
 const Error = @import("../../Error.zig");
 const _span = @import("../../span.zig");
 const LabeledSpan = _span.LabeledSpan;

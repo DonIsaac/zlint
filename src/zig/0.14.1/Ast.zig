@@ -119,7 +119,7 @@ pub fn parse(gpa: Allocator, source: [:0]const u8, mode: Mode) Allocator.Error!A
 /// `gpa` is used for allocating the resulting formatted source code.
 /// Caller owns the returned slice of bytes, allocated with `gpa`.
 pub fn render(tree: Ast, gpa: Allocator) RenderError![]u8 {
-    var buffer = std.ArrayList(u8).init(gpa);
+    var buffer = std.array_list.Managed(u8).init(gpa);
     defer buffer.deinit();
 
     try tree.renderToArrayList(&buffer, .{});
@@ -128,7 +128,7 @@ pub fn render(tree: Ast, gpa: Allocator) RenderError![]u8 {
 
 pub const Fixups = private_render.Fixups;
 
-pub fn renderToArrayList(tree: Ast, buffer: *std.ArrayList(u8), fixups: Fixups) RenderError!void {
+pub fn renderToArrayList(tree: Ast, buffer: *std.array_list.Managed(u8), fixups: Fixups) RenderError!void {
     return @import("render.zig").renderTree(buffer, tree, fixups);
 }
 
@@ -465,7 +465,7 @@ pub fn renderError(tree: Ast, parse_error: Error, stream: anytype) !void {
 
         .invalid_byte => {
             const tok_slice = tree.source[tree.tokens.items(.start)[parse_error.token]..];
-            return stream.print("{s} contains invalid byte: '{'}'", .{
+            return stream.print("{s} contains invalid byte: '{s}'", .{
                 switch (tok_slice[0]) {
                     '\'' => "character literal",
                     '"', '\\' => "string literal",

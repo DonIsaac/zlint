@@ -15,7 +15,7 @@ pub const @"0.14.1" = struct {
     /// The format specifier must be one of:
     ///  * `{}` treats contents as a double-quoted string.
     ///  * `{'}` treats contents as a single-quoted string.
-    pub fn fmtEscapes(bytes: []const u8) std.fmt.Formatter(stringEscape) {
+    pub fn fmtEscapes(bytes: []const u8) std.fmt.Formatter([]const u8, stringEscape) {
         return .{ .data = bytes };
     }
 
@@ -30,44 +30,19 @@ pub const @"0.14.1" = struct {
         , "\"{}\"", .{fmtEscapes(" \\ hi \x07 \x11 \" derp '")});
     }
 
-    /// Print the string as escaped contents of a double quoted or single-quoted string.
-    /// Format `{}` treats contents as a double-quoted string.
-    /// Format `{'}` treats contents as a single-quoted string.
-    pub fn stringEscape(
-        bytes: []const u8,
-        comptime f: []const u8,
-        options: std.fmt.FormatOptions,
-        writer: anytype,
-    ) !void {
-        _ = options;
+    /// Print the string as escaped contents of a double quoted string.
+    pub fn stringEscape(bytes: []const u8, w: *std.io.Writer) std.io.Writer.Error!void {
         for (bytes) |byte| switch (byte) {
-            '\n' => try writer.writeAll("\\n"),
-            '\r' => try writer.writeAll("\\r"),
-            '\t' => try writer.writeAll("\\t"),
-            '\\' => try writer.writeAll("\\\\"),
-            '"' => {
-                if (f.len == 1 and f[0] == '\'') {
-                    try writer.writeByte('"');
-                } else if (f.len == 0) {
-                    try writer.writeAll("\\\"");
-                } else {
-                    @compileError("expected {} or {'}, found {" ++ f ++ "}");
-                }
-            },
-            '\'' => {
-                if (f.len == 1 and f[0] == '\'') {
-                    try writer.writeAll("\\'");
-                } else if (f.len == 0) {
-                    try writer.writeByte('\'');
-                } else {
-                    @compileError("expected {} or {'}, found {" ++ f ++ "}");
-                }
-            },
-            ' ', '!', '#'...'&', '('...'[', ']'...'~' => try writer.writeByte(byte),
-            // Use hex escapes for rest any unprintable characters.
+            '\n' => try w.writeAll("\\n"),
+            '\r' => try w.writeAll("\\r"),
+            '\t' => try w.writeAll("\\t"),
+            '\\' => try w.writeAll("\\\\"),
+            '"' => try w.writeAll("\\\""),
+            '\'' => try w.writeByte('\''),
+            ' ', '!', '#'...'&', '('...'[', ']'...'~' => try w.writeByte(byte),
             else => {
-                try writer.writeAll("\\x");
-                try std.fmt.formatInt(byte, 16, .lower, .{ .width = 2, .fill = '0' }, writer);
+                try w.writeAll("\\x");
+                try w.printInt(byte, 16, .lower, .{ .width = 2, .fill = '0' });
             },
         };
     }

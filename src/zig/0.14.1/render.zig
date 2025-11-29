@@ -14,7 +14,7 @@ const asm_indent_delta = 2;
 
 pub const Error = Ast.RenderError;
 
-const Ais = AutoIndentingStream(std.ArrayList(u8).Writer);
+const Ais = AutoIndentingStream(std.array_list.Managed(u8).Writer);
 
 pub const Fixups = struct {
     /// The key is the mut token (`var`/`const`) of the variable declaration
@@ -81,7 +81,7 @@ const Render = struct {
     fixups: Fixups,
 };
 
-pub fn renderTree(buffer: *std.ArrayList(u8), tree: Ast, fixups: Fixups) Error!void {
+pub fn renderTree(buffer: *std.array_list.Managed(u8), tree: Ast, fixups: Fixups) Error!void {
     assert(tree.errors.len == 0); // Cannot render an invalid tree.
     var auto_indenting_stream = Ais.init(buffer, indent_delta);
     defer auto_indenting_stream.deinit();
@@ -2182,7 +2182,7 @@ fn renderArrayInit(
 
         const section_exprs = row_exprs[0..section_end];
 
-        var sub_expr_buffer = std.ArrayList(u8).init(gpa);
+        var sub_expr_buffer = std.array_list.Managed(u8).init(gpa);
         defer sub_expr_buffer.deinit();
 
         const sub_expr_buffer_starts = try gpa.alloc(usize, section_exprs.len + 1);
@@ -3193,7 +3193,7 @@ fn anythingBetween(tree: Ast, start_token: Ast.TokenIndex, end_token: Ast.TokenI
     return false;
 }
 
-fn writeFixingWhitespace(writer: std.ArrayList(u8).Writer, slice: []const u8) Error!void {
+fn writeFixingWhitespace(writer: std.array_list.Managed(u8).Writer, slice: []const u8) Error!void {
     for (slice) |byte| switch (byte) {
         '\t' => try writer.writeAll(" " ** indent_delta),
         '\r' => {},
@@ -3357,20 +3357,20 @@ fn AutoIndentingStream(comptime UnderlyingWriter: type) type {
 
         indent_count: usize = 0,
         indent_delta: usize,
-        indent_stack: std.ArrayList(StackElem),
-        space_stack: std.ArrayList(SpaceElem),
+        indent_stack: std.array_list.Managed(StackElem),
+        space_stack: std.array_list.Managed(SpaceElem),
         space_mode: ?usize = null,
         disable_indent_committing: usize = 0,
         current_line_empty: bool = true,
         /// the most recently applied indent
         applied_indent: usize = 0,
 
-        pub fn init(buffer: *std.ArrayList(u8), indent_delta_: usize) Self {
+        pub fn init(buffer: *std.array_list.Managed(u8), indent_delta_: usize) Self {
             return .{
                 .underlying_writer = buffer.writer(),
                 .indent_delta = indent_delta_,
-                .indent_stack = std.ArrayList(StackElem).init(buffer.allocator),
-                .space_stack = std.ArrayList(SpaceElem).init(buffer.allocator),
+                .indent_stack = std.array_list.Managed(StackElem).init(buffer.allocator),
+                .space_stack = std.array_list.Managed(SpaceElem).init(buffer.allocator),
             };
         }
 

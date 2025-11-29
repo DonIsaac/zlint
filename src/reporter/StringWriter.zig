@@ -3,7 +3,7 @@
 const StringWriter = @This();
 const Writer = io.GenericWriter(*StringWriter, Allocator.Error, write);
 
-buf: std.ArrayList(u8),
+buf: std.array_list.Managed(u8),
 
 /// Create a new, empty `StringWriter`. Does not allocate memory.
 pub fn init(allocator: Allocator) StringWriter {
@@ -17,7 +17,7 @@ pub fn deinit(self: *StringWriter) void {
 /// Create a new `StringWriter` that pre-allocates enough memory for at least
 /// `capacity` bytes.
 pub fn initCapacity(capacity: usize, allocator: Allocator) Allocator.Error!StringWriter {
-    const buf = try std.ArrayList(u8).initCapacity(allocator, capacity);
+    const buf = try std.array_list.Managed(u8).initCapacity(allocator, capacity);
     return StringWriter{ .buf = buf };
 }
 

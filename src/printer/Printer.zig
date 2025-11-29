@@ -14,8 +14,7 @@ shiftwidth: usize = 2,
 indent: u8 = ' ',
 _newline: []const u8 = "\n",
 
-// pub const Writer = std.fs.File.Writer;
-pub const Writer = std.io.AnyWriter;
+pub const Writer = std.io.Writer;
 const ContainerKind = enum { object, array };
 const ContainerStack = std.ArrayList(ContainerKind);
 const NEWLINE = if (builtin.target.os.tag == .windows) "\r\n" else "\n";
@@ -124,7 +123,7 @@ pub inline fn pComma(self: *Printer) void {
 /// Enter into an object container. When exited (i.e. `pop()`), a closing curly brace will
 /// be printed.
 pub fn pushObject(self: *Printer) !void {
-    try self.container_stack.append(ContainerKind.object);
+    try self.container_stack.append(self.alloc, ContainerKind.object);
     _ = try self.writer.write("{");
     try self.pIndent();
 }
@@ -132,7 +131,7 @@ pub fn pushObject(self: *Printer) !void {
 /// Enter into an array container. When exited (i.e. `pop()`), a closing square bracket will
 /// be printed.
 pub fn pushArray(self: *Printer, comptime indent: bool) !void {
-    try self.container_stack.append(ContainerKind.array);
+    try self.container_stack.append(self.alloc, ContainerKind.array);
     _ = try self.writer.write("[");
     if (indent) {
         try self.pIndent();
@@ -160,7 +159,9 @@ pub fn popIndent(self: *Printer) void {
 }
 pub fn pIndent(self: *Printer) !void {
     try self.writer.writeAll(self._newline);
-    try self.writer.writeByteNTimes(self.indent, self.shiftwidth * self.container_stack.items.len);
+    for (0..self.shiftwidth * self.container_stack.items.len) |_| {
+        try self.writer.writeByte(self.indent);
+    }
 }
 
 const Printer = @This();

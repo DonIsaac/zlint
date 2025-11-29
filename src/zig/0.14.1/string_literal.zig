@@ -363,7 +363,7 @@ pub fn parseWrite(writer: anytype, bytes: []const u8) error{OutOfMemory}!Result 
 /// Higher level API. Does not return extra info about parse errors.
 /// Caller owns returned memory.
 pub fn parseAlloc(allocator: std.mem.Allocator, bytes: []const u8) ParseError![]u8 {
-    var buf = std.ArrayList(u8).init(allocator);
+    var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
 
     switch (try parseWrite(buf.writer(), bytes)) {
