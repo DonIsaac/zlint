@@ -7,7 +7,7 @@ const meta = std.meta;
 const Ast = zig.Ast;
 const Token = zig.Token;
 const primitives = zig.primitives;
-const fmtEscapes = std.zig.fmtEscapes;
+const fmtEscapes = zig.fmtEscapes;
 
 const indent_delta = 4;
 const asm_indent_delta = 2;

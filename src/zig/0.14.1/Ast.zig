@@ -472,7 +472,7 @@ pub fn renderError(tree: Ast, parse_error: Error, stream: anytype) !void {
                     '/' => "comment",
                     else => unreachable,
                 },
-                std.zig.fmtEscapes(tok_slice[parse_error.extra.offset..][0..1]),
+                zig.fmtEscapes(tok_slice[parse_error.extra.offset..][0..1]),
             });
         },
 
