@@ -66,7 +66,8 @@ const a = @import("../ast_utils.zig");
 const walk = @import("../../visit/walk.zig");
 
 const Allocator = std.mem.Allocator;
-const Ast = std.zig.Ast;
+const zig = @import("../../zig.zig").@"0.14.1";
+const Ast = zig.Ast;
 const Node = Ast.Node;
 const Token = Semantic.Token;
 const TokenIndex = Ast.TokenIndex;

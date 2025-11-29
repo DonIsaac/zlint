@@ -61,7 +61,8 @@ const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 const a = @import("../ast_utils.zig");
 
-const Ast = std.zig.Ast;
+const zig = @import("../../zig.zig").@"0.14.1";
+const Ast = zig.Ast;
 const Node = Ast.Node;
 const TokenIndex = Ast.TokenIndex;
 const Span = _span.Span;

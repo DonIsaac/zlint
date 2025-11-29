@@ -1,7 +1,8 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
+const zig = @import("../zig.zig").@"0.14.1";
 
-const Ast = std.zig.Ast;
+const Ast = zig.Ast;
 const Node = Ast.Node;
 
 const Walker = @import("./walk.zig").Walker;

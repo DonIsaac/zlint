@@ -28,7 +28,7 @@ pub const WalkState = enum {
     Stop,
 };
 
-/// Traverses an [AST](#std.zig.Ast) in a depth-first manner.
+/// Traverses an [AST](#zig.Ast) in a depth-first manner.
 ///
 /// Visitors are structs (or some other container) that control the walk and
 /// optionally inspect each node as it is encountered.
@@ -238,7 +238,7 @@ pub fn Walker(Visitor: type, Error: type) type {
             if (@hasDecl(Visitor, "exitNode")) return self.visitor.exitNode(node);
         }
 
-        /// Walk over an `std.zig.Ast` with the provided `Visitor`.
+        /// Walk over a `zig.Ast` with the provided `Visitor`.
         pub fn walk(self: *Self) WalkError!void {
             // Used by some full AST node getters. The meaning of this node depends on each getter.
             // Since this is re-used, care must be taken to avoid storing a reference to (now-clobbered) data.
@@ -399,7 +399,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                     @compileError(@tagName(vtable_fn_name) ++ " is not a specialized visitor fn name.");
 
                 if (!@hasDecl(Ast, @tagName(fullGetterName)))
-                    @compileError("std.zig.Ast has no method named '" ++ @tagName(fullGetterName) ++ "'.");
+                    @compileError("zig.Ast has no method named '" ++ @tagName(fullGetterName) ++ "'.");
             }
 
             const visit_full_fn: ?*const VisitFull(Full) = @field(vtable, @tagName(vtable_fn_name));
@@ -1184,9 +1184,10 @@ const util = @import("util");
 const Semantic = @import("../Semantic.zig");
 const mem = std.mem;
 const assert = std.debug.assert;
+const zig = @import("../zig.zig").@"0.14.1";
 
 const Allocator = mem.Allocator;
-const Ast = std.zig.Ast;
+const Ast = zig.Ast;
 const full = Ast.full;
 const Node = Ast.Node;
 
@@ -1227,7 +1228,7 @@ test Walker {
         /// You may also visit "full" nodes. Basically, if `Ast` has a method
         /// called `fullNodeKind`, then you can visit it with `visitNodeKind`.
         ///
-        /// See `std.zig.Ast.full` for a list.
+        /// See `zig.Ast.full` for a list.
         fn visitVarDecl(
             self: *@This(),
             _: Node.Index,
@@ -1247,7 +1248,7 @@ test Walker {
         \\}
     ;
 
-    // parse some source code into a std.zig.Ast
+    // parse some source code into a zig.Ast
     var ast = try Ast.parse(allocator, src, .zig);
     defer ast.deinit(allocator);
     try expectEqual(0, ast.errors.len);

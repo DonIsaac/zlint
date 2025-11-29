@@ -195,7 +195,8 @@ const AstPrinter = @This();
 
 const std = @import("std");
 const builtin = @import("builtin");
-const Ast = std.zig.Ast;
+const zig = @import("../zig.zig").@"0.14.1";
+const Ast = zig.Ast;
 const NodeLinks = Semantic.NodeLinks;
 const Node = Ast.Node;
 const NodeId = Ast.Node.Index;

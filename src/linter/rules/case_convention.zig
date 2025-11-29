@@ -36,7 +36,8 @@ const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 const ast_utils = @import("../ast_utils.zig");
 
-const Ast = std.zig.Ast;
+const zig = @import("../../zig.zig").@"0.14.1";
+const Ast = zig.Ast;
 const Node = Ast.Node;
 const Symbol = Semantic.Symbol;
 const LinterContext = @import("../lint_context.zig");

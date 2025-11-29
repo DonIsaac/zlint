@@ -143,7 +143,8 @@ const _tokenizer = @import("Semantic/tokenizer.zig");
 const TokenIndex = _ast.TokenIndex;
 
 // re-exports
-pub const Ast = std.zig.Ast;
+const zig = @import("zig.zig").@"0.14.1";
+pub const Ast = zig.Ast;
 pub const Builder = @import("Semantic/SemanticBuilder.zig");
 pub const CommentList = _tokenizer.CommentList;
 pub const ModuleRecord = @import("Semantic/ModuleRecord.zig");

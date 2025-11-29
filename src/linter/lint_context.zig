@@ -283,7 +283,7 @@ const _source = @import("../source.zig");
 const Semantic = @import("../Semantic.zig");
 
 const Allocator = std.mem.Allocator;
-const Ast = std.zig.Ast;
+const Ast = @import("../zig.zig").@"0.14.1".Ast;
 const Error = @import("../Error.zig");
 const Severity = Error.Severity;
 const LabeledSpan = @import("../span.zig").LabeledSpan;
