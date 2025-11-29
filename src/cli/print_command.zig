@@ -33,7 +33,12 @@ pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source, writer_: ?
         return;
     }
     const sema = &sema_result.value;
-    var writer = writer_ orelse std.fs.File.stdout().writer(&buf).interface;
+    var stdout: ?std.fs.File.Writer = null;
+    defer if (stdout) |*out| out.interface.flush() catch @panic("failed to flush writer");
+    var writer = writer_ orelse blk: {
+        stdout = std.fs.File.stdout().writer(&buf);
+        break :blk stdout.?.interface;
+    };
     defer writer.flush() catch @panic("failed to flush writer");
     var printer = Printer.init(alloc, writer);
     defer printer.deinit();

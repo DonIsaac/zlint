@@ -7,7 +7,7 @@ pub const Reporter = struct {
     opts: Options = .{},
     stats: Stats = .{},
 
-    writer: io.Writer,
+    writer: *io.Writer,
     writer_lock: Mutex = .{},
 
     alloc: Allocator,
@@ -22,7 +22,7 @@ pub const Reporter = struct {
     /// Shorthand for creating a `Reporter` with a `GraphicalFormatter`, since
     /// this is so common.
     pub fn graphical(
-        writer: io.Writer,
+        writer: *io.Writer,
         allocator: Allocator,
         // Optionally override the default theme
         theme: ?formatters.Graphical.Theme,
@@ -32,7 +32,7 @@ pub const Reporter = struct {
         return init(formatters.Graphical, formatter, writer, allocator);
     }
 
-    pub fn initKind(kind: formatters.Kind, writer: io.Writer, allocator: Allocator) Allocator.Error!Reporter {
+    pub fn initKind(kind: formatters.Kind, writer: *io.Writer, allocator: Allocator) Allocator.Error!Reporter {
         switch (kind) {
             .graphical => {
                 // TODO: check terminal support for unicode characters
@@ -56,7 +56,7 @@ pub const Reporter = struct {
     pub fn init(
         comptime Formatter: type,
         formatter: Formatter,
-        writer: io.Writer,
+        writer: *io.Writer,
         allocator: Allocator,
     ) Allocator.Error!Reporter {
         comptime if (!@hasDecl(Formatter, "meta")) {
@@ -118,6 +118,7 @@ pub const Reporter = struct {
         var w = try std.io.Writer.Allocating.initCapacity(allocator, 256);
         defer w.deinit();
 
+
         for (errors) |err| {
             var e = err;
             defer e.deinit(alloc);
@@ -128,9 +129,13 @@ pub const Reporter = struct {
             w.writer.writeByte('\n') catch @panic("failed to write newline.");
         }
 
+        w.writer.flush() catch @panic("failed to flush writer");
         self.writer_lock.lock();
         defer self.writer_lock.unlock();
-        _ = self.writer.write(w.written()) catch @panic("failed to write diagnostics to buffer");
+        var written = w.toArrayList();
+        defer written.deinit(allocator);
+        _ = self.writer.writeAll(written.items) catch @panic("failed to write diagnostics to buffer");
+        self.writer.flush() catch @panic("failed to flush writer");
     }
 
     pub fn printStats(self: *Reporter, duration: i64) void {
@@ -158,6 +163,7 @@ pub const Reporter = struct {
     /// 2. This reporter owns the formatter.
     pub fn deinit(self: *Reporter) void {
         // AnyWriter doesn't have flush, skip it
+        self.writer_lock.lock();
         self.vtable.deinit(self.ptr, self.alloc);
         self.vtable.destroy(self.ptr, self.alloc);
 

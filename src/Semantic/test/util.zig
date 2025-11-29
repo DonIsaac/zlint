@@ -13,9 +13,9 @@ var buf: [1024]u8 = undefined;
 
 pub fn build(src: [:0]const u8) !Semantic {
     const w = std.fs.File.stderr().writer(&buf);
-    const stderr = w.interface;
+    var stderr = w.interface;
     var r = try report.Reporter.graphical(
-        stderr,
+        &stderr,
         t.allocator,
         report.formatter.Graphical.Theme.unicodeNoColor(),
     );

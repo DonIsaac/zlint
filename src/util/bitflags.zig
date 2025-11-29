@@ -199,7 +199,7 @@ test Bitflags {
     try std.testing.expectFmt(
         \\["top","left"]
     ,
-        "{any}",
+        "{f}",
         .{std.json.fmt(p, .{})},
     );
 }

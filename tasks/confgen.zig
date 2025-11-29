@@ -83,8 +83,8 @@ fn createJsonSchema(allocator: Allocator) !void {
     const schema = try ctx.toJson(root);
     var out = try fs.cwd().createFile(c.@"zlint.schema.json", .{});
     defer out.close();
-    var writer = out.writer(&buf).interface;
-    defer writer.flush() catch @panic("failed to flush writer");
-    var json = std.json.Stringify{ .writer = &writer};
+    var writer = out.writer(&buf);
+    defer writer.interface.flush() catch @panic("failed to flush writer");
+    var json = std.json.Stringify{ .writer = &writer.interface};
     try json.write(schema);
 }

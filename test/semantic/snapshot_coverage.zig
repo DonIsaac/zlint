@@ -116,7 +116,7 @@ fn runFail(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     defer w.flush() catch @panic("failed to flush writer");
 
     const formatter = zlint.report.formatter.Graphical.unicode(alloc, false);
-    var reporter = try zlint.report.Reporter.init(@TypeOf(formatter), formatter, w, alloc);
+    var reporter = try zlint.report.Reporter.init(@TypeOf(formatter), formatter, &w, alloc);
     defer reporter.deinit();
 
     // run analysis

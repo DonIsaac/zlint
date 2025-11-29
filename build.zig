@@ -76,7 +76,6 @@ pub fn build(b: *std.Build) void {
 
     // exe.want_lto
     // l.link(exe.root_module else &exe.root_module, false, .{});
-    b.installArtifact(exe);
 
     const e2e_mod = b.createModule(.{
         .root_source_file = b.path("test/test_e2e.zig"),

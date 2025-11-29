@@ -135,7 +135,8 @@ fn writeSnapshot(self: *TestSuite) !void {
     const snapshot = try self.openSnapshotFile();
     defer snapshot.close();
     var buf: [1024]u8 = undefined;
-    var writer = snapshot.writer(&buf).interface;
+    const w = snapshot.writer(&buf);
+    var writer = w.interface;
     defer writer.flush() catch @panic("failed to flush writer");
 
     const pass = self.stats.pass.load(.monotonic);

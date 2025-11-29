@@ -22,7 +22,11 @@ const Options = @import("../cli/Options.zig");
 var buf: [4096]u8 = undefined;
 
 pub fn lint(alloc: Allocator, options: Options) !u8 {
-    const writer = std.fs.File.stdout().writer(&buf);
+    // writer cannot live on the stack.
+    // this gets moved into Reporter, which runs on a different thread.
+    const writer = try alloc.create(std.fs.File.Writer);
+    writer.* = std.fs.File.stdout().writer(&buf);
+    defer alloc.destroy(writer);
     var stdout = writer.interface;
     defer stdout.flush() catch @panic("failed to flush writer");
 
@@ -33,7 +37,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
     var arena = std.heap.ArenaAllocator.init(alloc);
     defer arena.deinit();
 
-    var reporter = try reporters.Reporter.initKind(options.format, stdout, alloc);
+    var reporter = try reporters.Reporter.initKind(options.format, &writer.interface, alloc);
     defer reporter.deinit();
     reporter.opts.quiet = options.quiet;
     reporter.opts.report_stats = reporter.opts.report_stats and options.summary;

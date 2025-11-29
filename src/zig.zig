@@ -18,10 +18,10 @@ pub const @"0.14.1" = struct {
 
     test fmtEscapes {
         const expectFmt = std.testing.expectFmt;
-        try expectFmt("\\x0f", "{any}", .{fmtEscapes("\x0f")});
+        try expectFmt("\\x0f", "{f}", .{fmtEscapes("\x0f")});
         try expectFmt(
             \\" \\ hi \x07 \x11 \" derp '"
-        , "\"{any}\"", .{fmtEscapes(" \\ hi \x07 \x11 \" derp '")});
+        , "\"{f}\"", .{fmtEscapes(" \\ hi \x07 \x11 \" derp '")});
     }
 
     /// Print the string as escaped contents of a double quoted string.
