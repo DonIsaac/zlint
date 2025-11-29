@@ -108,7 +108,8 @@ fn renderDocs(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
         \\---
         \\rule: '
     );
-    try std.json.stringify(rule.meta, .{}, ctx.writer);
+    var json =  std.json.Stringify{ .writer = &ctx.writer};
+    try json.write(rule.meta);
     try ctx.writer.writeAll("'\n---\n\n");
     try ctx.writer.print("# `{s}`\n\n", .{rule.name(.kebab)});
     try ctx.writer.print(
@@ -120,12 +121,12 @@ fn renderDocs(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
     if (rule.meta.fix.kind != .none) {
         try ctx.writer.writeAll("fix={");
         defer ctx.writer.writeByte('}') catch unreachable;
-        try std.json.stringify(rule.meta.fix, .{}, ctx.writer);
+        try json.write(rule.meta.fix);
     }
     try ctx.writer.writeAll(" />");
-    try ctx.writer.writeByteNTimes('\n', 2);
+    try ctx.writer.writeAll("\n\n");
     try ctx.writer.writeAll(docs);
-    try ctx.writer.writeByteNTimes('\n', 2);
+    try ctx.writer.writeAll("\n\n");
     try renderConfigSection(ctx, rule);
 }
 

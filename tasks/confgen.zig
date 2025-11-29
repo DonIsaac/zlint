@@ -46,6 +46,7 @@ pub fn main() !void {
             .{ snake_name, rule_info.name(.pascale) },
         );
     }
+    try w.flush();
     try createJsonSchema(allocator);
 }
 
@@ -82,5 +83,8 @@ fn createJsonSchema(allocator: Allocator) !void {
     const schema = try ctx.toJson(root);
     var out = try fs.cwd().createFile(c.@"zlint.schema.json", .{});
     defer out.close();
-    try std.json.stringify(schema, .{ .whitespace = .indent_4 }, out.writer());
+    var writer = out.writer(&buf).interface;
+    defer writer.flush() catch @panic("failed to flush writer");
+    var json = std.json.Stringify{ .writer = &writer};
+    try json.write(schema);
 }

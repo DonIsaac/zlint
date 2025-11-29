@@ -47,18 +47,6 @@ pub fn build(b: *std.Build) void {
         .omit_frame_pointer = if (debug_release) false else null,
         .strip = if (debug_release) false else null,
     });
-    // var lib = b.addStaticLibrary(.{
-    //     .name = "zlint",
-    //     .root_source_file = b.path("src/root.zig"),
-    //     .single_threaded = single_threaded,
-    //     .target = l.target,
-    //     .optimize = l.optimize,
-    //     .error_tracing = if (debug_release) true else null,
-    //     .unwind_tables = if (debug_release) true else null,
-    //     .omit_frame_pointer = if (debug_release) false else null,
-    //     .strip = if (debug_release) false else null,
-    // });
-    // const zlint: *Build.Module = lib.root_module;
     const lib = b.addLibrary(.{
         .name = "zlint",
         .root_module = zlint,
@@ -68,10 +56,24 @@ pub fn build(b: *std.Build) void {
     b.modules.put(b.dupe("zlint"), zlint) catch @panic("OOM");
     b.installArtifact(lib);
 
+    const exe_mod = b.createModule(.{
+        .root_source_file = b.path("src/main.zig"),
+        .single_threaded = single_threaded,
+        .optimize = l.optimize,
+        .target = l.target,
+        .error_tracing = if (debug_release) true else null,
+        .unwind_tables = if (debug_release) .sync else null,
+        .omit_frame_pointer = if (debug_release) false else null,
+        .strip = if (debug_release) false else null,
+    });
+    l.link(exe_mod, false, .{});
+
     const exe = b.addExecutable(.{
         .name = "zlint",
         .root_module = zlint,
     });
+    b.installArtifact(exe);
+
     // exe.want_lto
     // l.link(exe.root_module else &exe.root_module, false, .{});
     b.installArtifact(exe);

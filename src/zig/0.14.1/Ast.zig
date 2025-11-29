@@ -465,7 +465,7 @@ pub fn renderError(tree: Ast, parse_error: Error, stream: anytype) !void {
 
         .invalid_byte => {
             const tok_slice = tree.source[tree.tokens.items(.start)[parse_error.token]..];
-            return stream.print("{s} contains invalid byte: '{s}'", .{
+            return stream.print("{s} contains invalid byte: '{f}'", .{
                 switch (tok_slice[0]) {
                     '\'' => "character literal",
                     '"', '\\' => "string literal",

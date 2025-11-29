@@ -66,15 +66,15 @@ pub inline fn pPropStr(self: *Printer, key: []const u8, value: anytype) !void {
 /// into JSON before printing.
 pub fn pPropJson(self: *Printer, key: []const u8, value: anytype) !void {
     try self.pPropName(key);
-    const options: std.json.StringifyOptions = .{};
-    try stringify(value, options, self.writer);
+    var json = std.json.Stringify{ .writer = &self.writer};
+    try json.write(value);
     self.pComma();
     try self.pIndent();
 }
 
 pub fn pJson(self: *Printer, value: anytype) !void {
-    const options: std.json.StringifyOptions = .{};
-    try stringify(value, options, self.writer);
+    var json = std.json.Stringify{ .writer = &self.writer};
+    try json.write(value);
 }
 
 /// Print an object property key with a trailing `:`, without printing a value.
