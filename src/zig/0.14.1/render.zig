@@ -282,7 +282,7 @@ fn renderMember(
             return renderToken(r, tree.lastToken(decl) + 1, space); // semicolon
         },
 
-        .@"usingnamespace" => {
+        .usingnamespace => {
             const main_token = main_tokens[decl];
             const expr = datas[decl].lhs;
             if (main_token > 0 and token_tags[main_token - 1] == .keyword_pub) {
@@ -625,7 +625,7 @@ fn renderExpression(r: *Render, node: Ast.Node.Index, space: Space) Error!void {
 
         .@"try",
         .@"resume",
-        .@"await",
+        .await,
         => {
             try renderToken(r, main_tokens[node], .space);
             return renderExpression(r, datas[node].lhs, space);
@@ -916,7 +916,7 @@ fn renderExpression(r: *Render, node: Ast.Node.Index, space: Space) Error!void {
         .local_var_decl => unreachable,
         .simple_var_decl => unreachable,
         .aligned_var_decl => unreachable,
-        .@"usingnamespace" => unreachable,
+        .usingnamespace => unreachable,
         .test_decl => unreachable,
         .asm_output => unreachable,
         .asm_input => unreachable,

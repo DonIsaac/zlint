@@ -69,12 +69,12 @@ pub const Reporter = struct {
 
         const gen = struct {
             fn format(ctx: *anyopaque, _writer: *Writer, e: Error) FormatError!void {
-                const this: *Formatter = @alignCast(@ptrCast(ctx));
+                const this: *Formatter = @ptrCast(@alignCast(ctx));
                 return Formatter.format(this, _writer, e);
             }
             fn deinit(ctx: *anyopaque, alloc: Allocator) void {
                 if (!@hasDecl(Formatter, "deinit")) return;
-                const this: *Formatter = @alignCast(@ptrCast(ctx));
+                const this: *Formatter = @ptrCast(@alignCast(ctx));
                 const info = @typeInfo(Formatter.deinit);
                 switch (info.Fn.params.len) {
                     1 => this.deinit(),
@@ -83,7 +83,7 @@ pub const Reporter = struct {
                 }
             }
             fn destroy(ctx: *anyopaque, alloc: Allocator) void {
-                const this: *Formatter = @alignCast(@ptrCast(ctx));
+                const this: *Formatter = @ptrCast(@alignCast(ctx));
                 alloc.destroy(this);
             }
         };

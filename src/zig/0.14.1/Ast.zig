@@ -510,7 +510,7 @@ pub fn firstToken(tree: Ast, node: Node.Index) TokenIndex {
         .negation_wrap,
         .address_of,
         .@"try",
-        .@"await",
+        .await,
         .optional_type,
         .@"switch",
         .switch_comma,
@@ -658,7 +658,7 @@ pub fn firstToken(tree: Ast, node: Node.Index) TokenIndex {
             return i - end_offset;
         },
 
-        .@"usingnamespace" => {
+        .usingnamespace => {
             const main_token = main_tokens[n];
             if (main_token > 0 and token_tags[main_token - 1] == .keyword_pub) {
                 end_offset += 1;
@@ -812,14 +812,14 @@ pub fn lastToken(tree: Ast, node: Node.Index) TokenIndex {
     while (true) switch (tags[n]) {
         .root => return @as(TokenIndex, @intCast(tree.tokens.len - 1)),
 
-        .@"usingnamespace",
+        .usingnamespace,
         .bool_not,
         .negation,
         .bit_not,
         .negation_wrap,
         .address_of,
         .@"try",
-        .@"await",
+        .await,
         .optional_type,
         .@"resume",
         .@"nosuspend",
@@ -3039,7 +3039,7 @@ pub const Node = struct {
         /// sub_list[lhs...rhs]
         root,
         /// `usingnamespace lhs;`. rhs unused. main_token is `usingnamespace`.
-        @"usingnamespace",
+        usingnamespace,
         /// lhs is test name token (must be string literal or identifier), if any.
         /// rhs is the body node.
         test_decl,
@@ -3195,7 +3195,7 @@ pub const Node = struct {
         /// `op lhs`. rhs unused. main_token is op.
         @"try",
         /// `op lhs`. rhs unused. main_token is op.
-        @"await",
+        await,
         /// `?lhs`. rhs unused. main_token is the `?`.
         optional_type,
         /// `[lhs]rhs`.

@@ -10,13 +10,13 @@
 
     // This is a [Semantic Version](https://semver.org/).
     // In a future version of Zig it will be used for package deduplication.
-    .version = "0.7.9",
+    .version = "0.8.0",
 
     // This field is optional.
     // This is currently advisory only; Zig does not yet do anything
     // with this value.
     // NOTE: we use 0.14.1, but 0.14.0 should still work.
-    .minimum_zig_version = "0.14.0",
+    .minimum_zig_version = "0.15.0",
 
     .fingerprint = 0xefa0446b0e2197e9,
 
@@ -27,16 +27,16 @@
     // internet connectivity.
     .dependencies = .{
         .smart_pointers = .{
-            .url = "https://github.com/DonIsaac/smart-pointers/archive/refs/tags/v0.0.3.tar.gz",
-            .hash = "smart_pointers-0.0.3-NPos2MOwAABoujUzLcVLofXqRAgYWLc5pG-TKDhyK0cq",
+            .url = "https://github.com/DonIsaac/smart-pointers/archive/refs/tags/v0.0.4.tar.gz",
+            .hash = "smart_pointers-0.0.4-NPos2JOtAACuxKEoBGQgkmncI0APAPl-QwaI6klLObuP",
         },
         .chameleon = .{
-            .url = "https://github.com/DonIsaac/chameleon/archive/7c7477fa76da53c2791f9e1f860481f64140ccbc.zip",
-            .hash = "chameleon-3.0.0-bqfnCfhtAAAAxXGw5t9odkb4ayCTTqOcPvL-TgSMUacF",
+            .url = "git+https://github.com/tr1ckydev/chameleon#414169dede742d9ac8261d31b9fca6e31a1d7246",
+            .hash = "chameleon-2.0.1-ZOxajZ17AADmYCpHFqqoGfaXQiRkXM8B5lYJfir9tqsz",
         },
         .recover = .{
-            .url = "https://github.com/dimdin/zig-recover/archive/36133afaa1b085db7063ffc97c08ae0bddc2de4e.zip",
-            .hash = "recover-1.1.0-Zd97oqomAADqISI8KEhW_UUjiPSExhw9hzeoNpg1Nveo",
+            .url = "https://github.com/dimdin/zig-recover/archive/refs/tags/1.3.0.tar.gz",
+            .hash = "recover-1.3.0-Zd97opwlAAB5ocfOuy8Fxp7_prPehOuEnh0R_8rBsNCk",
         },
     },
     .paths = .{

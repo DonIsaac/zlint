@@ -34,7 +34,7 @@ pub inline fn usePlatformNewline(self: *Printer) void {
 }
 
 pub fn deinit(self: *Printer) void {
-    self.container_stack.deinit();
+    self.container_stack.deinit(self.alloc);
 }
 
 pub fn print(self: *Printer, comptime fmt: []const u8, value: anytype) !void {

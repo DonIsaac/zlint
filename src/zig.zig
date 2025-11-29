@@ -9,7 +9,6 @@ pub const @"0.14.1" = struct {
     pub const primitives = @import("zig/0.14.1/primitives.zig");
     pub const string_literal = @import("zig/0.14.1/string_literal.zig");
 
-
     const std = @import("std");
 
     /// Return a Formatter for Zig Escapes of a double quoted string.

@@ -701,7 +701,7 @@ const NodeDataKind = enum {
             // sub_list[lhs...rhs]
             .root => K.subrange,
             // `usingnamespace lhs;`. rhs unused. main_token is `usingnamespace`.
-            .@"usingnamespace" => K.node_unset,
+            .usingnamespace => K.node_unset,
             // lhs is test name token (must be string literal or identifier), if any.
             // rhs is the body node.
             .test_decl => K.token_node,
@@ -857,7 +857,7 @@ const NodeDataKind = enum {
             // `op lhs`. rhs unused. main_token is op.
             .@"try" => K.node_unset,
             // `op lhs`. rhs unused. main_token is op.
-            .@"await" => K.node_unset,
+            .await => K.node_unset,
             // `?lhs`. rhs unused. main_token is the `?`.
             .optional_type => K.node_unset,
             // `[lhs]rhs`.

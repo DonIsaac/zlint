@@ -7,7 +7,7 @@ pub const IS_TEST = builtin.is_test;
 pub const IS_WINDOWS = builtin.target.os.tag == .windows;
 pub const NEWLINE = if (IS_WINDOWS) "\r\n" else "\n";
 
-pub const @"inline": std.builtin.CallingConvention = if (IS_DEBUG) .Inline else .Unspecified;
+pub const @"inline": std.builtin.CallingConvention = if (IS_DEBUG) .@"inline" else .auto;
 
 pub const env = @import("util/env.zig");
 pub const NominalId = @import("util/id.zig").NominalId;
