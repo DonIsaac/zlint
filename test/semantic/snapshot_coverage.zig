@@ -125,12 +125,12 @@ fn runFail(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     defer builder.deinit();
 
     var semantic_result: Semantic.Builder.Result = builder.build(source.text()) catch {
-        reporter.reportErrorSlice(alloc, builder._errors.items);
+        try reporter.reportErrorSlice(alloc, builder._errors.items);
         builder._errors.deinit(alloc);
         return;
     };
     if (semantic_result.hasErrors()) {
-        reporter.reportErrorSlice(alloc, semantic_result.errors.items);
+        try reporter.reportErrorSlice(alloc, semantic_result.errors.items);
         builder._errors.deinit(alloc);
         semantic_result.value.deinit();
         return;

@@ -19,8 +19,11 @@ const LintService = _lint.LintService;
 const Fix = _lint.Fix;
 const Options = @import("../cli/Options.zig");
 
+var buf: [4096]u8 = undefined;
 pub fn lint(alloc: Allocator, options: Options) !u8 {
-    const stdout = std.io.getStdOut().writer();
+    const writer = std.fs.File.stdout().writer(&buf);
+    var stdout = writer.interface;
+    defer stdout.flush() catch @panic("failed to flush writer");
 
     // NOTE: everything config related is stored in the same arena. This
     // includes the config source string, the parsed Config object, and
@@ -29,7 +32,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
     var arena = std.heap.ArenaAllocator.init(alloc);
     defer arena.deinit();
 
-    var reporter = try reporters.Reporter.initKind(options.format, stdout.any(), alloc);
+    var reporter = try reporters.Reporter.initKind(options.format, stdout, alloc);
     defer reporter.deinit();
     reporter.opts.quiet = options.quiet;
     reporter.opts.report_stats = reporter.opts.report_stats and options.summary;
@@ -37,7 +40,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
     var config = resolve_config: {
         var errors: [1]Error = undefined;
         const c = lint_config.resolveLintConfig(&arena, fs.cwd(), "zlint.json", alloc, &errors[0]) catch {
-            reporter.reportErrorSlice(alloc, errors[0..1]);
+            try reporter.reportErrorSlice(alloc, errors[0..1]);
             return 1;
         };
         break :resolve_config c;
@@ -76,10 +79,9 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
         } else {
             // SAFETY: initialized by reader
             var msg_buf: [4096]u8 = undefined;
-            var stdin = std.io.getStdIn();
-            var buf_reader = std.io.bufferedReader(stdin.reader());
-            var reader = buf_reader.reader();
-            while (try reader.readUntilDelimiterOrEof(&msg_buf, '\n')) |filepath| {
+            var stdin = std.fs.File.stdin();
+            var reader = stdin.reader(&msg_buf);
+            while (try reader.interface.readUntilDelimiterOrEof(&msg_buf, '\n')) |filepath| {
                 if (!std.mem.endsWith(u8, filepath, ".zig")) continue;
                 const owned = try alloc.dupe(u8, filepath);
                 try service.lintFileParallel(owned);

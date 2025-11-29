@@ -14,7 +14,7 @@ pub const Reporter = struct {
     /// pointer to formatter impl. Allocation is owned.
     ptr: *anyopaque,
     vtable: struct {
-        format: *const fn (ctx: *anyopaque, writer: *Writer, e: Error) FormatError!void,
+        format: *const fn (ctx: *anyopaque, writer: *io.Writer, e: Error) FormatError!void,
         deinit: *const fn (ctx: *anyopaque, allocator: Allocator) void,
         destroy: *const fn (ctx: *anyopaque, allocator: Allocator) void,
     },
@@ -32,7 +32,7 @@ pub const Reporter = struct {
         return init(formatters.Graphical, formatter, writer, allocator);
     }
 
-    pub fn initKind(kind: formatters.Kind, writer: Writer, allocator: Allocator) Allocator.Error!Reporter {
+    pub fn initKind(kind: formatters.Kind, writer: io.Writer, allocator: Allocator) Allocator.Error!Reporter {
         switch (kind) {
             .graphical => {
                 // TODO: check terminal support for unicode characters
@@ -68,7 +68,7 @@ pub const Reporter = struct {
         const meta: formatters.Meta = Formatter.meta;
 
         const gen = struct {
-            fn format(ctx: *anyopaque, _writer: *Writer, e: Error) FormatError!void {
+            fn format(ctx: *anyopaque, _writer: *io.Writer, e: Error) FormatError!void {
                 const this: *Formatter = @ptrCast(@alignCast(ctx));
                 return Formatter.format(this, _writer, e);
             }
@@ -103,35 +103,34 @@ pub const Reporter = struct {
         };
     }
 
-    pub fn reportErrors(self: *Reporter, errors: std.array_list.Managed(Error)) void {
+    pub fn reportErrors(self: *Reporter, errors: std.array_list.Managed(Error)) Allocator.Error!void {
         defer errors.deinit();
-        self.reportErrorSlice(errors.allocator, errors.items);
+        try self.reportErrorSlice(errors.allocator, errors.items);
     }
 
-    pub fn reportErrorSlice(self: *Reporter, alloc: std.mem.Allocator, errors: []Error) void {
+    pub fn reportErrorSlice(self: *Reporter, alloc: std.mem.Allocator, errors: []Error) Allocator.Error!void {
         self.stats.recordErrors(errors);
         if (errors.len == 0) return;
 
         var stackalloc = std.heap.stackFallback(1024, alloc);
         const allocator = stackalloc.get();
 
-        var string_writer = StringWriter.initCapacity(256, allocator) catch @panic("OOM");
-        defer string_writer.deinit();
+        var w = try std.io.Writer.Allocating.initCapacity(allocator, 256);
+        defer w.deinit();
 
         for (errors) |err| {
             var e = err;
             defer e.deinit(alloc);
             if (self.opts.quiet and err.severity != .err) continue;
-            var w = string_writer.writer().any();
-            self.vtable.format(self.ptr, &w, err) catch |fmt_err| {
+            self.vtable.format(self.ptr, &w.writer, err) catch |fmt_err| {
                 std.debug.panic("Failed to write error: {any}", .{fmt_err});
             };
-            w.writeByte('\n') catch @panic("failed to write newline.");
+            w.writer.writeByte('\n') catch @panic("failed to write newline.");
         }
 
         self.writer_lock.lock();
         defer self.writer_lock.unlock();
-        _ = self.writer.write(string_writer.slice()) catch @panic("failed to write diagnostics to buffer");
+        _ = self.writer.write(w.written()) catch @panic("failed to write diagnostics to buffer");
     }
 
     pub fn printStats(self: *Reporter, duration: i64) void {
@@ -147,8 +146,7 @@ pub const Reporter = struct {
         const errors = self.stats.numErrorsSync();
         const warnings = self.stats.numWarningsSync();
         const files = self.stats.numFilesSync();
-        var w = self.writer.writer().any();
-        w.print(
+        self.writer.print(
             "\tFound " ++ yd ++ " errors and " ++ yd ++ " warnings across " ++ yd ++ " files in " ++ yellow.open ++ "{d}ms" ++ yellow.close ++ ".\n",
             .{ errors, warnings, files, duration },
         ) catch {};
@@ -159,7 +157,7 @@ pub const Reporter = struct {
     /// 1. The formatter has a `deinit()` method
     /// 2. This reporter owns the formatter.
     pub fn deinit(self: *Reporter) void {
-        self.writer.flush() catch {};
+        // AnyWriter doesn't have flush, skip it
         self.vtable.deinit(self.ptr, self.alloc);
         self.vtable.destroy(self.ptr, self.alloc);
 
@@ -168,14 +166,13 @@ pub const Reporter = struct {
             self.vtable.deinit = &PanicFormatter.deinit;
         }
     }
-    const BufferedWriter = io.BufferedWriter(1024, Writer);
 };
 
 /// Formatter that always panics. Used to check for use-after-free bugs.
 ///
 /// Only used in debug builds.
 const PanicFormatter = struct {
-    fn format(_: *anyopaque, _: *Writer, _: Error) FormatError!void {
+    fn format(_: *anyopaque, _: *io.Writer, _: Error) FormatError!void {
         std.debug.panic("Attempted to format an error after this Reporter was freed.", .{});
     }
     fn deinit(_: *anyopaque, _: Allocator) void {
@@ -238,7 +235,6 @@ const FormatError = formatters.FormatError;
 
 const AtomicUsize = std.atomic.Value(usize);
 const Mutex = std.Thread.Mutex;
-const Writer = std.io.AnyWriter;
 
 test {
     std.testing.refAllDecls(@This());

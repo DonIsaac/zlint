@@ -19,7 +19,7 @@ const RuleTester = @This();
 
 const SNAPSHOT_DIR = "src/linter/rules/snapshots";
 
-const SnapshotError = fs.Dir.OpenError || fs.Dir.MakeError || fs.Dir.StatFileError || Allocator.Error || std.io.AnyWriter.Error;
+const SnapshotError = fs.Dir.OpenError || fs.Dir.MakeError || fs.Dir.StatFileError || Allocator.Error || std.io.Writer.Error;
 
 const TestError = error{
     /// Expected no violations, but violations were found.

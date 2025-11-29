@@ -28,7 +28,7 @@ pub fn disableColors(self: *GraphicalFormatter) void {
     self.theme.styles = GraphicalTheme.ThemeStyles.none();
 }
 
-pub fn format(self: *GraphicalFormatter, w: *Writer, e: Error) FormatError!void {
+pub fn format(self: *GraphicalFormatter, w: *io.Writer, e: Error) FormatError!void {
     var err = e;
     if (e.severity == .off) return;
     try self.renderHeader(w, &err);
@@ -38,7 +38,7 @@ pub fn format(self: *GraphicalFormatter, w: *Writer, e: Error) FormatError!void 
 }
 
 /// `𝙭  some-code: a message here`
-fn renderHeader(self: *GraphicalFormatter, w: *Writer, e: *const Error) FormatError!void {
+fn renderHeader(self: *GraphicalFormatter, w: *io.Writer, e: *const Error) FormatError!void {
     const icon = self.iconFor(e.severity);
     const color = self.styleFor(e.severity);
     const emphasize = self.theme.styles.emphasize;
@@ -60,7 +60,7 @@ fn renderHeader(self: *GraphicalFormatter, w: *Writer, e: *const Error) FormatEr
     try w.print("{s}\n", .{e.message.str});
 }
 
-fn renderFooter(self: *GraphicalFormatter, w: *Writer, e: *const Error) FormatError!void {
+fn renderFooter(self: *GraphicalFormatter, w: *io.Writer, e: *const Error) FormatError!void {
     const help = if (e.help) |h| h.str else return;
     const color = self.theme.styles.help;
     try w.writeByte('\n');
@@ -71,7 +71,7 @@ fn labelsLt(_: void, a: LabeledSpan, b: LabeledSpan) bool {
     return a.span.start < b.span.start;
 }
 
-fn renderContext(self: *GraphicalFormatter, w: *Writer, e: *Error) FormatError!void {
+fn renderContext(self: *GraphicalFormatter, w: *io.Writer, e: *Error) FormatError!void {
     if (e.labels.items.len == 0 or e.source == null) return;
 
     const src: []const u8 = e.source.?.deref().*;
@@ -113,7 +113,7 @@ fn renderContext(self: *GraphicalFormatter, w: *Writer, e: *Error) FormatError!v
 
 fn renderContextMasthead(
     self: *GraphicalFormatter,
-    w: *Writer,
+    w: *io.Writer,
     e: *const Error,
     lineum_width: u32,
     primary_span: ContextInfo,
@@ -121,7 +121,7 @@ fn renderContextMasthead(
     const chars = self.theme.characters;
     const color = self.theme.styles.help;
 
-    try w.writeByteNTimes(' ', lineum_width + 3);
+    try writeByteNTimes(w, ' ', lineum_width + 3);
 
     // ╭─[
     try w.print("{s}{s}{s}", .{ chars.ltop, chars.hbar, chars.lbox });
@@ -138,18 +138,18 @@ fn renderContextMasthead(
     try w.print("{s}\n", .{chars.rbox});
 }
 
-fn renderContextFinisher(self: *GraphicalFormatter, w: *Writer, lineum_col_width: u32) FormatError!void {
+fn renderContextFinisher(self: *GraphicalFormatter, w: *io.Writer, lineum_col_width: u32) FormatError!void {
     const chars = self.theme.characters;
 
-    try w.writeByteNTimes(' ', lineum_col_width + 3);
+    try writeByteNTimes(w, ' ', lineum_col_width + 3);
     try w.writeAll(chars.lbot);
     const BAR_LEN = 4;
-    try w.writeBytesNTimes(chars.hbar, BAR_LEN);
+    try writeBytesNTimes(w, chars.hbar, BAR_LEN);
 }
 
 fn renderContextLines(
     self: *GraphicalFormatter,
-    w: *Writer,
+    w: *io.Writer,
     src: []const u8,
     lineum_width: u32,
     locations: []ContextInfo,
@@ -200,7 +200,7 @@ fn renderContextLines(
 /// Render the line number column and the `|` separator. Has a trailing space.
 ///
 /// e.g. '` 1 | `'
-fn renderCodeLinePrefix(self: *GraphicalFormatter, w: *Writer, lineum: u32, linenum_col_width: u32) FormatError!void {
+fn renderCodeLinePrefix(self: *GraphicalFormatter, w: *io.Writer, lineum: u32, linenum_col_width: u32) FormatError!void {
     const styles = self.theme.styles;
     const chars = self.theme.characters;
 
@@ -208,21 +208,21 @@ fn renderCodeLinePrefix(self: *GraphicalFormatter, w: *Writer, lineum: u32, line
     const padding_needed = linenum_col_width - lineum_width;
 
     try w.print(" {s}{d}{s} ", .{ styles.linum.open, lineum, styles.linum.close });
-    try w.writeByteNTimes(' ', padding_needed);
+    try writeByteNTimes(w, ' ', padding_needed);
     try w.writeAll(chars.vbar);
     try w.writeByte(' ');
 }
 
 // TODO: render label text
 // TODO: handle multi-line labels
-fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: ContextInfo) FormatError!void {
+fn renderLabel(self: *GraphicalFormatter, w: *io.Writer, linum_col_len: u32, loc: ContextInfo) FormatError!void {
     const chars = self.theme.characters;
     const h = self.theme.styles.highlights;
     const idx: usize = @min(@intFromBool(!loc.span.primary), h.len - 1);
     const color = h[idx];
 
     try self.renderLabelPrefix(w, linum_col_len);
-    try w.writeByteNTimes(' ', loc.column());
+    try writeByteNTimes(w, ' ', loc.column());
 
     if (loc.label()) |label| {
         try w.writeAll(color.open);
@@ -232,15 +232,15 @@ fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: C
         const first_len_half = if (odd) midway + 1 else midway;
 
         // ───┬───
-        try w.writeBytesNTimes(chars.underline, first_len_half);
+        try writeBytesNTimes(w, chars.underline, first_len_half);
         try w.writeAll(chars.underbar);
-        try w.writeBytesNTimes(chars.underline, first_len_half);
+        try writeBytesNTimes(w, chars.underline, first_len_half);
         try w.writeAll(color.close);
         try w.writeAll("\n");
         {
             try self.renderLabelPrefix(w, linum_col_len);
-            try w.writeByteNTimes(' ', loc.column());
-            try w.writeByteNTimes(' ', first_len_half);
+            try writeByteNTimes(w, ' ', loc.column());
+            try writeByteNTimes(w, ' ', first_len_half);
             // ╰── label text
             try w.writeAll(color.open);
             try w.print("{s}{s}{s} ", .{ chars.lbot, chars.hbar, chars.hbar });
@@ -249,7 +249,7 @@ fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: C
         }
     } else {
         try w.writeAll(color.open);
-        try w.writeBytesNTimes(chars.underline, loc.span.span.len());
+        try writeBytesNTimes(w, chars.underline, loc.span.span.len());
         try w.writeAll(color.close);
     }
     try w.writeAll("\n");
@@ -257,9 +257,9 @@ fn renderLabel(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32, loc: C
 
 /// Renders enough space to pad-out the line number column followed by a
 /// vertical bar break with _no_ trailing space.
-fn renderLabelPrefix(self: *GraphicalFormatter, w: *Writer, linum_col_len: u32) FormatError!void {
+fn renderLabelPrefix(self: *GraphicalFormatter, w: *io.Writer, linum_col_len: u32) FormatError!void {
     const chars = self.theme.characters;
-    try w.writeByteNTimes(' ', linum_col_len + 3);
+    try writeByteNTimes(w, ' ', linum_col_len + 3);
     try w.writeAll(chars.vbar_break);
 }
 
@@ -470,13 +470,25 @@ const ContextInfo = struct {
     }
 };
 
+fn writeByteNTimes(w: *io.Writer, byte: u8, n: usize) FormatError!void {
+    for (0..n) |_| {
+        try w.writeByte(byte);
+    }
+}
+
+fn writeBytesNTimes(w: *io.Writer, bytes: []const u8, n: usize) FormatError!void {
+    for (0..n) |_| {
+        try w.writeAll(bytes);
+    }
+}
+
 const GraphicalFormatter = @This();
 
 const std = @import("std");
+const io = std.io;
 const util = @import("util");
 
 const assert = std.debug.assert;
-const Writer = std.io.AnyWriter; // TODO: use std.io.Writer?
 
 const GraphicalTheme = @import("GraphicalTheme.zig");
 const Styles = GraphicalTheme.ThemeStyles;

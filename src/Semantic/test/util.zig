@@ -13,8 +13,7 @@ var buf: [1024]u8 = undefined;
 
 pub fn build(src: [:0]const u8) !Semantic {
     const w = std.fs.File.stderr().writer(&buf);
-    var stderr = w.interface;
-    defer stderr.flush() catch @panic("failed to flush writer");
+    const stderr = w.interface;
     var r = try report.Reporter.graphical(
         stderr,
         t.allocator,
@@ -38,7 +37,7 @@ pub fn build(src: [:0]const u8) !Semantic {
     errdefer result.value.deinit();
     if (result.hasErrors()) {
         print("Analysis failed.\n", .{});
-        r.reportErrors(result.errors.toManaged(t.allocator));
+        r.reportErrors(result.errors.toManaged(t.allocator)) catch @panic("OOM");
         print("\nSource:\n\n{s}\n\n", .{src});
         return error.AnalysisFailed;
     }

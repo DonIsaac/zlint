@@ -12,26 +12,20 @@ pub const @"0.14.1" = struct {
     const std = @import("std");
 
     /// Return a Formatter for Zig Escapes of a double quoted string.
-    /// The format specifier must be one of:
-    ///  * `{}` treats contents as a double-quoted string.
-    ///  * `{'}` treats contents as a single-quoted string.
     pub fn fmtEscapes(bytes: []const u8) std.fmt.Formatter([]const u8, stringEscape) {
         return .{ .data = bytes };
     }
 
     test fmtEscapes {
         const expectFmt = std.testing.expectFmt;
-        try expectFmt("\\x0f", "{}", .{fmtEscapes("\x0f")});
-        try expectFmt(
-            \\" \\ hi \x07 \x11 " derp \'"
-        , "\"{'}\"", .{fmtEscapes(" \\ hi \x07 \x11 \" derp '")});
+        try expectFmt("\\x0f", "{any}", .{fmtEscapes("\x0f")});
         try expectFmt(
             \\" \\ hi \x07 \x11 \" derp '"
-        , "\"{}\"", .{fmtEscapes(" \\ hi \x07 \x11 \" derp '")});
+        , "\"{any}\"", .{fmtEscapes(" \\ hi \x07 \x11 \" derp '")});
     }
 
     /// Print the string as escaped contents of a double quoted string.
-    pub fn stringEscape(bytes: []const u8, w: *std.io.Writer) std.io.Writer.Error!void {
+    pub fn stringEscape(bytes: []const u8, w: *std.Io.Writer) std.Io.Writer.Error!void {
         for (bytes) |byte| switch (byte) {
             '\n' => try w.writeAll("\\n"),
             '\r' => try w.writeAll("\\r"),

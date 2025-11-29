@@ -70,7 +70,7 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "zlint",
-        .root_module = zlint,
+        .root_module = exe_mod,
     });
     b.installArtifact(exe);
 

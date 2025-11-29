@@ -81,7 +81,7 @@ fn tryLintFile(self: *LintService, filepath: []u8) !void {
 
     self.lintSource(&source, &errors) catch |err| {
         if (errors) |e| {
-            self.reporter.reportErrors(e);
+            try self.reporter.reportErrors(e);
         } else {
             _ = self.reporter.stats.num_errors.fetchAdd(1, .acquire);
         }

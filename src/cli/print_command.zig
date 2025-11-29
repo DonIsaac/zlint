@@ -8,6 +8,7 @@
 //! zig build run -- --print-ast | prettier --stdin-filepath foo.ast.json > tmp/foo.ast.json
 //! ```
 const std = @import("std");
+const io = std.io;
 const Allocator = std.mem.Allocator;
 
 const Options = @import("../cli/Options.zig");
@@ -19,7 +20,8 @@ const AstPrinter = @import("../printer/AstPrinter.zig");
 const SemanticPrinter = @import("../printer/SemanticPrinter.zig");
 
 /// Borrows source.
-pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source, writer_: ?std.io.AnyWriter) !void {
+pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source, writer_: ?io.Writer) !void {
+    var buf: [4096]u8 = undefined;
     var builder = Semantic.Builder.init(alloc);
     defer builder.deinit();
     var sema_result = try builder.build(source.text());
@@ -31,7 +33,8 @@ pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source, writer_: ?
         return;
     }
     const sema = &sema_result.value;
-    const writer = writer_ orelse std.io.getStdOut().writer().any();
+    var writer = writer_ orelse std.fs.File.stdout().writer(&buf).interface;
+    defer writer.flush() catch @panic("failed to flush writer");
     var printer = Printer.init(alloc, writer);
     defer printer.deinit();
     var ast_printer = AstPrinter.new(&printer, .{ .verbose = opts.verbose }, source, &sema.parse.ast);

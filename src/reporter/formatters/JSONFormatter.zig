@@ -12,8 +12,9 @@ pub const meta: Meta = .{
     .report_statistics = false,
 };
 
-pub fn format(_: *JSONFormatter, w: *Writer, e: Error) FormatError!void {
-    return std.json.stringify(e, .{}, w.*);
+pub fn format(_: *JSONFormatter, w: *io.Writer, e: Error) FormatError!void {
+    var json = std.json.Stringify{ .writer = w };
+    try json.write(e);
 }
 
 test JSONFormatter {
@@ -67,11 +68,11 @@ test JSONFormatter {
 }
 
 const std = @import("std");
+const io = std.io;
 const Cow = @import("util").Cow(false);
 const formatter = @import("../formatter.zig");
 const Meta = formatter.Meta;
 const FormatError = formatter.FormatError;
-const Writer = std.io.Writer;
 const Error = @import("../../Error.zig");
 const _span = @import("../../span.zig");
 const LabeledSpan = _span.LabeledSpan;

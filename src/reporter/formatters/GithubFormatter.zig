@@ -12,7 +12,7 @@ pub const meta: Meta = .{
     .report_statistics = false,
 };
 
-pub fn format(_: *GithubFormatter, w: *Writer, e: Error) FormatError!void {
+pub fn format(_: *GithubFormatter, w: *io.Writer, e: Error) FormatError!void {
     const level: []const u8 = switch (e.severity) {
         .err => "error",
         .warning => "warning",
@@ -57,7 +57,10 @@ test GithubFormatter {
     var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
     var f = GithubFormatter{};
-    var w = buf.writer().any();
+    // var w = buf.writer();
+    var w = std.io.Writer.Allocating.init(allocator);
+    defer w.writer.flush() catch @panic("failed to flush writer");
+    defer w.deinit();
 
     var err = Error.newStatic("Something happened");
     err.help = Cow.static("help pls");
@@ -94,10 +97,10 @@ test GithubFormatter {
 }
 
 const std = @import("std");
+const io = std.io;
 const formatter = @import("../formatter.zig");
 const Meta = formatter.Meta;
 const FormatError = formatter.FormatError;
-const Writer = std.io.Writer;
 const Error = @import("../../Error.zig");
 const _span = @import("../../span.zig");
 const LabeledSpan = _span.LabeledSpan;
