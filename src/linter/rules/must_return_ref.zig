@@ -140,6 +140,7 @@ const types_to_check = std.StaticStringMap(void).initComptime(&[_]struct { []con
     // array list
     .{"ArrayList"},
     .{"ArrayListUnmanaged"},
+    .{"Managed"}, // std.array_list.Managed
     .{"AutoArrayHashMap"},
     .{"AutoArrayHashMapUnmanaged"},
     // multi array list

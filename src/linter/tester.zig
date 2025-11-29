@@ -326,14 +326,13 @@ fn saveSnapshot(self: *RuleTester) SnapshotError!void {
     defer snapshot_file.close();
 
     var buf: [8192]u8 = undefined;
-    const writer = snapshot_file.writer(&buf);
-    var w = writer.interface;
-    
-    // defer w.flush() catch |e| std.debug.panic("Failed to flush snapshot writer: {s}", .{@errorName(e)});
+    var writer = snapshot_file.writer(&buf);
+
     for (self.diagnostics.items) |diagnostic| {
-        try self.fmt.format(&w, diagnostic.err);
-        try w.writeByte('\n');
+        try self.fmt.format(&writer.interface, diagnostic.err);
+        try writer.interface.writeByte('\n');
     }
+    try writer.interface.flush();
     
 }
 
