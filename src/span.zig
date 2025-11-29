@@ -1,5 +1,6 @@
 const std = @import("std");
 const util = @import("util");
+const zig = @import("zig.zig").@"0.14.1";
 
 const assert = std.debug.assert;
 
@@ -61,8 +62,8 @@ pub const Span = struct {
         return switch (@TypeOf(value)) {
             Span => value, // base case
             LabeledSpan => value.span,
-            std.zig.Ast.Span => .{ .start = value.start, .end = value.end },
-            std.zig.Token.Loc => .{ .start = @intCast(value.start), .end = @intCast(value.end) },
+            zig.Ast.Span => .{ .start = value.start, .end = value.end },
+            zig.Token.Loc => .{ .start = @intCast(value.start), .end = @intCast(value.end) },
             [2]u32 => .{ .start = value[0], .end = value[1] },
             else => |T| {
                 const info = @typeInfo(T);
@@ -153,8 +154,8 @@ pub const LabeledSpan = struct {
         return switch (@TypeOf(value)) {
             LabeledSpan => value, // base case
             Span => .{ .span = value },
-            std.zig.Ast.Span => .{ .span = Span.from(value) },
-            std.zig.Token.Loc => .{ .span = Span.from(value) },
+            zig.Ast.Span => .{ .span = Span.from(value) },
+            zig.Token.Loc => .{ .span = Span.from(value) },
             [2]u32 => .{ .span = Span.from(value) },
             else => |T| {
                 const info = @typeInfo(T);
@@ -227,7 +228,7 @@ pub const Location = struct {
     // TODO: toSpan()
 };
 
-/// Copied/modified from std.zig.findLineColumn.
+/// Copied/modified from zig.findLineColumn.
 fn findLineColumn(source: []const u8, byte_offset: u32) Location {
     var line: u32 = 1;
     var column: u32 = 1;

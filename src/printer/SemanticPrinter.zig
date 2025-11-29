@@ -219,4 +219,5 @@ const Semantic = @import("../Semantic.zig");
 const Symbol = Semantic.Symbol;
 const Scope = Semantic.Scope;
 const Reference = Semantic.Reference;
-const Node = std.zig.Ast.Node;
+const zig = @import("../zig.zig").@"0.14.1";
+const Node = zig.Ast.Node;

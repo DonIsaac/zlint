@@ -1,5 +1,6 @@
 const std = @import("std");
 
+pub const zig = @import("zig.zig").@"0.14.1";
 pub const Semantic = @import("Semantic.zig");
 pub const Source = @import("source.zig").Source;
 
@@ -20,4 +21,6 @@ pub const walk = @import("visit/walk.zig");
 
 test {
     std.testing.refAllDecls(@import("util"));
+    std.testing.refAllDeclsRecursive(printer);
+    std.testing.refAllDeclsRecursive(zig);
 }

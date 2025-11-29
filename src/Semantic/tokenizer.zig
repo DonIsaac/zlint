@@ -1,11 +1,12 @@
 const std = @import("std");
 const util = @import("util");
 const span = @import("../span.zig");
+const zig = @import("../zig.zig").@"0.14.1";
 
 const Allocator = std.mem.Allocator;
 const Span = span.Span;
 
-pub const Token = std.zig.Token;
+pub const Token = zig.Token;
 pub const TokenList = std.MultiArrayList(Token);
 pub const CommentList = std.MultiArrayList(Span);
 
@@ -54,7 +55,7 @@ pub fn tokenize(
     // TODO: collect data and find the best starting capacity
     try comments.ensureTotalCapacity(allocator, 16);
 
-    var tokenizer = std.zig.Tokenizer.init(source);
+    var tokenizer = zig.Tokenizer.init(source);
 
     var prev_end: u32 = 0;
     while (true) {

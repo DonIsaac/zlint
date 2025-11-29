@@ -67,8 +67,9 @@ const ast_utils = @import("../ast_utils.zig");
 const _source = @import("../../source.zig");
 const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
+const zig = @import("../../zig.zig").@"0.14.1";
 
-const Loc = std.zig.Loc;
+const Loc = zig.Token.Loc;
 const Span = _span.Span;
 const LabeledSpan = _span.LabeledSpan;
 const LinterContext = @import("../lint_context.zig");

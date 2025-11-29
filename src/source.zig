@@ -24,7 +24,6 @@ pub const Source = struct {
         errdefer gpa.free(contents);
         const bytes_read = try file.readAll(contents);
         assert(bytes_read == meta.size());
-        // const contents = try std.zig.readSourceFileToEndAlloc(gpa, file, meta.size());
         return Source{
             .contents = try ArcStr.init(gpa, contents),
             .pathname = pathname,

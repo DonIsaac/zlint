@@ -37,7 +37,8 @@ const util = @import("util");
 const fs = std.fs;
 const path = std.fs.path;
 
-const Ast = std.zig.Ast;
+const zig = @import("../../zig.zig").@"0.14.1";
+const Ast = zig.Ast;
 const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
