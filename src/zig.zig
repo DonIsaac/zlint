@@ -1,3 +1,6 @@
+// NOTE:
+// This is a copy/paste of pieces from `std.zig` from v0.14.1
+// MIT license. See `src/zig/0.14.1/LICENSE` for details.
 pub const @"0.14.1" = struct {
     pub const Ast = @import("zig/0.14.1/Ast.zig");
     pub const Parse = @import("zig/0.14.1/Parse.zig");
