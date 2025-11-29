@@ -20,6 +20,7 @@ const Fix = _lint.Fix;
 const Options = @import("../cli/Options.zig");
 
 var buf: [4096]u8 = undefined;
+
 pub fn lint(alloc: Allocator, options: Options) !u8 {
     const writer = std.fs.File.stdout().writer(&buf);
     var stdout = writer.interface;

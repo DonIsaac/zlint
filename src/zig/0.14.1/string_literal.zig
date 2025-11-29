@@ -86,7 +86,6 @@ pub const Error = union(enum) {
         }
     }
 
-
     pub fn fmt(self: @This(), raw_string: []const u8) std.fmt.Formatter(FormatMessage, formatMessage) {
         return .{ .data = .{
             .err = self,

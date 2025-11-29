@@ -66,14 +66,14 @@ pub inline fn pPropStr(self: *Printer, key: []const u8, value: anytype) !void {
 /// into JSON before printing.
 pub fn pPropJson(self: *Printer, key: []const u8, value: anytype) !void {
     try self.pPropName(key);
-    var json = std.json.Stringify{ .writer = &self.writer};
+    var json = std.json.Stringify{ .writer = &self.writer };
     try json.write(value);
     self.pComma();
     try self.pIndent();
 }
 
 pub fn pJson(self: *Printer, value: anytype) !void {
-    var json = std.json.Stringify{ .writer = &self.writer};
+    var json = std.json.Stringify{ .writer = &self.writer };
     try json.write(value);
 }
 

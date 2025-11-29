@@ -217,11 +217,11 @@ test Cow {
 }
 
 test "Cow.format" {
-    const str = try std.fmt.allocPrint(t.allocator, "{f}", .{Cow(false).static("Hello, world!")});
+    const str = try std.fmt.allocPrint(t.allocator, "{s}", .{Cow(false).static("Hello, world!")});
     defer t.allocator.free(str);
     try t.expectEqualStrings("Hello, world!", str);
 
-    const borrow_str = try std.fmt.allocPrint(t.allocator, "{any}", .{Cow(false).static("Hello, world!").borrow()});
+    const borrow_str = try std.fmt.allocPrint(t.allocator, "{s}", .{Cow(false).static("Hello, world!").borrow()});
     defer t.allocator.free(borrow_str);
     try t.expectEqualStrings("Hello, world!", borrow_str);
 }
