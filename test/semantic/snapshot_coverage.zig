@@ -71,10 +71,9 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     defer snapshot.close();
 
     var buf: [1024]u8 = undefined;
-    const writer = snapshot.writer(&buf);
-    var w = writer.interface;
-    defer w.flush() catch @panic("failed to flush writer");
-    var printer = Printer.init(alloc, w);
+    var writer = snapshot.writer(&buf);
+    defer writer.interface.flush() catch @panic("failed to flush writer");
+    var printer = Printer.init(alloc, &writer.interface);
     var sem_printer = SemanticPrinter.new(&printer, &semantic);
     defer printer.deinit();
 

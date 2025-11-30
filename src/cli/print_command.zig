@@ -20,7 +20,7 @@ const AstPrinter = @import("../printer/AstPrinter.zig");
 const SemanticPrinter = @import("../printer/SemanticPrinter.zig");
 
 /// Borrows source.
-pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source, writer_: ?io.Writer) !void {
+pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source, writer_: ?*io.Writer) !void {
     var buf: [4096]u8 = undefined;
     var builder = Semantic.Builder.init(alloc);
     defer builder.deinit();
@@ -37,7 +37,7 @@ pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source, writer_: ?
     defer if (stdout) |*out| out.interface.flush() catch @panic("failed to flush writer");
     var writer = writer_ orelse blk: {
         stdout = std.fs.File.stdout().writer(&buf);
-        break :blk stdout.?.interface;
+        break :blk &stdout.?.interface;
     };
     defer writer.flush() catch @panic("failed to flush writer");
     var printer = Printer.init(alloc, writer);

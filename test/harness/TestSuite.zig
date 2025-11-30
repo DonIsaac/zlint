@@ -135,9 +135,8 @@ fn writeSnapshot(self: *TestSuite) !void {
     const snapshot = try self.openSnapshotFile();
     defer snapshot.close();
     var buf: [1024]u8 = undefined;
-    const w = snapshot.writer(&buf);
-    var writer = w.interface;
-    defer writer.flush() catch @panic("failed to flush writer");
+    var w = snapshot.writer(&buf);
+    defer w.interface.flush() catch @panic("failed to flush writer");
 
     const pass = self.stats.pass.load(.monotonic);
     const panics = self.stats.panic.load(.monotonic);
@@ -145,18 +144,18 @@ fn writeSnapshot(self: *TestSuite) !void {
 
     {
         const pct = self.stats.passPct();
-        try writer.print("Passed: {d}% ({d}/{d})\n", .{ pct, pass, total });
+        try w.interface.print("Passed: {d}% ({d}/{d})\n", .{ pct, pass, total });
     }
     {
         const pct = 100.0 * (@as(f32, @floatFromInt(panics)) / @as(f32, @floatFromInt(total)));
-        try writer.print("Panics: {d}% ({d}/{d})\n\n", .{ pct, panics, total });
+        try w.interface.print("Panics: {d}% ({d}/{d})\n\n", .{ pct, panics, total });
     }
     self.errors_mutex.lock();
     defer self.errors_mutex.unlock();
     // errors must be sorted for stable `git diff` output
     std.mem.sort(string, self.errors.items, {}, stringsLessThan);
     for (self.errors.items) |err| {
-        try writer.print("{s}\n", .{err});
+        try w.interface.print("{s}\n", .{err});
     }
 }
 

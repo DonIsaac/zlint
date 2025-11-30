@@ -8,18 +8,17 @@
 container_stack: ContainerStack,
 /// Allocator for container stack.
 alloc: Allocator,
-/// Where JSON data is written to.
-writer: Writer,
+/// Where JSON data is written to. Writer is mutably borrowed.
+writer: *io.Writer,
 shiftwidth: usize = 2,
 indent: u8 = ' ',
 _newline: []const u8 = "\n",
 
-pub const Writer = std.io.Writer;
 const ContainerKind = enum { object, array };
 const ContainerStack = std.ArrayList(ContainerKind);
 const NEWLINE = if (builtin.target.os.tag == .windows) "\r\n" else "\n";
 
-pub fn init(alloc: Allocator, writer: Writer) Printer {
+pub fn init(alloc: Allocator, writer: *io.Writer) Printer {
     const stack = ContainerStack.initCapacity(alloc, 16) catch @panic("failed to allocate memory for printer's container stack");
     return Printer{
         .container_stack = stack,
@@ -66,14 +65,14 @@ pub inline fn pPropStr(self: *Printer, key: []const u8, value: anytype) !void {
 /// into JSON before printing.
 pub fn pPropJson(self: *Printer, key: []const u8, value: anytype) !void {
     try self.pPropName(key);
-    var json = std.json.Stringify{ .writer = &self.writer };
+    var json = std.json.Stringify{ .writer = self.writer };
     try json.write(value);
     self.pComma();
     try self.pIndent();
 }
 
 pub fn pJson(self: *Printer, value: anytype) !void {
-    var json = std.json.Stringify{ .writer = &self.writer };
+    var json = std.json.Stringify{ .writer = self.writer };
     try json.write(value);
 }
 
@@ -167,6 +166,7 @@ pub fn pIndent(self: *Printer) !void {
 const Printer = @This();
 
 const std = @import("std");
+const io = std.io;
 const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 const stringify = std.json.stringify;
