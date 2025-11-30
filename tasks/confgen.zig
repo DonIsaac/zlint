@@ -25,8 +25,8 @@ pub fn main() !void {
 
     const out = try fs.cwd().createFile(c.@"Rules.zig", .{});
     defer out.close();
-    const writer = out.writer(&buf);
-    var w = writer.interface;
+    var writer = out.writer(&buf);
+    var w = &writer.interface;
     defer w.flush() catch @panic("failed to flush writer");
 
     try w.writeAll(
