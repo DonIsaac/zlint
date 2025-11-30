@@ -181,7 +181,8 @@ const LintVisitor = struct {
     }
 };
 
-/// Deprecated: use `streamUntilDelimiter` with FixedBufferStream's writer instead.
+/// Modified version of `streamUntilDelimiterOrEof` from zig v0.14.1's stdlib.
+/// 
 /// Reads from the stream until specified byte is found. If the buffer is not
 /// large enough to hold the entire contents, `error.StreamTooLong` is returned.
 /// If end-of-stream is found, returns the rest of the stream. If this
@@ -190,17 +191,15 @@ const LintVisitor = struct {
 /// delimiter byte is written to the output buffer but is not included
 /// in the returned slice.
 pub fn readUntilDelimiterOrEof(self: *std.io.Reader, buffer: []u8, delimiter: u8) anyerror!?[]u8 {
-    var fbs = std.io.fixedBufferStream(buffer);
-    var w = fbs.writer().adaptToNewApi(&.{});
-    const bytes_read = self.streamDelimiter(&w.new_interface, delimiter) catch |err| switch (err) {
-        error.EndOfStream => if (fbs.getWritten().len == 0) {
+    var fbw = std.io.Writer.fixed(buffer);
+    const bytes_read = self.streamDelimiter(&fbw, delimiter) catch |err| switch (err) {
+        error.EndOfStream => if (fbw.end == 0) {
             return null;
         } else return err,
 
         else => |e| return e,
     };
-    _ = bytes_read;
-    const output = fbs.getWritten();
-    buffer[output.len] = delimiter; // emulating old behaviour
-    return output;
+    if (bytes_read == 0) return null;
+    self.toss(1); // throw out the delimiter
+    return buffer[0..bytes_read];
 }
