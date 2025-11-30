@@ -155,7 +155,7 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
         },
     );
     const return_type_src = ctx.ast().getNodeSource(return_type);
-    e.help = Cow.fmt(ctx.gpa, "Change the return type to `!{s}`.", .{return_type_src}) catch @panic("OOM");
+    e.help = Cow.fmt(ctx.gpa, "Change the return type to `!{any}`.", .{return_type_src}) catch @panic("OOM");
     ctx.report(e);
 }
 
@@ -214,7 +214,7 @@ test HomelessTry {
         \\const alloc = std.heap.page_allocator;
         \\const Foo = struct {
         \\  pub fn foo(thing: bool) !void {
-        \\    const ns = std.ArrayList(*u8).init(alloc) catch unreachable;
+        \\    const ns = std.array_list.Managed(*u8).init(alloc) catch unreachable;
         \\    ns.append(try alloc.create(u8)) catch unreachable;
         \\  }
         \\};
@@ -265,7 +265,7 @@ test HomelessTry {
         ,
         // conditional error union, or error union over a conditional
         \\const std = @import("std");
-        \\pub fn push(list: std.ArrayList(u32), x: u32, comptime assume_capacity: bool) if(assume_capacity) void else Allocator.Error!void {
+        \\pub fn push(list: std.array_list.Managed(u32), x: u32, comptime assume_capacity: bool) if(assume_capacity) void else Allocator.Error!void {
         \\  if (comptime assume_capacity) {
         \\    list.appendAssumeCapacity(x);
         \\  } else {
@@ -274,7 +274,7 @@ test HomelessTry {
         \\}
         ,
         \\const std = @import("std");
-        \\pub fn push(list: std.ArrayList(u32), x: u32, comptime assume_capacity: bool) if(!assume_capacity) Allocator.Error!void {
+        \\pub fn push(list: std.array_list.Managed(u32), x: u32, comptime assume_capacity: bool) if(!assume_capacity) Allocator.Error!void {
         \\  if (comptime assume_capacity) {
         \\    list.appendAssumeCapacity(x);
         \\  } else {
@@ -335,7 +335,7 @@ test HomelessTry {
         ,
         // conditional error union
         \\const std = @import("std");
-        \\pub fn push(list: std.ArrayList(u32), x: u32, comptime assume_capacity: bool) if(assume_capacity) void else void {
+        \\pub fn push(list: std.array_list.Managed(u32), x: u32, comptime assume_capacity: bool) if(assume_capacity) void else void {
         \\  if (comptime assume_capacity) {
         \\    list.appendAssumeCapacity(x);
         \\  } else {

@@ -8,15 +8,15 @@
 //! ```zig
 //! const std = @import("std");
 //! pub const Foo = struct {
-//!   list: std.ArrayList(u32),
-//!   pub fn getList(self: *Foo) std.ArrayList(u32) {
+//!   list: std.array_list.Managed(u32),
+//!   pub fn getList(self: *Foo) std.array_list.Managed(u32) {
 //!       return self.list;
 //!   }
 //! };
 //!
 //! pub fn main() !void {
 //!   var foo: Foo = .{
-//!     .list = try std.ArrayList(u32).init(std.heap.page_allocator)
+//!     .list = try std.array_list.Managed(u32).init(std.heap.page_allocator)
 //!   };
 //!   defer foo.list.deinit();
 //!   var list = foo.getList();
@@ -28,7 +28,7 @@
 //!
 //! Examples of **incorrect** code for this rule:
 //! ```zig
-//! fn foo(self: *Foo) std.ArrayList(u32) {
+//! fn foo(self: *Foo) std.array_list.Managed(u32) {
 //!   return self.list;
 //! }
 //! ```
@@ -36,7 +36,7 @@
 //! Examples of **correct** code for this rule:
 //! ```zig
 //! // pass by reference
-//! fn foo(self: *Foo) *std.ArrayList(u32) {
+//! fn foo(self: *Foo) *std.array_list.Managed(u32) {
 //!   return &self.list;
 //! }
 //!
@@ -140,6 +140,7 @@ const types_to_check = std.StaticStringMap(void).initComptime(&[_]struct { []con
     // array list
     .{"ArrayList"},
     .{"ArrayListUnmanaged"},
+    .{"Managed"}, // std.array_list.Managed
     .{"AutoArrayHashMap"},
     .{"AutoArrayHashMapUnmanaged"},
     // multi array list
@@ -243,17 +244,17 @@ test MustReturnRef {
         \\  }
         \\};
         ,
-        \\pub fn getList(self: *Foo) std.ArrayList(u32) {
+        \\pub fn getList(self: *Foo) std.array_list.Managed(u32) {
         \\  if (!self.has_list) {
-        \\    return std.ArrayList(u32).init(self.allocator);
+        \\    return std.array_list.Managed(u32).init(self.allocator);
         \\  } else {
         \\    return self.list;
         \\  }
         \\}
         // todo: complex cases
-        // \\pub fn getArena(self: *Foo) std.ArrayList(u32) {
+        // \\pub fn getArena(self: *Foo) std.array_list.Managed(u32) {
         // \\  return if (!self.has_list)
-        // \\    std.ArrayList(u32).init(self.arena)
+        // \\    std.array_list.Managed(u32).init(self.arena)
         // \\  else
         // \\    self.list;
         // \\}

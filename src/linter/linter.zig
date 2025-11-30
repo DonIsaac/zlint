@@ -76,7 +76,7 @@ pub const Linter = struct {
         self: *Linter,
         semantic: *const Semantic,
         source: *Source,
-        errors: *?std.ArrayList(Context.Diagnostic),
+        errors: *?std.array_list.Managed(Context.Diagnostic),
     ) (LintError || Allocator.Error)!void {
         var rulebuf: [RuleSet.RULES_COUNT]Rule.WithSeverity = undefined;
         const rules = try self.getRulesForFile(&rulebuf, semantic) orelse return;

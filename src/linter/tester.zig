@@ -19,7 +19,7 @@ const RuleTester = @This();
 
 const SNAPSHOT_DIR = "src/linter/rules/snapshots";
 
-const SnapshotError = fs.Dir.OpenError || fs.Dir.MakeError || fs.Dir.StatFileError || Allocator.Error || std.io.AnyWriter.Error;
+const SnapshotError = fs.Dir.OpenError || fs.Dir.MakeError || fs.Dir.StatFileError || fs.File.WriteError || Allocator.Error || std.io.Writer.Error;
 
 const TestError = error{
     /// Expected no violations, but violations were found.
@@ -34,7 +34,7 @@ const TestError = error{
     /// result.
     FixMismatch,
 };
-pub const LintTesterError = SnapshotError || TestError;
+pub const LintTesterError = SnapshotError || TestError || Semantic.Builder.SemanticError || Linter.LintError;
 
 pub const FixCase = struct {
     src: [:0]const u8,
@@ -105,17 +105,22 @@ pub fn withFix(self: *RuleTester, comptime fix: []const FixCase) *RuleTester {
     return self;
 }
 
-pub fn run(self: *RuleTester) !void {
+pub fn run(self: *RuleTester) anyerror!void {
     self.runImpl() catch |e| {
         const msg = self.diagnostic.message.borrow();
-        var stderr = std.io.getStdErr().writer().any();
+        var buf: [512]u8 = undefined;
+        var writer = try self.alloc.create(std.fs.File.Writer);
+        writer.* = std.fs.File.stderr().writer(&buf);
+        defer self.alloc.destroy(writer);
+        var stderr = &writer.interface;
+        defer stderr.flush() catch @panic("failed to flush writer");
         try stderr.writeAll(msg);
         try stderr.writeByte('\n');
 
         switch (e) {
             TestError.PassFailed, error.AnalysisFailed => {
                 for (self.diagnostics.items) |diagnostic| {
-                    try self.fmt.format(&stderr, diagnostic.err);
+                    try self.fmt.format(stderr, diagnostic.err);
                     try stderr.writeByte('\n');
                 }
                 return e;
@@ -319,11 +324,14 @@ fn saveSnapshot(self: *RuleTester) SnapshotError!void {
     };
     defer snapshot_file.close();
 
-    var w = snapshot_file.writer().any();
+    var buf: [8192]u8 = undefined;
+    var writer = snapshot_file.writer(&buf);
+
     for (self.diagnostics.items) |diagnostic| {
-        try self.fmt.format(&w, diagnostic.err);
-        try w.writeByte('\n');
+        try self.fmt.format(&writer.interface, diagnostic.err);
+        try writer.interface.writeByte('\n');
     }
+    try writer.interface.flush();
 }
 
 inline fn newList(self: *RuleTester) Linter.Diagnostic.List {

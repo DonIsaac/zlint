@@ -4,8 +4,6 @@ const Build = std.Build;
 const Module = std.Build.Module;
 const codegen = @import("tasks/codegen_task.zig");
 
-const v14 = builtin.zig_version.minor >= 14;
-
 pub fn build(b: *std.Build) void {
     // default to -freference-trace, but respect -fnoreference-trace
     if (b.reference_trace == null) {
@@ -39,89 +37,84 @@ pub fn build(b: *std.Build) void {
     });
 
     // artifacts
-    var lib = b.addStaticLibrary(.{
-        .name = "zlint",
+    const zlint = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
         .single_threaded = single_threaded,
-        .target = l.target,
         .optimize = l.optimize,
+        .target = l.target,
         .error_tracing = if (debug_release) true else null,
-        .unwind_tables = if (debug_release)
-            if (v14) .sync else true
-        else
-            null,
+        .unwind_tables = if (debug_release) .sync else null,
         .omit_frame_pointer = if (debug_release) false else null,
         .strip = if (debug_release) false else null,
     });
-    const zlint: *Build.Module = if (comptime v14) lib.root_module else &lib.root_module;
+    const lib = b.addLibrary(.{
+        .name = "zlint",
+        .root_module = zlint,
+        .linkage = .static,
+    });
     l.link(zlint, false, .{});
     b.modules.put(b.dupe("zlint"), zlint) catch @panic("OOM");
     b.installArtifact(lib);
 
-    const exe = b.addExecutable(.{
-        .name = "zlint",
+    const exe_mod = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .single_threaded = single_threaded,
-        .target = l.target,
         .optimize = l.optimize,
+        .target = l.target,
         .error_tracing = if (debug_release) true else null,
-        .unwind_tables = if (debug_release)
-            if (v14) .sync else true
-        else
-            null,
+        .unwind_tables = if (debug_release) .sync else null,
         .omit_frame_pointer = if (debug_release) false else null,
         .strip = if (debug_release) false else null,
     });
-    // exe.want_lto
-    l.link(if (v14) exe.root_module else &exe.root_module, false, .{});
+    l.link(exe_mod, false, .{});
+
+    const exe = b.addExecutable(.{
+        .name = "zlint",
+        .root_module = exe_mod,
+    });
     b.installArtifact(exe);
 
-    const e2e = b.addExecutable(.{
-        .name = "test-e2e",
+    // exe.want_lto
+    // l.link(exe.root_module else &exe.root_module, false, .{});
+
+    const e2e_mod = b.createModule(.{
         .root_source_file = b.path("test/test_e2e.zig"),
         .single_threaded = single_threaded,
         .target = l.target,
         .optimize = l.optimize,
         .error_tracing = if (debug_release) true else null,
-        .unwind_tables = if (debug_release)
-            if (v14) .sync else true
-        else
-            null,
+        .unwind_tables = if (debug_release) .sync else null,
         .strip = if (debug_release) false else null,
     });
+
+    const e2e = b.addExecutable(.{
+        .name = "test-e2e",
+        .root_module = e2e_mod,
+    });
+
     // util and chameleon omitted
-    e2e.root_module.addImport("zlint", zlint);
-    l.link(
-        if (comptime v14) e2e.root_module else &e2e.root_module,
-        true,
-        .{ "smart-pointers", "recover" },
-    );
+    e2e_mod.addImport("zlint", zlint);
+    l.link(e2e_mod, true, .{ "smart-pointers", "recover" });
 
     b.installArtifact(e2e);
 
     const test_exe = b.addTest(.{
-        .root_source_file = b.path("src/main.zig"),
-        .single_threaded = single_threaded,
-        .target = l.target,
-        .optimize = l.optimize,
-        .error_tracing = if (debug_release) true else null,
-        .strip = if (debug_release) false else null,
+        .name = "test-e2e",
+        .root_module = zlint,
     });
-    l.link(
-        if (comptime v14) test_exe.root_module else &test_exe.root_module,
-        true,
-        .{},
-    );
     b.installArtifact(test_exe);
 
-    const test_utils = b.addTest(.{
-        .name = "test-utils",
+    const test_utils_mod = b.createModule(.{
         .root_source_file = b.path("src/util.zig"),
         .single_threaded = single_threaded,
         .target = l.target,
         .optimize = l.optimize,
         .error_tracing = if (debug_release) true else null,
         .strip = if (debug_release) false else null,
+    });
+    const test_utils = b.addTest(.{
+        .name = "test-utils",
+        .root_module = test_utils_mod,
     });
     b.installArtifact(test_utils);
 
@@ -175,49 +168,46 @@ pub fn build(b: *std.Build) void {
         codegen_step.dependOn(docs_step);
     }
 
-    // check is down here because it's weird. We create mocks of each artifacts
-    // that never get installed. This (allegedly) skips llvm emit.
-    {
-        const check_exe = b.addExecutable(.{ .name = "zlint", .root_source_file = b.path("src/main.zig"), .target = l.target });
-        // mock library so zlint module is checked
-        const check_lib = b.addStaticLibrary(.{ .name = "zlint", .root_source_file = b.path("src/root.zig"), .target = l.target, .optimize = l.optimize });
-        const check_test_lib = b.addTest(.{ .root_source_file = b.path("src/root.zig") });
-        const check_test_exe = b.addTest(.{ .root_source_file = b.path("src/main.zig") });
-        const check_e2e = b.addExecutable(.{ .name = "test-e2e", .root_source_file = b.path("test/test_e2e.zig"), .target = l.target });
-        if (v14) {
-            l.link(check_e2e.root_module, true, .{"recover"});
-        } else {
-            l.link(&check_e2e.root_module, true, .{"recover"});
-        }
-        // tasks
-        const check_docgen = ct.docgen();
-        const check_confgen = ct.confgen();
+    // // check is down here because it's weird. We create mocks of each artifacts
+    // // that never get installed. This (allegedly) skips llvm emit.
+    // {
+    //     const check_exe = b.addExecutable(.{ .name = "zlint", .root_source_file = b.path("src/main.zig"), .target = l.target });
+    //     // mock library so zlint module is checked
+    //     const check_lib = b.addStaticLibrary(.{ .name = "zlint", .root_source_file = b.path("src/root.zig"), .target = l.target, .optimize = l.optimize });
+    //     const check_test_lib = b.addTest(.{ .root_source_file = b.path("src/root.zig") });
+    //     const check_test_exe = b.addTest(.{ .root_source_file = b.path("src/main.zig") });
+    //     const check_e2e = b.addExecutable(.{ .name = "test-e2e", .root_source_file = b.path("test/test_e2e.zig"), .target = l.target });
+    //     l.link(check_e2e.root_module, true, .{"recover"});
+    //     // tasks
+    //     const check_docgen = ct.docgen();
+    //     const check_confgen = ct.confgen();
 
-        // these compilation targets depend on zlint as a module
-        const needs_zlint = .{ check_e2e, check_docgen, check_confgen };
-        inline for (needs_zlint) |exe_to_check| {
-            exe_to_check.root_module.addImport("zlint", zlint);
-        }
+    //     // these compilation targets depend on zlint as a module
+    //     const needs_zlint = .{ check_e2e, check_docgen, check_confgen };
+    //     inline for (needs_zlint) |exe_to_check| {
+    //         exe_to_check.root_module.addImport("zlint", zlint);
+    //     }
 
-        const check = b.step("check", "Check for semantic errors");
-        const substeps = .{
-            check_exe,
-            check_lib,
-            check_test_lib,
-            check_test_exe,
-            check_e2e,
-            check_docgen,
-            check_confgen,
-        };
-        inline for (substeps) |c| {
-            if (comptime v14) {
-                l.link(c.root_module, false, .{});
-            } else {
-                l.link(&c.root_module, false, .{});
-            }
-            check.dependOn(&c.step);
-        }
-    }
+    //     const check = b.step("check", "Check for semantic errors");
+    //     const substeps = .{
+    //         check_exe,
+    //         check_lib,
+    //         check_test_lib,
+    //         check_test_exe,
+    //         check_e2e,
+    //         check_docgen,
+    //         check_confgen,
+    //     };
+    //     inline for (substeps) |c| {
+    //         l.link(c.root_module, false, .{});
+    //         check.dependOn(&c.step);
+    //     }
+    // }
+    const check = b.step("check", "Check for semantic errors");
+    check.dependOn(&lib.step);
+    check.dependOn(&ct.docgen().step);
+    check.dependOn(&ct.confgen().step);
+    check.dependOn(&e2e.step);
 }
 
 /// Stores modules and dependencies. Use `link` to register them as imports.

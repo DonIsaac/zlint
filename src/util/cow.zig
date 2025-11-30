@@ -152,17 +152,9 @@ pub fn Cow(comptime sentinel: bool) type {
         }
 
         /// Use a `{s}` specifier to print the contained string. Use `{}` or
-        /// `{any}` for debug printing.
-        pub fn format(self: Self, comptime _fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
-            if (_fmt.len == 1 and _fmt[0] == 's') {
-                return writer.writeAll(self.str);
-            }
-
-            return writer.print("Cow<{}>({s}, \"{s}\")", .{
-                sentinel,
-                if (self.borrowed) "borrowed" else "owned",
-                self.str,
-            });
+        /// Format function for the new Zig 0.15 Writer API
+        pub fn format(self: Self, writer: *std.Io.Writer) std.Io.Writer.Error!void {
+            return writer.writeAll(self.str);
         }
 
         pub fn jsonStringify(self: *const Self, jw: anytype) !void {
@@ -225,17 +217,13 @@ test Cow {
 }
 
 test "Cow.format" {
-    const no_specifier = try std.fmt.allocPrint(t.allocator, "{}", .{Cow(false).static("Hello, world!")});
-    defer t.allocator.free(no_specifier);
-    try t.expectEqualStrings("Cow<false>(borrowed, \"Hello, world!\")", no_specifier);
-
-    const any = try std.fmt.allocPrint(t.allocator, "{any}", .{Cow(false).static("Hello, world!")});
-    defer t.allocator.free(any);
-    try t.expectEqualStrings("Cow<false>(borrowed, \"Hello, world!\")", any);
-
-    const str = try std.fmt.allocPrint(t.allocator, "{s}", .{Cow(false).static("Hello, world!")});
+    const str = try std.fmt.allocPrint(t.allocator, "{f}", .{Cow(false).static("Hello, world!")});
     defer t.allocator.free(str);
     try t.expectEqualStrings("Hello, world!", str);
+
+    const borrow_str = try std.fmt.allocPrint(t.allocator, "{f}", .{Cow(false).static("Hello, world!")});
+    defer t.allocator.free(borrow_str);
+    try t.expectEqualStrings("Hello, world!", borrow_str);
 }
 
 test "Cow.toOwned" {

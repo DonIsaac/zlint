@@ -55,8 +55,6 @@ pub fn deinit(self: *Error, alloc: std.mem.Allocator) void {
 }
 
 pub fn jsonStringify(self: *const Error, jw: anytype) !void {
-    // const W = std.json.WriteStream(std.io.AnyWriter, .{});
-    // const jw = @as(W, jw_);
     try jw.beginObject();
 
     try jw.objectFieldRaw("\"level\"");

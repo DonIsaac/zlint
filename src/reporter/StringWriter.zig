@@ -1,9 +1,10 @@
 /// A `std.io.Writer` that writes data to an internally managed, allocated
 /// buffer.
 const StringWriter = @This();
-const Writer = io.GenericWriter(*StringWriter, Allocator.Error, write);
+const GenericWriter = io.GenericWriter(*StringWriter, Allocator.Error, write);
 
-buf: std.ArrayList(u8),
+buf: std.array_list.Managed(u8),
+writer_buffer: [4096]u8 = undefined,
 
 /// Create a new, empty `StringWriter`. Does not allocate memory.
 pub fn init(allocator: Allocator) StringWriter {
@@ -17,7 +18,7 @@ pub fn deinit(self: *StringWriter) void {
 /// Create a new `StringWriter` that pre-allocates enough memory for at least
 /// `capacity` bytes.
 pub fn initCapacity(capacity: usize, allocator: Allocator) Allocator.Error!StringWriter {
-    const buf = try std.ArrayList(u8).initCapacity(allocator, capacity);
+    const buf = try std.array_list.Managed(u8).initCapacity(allocator, capacity);
     return StringWriter{ .buf = buf };
 }
 
@@ -26,8 +27,12 @@ pub inline fn slice(self: *const StringWriter) []const u8 {
     return self.buf.items;
 }
 
-pub fn writer(self: *StringWriter) Writer {
-    return Writer{ .context = self };
+pub fn writer(self: *StringWriter) GenericWriter {
+    return GenericWriter{ .context = self };
+}
+
+pub fn ioWriter(self: *StringWriter) io.Writer {
+    return self.writer().interface(&self.writer_buffer);
 }
 
 /// Write `bytes` to this writer. Returns the number of bytes written.

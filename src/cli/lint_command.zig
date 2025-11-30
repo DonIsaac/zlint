@@ -19,8 +19,16 @@ const LintService = _lint.LintService;
 const Fix = _lint.Fix;
 const Options = @import("../cli/Options.zig");
 
+var buf: [4096]u8 = undefined;
+
 pub fn lint(alloc: Allocator, options: Options) !u8 {
-    const stdout = std.io.getStdOut().writer();
+    // writer cannot live on the stack.
+    // this gets moved into Reporter, which runs on a different thread.
+    const writer = try alloc.create(std.fs.File.Writer);
+    writer.* = std.fs.File.stdout().writer(&buf);
+    defer alloc.destroy(writer);
+    var stdout = writer.interface;
+    defer stdout.flush() catch @panic("failed to flush writer");
 
     // NOTE: everything config related is stored in the same arena. This
     // includes the config source string, the parsed Config object, and
@@ -29,7 +37,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
     var arena = std.heap.ArenaAllocator.init(alloc);
     defer arena.deinit();
 
-    var reporter = try reporters.Reporter.initKind(options.format, stdout.any(), alloc);
+    var reporter = try reporters.Reporter.initKind(options.format, &writer.interface, alloc);
     defer reporter.deinit();
     reporter.opts.quiet = options.quiet;
     reporter.opts.report_stats = reporter.opts.report_stats and options.summary;
@@ -37,7 +45,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
     var config = resolve_config: {
         var errors: [1]Error = undefined;
         const c = lint_config.resolveLintConfig(&arena, fs.cwd(), "zlint.json", alloc, &errors[0]) catch {
-            reporter.reportErrorSlice(alloc, errors[0..1]);
+            try reporter.reportErrorSlice(alloc, errors[0..1]);
             return 1;
         };
         break :resolve_config c;
@@ -76,10 +84,9 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
         } else {
             // SAFETY: initialized by reader
             var msg_buf: [4096]u8 = undefined;
-            var stdin = std.io.getStdIn();
-            var buf_reader = std.io.bufferedReader(stdin.reader());
-            var reader = buf_reader.reader();
-            while (try reader.readUntilDelimiterOrEof(&msg_buf, '\n')) |filepath| {
+            var stdin = std.fs.File.stdin();
+            var reader = stdin.reader(&msg_buf);
+            while (try readUntilDelimiterOrEof(&reader.interface, &msg_buf, '\n')) |filepath| {
                 if (!std.mem.endsWith(u8, filepath, ".zig")) continue;
                 const owned = try alloc.dupe(u8, filepath);
                 try service.lintFileParallel(owned);
@@ -172,3 +179,27 @@ const LintVisitor = struct {
         return true;
     }
 };
+
+/// Deprecated: use `streamUntilDelimiter` with FixedBufferStream's writer instead.
+/// Reads from the stream until specified byte is found. If the buffer is not
+/// large enough to hold the entire contents, `error.StreamTooLong` is returned.
+/// If end-of-stream is found, returns the rest of the stream. If this
+/// function is called again after that, returns null.
+/// Returns a slice of the stream data, with ptr equal to `buf.ptr`. The
+/// delimiter byte is written to the output buffer but is not included
+/// in the returned slice.
+pub fn readUntilDelimiterOrEof(self: *std.io.Reader, buffer: []u8, delimiter: u8) anyerror!?[]u8 {
+    var fbs = std.io.fixedBufferStream(buffer);
+    var w = fbs.writer().adaptToNewApi(&.{});
+    const bytes_read = self.streamDelimiter(&w.new_interface, delimiter) catch |err| switch (err) {
+        error.EndOfStream => if (fbs.getWritten().len == 0) {
+            return null;
+        } else return err,
+
+        else => |e| return e,
+    };
+    _ = bytes_read;
+    const output = fbs.getWritten();
+    buffer[output.len] = delimiter; // emulating old behaviour
+    return output;
+}

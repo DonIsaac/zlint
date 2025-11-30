@@ -18,7 +18,7 @@ test print_command {
     defer arena.deinit();
     const allocator = arena.allocator();
     var source = try Source.fromString(allocator, @constCast(source_code), "foo.zig");
-    var buf = try std.ArrayList(u8).initCapacity(allocator, source.text().len);
+    var buf = try std.array_list.Managed(u8).initCapacity(allocator, source.text().len);
     const writer = buf.writer();
 
     try print_command.parseAndPrint(allocator, .{ .verbose = true }, source, writer.any());

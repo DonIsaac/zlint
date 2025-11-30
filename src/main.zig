@@ -2,12 +2,12 @@ const std = @import("std");
 const util = @import("util");
 const Source = @import("source.zig").Source;
 const config = @import("config");
-const Error = @import("./Error.zig");
+const Error = @import("Error.zig");
 
 const fs = std.fs;
 const print = std.debug.print;
 
-const Options = @import("./cli/Options.zig");
+const Options = @import("cli/Options.zig");
 const print_cmd = @import("cli/print_command.zig");
 const lint_cmd = @import("cli/lint_command.zig");
 
@@ -32,15 +32,15 @@ pub fn main() !u8 {
 
     var err: Error = undefined;
     var opts = Options.parseArgv(stack_alloc, &err) catch {
-        std.debug.print("{s}\n{s}\n", .{ err.message, Options.usage });
+        std.debug.print("{s}\n{any}\n", .{ err.message.borrow(), Options.usage });
         err.deinit(stack_alloc);
         return 1;
     };
     defer opts.deinit(stack_alloc);
 
     if (opts.version) {
-        const stdout = std.io.getStdOut().writer();
-        stdout.print("{s}\n", .{config.version}) catch |e| {
+        var stdout = std.fs.File.stdout().writer(&.{});
+        stdout.interface.print("{s}\n", .{config.version}) catch |e| {
             std.debug.panic("Failed to write version: {s}\n", .{@errorName(e)});
         };
         return 0;

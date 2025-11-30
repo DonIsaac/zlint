@@ -47,7 +47,9 @@ const ParseError = error{
     OutOfMemory,
     InvalidArg,
     InvalidArgValue,
-} || @TypeOf(std.io.getStdOut().writer()).Error;
+    WriterError,
+    WriteFailed,
+};
 pub fn parseArgv(alloc: Allocator, err: ?*Error) ParseError!Options {
     // NOTE: args() is not supported on WASM and windows. When targeting another
     // platform, argsWithAllocator does not actually allocate memory.
@@ -103,9 +105,13 @@ fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options 
         } else if (eq(arg, "--print-ast")) {
             opts.print_ast = true;
         } else if (eq(arg, "-h") or eq(arg, "--help") or eq(arg, "--hlep") or eq(arg, "-help")) {
-            const stdout = std.io.getStdOut().writer();
+            var buf: [512]u8 = undefined;
+            const writer = std.fs.File.stdout().writer(&buf);
+            var stdout = writer.interface;
+            defer stdout.flush() catch @panic("failed to flush writer");
+
             try stdout.writeAll(usage);
-            try stdout.writeBytesNTimes(util.NEWLINE, 2);
+            try stdout.writeAll(util.NEWLINE ++ util.NEWLINE);
             try stdout.writeAll(help);
             try stdout.writeAll(util.NEWLINE);
             std.process.exit(0);

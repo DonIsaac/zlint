@@ -44,14 +44,7 @@ pub const Error = union(enum) {
         raw_string: []const u8,
     };
 
-    fn formatMessage(
-        self: FormatMessage,
-        comptime f: []const u8,
-        options: std.fmt.FormatOptions,
-        writer: anytype,
-    ) !void {
-        _ = f;
-        _ = options;
+    fn formatMessage(self: FormatMessage, writer: *std.io.Writer) std.io.Writer.Error!void {
         switch (self.err) {
             .invalid_escape_character => |bad_index| try writer.print(
                 "invalid escape character: '{c}'",
@@ -93,7 +86,7 @@ pub const Error = union(enum) {
         }
     }
 
-    pub fn fmt(self: @This(), raw_string: []const u8) std.fmt.Formatter(formatMessage) {
+    pub fn fmt(self: @This(), raw_string: []const u8) std.fmt.Formatter(FormatMessage, formatMessage) {
         return .{ .data = .{
             .err = self,
             .raw_string = raw_string,
@@ -363,7 +356,7 @@ pub fn parseWrite(writer: anytype, bytes: []const u8) error{OutOfMemory}!Result 
 /// Higher level API. Does not return extra info about parse errors.
 /// Caller owns returned memory.
 pub fn parseAlloc(allocator: std.mem.Allocator, bytes: []const u8) ParseError![]u8 {
-    var buf = std.ArrayList(u8).init(allocator);
+    var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
 
     switch (try parseWrite(buf.writer(), bytes)) {

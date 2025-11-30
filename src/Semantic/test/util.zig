@@ -9,9 +9,13 @@ const printer = @import("../../root.zig").printer;
 const t = std.testing;
 const print = std.debug.print;
 
+var buf: [1024]u8 = undefined;
+
 pub fn build(src: [:0]const u8) !Semantic {
+    const w = std.fs.File.stderr().writer(&buf);
+    var stderr = w.interface;
     var r = try report.Reporter.graphical(
-        std.io.getStdErr().writer().any(),
+        &stderr,
         t.allocator,
         report.formatter.Graphical.Theme.unicodeNoColor(),
     );
@@ -33,7 +37,7 @@ pub fn build(src: [:0]const u8) !Semantic {
     errdefer result.value.deinit();
     if (result.hasErrors()) {
         print("Analysis failed.\n", .{});
-        r.reportErrors(result.errors.toManaged(t.allocator));
+        r.reportErrors(result.errors.toManaged(t.allocator)) catch @panic("OOM");
         print("\nSource:\n\n{s}\n\n", .{src});
         return error.AnalysisFailed;
     }
