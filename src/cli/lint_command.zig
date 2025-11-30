@@ -84,9 +84,10 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
         } else {
             // SAFETY: initialized by reader
             var msg_buf: [4096]u8 = undefined;
+            var delim_buf: [1024]u8 = undefined;
             var stdin = std.fs.File.stdin();
             var reader = stdin.reader(&msg_buf);
-            while (try readUntilDelimiterOrEof(&reader.interface, &msg_buf, '\n')) |filepath| {
+            while (try readUntilDelimiterOrEof(&reader.interface, &delim_buf, '\n')) |filepath| {
                 if (!std.mem.endsWith(u8, filepath, ".zig")) continue;
                 const owned = try alloc.dupe(u8, filepath);
                 try service.lintFileParallel(owned);
