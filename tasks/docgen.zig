@@ -38,7 +38,7 @@ const Context = struct {
     alloc: Allocator,
     ctx: *Schema.Context,
     schemas: *gen.SchemaMap,
-    writer: io.Writer,
+    writer: *io.Writer,
     depth: u32 = 0,
 };
 
@@ -96,8 +96,9 @@ fn generateDocFile(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
     };
     defer outfile.close();
     log.info("Writing docs for rule '{s}'\n", .{rule.meta.name});
-    ctx.writer = outfile.writer(&buf).interface;
-    defer ctx.writer.flush() catch @panic("failed to flush writer");
+    var writer = outfile.writer(&buf);
+    defer writer.interface.flush() catch @panic("failed to flush writer");
+    ctx.writer = &writer.interface;
     // safety: no longer valid once file closes
     defer ctx.writer = undefined;
     try renderDocs(ctx, rule, docs);
@@ -108,8 +109,10 @@ fn renderDocs(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
         \\---
         \\rule: '
     );
-    var json = std.json.Stringify{ .writer = &ctx.writer };
-    try json.write(rule.meta);
+    {
+        var json = std.json.Stringify{ .writer = ctx.writer };
+        try json.write(rule.meta);
+    }
     try ctx.writer.writeAll("'\n---\n\n");
     try ctx.writer.print("# `{s}`\n\n", .{rule.name(.kebab)});
     try ctx.writer.print(
@@ -121,6 +124,7 @@ fn renderDocs(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
     if (rule.meta.fix.kind != .none) {
         try ctx.writer.writeAll("fix={");
         defer ctx.writer.writeByte('}') catch unreachable;
+        var json = std.json.Stringify{ .writer = ctx.writer };
         try json.write(rule.meta.fix);
     }
     try ctx.writer.writeAll(" />");

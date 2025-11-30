@@ -34,6 +34,13 @@ pub fn build(b: *std.Build) void {
     // modules
     l.createModule("util", .{
         .root_source_file = b.path("src/util.zig"),
+        .single_threaded = single_threaded,
+        .optimize = l.optimize,
+        .target = l.target,
+        .error_tracing = if (debug_release) true else null,
+        .unwind_tables = if (debug_release) .sync else null,
+        .omit_frame_pointer = if (debug_release) false else null,
+        .strip = if (debug_release) false else null,
     });
 
     // artifacts
@@ -99,7 +106,7 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(e2e);
 
     const test_exe = b.addTest(.{
-        .name = "test-e2e",
+        .name = "test",
         .root_module = zlint,
     });
     b.installArtifact(test_exe);
