@@ -27,7 +27,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
     const writer = try alloc.create(std.fs.File.Writer);
     writer.* = std.fs.File.stdout().writer(&buf);
     defer alloc.destroy(writer);
-    var stdout = writer.interface;
+    var stdout = &writer.interface;
     defer stdout.flush() catch @panic("failed to flush writer");
 
     // NOTE: everything config related is stored in the same arena. This
