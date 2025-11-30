@@ -110,12 +110,12 @@ fn runFail(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     defer snapshot.close();
 
     var buf: [1024]u8 = undefined;
-    const writer = snapshot.writer(&buf);
-    var w = writer.interface;
+    var writer = snapshot.writer(&buf);
+    var w = &writer.interface;
     defer w.flush() catch @panic("failed to flush writer");
 
     const formatter = zlint.report.formatter.Graphical.unicode(alloc, false);
-    var reporter = try zlint.report.Reporter.init(@TypeOf(formatter), formatter, &w, alloc);
+    var reporter = try zlint.report.Reporter.init(@TypeOf(formatter), formatter, w, alloc);
     defer reporter.deinit();
 
     // run analysis

@@ -106,8 +106,8 @@ fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options 
             opts.print_ast = true;
         } else if (eq(arg, "-h") or eq(arg, "--help") or eq(arg, "--hlep") or eq(arg, "-help")) {
             var buf: [512]u8 = undefined;
-            const writer = std.fs.File.stdout().writer(&buf);
-            var stdout = writer.interface;
+            var writer = std.fs.File.stdout().writer(&buf);
+            var stdout = &writer.interface;
             defer stdout.flush() catch @panic("failed to flush writer");
 
             try stdout.writeAll(usage);
