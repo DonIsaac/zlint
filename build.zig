@@ -163,12 +163,12 @@ pub fn build(b: *std.Build) void {
         const config_step = ct.config();
         const docs_step = ct.docs();
 
-        const lib_docs = b.addInstallDirectory(.{
+        var lib_docs = b.addInstallDirectory(.{
             .source_dir = lib.getEmittedDocs(),
             .install_dir = .prefix,
             .install_subdir = "docs",
         });
-        lib_docs.step.dependOn(docs_step);
+        docs_step.dependOn(&lib_docs.step);
 
         const codegen_step = b.step("codegen", "Generate all codegen artifacts");
         codegen_step.dependOn(config_step);

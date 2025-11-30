@@ -85,6 +85,6 @@ fn createJsonSchema(allocator: Allocator) !void {
     defer out.close();
     var writer = out.writer(&buf);
     defer writer.interface.flush() catch @panic("failed to flush writer");
-    var json = std.json.Stringify{ .writer = &writer.interface };
+    var json = std.json.Stringify{ .writer = &writer.interface, .options = .{ .whitespace = .indent_4 } };
     try json.write(schema);
 }
