@@ -161,10 +161,11 @@ pub const Reporter = struct {
     /// 1. The formatter has a `deinit()` method
     /// 2. This reporter owns the formatter.
     pub fn deinit(self: *Reporter) void {
-        // AnyWriter doesn't have flush, skip it
         self.writer_lock.lock();
+        self.writer.flush() catch |e| std.debug.panic("Reporter failed to flush writer: {s}", .{@errorName(e)});
         self.vtable.deinit(self.ptr, self.alloc);
         self.vtable.destroy(self.ptr, self.alloc);
+        self.writer = undefined;
 
         if (comptime util.IS_DEBUG) {
             self.vtable.format = &PanicFormatter.format;
@@ -186,9 +187,9 @@ const PanicFormatter = struct {
 };
 
 const Stats = struct {
-    num_files: AtomicUsize = AtomicUsize.init(0),
-    num_errors: AtomicUsize = AtomicUsize.init(0),
-    num_warnings: AtomicUsize = AtomicUsize.init(0),
+    num_files: AtomicUsize = .init(0),
+    num_errors: AtomicUsize = .init(0),
+    num_warnings: AtomicUsize = .init(0),
 
     pub fn recordErrors(self: *Stats, errors: []const Error) void {
         var num_warnings: usize = 0;
