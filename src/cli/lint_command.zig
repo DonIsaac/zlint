@@ -182,7 +182,7 @@ const LintVisitor = struct {
 };
 
 /// Modified version of `streamUntilDelimiterOrEof` from zig v0.14.1's stdlib.
-/// 
+///
 /// Reads from the stream until specified byte is found. If the buffer is not
 /// large enough to hold the entire contents, `error.StreamTooLong` is returned.
 /// If end-of-stream is found, returns the rest of the stream. If this
