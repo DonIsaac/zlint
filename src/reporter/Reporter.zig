@@ -162,6 +162,7 @@ pub const Reporter = struct {
     /// 2. This reporter owns the formatter.
     pub fn deinit(self: *Reporter) void {
         self.writer_lock.lock();
+        defer self.writer_lock.unlock();
         self.writer.flush() catch |e| std.debug.panic("Reporter failed to flush writer: {s}", .{@errorName(e)});
         self.vtable.deinit(self.ptr, self.alloc);
         self.vtable.destroy(self.ptr, self.alloc);
