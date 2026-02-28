@@ -183,8 +183,8 @@ const printMethods = std.StaticStringMap(void).initComptime(&[_]struct { []const
     .{"write"},
     .{"writeAll"},
     .{"writeByte"},
-    .{"writeByteNTimes"},
-    .{"writeBytesNTimes"},
+    .{"writeByteNTimes"}, // note: removed in 0.15
+    .{"writeBytesNTimes"}, // note: removed in 0.15
     .{"writeStruct"},
     .{"writeStructEndian"},
 });

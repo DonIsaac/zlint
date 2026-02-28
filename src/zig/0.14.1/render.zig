@@ -7,14 +7,14 @@ const meta = std.meta;
 const Ast = zig.Ast;
 const Token = zig.Token;
 const primitives = zig.primitives;
-const fmtEscapes = std.zig.fmtEscapes;
+const fmtEscapes = zig.fmtEscapes;
 
 const indent_delta = 4;
 const asm_indent_delta = 2;
 
 pub const Error = Ast.RenderError;
 
-const Ais = AutoIndentingStream(std.ArrayList(u8).Writer);
+const Ais = AutoIndentingStream(std.array_list.Managed(u8).Writer);
 
 pub const Fixups = struct {
     /// The key is the mut token (`var`/`const`) of the variable declaration
@@ -81,7 +81,7 @@ const Render = struct {
     fixups: Fixups,
 };
 
-pub fn renderTree(buffer: *std.ArrayList(u8), tree: Ast, fixups: Fixups) Error!void {
+pub fn renderTree(buffer: *std.array_list.Managed(u8), tree: Ast, fixups: Fixups) Error!void {
     assert(tree.errors.len == 0); // Cannot render an invalid tree.
     var auto_indenting_stream = Ais.init(buffer, indent_delta);
     defer auto_indenting_stream.deinit();
@@ -282,7 +282,7 @@ fn renderMember(
             return renderToken(r, tree.lastToken(decl) + 1, space); // semicolon
         },
 
-        .@"usingnamespace" => {
+        .usingnamespace => {
             const main_token = main_tokens[decl];
             const expr = datas[decl].lhs;
             if (main_token > 0 and token_tags[main_token - 1] == .keyword_pub) {
@@ -625,7 +625,7 @@ fn renderExpression(r: *Render, node: Ast.Node.Index, space: Space) Error!void {
 
         .@"try",
         .@"resume",
-        .@"await",
+        .await,
         => {
             try renderToken(r, main_tokens[node], .space);
             return renderExpression(r, datas[node].lhs, space);
@@ -916,7 +916,7 @@ fn renderExpression(r: *Render, node: Ast.Node.Index, space: Space) Error!void {
         .local_var_decl => unreachable,
         .simple_var_decl => unreachable,
         .aligned_var_decl => unreachable,
-        .@"usingnamespace" => unreachable,
+        .usingnamespace => unreachable,
         .test_decl => unreachable,
         .asm_output => unreachable,
         .asm_input => unreachable,
@@ -1618,7 +1618,7 @@ fn renderBuiltinCall(
             defer r.gpa.free(new_string);
 
             try renderToken(r, builtin_token + 1, .none); // (
-            try ais.writer().print("\"{}\"", .{fmtEscapes(new_string)});
+            try ais.writer().print("\"{any}\"", .{fmtEscapes(new_string)});
             return renderToken(r, str_lit_token + 1, space); // )
         }
     }
@@ -2182,7 +2182,7 @@ fn renderArrayInit(
 
         const section_exprs = row_exprs[0..section_end];
 
-        var sub_expr_buffer = std.ArrayList(u8).init(gpa);
+        var sub_expr_buffer = std.array_list.Managed(u8).init(gpa);
         defer sub_expr_buffer.deinit();
 
         const sub_expr_buffer_starts = try gpa.alloc(usize, section_exprs.len + 1);
@@ -2940,7 +2940,7 @@ fn renderIdentifierContents(writer: anytype, bytes: []const u8) !void {
                     .success => |codepoint| {
                         if (codepoint <= 0x7f) {
                             const buf = [1]u8{@as(u8, @intCast(codepoint))};
-                            try std.fmt.format(writer, "{}", .{fmtEscapes(&buf)});
+                            try std.fmt.format(writer, "{any}", .{fmtEscapes(&buf)});
                         } else {
                             try writer.writeAll(escape_sequence);
                         }
@@ -2952,7 +2952,7 @@ fn renderIdentifierContents(writer: anytype, bytes: []const u8) !void {
             },
             0x00...('\\' - 1), ('\\' + 1)...0x7f => {
                 const buf = [1]u8{byte};
-                try std.fmt.format(writer, "{}", .{fmtEscapes(&buf)});
+                try std.fmt.format(writer, "{any}", .{fmtEscapes(&buf)});
                 pos += 1;
             },
             0x80...0xff => {
@@ -3193,7 +3193,7 @@ fn anythingBetween(tree: Ast, start_token: Ast.TokenIndex, end_token: Ast.TokenI
     return false;
 }
 
-fn writeFixingWhitespace(writer: std.ArrayList(u8).Writer, slice: []const u8) Error!void {
+fn writeFixingWhitespace(writer: std.array_list.Managed(u8).Writer, slice: []const u8) Error!void {
     for (slice) |byte| switch (byte) {
         '\t' => try writer.writeAll(" " ** indent_delta),
         '\r' => {},
@@ -3328,7 +3328,7 @@ fn AutoIndentingStream(comptime UnderlyingWriter: type) type {
     return struct {
         const Self = @This();
         pub const WriteError = UnderlyingWriter.Error;
-        pub const Writer = std.io.Writer(*Self, WriteError, write);
+        pub const Writer = std.io.GenericWriter(*Self, WriteError, write);
 
         pub const IndentType = enum {
             normal,
@@ -3357,20 +3357,20 @@ fn AutoIndentingStream(comptime UnderlyingWriter: type) type {
 
         indent_count: usize = 0,
         indent_delta: usize,
-        indent_stack: std.ArrayList(StackElem),
-        space_stack: std.ArrayList(SpaceElem),
+        indent_stack: std.array_list.Managed(StackElem),
+        space_stack: std.array_list.Managed(SpaceElem),
         space_mode: ?usize = null,
         disable_indent_committing: usize = 0,
         current_line_empty: bool = true,
         /// the most recently applied indent
         applied_indent: usize = 0,
 
-        pub fn init(buffer: *std.ArrayList(u8), indent_delta_: usize) Self {
+        pub fn init(buffer: *std.array_list.Managed(u8), indent_delta_: usize) Self {
             return .{
                 .underlying_writer = buffer.writer(),
                 .indent_delta = indent_delta_,
-                .indent_stack = std.ArrayList(StackElem).init(buffer.allocator),
-                .space_stack = std.ArrayList(SpaceElem).init(buffer.allocator),
+                .indent_stack = std.array_list.Managed(StackElem).init(buffer.allocator),
+                .space_stack = std.array_list.Managed(SpaceElem).init(buffer.allocator),
             };
         }
 

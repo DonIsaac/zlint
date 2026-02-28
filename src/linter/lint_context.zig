@@ -269,8 +269,8 @@ pub const Diagnostic = struct {
         self.err.deinit(allocator);
         self.* = undefined;
     }
-    // TODO: add comptime check to use `std.ArrayList(Error)` when not fixing
-    pub const List = std.ArrayList(Diagnostic);
+    // TODO: add comptime check to use `std.array_list.Managed(Error)` when not fixing
+    pub const List = std.array_list.Managed(Diagnostic);
 };
 
 const Context = @This();

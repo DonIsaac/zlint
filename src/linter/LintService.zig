@@ -77,11 +77,11 @@ fn tryLintFile(self: *LintService, filepath: []u8) !void {
 
     var source = try Source.init(self.allocator, file, filepath);
     defer source.deinit();
-    var errors: ?std.ArrayList(Error) = null;
+    var errors: ?std.array_list.Managed(Error) = null;
 
     self.lintSource(&source, &errors) catch |err| {
         if (errors) |e| {
-            self.reporter.reportErrors(e);
+            try self.reporter.reportErrors(e);
         } else {
             _ = self.reporter.stats.num_errors.fetchAdd(1, .acquire);
         }
@@ -98,7 +98,7 @@ fn tryLintFile(self: *LintService, filepath: []u8) !void {
 pub fn lintSource(
     self: *LintService,
     source: *Source,
-    errors: *?std.ArrayList(Error),
+    errors: *?std.array_list.Managed(Error),
 ) (LintError || Allocator.Error)!void {
     // FIXME: empty sources break something but i forget what
     if (source.text().len == 0) return;
@@ -134,7 +134,7 @@ pub fn lintSource(
             const n = diagnostics.items.len;
             util.assert(n > 0, "Linter should never assign an empty error list when problems are reported", .{});
             util.assert(self.allocator.ptr == diagnostics.allocator.ptr, "diagnostics used a different allocator than one used to make errors", .{});
-            var es = try std.ArrayList(Error).initCapacity(self.allocator, n);
+            var es = try std.array_list.Managed(Error).initCapacity(self.allocator, n);
             for (0..n) |i| es.appendAssumeCapacity(diagnostics.items[i].err);
             errors.* = es;
             return LintError.LintingFailed;
@@ -148,7 +148,7 @@ pub fn lintSource(
     };
 }
 
-fn applyFixes(self: *const LintService, diagnostics: *Linter.Diagnostic.List, source: *Source) Allocator.Error!std.ArrayList(Error) {
+fn applyFixes(self: *const LintService, diagnostics: *Linter.Diagnostic.List, source: *Source) Allocator.Error!std.array_list.Managed(Error) {
     var fixer = Fixer{ .allocator = self.allocator };
     var result = try fixer.applyFixes(source.text(), diagnostics.items);
     defer result.deinit(self.allocator);

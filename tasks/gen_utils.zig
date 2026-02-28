@@ -61,7 +61,7 @@ pub const RuleInfo = struct {
 /// Fully read the contents of a zig source file into an allocated buffer.
 /// Caller owns the returned allocation.
 pub fn readSourceFile(alloc: Allocator, root: std.fs.Dir, path: []const u8) ![:0]u8 {
-    return root.readFileAllocOptions(alloc, path, MAX, null, @alignOf(u8), 0);
+    return root.readFileAllocOptions(alloc, path, MAX, null, .@"1", 0);
 }
 
 pub const SchemaMap = std.StringHashMap(Schema);
@@ -105,7 +105,7 @@ pub fn getModuleDocs(
         }
     }
     const docs = source[start..end];
-    var buf = try std.ArrayList(u8).initCapacity(allocator, docs.len);
+    var buf = try std.array_list.Managed(u8).initCapacity(allocator, docs.len);
     var lines = mem.splitScalar(u8, docs, '\n');
 
     while (lines.next()) |line| {

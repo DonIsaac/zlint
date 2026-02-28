@@ -19,11 +19,11 @@ pub const Source = struct {
     /// Both `file` and `pathname` are moved into the source.
     pub fn init(gpa: Allocator, file: fs.File, pathname: ?[]const u8) !Source {
         defer file.close();
-        const meta = try file.metadata();
-        const contents = try gpa.allocSentinel(u8, meta.size(), 0);
+        const meta = try file.stat();
+        const contents = try gpa.allocSentinel(u8, meta.size, 0);
         errdefer gpa.free(contents);
         const bytes_read = try file.readAll(contents);
-        assert(bytes_read == meta.size());
+        assert(bytes_read == meta.size);
         return Source{
             .contents = try ArcStr.init(gpa, contents),
             .pathname = pathname,

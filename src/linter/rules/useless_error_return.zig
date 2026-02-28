@@ -176,7 +176,6 @@ pub fn runOnSymbol(_: *const UselessErrorReturn, symbol: Symbol.Id, ctx: *Linter
     }
 
     // 3. look for fail-y things
-    // var visitor = Visitor{ .ast = ctx.ast(), .err_stack = std.ArrayList.init(Allocator.heap()) };
     var visitorfb = std.heap.stackFallback(8, ctx.gpa);
     var visitor = Visitor.init(ctx.ast(), err_ident, visitorfb.get());
     defer visitor.err_stack.deinit();
@@ -209,7 +208,7 @@ const Visitor = struct {
 
     // state
     curr_return: Node.Index = Semantic.NULL_NODE,
-    err_stack: std.ArrayList(ErrState),
+    err_stack: std.array_list.Managed(ErrState),
 
     /// Known name of error type.
     ///
@@ -257,7 +256,7 @@ const Visitor = struct {
         return Visitor{
             .ast = ast,
             .err_name = err_name,
-            .err_stack = std.ArrayList(ErrState).init(alloc),
+            .err_stack = std.array_list.Managed(ErrState).init(alloc),
         };
     }
 

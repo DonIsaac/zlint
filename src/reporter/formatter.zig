@@ -31,8 +31,8 @@ pub const Kind = enum {
     }
 };
 
-pub const FormatError = Writer.Error || Allocator.Error;
+pub const FormatError = io.Writer.Error || Allocator.Error;
 
 const std = @import("std");
-const Writer = std.io.AnyWriter;
+const io = std.io;
 const Allocator = std.mem.Allocator;

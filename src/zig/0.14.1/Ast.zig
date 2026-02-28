@@ -119,7 +119,7 @@ pub fn parse(gpa: Allocator, source: [:0]const u8, mode: Mode) Allocator.Error!A
 /// `gpa` is used for allocating the resulting formatted source code.
 /// Caller owns the returned slice of bytes, allocated with `gpa`.
 pub fn render(tree: Ast, gpa: Allocator) RenderError![]u8 {
-    var buffer = std.ArrayList(u8).init(gpa);
+    var buffer = std.array_list.Managed(u8).init(gpa);
     defer buffer.deinit();
 
     try tree.renderToArrayList(&buffer, .{});
@@ -128,7 +128,7 @@ pub fn render(tree: Ast, gpa: Allocator) RenderError![]u8 {
 
 pub const Fixups = private_render.Fixups;
 
-pub fn renderToArrayList(tree: Ast, buffer: *std.ArrayList(u8), fixups: Fixups) RenderError!void {
+pub fn renderToArrayList(tree: Ast, buffer: *std.array_list.Managed(u8), fixups: Fixups) RenderError!void {
     return @import("render.zig").renderTree(buffer, tree, fixups);
 }
 
@@ -465,14 +465,14 @@ pub fn renderError(tree: Ast, parse_error: Error, stream: anytype) !void {
 
         .invalid_byte => {
             const tok_slice = tree.source[tree.tokens.items(.start)[parse_error.token]..];
-            return stream.print("{s} contains invalid byte: '{'}'", .{
+            return stream.print("{s} contains invalid byte: '{f}'", .{
                 switch (tok_slice[0]) {
                     '\'' => "character literal",
                     '"', '\\' => "string literal",
                     '/' => "comment",
                     else => unreachable,
                 },
-                std.zig.fmtEscapes(tok_slice[parse_error.extra.offset..][0..1]),
+                zig.fmtEscapes(tok_slice[parse_error.extra.offset..][0..1]),
             });
         },
 
@@ -510,7 +510,7 @@ pub fn firstToken(tree: Ast, node: Node.Index) TokenIndex {
         .negation_wrap,
         .address_of,
         .@"try",
-        .@"await",
+        .await,
         .optional_type,
         .@"switch",
         .switch_comma,
@@ -658,7 +658,7 @@ pub fn firstToken(tree: Ast, node: Node.Index) TokenIndex {
             return i - end_offset;
         },
 
-        .@"usingnamespace" => {
+        .usingnamespace => {
             const main_token = main_tokens[n];
             if (main_token > 0 and token_tags[main_token - 1] == .keyword_pub) {
                 end_offset += 1;
@@ -812,14 +812,14 @@ pub fn lastToken(tree: Ast, node: Node.Index) TokenIndex {
     while (true) switch (tags[n]) {
         .root => return @as(TokenIndex, @intCast(tree.tokens.len - 1)),
 
-        .@"usingnamespace",
+        .usingnamespace,
         .bool_not,
         .negation,
         .bit_not,
         .negation_wrap,
         .address_of,
         .@"try",
-        .@"await",
+        .await,
         .optional_type,
         .@"resume",
         .@"nosuspend",
@@ -3039,7 +3039,7 @@ pub const Node = struct {
         /// sub_list[lhs...rhs]
         root,
         /// `usingnamespace lhs;`. rhs unused. main_token is `usingnamespace`.
-        @"usingnamespace",
+        usingnamespace,
         /// lhs is test name token (must be string literal or identifier), if any.
         /// rhs is the body node.
         test_decl,
@@ -3195,7 +3195,7 @@ pub const Node = struct {
         /// `op lhs`. rhs unused. main_token is op.
         @"try",
         /// `op lhs`. rhs unused. main_token is op.
-        @"await",
+        await,
         /// `?lhs`. rhs unused. main_token is the `?`.
         optional_type,
         /// `[lhs]rhs`.

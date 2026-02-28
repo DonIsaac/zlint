@@ -117,7 +117,7 @@ fn printReference(self: *SemanticPrinter, ref_id: Reference.Id) !void {
     var buf: [flag_fields.len * @sizeOf([]const u8)]u8 = undefined;
     var fixed_alloc = std.heap.FixedBufferAllocator.init(&buf);
     const alloc = fixed_alloc.allocator();
-    var flags = std.ArrayList([]const u8).init(alloc);
+    var flags = std.array_list.Managed([]const u8).init(alloc);
     flags.ensureTotalCapacityPrecise(flag_fields.len) catch @panic("fixed buffer is not large enough.");
 
     inline for (flag_fields) |field| {

@@ -20,7 +20,7 @@ const SemanticError = zlint.semantic.Semantic.Builder.SemanticError;
 var is_tty: bool = false;
 
 pub fn globalSetup(alloc: Allocator) !void {
-    is_tty = std.io.getStdErr().isTty();
+    is_tty = std.fs.File.stderr().isTty();
     var repos_dir_fd = fs.cwd().openDir(REPOS_DIR, .{}) catch |e| {
         switch (e) {
             error.FileNotFound => {
@@ -57,12 +57,6 @@ fn testSemantic(alloc: Allocator, source: *const Source) !void {
     defer res.deinit();
     if (res.hasErrors()) return error.AnalysisFailed;
 }
-
-// const fns: test_runner.TestSuite.TestSuiteFns = .{
-//     .test_fn = &testSemantic,
-//     .setup_fn = &globalSetup,
-//     .teardown_fn = &globalTeardown,
-// };
 
 pub fn run(alloc: Allocator) !void {
     for (repos.value) |repo| {

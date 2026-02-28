@@ -66,7 +66,6 @@ pub const CodegenTasks = struct {
         self._docgen_exe = b.addExecutable(.{
             .name = "docgen",
             .root_module = docgen_mod,
-            .optimize = self.optimize,
         });
         return self._docgen_exe.?;
     }
@@ -85,7 +84,6 @@ pub const CodegenTasks = struct {
         self._confgen_exe = b.addExecutable(.{
             .name = "confgen",
             .root_module = confgen_mod,
-            .optimize = self.optimize,
         });
         return self._confgen_exe.?;
     }

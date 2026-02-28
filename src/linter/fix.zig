@@ -121,7 +121,7 @@ pub const Fixer = struct {
         var stackfb = heap.stackFallback(STACK_SIZE * @sizeOf(Fix), self.allocator);
         const alloc = stackfb.get();
 
-        var fixes = std.ArrayList(Diagnostic).init(alloc);
+        var fixes = std.array_list.Managed(Diagnostic).init(alloc);
         defer fixes.deinit();
         try fixes.ensureTotalCapacityPrecise(STACK_SIZE);
 

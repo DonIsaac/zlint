@@ -137,10 +137,7 @@ pub fn Bitflags(Flags: type) type {
             return @bitCast(self);
         }
 
-        pub fn format(self: Flags, comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
-            if (fmt.len == 1 and fmt[0] == 'd') {
-                return writer.print("{d}", .{@as(Repr, @bitCast(self))});
-            }
+        pub fn format(self: Flags, writer: *std.Io.Writer) std.Io.Writer.Error!void {
             try writer.writeAll(@typeName(Flags) ++ "(");
 
             var first = true;
@@ -202,7 +199,7 @@ test Bitflags {
     try std.testing.expectFmt(
         \\["top","left"]
     ,
-        "{}",
+        "{f}",
         .{std.json.fmt(p, .{})},
     );
 }

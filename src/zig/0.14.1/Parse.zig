@@ -682,7 +682,7 @@ fn expectUsingNamespace(p: *Parse) !Node.Index {
     const expr = try p.expectExpr();
     try p.expectSemicolon(.expected_semi_after_decl, false);
     return p.addNode(.{
-        .tag = .@"usingnamespace",
+        .tag = .usingnamespace,
         .main_token = usingnamespace_token,
         .data = .{
             .lhs = expr,
@@ -1749,7 +1749,7 @@ fn parsePrefixExpr(p: *Parse) Error!Node.Index {
         .minus_percent => .negation_wrap,
         .ampersand => .address_of,
         .keyword_try => .@"try",
-        .keyword_await => .@"await",
+        .keyword_await => .await,
         else => return p.parsePrimaryExpr(),
     };
     return p.addNode(.{

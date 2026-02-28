@@ -6,7 +6,7 @@ on:
       - "v*.*.*"
 
 env:
-  ZIG_VERSION: 0.14.1
+  ZIG_VERSION: 0.15.2
 
 permissions:
   id-token: write

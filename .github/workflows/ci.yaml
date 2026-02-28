@@ -30,7 +30,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ZIG_VERSION: 0.14.1
+  ZIG_VERSION: 0.15.2
 
 jobs:
   check:
@@ -72,7 +72,11 @@ jobs:
   # https://imgflip.com/i/9eygz0
   lint:
     name: Lint Changed
-    if: ${{ github.event_name == 'pull_request' }}
+    # TODO: un-comment after fully migrating to 0.15.
+    # as of writing, zlint uses the 0.14 parser, which breaks when parsing `usingnamespace`
+    # (it was a keyword, now its an identifier)
+    # if: ${{ github.event_name == 'pull_request' }}
+    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
