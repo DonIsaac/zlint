@@ -658,7 +658,7 @@ pub fn firstToken(tree: Ast, node: Node.Index) TokenIndex {
             return i - end_offset;
         },
 
-        .@"usingnamespace" => {
+        .usingnamespace => {
             const main_token = main_tokens[n];
             if (main_token > 0 and token_tags[main_token - 1] == .keyword_pub) {
                 end_offset += 1;
