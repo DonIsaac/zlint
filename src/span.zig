@@ -1,6 +1,6 @@
 const std = @import("std");
 const util = @import("util");
-const zig = @import("zig.zig").@"0.14.1";
+const zig = @import("zig.zig").current;
 
 const assert = std.debug.assert;
 

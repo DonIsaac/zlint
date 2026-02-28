@@ -1,6 +1,5 @@
 const std = @import("std");
 const builtin = @import("builtin");
-
 pub const RUNTIME_SAFETY = builtin.mode != .ReleaseFast;
 pub const IS_DEBUG = builtin.mode == .Debug;
 pub const IS_TEST = builtin.is_test;
