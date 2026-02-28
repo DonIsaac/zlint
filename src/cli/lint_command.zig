@@ -195,7 +195,10 @@ pub fn readUntilDelimiterOrEof(self: *std.io.Reader, buffer: []u8, delimiter: u8
     const bytes_read = self.streamDelimiter(&fbw, delimiter) catch |err| switch (err) {
         error.EndOfStream => if (fbw.end == 0) {
             return null;
-        } else return err,
+        } else {
+            // Partial data at EOF (e.g. last line without trailing newline)
+            return buffer[0..fbw.end];
+        },
 
         else => |e| return e,
     };

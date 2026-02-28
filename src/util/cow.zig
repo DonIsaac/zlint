@@ -151,8 +151,7 @@ pub fn Cow(comptime sentinel: bool) type {
             };
         }
 
-        /// Use a `{s}` specifier to print the contained string. Use `{}` or
-        /// Format function for the new Zig 0.15 Writer API
+        /// Formats the contained string for printing. Use a `{f}` specifier.
         pub fn format(self: Self, writer: *std.Io.Writer) std.Io.Writer.Error!void {
             return writer.writeAll(self.str);
         }
