@@ -66,8 +66,7 @@ const Semantic = @import("../../Semantic.zig");
 const _rule = @import("../rule.zig");
 const a = @import("../ast_utils.zig");
 
-const zig = @import("../../zig.zig").@"0.14.1";
-const Ast = zig.Ast;
+const Ast = Semantic.Ast;
 const Node = Ast.Node;
 const Scope = Semantic.Scope;
 const LinterContext = @import("../lint_context.zig");
@@ -97,7 +96,7 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
     const node = wrapper.node;
     if (node.tag != Node.Tag.@"try") return;
 
-    const curr_scope = ctx.links().scopes.items[wrapper.idx];
+    const curr_scope = ctx.links().scopes.items[@intFromEnum(wrapper.idx)];
     var it = ctx.scopes().iterParents(curr_scope);
 
     while (it.next()) |scope| {
@@ -123,11 +122,10 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
 }
 
 fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void {
-    const tags: []const Node.Tag = ctx.ast().nodes.items(.tag);
-    const main_tokens: []const Ast.TokenIndex = ctx.ast().nodes.items(.main_token);
+    const ast = ctx.ast();
     const decl_node: Node.Index = ctx.scopes().scopes.items(.node)[scope.int()];
 
-    if (tags[decl_node] != .fn_decl) {
+    if (ast.nodeTag(decl_node) != .fn_decl) {
         if (comptime util.IS_DEBUG) {
             util.assert(false, "function-bound scopes (w/o .s_block) should be bound to a function declaration node.", .{});
         } else {
@@ -136,10 +134,10 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
     }
 
     var buf: [1]Node.Index = undefined;
-    const proto: Ast.full.FnProto = ctx.ast().fullFnProto(&buf, decl_node) orelse @panic(".fn_decl nodes always have a full fn proto available.");
-    const return_type: Node.Index = proto.ast.return_type;
+    const proto: Ast.full.FnProto = ast.fullFnProto(&buf, decl_node) orelse @panic(".fn_decl nodes always have a full fn proto available.");
+    const return_type: Node.Index = proto.ast.return_type.unwrap() orelse return;
 
-    if (a.hasErrorUnion(ctx.ast(), return_type)) return;
+    if (a.hasErrorUnion(ast, return_type)) return;
     if (a.getRightmostIdentifier(ctx, return_type)) |ident| {
         if (std.mem.endsWith(u8, ident, "Error")) return;
     }
@@ -150,11 +148,11 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
             if (proto.name_token) |name_token|
                 ctx.labelT(name_token, "function `{s}` is declared here.", .{ctx.semantic.tokenSlice(name_token)})
             else
-                ctx.labelT(main_tokens[decl_node], "function is declared here.", .{}),
-            ctx.labelT(ctx.ast().firstToken(try_node), "it cannot propagate error unions.", .{}),
+                ctx.labelT(ast.nodeMainToken(decl_node), "function is declared here.", .{}),
+            ctx.labelT(ast.firstToken(try_node), "it cannot propagate error unions.", .{}),
         },
     );
-    const return_type_src = ctx.ast().getNodeSource(return_type);
+    const return_type_src = ast.getNodeSource(return_type);
     e.help = Cow.fmt(ctx.gpa, "Change the return type to `!{s}`.", .{return_type_src}) catch @panic("OOM");
     ctx.report(e);
 }

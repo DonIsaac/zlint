@@ -9,17 +9,16 @@ pub fn eql(ast: *const Ast, a: Node.Index, b: Node.Index) bool {
         @branchHint(.unlikely);
         return true;
     }
-    const tag: Node.Tag = ast.nodes.items(.tag)[a];
-    const other: Node.Tag = ast.nodes.items(.tag)[b];
+    const tag: Node.Tag = ast.nodeTag(a);
+    const other: Node.Tag = ast.nodeTag(b);
     if (tag != other) return false;
     const comparator = AstComparator{ .ast = ast };
     return comparator.eqlInner(a, b);
 }
 
 fn eqlInner(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
-    const tags = self.nodeTags();
-    const x = tags[a];
-    const y = tags[b];
+    const x = self.ast.nodeTag(a);
+    const y = self.ast.nodeTag(b);
     if (x != y) return false;
 
     return switch (@as(Node.Tag, x)) {
@@ -28,19 +27,18 @@ fn eqlInner(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
         .call_one, .call_one_comma, .call_comma, .call => self.eqlCall(a, b),
         .field_access => self.eqlFieldAccess(a, b),
         .block, .block_semicolon => self.eqlBlock(a, b),
+        .block_two, .block_two_semicolon => self.eqlBlockTwo(a, b),
         .negation,
         .negation_wrap,
         .bit_not,
         .address_of,
-        .@"return",
-        .unwrap_optional,
-        => self.innerEql(a, b, .lhs),
-        .@"defer" => self.innerEql(a, b, .rhs),
+        => self.eqlNode(a, b),
+        .@"return" => self.eqlOptNode(a, b),
+        .unwrap_optional => self.eqlNodeAndToken(a, b),
+        .@"defer" => self.eqlNode(a, b),
         .sub,
         .div,
         .mod,
-        .block_two,
-        .block_two_semicolon,
         => self.binExprEql(a, b),
         .add,
         .mul,
@@ -65,30 +63,37 @@ fn eqlInner(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
 
 /// check if two `.field_access` expressions (`foo.bar`) are equal
 fn eqlFieldAccess(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
-    const data = self.nodeData();
-    const left = data[a];
-    const right = data[b];
+    const left_obj, const left_field = self.ast.nodeData(a).node_and_token;
+    const right_obj, const right_field = self.ast.nodeData(b).node_and_token;
 
-    const leftMember = self.ast.tokenSlice(left.rhs);
-    const rightMember = self.ast.tokenSlice(right.rhs);
+    const leftMember = self.ast.tokenSlice(left_field);
+    const rightMember = self.ast.tokenSlice(right_field);
     if (!mem.eql(u8, leftMember, rightMember)) {
         return false;
     }
 
-    return self.eqlInner(left.lhs, right.lhs);
+    return self.eqlInner(left_obj, right_obj);
 }
 
 fn eqlBlock(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
-    const data = self.nodeData();
-    const aStmts = self.ast.extra_data[data[a].lhs..data[a].rhs];
-    const bStmts = self.ast.extra_data[data[b].lhs..data[b].rhs];
+    const aStmts = self.ast.extraDataSlice(self.ast.nodeData(a).extra_range, Node.Index);
+    const bStmts = self.ast.extraDataSlice(self.ast.nodeData(b).extra_range, Node.Index);
+    return self.areAllEql(aStmts, bStmts);
+}
+
+fn eqlBlockTwo(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
+    var buf_a: [2]Node.Index = undefined;
+    var buf_b: [2]Node.Index = undefined;
+    const aStmts = self.ast.blockStatements(&buf_a, a) orelse return false;
+    const bStmts = self.ast.blockStatements(&buf_b, b) orelse return false;
     return self.areAllEql(aStmts, bStmts);
 }
 
 fn eqlCall(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
-    var buf: [1]Node.Index = undefined;
-    const left = self.ast.fullCall(&buf, a) orelse unreachable;
-    const right = self.ast.fullCall(&buf, b) orelse unreachable;
+    var buf_a: [1]Node.Index = undefined;
+    var buf_b: [1]Node.Index = undefined;
+    const left = self.ast.fullCall(&buf_a, a) orelse unreachable;
+    const right = self.ast.fullCall(&buf_b, b) orelse unreachable;
 
     return self.eqlInner(left.ast.fn_expr, right.ast.fn_expr) and
         self.areAllEql(left.ast.params, right.ast.params);
@@ -99,7 +104,7 @@ fn eqlIfSimple(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
     const other = self.ast.ifSimple(b);
     return self.eqlInner(ifnode.ast.cond_expr, other.ast.cond_expr) and
         self.eqlInner(ifnode.ast.then_expr, other.ast.then_expr) and
-        self.eqlInner(ifnode.ast.else_expr, other.ast.else_expr);
+        self.maybeNodesEql(ifnode.ast.else_expr, other.ast.else_expr);
 }
 
 fn eqlIf(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
@@ -121,58 +126,49 @@ fn eqlIf(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
 
     return self.eqlInner(left.ast.cond_expr, right.ast.cond_expr) and
         self.eqlInner(left.ast.then_expr, right.ast.then_expr) and
-        self.eqlInner(left.ast.else_expr, right.ast.else_expr);
+        self.maybeNodesEql(left.ast.else_expr, right.ast.else_expr);
 }
 
 fn eqlVarDecl(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
     const left = self.ast.fullVarDecl(a) orelse return false;
     const right = self.ast.fullVarDecl(b) orelse return false;
 
-    // Compare identifier names
-    const left_main_token = self.ast.nodes.items(.main_token)[a];
-    const right_main_token = self.ast.nodes.items(.main_token)[b];
+    const left_main_token = self.ast.nodeMainToken(a);
+    const right_main_token = self.ast.nodeMainToken(b);
     if (!self.tokensEql(left_main_token + 1, right_main_token + 1)) return false;
 
-    // Compare optional tokens
     if (!self.maybeTokensEql(left.visib_token, right.visib_token)) return false;
     if (!self.maybeTokensEql(left.comptime_token, right.comptime_token)) return false;
     if (!self.maybeTokensEql(left.extern_export_token, right.extern_export_token)) return false;
 
-    // Compare AST components
     if (!self.maybeNodesEql(left.ast.type_node, right.ast.type_node)) return false;
     if (!self.maybeNodesEql(left.ast.align_node, right.ast.align_node)) return false;
     if (!self.maybeNodesEql(left.ast.section_node, right.ast.section_node)) return false;
     if (!self.maybeNodesEql(left.ast.addrspace_node, right.ast.addrspace_node)) return false;
 
-    // Compare init node
     if (!self.maybeNodesEql(left.ast.init_node, right.ast.init_node)) return false;
 
     return true;
 }
 
-/// Compare two nodes by checking that their left/right subtrees are equal.
-///
-/// `a.lhs == b.lhs and a.rhs == b.rhs`
+/// Compare two binary operator nodes by checking lhs and rhs.
 fn binExprEql(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
-    const datas = self.nodeData();
-    const left = datas[a];
-    const right = datas[b];
-    return self.eqlInner(left.lhs, right.lhs) and
-        self.eqlInner(left.rhs, right.rhs);
+    const left_lhs, const left_rhs = self.ast.nodeData(a).node_and_node;
+    const right_lhs, const right_rhs = self.ast.nodeData(b).node_and_node;
+    return self.eqlInner(left_lhs, right_lhs) and
+        self.eqlInner(left_rhs, right_rhs);
 }
 
-/// Compare two nodes with left/right subtrees, where `a` and `b` are reflexive.
-///
-/// This fn returns true when
-/// - `a.left == b.left` and `a.right == b.right`
-/// - `a.left == b.right` and `a.right == b.left`
+/// Compare two binary operator nodes where `a` and `b` are reflexive
+/// (commutative). Returns true when either ordering matches.
 fn binExprEqlReflexive(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
-    const datas = self.nodeData();
-    if (self.eqlInner(datas[a].lhs, datas[b].lhs)) {
-        return self.eqlInner(datas[a].rhs, datas[b].rhs);
+    const a_lhs, const a_rhs = self.ast.nodeData(a).node_and_node;
+    const b_lhs, const b_rhs = self.ast.nodeData(b).node_and_node;
+    if (self.eqlInner(a_lhs, b_lhs)) {
+        return self.eqlInner(a_rhs, b_rhs);
     }
-    if (self.eqlInner(datas[a].lhs, datas[b].rhs)) {
-        return self.eqlInner(datas[a].rhs, datas[b].lhs);
+    if (self.eqlInner(a_lhs, b_rhs)) {
+        return self.eqlInner(a_rhs, b_lhs);
     }
     return false;
 }
@@ -188,20 +184,19 @@ fn areAllEql(self: *const AstComparator, a: []const Node.Index, b: []const Node.
 /// compares nodes that only have main tokens via string equality on their
 /// token's slices
 fn mainTokensEql(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
-    const toks = self.mainTokens();
-    return self.tokensEql(toks[a], toks[b]);
+    return self.tokensEql(self.ast.nodeMainToken(a), self.ast.nodeMainToken(b));
 }
 
 fn maybeTokensEql(self: *const AstComparator, a: ?TokenIndex, b: ?TokenIndex) bool {
-    // one is null but the other isn't
     if ((a == null) != (b == null)) return false;
     return if (a) |x| self.tokensEql(x, b.?) else true;
 }
 
-fn maybeNodesEql(self: *const AstComparator, a: ?Node.Index, b: ?Node.Index) bool {
-    // one is null but the other isn't
-    if ((a == null) != (b == null)) return false;
-    return if (a) |x| self.eqlInner(x, b.?) else true;
+fn maybeNodesEql(self: *const AstComparator, a: Node.OptionalIndex, b: Node.OptionalIndex) bool {
+    const ua = a.unwrap();
+    const ub = b.unwrap();
+    if ((ua == null) != (ub == null)) return false;
+    return if (ua) |x| self.eqlInner(x, ub.?) else true;
 }
 
 fn tokensEql(self: *const AstComparator, a: Ast.TokenIndex, b: Ast.TokenIndex) bool {
@@ -211,22 +206,25 @@ fn tokensEql(self: *const AstComparator, a: Ast.TokenIndex, b: Ast.TokenIndex) b
     return mem.eql(u8, left, right);
 }
 
-fn innerEql(self: *const AstComparator, a: Node.Index, b: Node.Index, comptime loc: enum { lhs, rhs }) bool {
-    const datas = self.nodeData();
-    return switch (loc) {
-        .lhs => self.eqlInner(datas[a].lhs, datas[b].lhs),
-        .rhs => self.eqlInner(datas[a].rhs, datas[b].rhs),
-    };
+/// Compare two nodes that store a single `.node` data variant.
+fn eqlNode(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
+    return self.eqlInner(self.ast.nodeData(a).node, self.ast.nodeData(b).node);
 }
 
-inline fn nodeTags(self: *const AstComparator) []const Node.Tag {
-    return self.ast.nodes.items(.tag);
+/// Compare two nodes that store an `.opt_node` data variant.
+fn eqlOptNode(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
+    const a_inner = self.ast.nodeData(a).opt_node.unwrap();
+    const b_inner = self.ast.nodeData(b).opt_node.unwrap();
+    if ((a_inner == null) != (b_inner == null)) return false;
+    return if (a_inner) |x| self.eqlInner(x, b_inner.?) else true;
 }
-inline fn nodeData(self: *const AstComparator) []const Node.Data {
-    return self.ast.nodes.items(.data);
-}
-inline fn mainTokens(self: *const AstComparator) []const Ast.TokenIndex {
-    return self.ast.nodes.items(.main_token);
+
+/// Compare two nodes that store a `.node_and_token` data variant,
+/// comparing only the node part (index 0).
+fn eqlNodeAndToken(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
+    const a_node, _ = self.ast.nodeData(a).node_and_token;
+    const b_node, _ = self.ast.nodeData(b).node_and_token;
+    return self.eqlInner(a_node, b_node);
 }
 
 const std = @import("std");
