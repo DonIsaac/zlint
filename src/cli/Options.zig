@@ -191,6 +191,7 @@ test parse {
         try t.expectEqual(expected.verbose, opts.verbose);
         try t.expectEqual(expected.print_ast, opts.print_ast);
         try t.expectEqual(expected.args.items.len, opts.args.items.len);
+        try t.expectEqual(expected.format, opts.format);
         for (0..expected.args.items.len) |i| {
             try t.expectEqualStrings(
                 expected.args.items[i],
