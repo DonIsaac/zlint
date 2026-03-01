@@ -1608,55 +1608,6 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
     }
 }
 
-const ReferenceStack = struct {
-    frames: std.ArrayListUnmanaged(ReferenceIdList) = .{},
-
-    const ReferenceIdList = std.ArrayListUnmanaged(Reference.Id);
-
-    fn init(alloc: Allocator) Allocator.Error!ReferenceStack {
-        var self: ReferenceStack = .{};
-        try self.frames.ensureTotalCapacity(alloc, 16);
-
-        return self;
-    }
-
-    /// current frame
-    pub fn curr(self: *ReferenceStack) *ReferenceIdList {
-        assert(self.len() > 0);
-        return &self.frames.items[self.len() - 1];
-    }
-
-    /// parent frame. `null` when currently in root scope.
-    pub fn parent(self: *ReferenceStack) ?*ReferenceIdList {
-        return if (self.len() <= 1) null else &self.frames.items[self.len() - 2];
-    }
-
-    /// current number of frames
-    inline fn len(self: ReferenceStack) usize {
-        return self.frames.items.len;
-    }
-
-    fn enter(self: *ReferenceStack, alloc: Allocator) Allocator.Error!void {
-        try self.frames.append(alloc, .{});
-    }
-    fn exit(self: *ReferenceStack, alloc: Allocator) void {
-        var frame = self.frames.pop();
-        frame.deinit(alloc);
-    }
-
-    /// Add an unresolved reference to the current frame
-    fn append(self: *ReferenceStack, alloc: Allocator, ref: Reference.Id) Allocator.Error!void {
-        try self.curr().append(alloc, ref);
-    }
-
-    fn deinit(self: *ReferenceStack, alloc: Allocator) void {
-        for (0..self.frames.items.len) |i| {
-            self.frames.items[i].deinit(alloc);
-        }
-        self.frames.deinit(alloc);
-    }
-};
-
 // =========================================================================
 // ================================ MODULES ================================
 // =========================================================================
@@ -1904,6 +1855,7 @@ const Scope = Semantic.Scope;
 const Symbol = Semantic.Symbol;
 const NodeLinks = Semantic.NodeLinks;
 const Reference = Semantic.Reference;
+const ReferenceStack = @import("ReferenceStack.zig");
 const ModuleRecord = Semantic.ModuleRecord;
 
 const std = @import("std");
