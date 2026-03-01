@@ -14,7 +14,7 @@ quiet: bool = false,
 /// This is primarily for debugging purposes.
 print_ast: bool = false,
 /// How diagnostics are formatted.
-format: formatter.Kind = .graphical,
+format: formatter.Kind = .ascii,
 /// Print a summary about # of warnings and errors. Only applies for some formats.
 summary: bool = true,
 /// Instead of walking directories in cwd, read names of files to lint from stdin.
@@ -32,7 +32,7 @@ pub const usage =
 ;
 const help =
     \\--print-ast <file>  Parse a file and print its AST as JSON
-    \\-f, --format <fmt>  Choose an output format (default, graphical, json, github, gh)
+    \\-f, --format <fmt>  Choose an output format (ascii, unicode, github, json)
     \\--no-summary        Do not print a summary after linting
     \\-S, --stdin         Lint filepaths received from stdin (newline separated)
     \\--fix               Apply automatic fixes where possible
@@ -94,7 +94,7 @@ fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options 
                 }
                 return error.InvalidArg;
             };
-            opts.format = formatter.Kind.fromString(fmt) orelse {
+            opts.format = std.meta.stringToEnum(formatter.Kind, fmt) orelse {
                 if (err) |e| {
                     e.* = Error.fmt(alloc, "Invalid format name: {s}. Valid names are {s}.", .{ arg, FORMAT_NAMES }) catch @panic("OOM");
                 }
@@ -136,7 +136,7 @@ inline fn eq(arg: anytype, name: @TypeOf(arg)) bool {
     return std.mem.eql(u8, arg, name);
 }
 // TODO: comptime string concat on format names
-const FORMAT_NAMES: []const u8 = "default, graphical, github, gh";
+const FORMAT_NAMES: []const u8 = "ascii, unicode, github, json";
 
 const Options = @This();
 const std = @import("std");
