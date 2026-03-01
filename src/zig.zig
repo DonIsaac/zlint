@@ -1,6 +1,11 @@
 // NOTE:
 // This is a copy/paste of pieces from `std.zig` from v0.14.1
 // MIT license. See `src/zig/0.14.1/LICENSE` for details.
+
+const FeatureFlags = @import("util").FeatureFlags;
+
+pub const current = if (FeatureFlags.experimental_15_ast) @"0.15.2" else @"0.14.1";
+
 pub const @"0.14.1" = struct {
     pub const Ast = @import("zig/0.14.1/Ast.zig");
     pub const Parse = @import("zig/0.14.1/Parse.zig");
@@ -40,4 +45,17 @@ pub const @"0.14.1" = struct {
             },
         };
     }
+};
+
+pub const @"0.15.2" = struct {
+    const std = @import("std");
+    pub const Ast = std.zig.Ast;
+    pub const Parse = @compileError("not publicly accessible");
+    pub const Token = std.zig.Token;
+    pub const Tokenizer = std.zig.Tokenizer;
+    pub const primitives = std.zig.primitives;
+    pub const string_literal = std.zig.string_literal;
+
+    pub const stringEscape = std.zig.stringEscape;
+    pub const fmtEscapes = @compileError("does not exist in v0.15.2");
 };

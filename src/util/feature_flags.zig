@@ -3,6 +3,11 @@
 //!
 //! All flags are comptime-known. This may change in the future.
 
+const config = @import("config");
+
+/// Use Zig v0.15.x AST instead of v0.14.1 AST. Under development.
+pub const experimental_15_ast: bool = config.experimental_15_ast;
+
 /// Enable language server features.
 ///
 /// Not yet implemented.

@@ -42,6 +42,7 @@ pub fn build(b: *std.Build) void {
         .omit_frame_pointer = if (debug_release) false else null,
         .strip = if (debug_release) false else null,
     });
+    l.modules.get("util").?.addImport("config", l.modules.get("config").?);
 
     // artifacts
     const zlint = b.createModule(.{
@@ -119,6 +120,7 @@ pub fn build(b: *std.Build) void {
         .error_tracing = if (debug_release) true else null,
         .strip = if (debug_release) false else null,
     });
+    test_utils_mod.addImport("config", l.modules.get("config").?);
     const test_utils = b.addTest(.{
         .name = "test-utils",
         .root_module = test_utils_mod,
@@ -230,6 +232,11 @@ const Linker = struct {
     fn init(b: *Build) Linker {
         var opts = b.addOptions();
         opts.addOption([]const u8, "version", b.option([]const u8, "version", "ZLint version") orelse "v0.0.0");
+        opts.addOption(
+            bool,
+            "experimental_15_ast",
+            b.option(bool, "experimental-v15-ast", "Use the v0.15.0 AST (experimental)") orelse false,
+        );
         var linker = Linker{
             .b = b,
             .options = opts,
