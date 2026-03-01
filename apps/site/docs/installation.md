@@ -4,22 +4,17 @@ sidebar_position: 1
 
 # Installation
 
-The fastest way to install ZLint is with our [installation script](https://github.com/donisaac/zlint/blob/main/tasks/install.sh).
+The fastest way to install ZLint is with our installation scripts for [Linux/macOS](https://github.com/donisaac/zlint/blob/main/tasks/install.sh) and [Windows](https://github.com/donisaac/zlint/blob/main/tasks/install.ps1).
 
+## Linux/macOS
 ```sh
 curl -fsSL https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/tasks/install.sh | bash
 ```
 
-:::warning
-This installation script does not work on Windows. Please download Windows
-binaries directly from the
-[releases page](https://github.com/DonIsaac/zlint/releases/latest).
-:::
-
-:::info[Want to contribute?]
-If you're good at PowerShell and want to contribute, there is an open issue
-for [adding a PowerShell installation script](https://github.com/DonIsaac/zlint/issues/221)
-:::
+## Windows
+```ps1
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/tasks/install.ps1" | Invoke-Expression
+```
 
 ## Manual Installation
 

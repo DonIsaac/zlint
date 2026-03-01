@@ -23,13 +23,15 @@ An opinionated linter for the Zig programming language.
 Pre-built binaries for Windows, MacOS, and Linux on x64 and aarch64 are
 available [for each release](https://github.com/DonIsaac/zlint/releases/latest).
 
+### Linux/macOS
 ```sh
 curl -fsSL https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/tasks/install.sh | bash
 ```
 
-> [!WARNING]
-> This installation script does not work on Windows. Please download Windows
-> binaries directly from the releases page.
+### Windows
+```ps1
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/tasks/install.ps1" | Invoke-Expression
+```
 
 ### 🔨 Building from Source
 
