@@ -1,6 +1,7 @@
-Passed: 99.42197% (516/519)
-Panics: 0% (0/519)
+Passed: 99.36508% (626/630)
+Panics: 0% (0/630)
 
 src/cli/list_themes.zig: error.FullMismatch
+src/font/face.zig: error.FullMismatch
 src/terminal/PageList.zig: error.FullMismatch
 src/terminal/Parser.zig: error.FullMismatch
