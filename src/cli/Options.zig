@@ -162,10 +162,14 @@ test parse {
 
     const test_cases = [_]Case{
         .{ "", .{} },
-        .{ "zlint", .{} },
+        .{ "zlint", .{ .format = formatter.Kind.ascii } },
         .{ "zlint --", .{} },
         .{ "zlint --print-ast", .{ .print_ast = true } },
         .{ "zlint --fix", .{ .fix = true } },
+        .{ "zlint --format ascii", .{ .format = formatter.Kind.ascii } },
+        .{ "zlint --format unicode", .{ .format = formatter.Kind.unicode } },
+        .{ "zlint --format github", .{ .format = formatter.Kind.github } },
+        .{ "zlint --format json", .{ .format = formatter.Kind.json } },
         .{ "zlint --no-summary", .{ .summary = false } },
         .{ "zlint --verbose", .{ .verbose = true } },
         .{ "zlint -V", .{ .verbose = true } },
