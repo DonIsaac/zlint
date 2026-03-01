@@ -1,8 +1,8 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const zig = @import("../zig.zig").@"0.14.1";
+const Semantic = @import("../Semantic.zig");
 
-const Ast = zig.Ast;
+const Ast = Semantic.Ast;
 const Node = Ast.Node;
 
 const Walker = @import("./walk.zig").Walker;
@@ -43,7 +43,7 @@ const XVisitor = struct {
     pub const Error = anyerror;
 
     pub fn visitVarDecl(this: *XVisitor, var_decl: Node.Index, _: *const Ast.full.VarDecl) Error!WalkState {
-        const ident = this.ast.nodes.items(.main_token)[var_decl] + 1;
+        const ident = this.ast.nodeMainToken(var_decl) + 1;
         try t.expectEqual(.identifier, this.ast.tokens.items(.tag)[ident]);
         const name = this.ast.tokenSlice(ident);
         if (std.mem.eql(u8, name, "x")) {
@@ -139,14 +139,14 @@ const CountVisitor = struct {
     nodes_visited: u32 = 0,
     depth: u32 = 0,
     kinds_seen: std.AutoHashMapUnmanaged(Node.Tag, u32) = .{},
-    tags: []const Node.Tag,
+    ast: *const Ast,
     allocator: Allocator = t.allocator,
 
     pub const Error = Allocator.Error;
     pub fn enterNode(self: *CountVisitor, node: Node.Index) Error!void {
         self.depth += 1;
         self.nodes_visited += 1;
-        const tag = self.tags[node];
+        const tag = self.ast.nodeTag(node);
         const existing = self.kinds_seen.get(tag) orelse 0;
         try self.kinds_seen.put(self.allocator, tag, existing + 1);
     }
@@ -165,7 +165,7 @@ fn testNodeCount(src: [:0]const u8, expected: u32, expected_tag_counts: anytype)
 
     var ast = try Ast.parse(allocator, src, .zig);
     defer ast.deinit(allocator);
-    var visitor: CountVisitor = .{ .tags = ast.nodes.items(.tag) };
+    var visitor: CountVisitor = .{ .ast = &ast };
     defer visitor.deinit();
     var walker = try Walker(CountVisitor, CountVisitor.Error).init(std.testing.allocator, &ast, &visitor);
     defer walker.deinit();

@@ -53,9 +53,8 @@ const Semantic = @import("../../Semantic.zig");
 const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 const ast_utils = @import("../ast_utils.zig");
-const zig = @import("../../zig.zig").@"0.14.1";
 
-const Ast = zig.Ast;
+const Ast = Semantic.Ast;
 const Node = Ast.Node;
 const Scope = Semantic.Scope;
 const LinterContext = @import("../lint_context.zig");
@@ -107,11 +106,10 @@ const allocator_names = std.StaticStringMap(void).initComptime(&[_]struct { []co
 });
 
 pub fn runOnNode(self: *const AllocatorFirstParam, wrapper: NodeWrapper, ctx: *LinterContext) void {
-    const node = wrapper.node;
     const node_id = wrapper.idx;
     const ast = ctx.ast();
 
-    const fn_proto: Ast.full.FnProto = switch (node.tag) {
+    const fn_proto: Ast.full.FnProto = switch (ast.nodeTag(node_id)) {
         // note: we ignore .fn_proto_simple and .fn_proto_one b/c they take a 0
         // or 1 parameter(s), which can never be a violation
         .fn_proto => ast.fnProto(node_id),
@@ -132,7 +130,7 @@ pub fn runOnNode(self: *const AllocatorFirstParam, wrapper: NodeWrapper, ctx: *L
         }
 
         const name_token = param.name_token orelse continue;
-        const type_expr = param.type_expr;
+        const type_expr = param.type_expr orelse continue;
         const name = ctx.semantic.tokenSlice(name_token);
 
         // look for a self parameter
@@ -145,12 +143,11 @@ pub fn runOnNode(self: *const AllocatorFirstParam, wrapper: NodeWrapper, ctx: *L
 
                 // `?*@This()` -> `@This()`
                 const ty = ast_utils.getInnerType(ast, type_expr);
-                const tag: Node.Tag = ast.nodes.items(.tag)[ty];
-                switch (tag) {
+                switch (ast.nodeTag(ty)) {
                     // check for `@This()`. we can ignore .builtin_call b/c
                     // @This() will never have >2 parameters
                     .builtin_call_two, .builtin_call_two_comma => {
-                        const builtin_name = ctx.semantic.tokenSlice(ast.nodes.items(.main_token)[ty]);
+                        const builtin_name = ctx.semantic.tokenSlice(ast.nodeMainToken(ty));
                         if (std.mem.eql(u8, builtin_name, "@This")) {
                             self_pos = i;
                             continue;
@@ -158,7 +155,7 @@ pub fn runOnNode(self: *const AllocatorFirstParam, wrapper: NodeWrapper, ctx: *L
                     },
                     .identifier => {
                         // name of referenced type
-                        const type_name = ctx.semantic.tokenSlice(ast.nodes.items(.main_token)[ty]);
+                        const type_name = ctx.semantic.tokenSlice(ast.nodeMainToken(ty));
                         // assume struct names start with uppercase letters
                         if (std.ascii.isLower(type_name[0])) break :check_self;
                         const scope: Scope.Id = ctx.links().getScope(ty) orelse break :check_self;
@@ -185,7 +182,7 @@ pub fn runOnNode(self: *const AllocatorFirstParam, wrapper: NodeWrapper, ctx: *L
                 allocator_pos = i;
                 alloc_name_token = name_token;
             } else {
-                const right_ident = ast_utils.getRightmostIdentifier(ctx, param.type_expr) orelse continue;
+                const right_ident = ast_utils.getRightmostIdentifier(ctx, type_expr) orelse continue;
                 if (std.mem.endsWith(u8, right_ident, "Allocator")) {
                     allocator_pos = i;
                     alloc_name_token = name_token;

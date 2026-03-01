@@ -13,7 +13,6 @@ pub fn build(b: *std.Build) void {
     // cli options
     const single_threaded = b.option(bool, "single-threaded", "Build a single-threaded executable");
     const debug_release = b.option(bool, "debug-release", "Build with debug info in release mode") orelse false;
-    // const version = b.option([]const u8, "version", "ZLint version") orelse "0.0.0";
 
     var l = Linker.init(b);
     defer l.deinit();
@@ -23,7 +22,6 @@ pub fn build(b: *std.Build) void {
 
     // dependencies
     l.dependency("chameleon", .{});
-    // l.dependency("smart-pointers", .{});
     {
         const dep = l.b.dependency("smart_pointers", .{});
         l.dependencies.put(b.allocator, "smart-pointers", dep) catch @panic("OOM");
@@ -232,11 +230,6 @@ const Linker = struct {
     fn init(b: *Build) Linker {
         var opts = b.addOptions();
         opts.addOption([]const u8, "version", b.option([]const u8, "version", "ZLint version") orelse "v0.0.0");
-        opts.addOption(
-            bool,
-            "experimental_15_ast",
-            b.option(bool, "experimental-v15-ast", "Use the v0.15.0 AST (experimental)") orelse false,
-        );
         var linker = Linker{
             .b = b,
             .options = opts,

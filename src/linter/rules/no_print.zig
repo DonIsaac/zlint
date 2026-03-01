@@ -67,9 +67,8 @@ const ast_utils = @import("../ast_utils.zig");
 const _source = @import("../../source.zig");
 const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
-const zig = @import("../../zig.zig").@"0.14.1";
 
-const Loc = zig.Token.Loc;
+const Loc = Semantic.Token.Loc;
 const Span = _span.Span;
 const LabeledSpan = _span.LabeledSpan;
 const LinterContext = @import("../lint_context.zig");
@@ -108,6 +107,7 @@ fn noPrintDiagnostic(ctx: *LinterContext, span: Span) Error {
 }
 
 pub fn runOnNode(self: *const NoPrint, wrapper: NodeWrapper, ctx: *LinterContext) void {
+    const ast = ctx.ast();
     const node = wrapper.node;
 
     switch (node.tag) {
@@ -115,7 +115,6 @@ pub fn runOnNode(self: *const NoPrint, wrapper: NodeWrapper, ctx: *LinterContext
         else => return,
     }
     if (self.allow_tests) {
-        // check if we're inside a test block
         if (ast_utils.isInTest(ctx, wrapper.idx)) {
             return;
         }
@@ -125,26 +124,22 @@ pub fn runOnNode(self: *const NoPrint, wrapper: NodeWrapper, ctx: *LinterContext
             }
         }
     }
-    const nodes = ctx.ast().nodes;
-    const tags: []const Node.Tag = nodes.items(.tag);
 
-    const callee = node.data.lhs;
-    // SAFETY: initialized below. if not found, or identifier is not "print",
-    // rule returns before this is used.
+    // .call/.call_comma data is .node_and_extra: [0]=callee
+    const callee = node.data.node_and_extra[0];
     var print_span: Span = undefined;
 
-    switch (tags[callee]) {
+    switch (ast.nodeTag(callee)) {
         // look for `print(msg, args);`
         .identifier => {
-            const ident_tok: TokenIndex = nodes.items(.main_token)[callee];
-            std.debug.assert(ctx.ast().tokens.items(.tag)[ident_tok] == .identifier);
+            const ident_tok: TokenIndex = ast.nodeMainToken(callee);
+            std.debug.assert(ast.tokens.items(.tag)[ident_tok] == .identifier);
             const ident_span = ctx.semantic.tokenSpan(ident_tok);
 
             if (!eql(u8, "print", ident_span.snippet(ctx.source.text()))) {
                 return;
             }
 
-            // this may be a call to a locally-defined, custom print function
             check_local_print: {
                 const decl = ctx.semantic.resolveBinding(
                     ctx.links().getScope(callee) orelse break :check_local_print,
@@ -153,33 +148,26 @@ pub fn runOnNode(self: *const NoPrint, wrapper: NodeWrapper, ctx: *LinterContext
                 );
                 if (decl != null) return;
             }
-            // FIXME: references do fns do not appear to be working
-            // if (ctx.links().references.get(callee)) |symbol_id| {
-            //     // is this a call to a custom print function?
-            //     const flags: Symbol.Flags = ctx.symbols().symbols.items(.flags)[symbol_id.int()];
-            //     if (flags.s_fn) {
-            //         return;
-            //     }
-            // }
 
             print_span = ident_span;
         },
         // look for `std.debug.print(msg, args);`
         .field_access => {
-            const field_access: Node.Data = nodes.items(.data)[callee];
+            // .field_access data is .node_and_token: [0]=object, [1]=field_token
+            const fa_data = ast.nodeData(callee).node_and_token;
 
-            const ident_tok: TokenIndex = field_access.rhs;
-            std.debug.assert(ctx.ast().tokens.items(.tag)[ident_tok] == .identifier);
+            const ident_tok: TokenIndex = fa_data[1];
+            std.debug.assert(ast.tokens.items(.tag)[ident_tok] == .identifier);
             const field_span = ctx.semantic.tokenSpan(ident_tok);
             if (!eql(u8, "print", field_span.snippet(ctx.source.text()))) {
                 return;
             }
 
-            const maybe_debug: []const u8 = ast_utils.getRightmostIdentifier(ctx, field_access.lhs) orelse {
-                return; // not a field access with an identifier
+            const maybe_debug: []const u8 = ast_utils.getRightmostIdentifier(ctx, fa_data[0]) orelse {
+                return;
             };
             if (!eql(u8, "debug", maybe_debug)) {
-                return; // not `debug.print()`, probably `writer.print()` (which is fine)
+                return;
             }
 
             print_span = field_span;

@@ -1,6 +1,8 @@
 const std = @import("std");
 const util = @import("util");
-const zig = @import("zig.zig").current;
+const Semantic = @import("Semantic.zig");
+const Ast = Semantic.Ast;
+const Token = Semantic.Token;
 
 const assert = std.debug.assert;
 
@@ -62,8 +64,8 @@ pub const Span = struct {
         return switch (@TypeOf(value)) {
             Span => value, // base case
             LabeledSpan => value.span,
-            zig.Ast.Span => .{ .start = value.start, .end = value.end },
-            zig.Token.Loc => .{ .start = @intCast(value.start), .end = @intCast(value.end) },
+            Ast.Span => .{ .start = value.start, .end = value.end },
+            Token.Loc => .{ .start = @intCast(value.start), .end = @intCast(value.end) },
             [2]u32 => .{ .start = value[0], .end = value[1] },
             else => |T| {
                 const info = @typeInfo(T);
@@ -154,8 +156,8 @@ pub const LabeledSpan = struct {
         return switch (@TypeOf(value)) {
             LabeledSpan => value, // base case
             Span => .{ .span = value },
-            zig.Ast.Span => .{ .span = Span.from(value) },
-            zig.Token.Loc => .{ .span = Span.from(value) },
+            Ast.Span => .{ .span = Span.from(value) },
+            Token.Loc => .{ .span = Span.from(value) },
             [2]u32 => .{ .span = Span.from(value) },
             else => |T| {
                 const info = @typeInfo(T);

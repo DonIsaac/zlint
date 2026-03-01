@@ -54,8 +54,7 @@ const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 const walk = @import("../../visit/walk.zig");
 
-const zig = @import("../../zig.zig").@"0.14.1";
-const Ast = zig.Ast;
+const Ast = Semantic.Ast;
 const Node = Ast.Node;
 const Scope = Semantic.Scope;
 const Span = _span.Span;
@@ -65,7 +64,6 @@ const Rule = _rule.Rule;
 const NodeWrapper = _rule.NodeWrapper;
 
 const Error = @import("../../Error.zig");
-const NULL_NODE = Semantic.NULL_NODE;
 
 // Rule metadata
 const ReturnedStackReference = @This();
@@ -102,11 +100,9 @@ fn stackRefDiagnostic(
 
 pub fn runOnNode(_: *const ReturnedStackReference, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const node = wrapper.node;
-    const ast = ctx.ast();
     if (node.tag != .fn_decl) return;
-    const func_body = node.data.rhs;
-    const func_proto = node.data.lhs;
-    util.assertUnsafe(func_body != NULL_NODE and func_proto != NULL_NODE);
+    const func_proto, const func_body = wrapper.node.data.node_and_node;
+    const ast = ctx.ast();
 
     // note: we could pass the fn decl here, but since we know its an fn_decl
     // node, we can save a level of indirection by just passing the fn_proto
@@ -118,28 +114,22 @@ pub fn runOnNode(_: *const ReturnedStackReference, wrapper: NodeWrapper, ctx: *L
     // with pointer fields.
     // todo: handle complex return types, e.g. `foo() if (comptime_cond) *u32 else void`
     do_we_care: {
-        var curr = func.ast.return_type;
-        const tags: []const Node.Tag = ast.nodes.items(.tag);
-        const datas: []const Node.Data = ast.nodes.items(.data);
+        var curr = func.ast.return_type.unwrap() orelse return;
         while (true) {
-            switch (tags[curr]) {
+            switch (ast.nodeTag(curr)) {
                 Node.Tag.ptr_type,
                 Node.Tag.ptr_type_aligned,
                 Node.Tag.ptr_type_sentinel,
                 Node.Tag.ptr_type_bit_range,
                 => break :do_we_care,
                 .optional_type => {
-                    // ?lhs
-                    curr = datas[curr].lhs;
+                    curr = ast.nodeData(curr).node;
                 },
                 .error_union => {
-                    // lhs!rhs
-                    curr = datas[curr].rhs;
+                    curr = ast.nodeData(curr).node_and_node[1];
                 },
                 .identifier => {
-                    // Assume capitalized types are containers. these _could_
-                    // contain pointers, so we need to check them.
-                    const name = ctx.semantic.tokenSlice(ast.nodes.items(.main_token)[curr]);
+                    const name = ctx.semantic.tokenSlice(ast.nodeMainToken(curr));
                     if (name.len > 0 and std.ascii.isUpper(name[0])) {
                         break :do_we_care;
                     } else {
@@ -177,8 +167,7 @@ const StackReferenceVisitor = struct {
     /// Scope created by the body of the visited function.
     fn_body_scope: Scope.Id,
     ctx: *LinterContext,
-    tags: []const Node.Tag,
-    data: []const Node.Data,
+    ast: *const Ast,
 
     // state
     /// How many `return` statements have been seen above the currently-visited node.
@@ -190,13 +179,11 @@ const StackReferenceVisitor = struct {
         ctx: *LinterContext,
         fn_body_scope: Scope.Id,
     ) StackReferenceVisitor {
-        const nodes = ctx.ast().nodes;
         return .{
             .ctx = ctx,
             .return_depth = 0,
             .call_depth = 0,
-            .tags = nodes.items(.tag),
-            .data = nodes.items(.data),
+            .ast = ctx.ast(),
             .fn_body_scope = fn_body_scope,
         };
     }
@@ -204,8 +191,7 @@ const StackReferenceVisitor = struct {
     pub const Err = error{};
 
     pub fn enterNode(self: *StackReferenceVisitor, node: Node.Index) Err!void {
-        const tag = self.tags[node];
-        switch (tag) {
+        switch (self.ast.nodeTag(node)) {
             .@"return" => self.return_depth += 1,
             .call, .call_comma, .call_one, .call_one_comma => self.call_depth += 1,
             .slice, .slice_open, .slice_sentinel => {
@@ -216,8 +202,7 @@ const StackReferenceVisitor = struct {
     }
 
     pub fn exitNode(self: *StackReferenceVisitor, node: Node.Index) void {
-        const tag = self.tags[node];
-        switch (tag) {
+        switch (self.ast.nodeTag(node)) {
             .@"return" => self.return_depth -= 1,
             .call, .call_comma, .call_one, .call_one_comma => self.call_depth -= 1,
             else => {},
@@ -227,8 +212,8 @@ const StackReferenceVisitor = struct {
     pub fn visit_address_of(self: *StackReferenceVisitor, node: Node.Index) Err!walk.WalkState {
         if (self.return_depth == 0 or self.call_depth > 0) return .Continue;
 
-        const deref_target = self.data[node].lhs;
-        if (self.tags[deref_target] == .identifier) {
+        const deref_target = self.ast.nodeData(node).node;
+        if (self.ast.nodeTag(deref_target) == .identifier) {
             const info = self.isDeclaredLocally(deref_target);
             if (info.is_local) {
                 self.ctx.report(stackRefDiagnostic(self.ctx, node, info.decl_loc, false));
@@ -268,7 +253,7 @@ const StackReferenceVisitor = struct {
     ) IsLocal {
         const sema = self.ctx.semantic;
         std.debug.assert(node != Semantic.NULL_NODE);
-        if (self.tags[node] != .identifier) return .no;
+        if (self.ast.nodeTag(node) != .identifier) return .no;
 
         const symbols = sema.symbols.symbols.slice();
         const scopes: []const Scope.Id = symbols.items(.scope);
@@ -287,10 +272,11 @@ const StackReferenceVisitor = struct {
         const decl_node: Node.Index = sema.symbols.symbols.items(.decl)[symbol_id.into(usize)];
 
         // check for allowed cases
-        switch (self.tags[decl_node]) {
+        switch (self.ast.nodeTag(decl_node)) {
             .local_var_decl, .simple_var_decl, .aligned_var_decl => {
-                const var_init = self.data[decl_node].rhs;
-                switch (self.tags[var_init]) {
+                const var_decl = self.ast.fullVarDecl(decl_node) orelse unreachable;
+                const var_init = var_decl.ast.init_node.unwrap() orelse return .no;
+                switch (self.ast.nodeTag(var_init)) {
                     // references to comptime variables are ok
                     //
                     //   const x: u32 = comptime blk: { break :blk 1; };

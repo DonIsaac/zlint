@@ -1,4 +1,4 @@
-Passed: 94.14262% (1109/1178)
+Passed: 94.651955% (1115/1178)
 Panics: 0% (0/1178)
 
 src/allocators/BufferFallbackAllocator.zig: error.AnalysisFailed
@@ -9,7 +9,6 @@ src/bun.js/api/BunObject.zig: error.FullMismatch
 src/bun.js/api/MarkdownObject.zig: error.AnalysisFailed
 src/bun.js/api/bun/socket.zig: error.AnalysisFailed
 src/bun.js/api/server/ServerWebSocket.zig: error.AnalysisFailed
-src/bun.js/node/node_fs.zig: error.AnalysisFailed
 src/bun.js/node/node_fs_stat_watcher.zig: error.AnalysisFailed
 src/bun.js/node/util/parse_args.zig: error.FullMismatch
 src/bun.js/rare_data.zig: error.AnalysisFailed
@@ -33,8 +32,6 @@ src/collections/multi_array_list.zig: error.AnalysisFailed
 src/css/css_parser.zig: error.FullMismatch
 src/css/small_list.zig: error.FullMismatch
 src/css/values/number.zig: error.FullMismatch
-src/deps/libuv.zig: error.AnalysisFailed
-src/fmt.zig: error.AnalysisFailed
 src/fs.zig: error.AnalysisFailed
 src/http/websocket_client/WebSocketProxy.zig: error.AnalysisFailed
 src/http/websocket_client/WebSocketProxyTunnel.zig: error.AnalysisFailed
@@ -59,9 +56,6 @@ src/shell/ParsedShellScript.zig: error.AnalysisFailed
 src/shell/builtin/ls.zig: error.AnalysisFailed
 src/shell/interpreter.zig: error.AnalysisFailed
 src/shell/shell.zig: error.AnalysisFailed
-src/shell/states/Async.zig: error.AnalysisFailed
-src/shell/states/Binary.zig: error.AnalysisFailed
-src/shell/states/Stmt.zig: error.AnalysisFailed
 src/sql/mysql/MySQLConnection.zig: error.AnalysisFailed
 src/sql/mysql/MySQLQuery.zig: error.AnalysisFailed
 src/sql/mysql/MySQLRequestQueue.zig: error.AnalysisFailed

@@ -138,8 +138,8 @@ const mem = std.mem;
 const ascii = std.ascii;
 const Semantic = @import("../../Semantic.zig");
 const Symbol = Semantic.Symbol;
-const zig = @import("../../zig.zig").@"0.14.1";
-const Ast = zig.Ast;
+
+const Ast = Semantic.Ast;
 const Node = Ast.Node;
 const Token = Semantic.Token;
 const TokenIndex = Ast.TokenIndex;
@@ -186,15 +186,14 @@ const destructor_names = StringSet.initComptime([_]struct { []const u8 }{
 });
 
 pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *LinterContext) void {
-    const node = wrapper.node;
     const ast = ctx.ast();
 
-    if (node.tag != .identifier) return;
+    if (ast.nodeTag(wrapper.idx) != .identifier) return;
     const name = ast.getNodeSource(wrapper.idx);
     if (!mem.eql(u8, name, "undefined")) return;
 
-    const tok = ast.nodes.items(.main_token)[wrapper.idx];
-    if (ctx.links().symbols.get(tok)) |symbol_id| {
+    const main_token = ast.nodeMainToken(wrapper.idx);
+    if (ctx.links().symbols.get(main_token)) |symbol_id| {
         const symbols = ctx.symbols().symbols.slice();
         const id = symbol_id.into(usize);
         const flags: Symbol.Flags = symbols.items(.flags)[id];
@@ -205,10 +204,6 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
         }
     }
 
-    const node_tags: []const Node.Tag = ast.nodes.items(.tag);
-    const main_tokens: []const TokenIndex = ast.nodes.items(.main_token);
-    const datas: []const Node.Data = ast.nodes.items(.data);
-
     const do_type_check = self.allow_arrays or self.allowed_types.len > 0;
     var safety_comment_check = true; // should we look for safety comments?
     var has_safety_comment = false; //  a safety comment has been found
@@ -217,7 +212,7 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
 
     while (it.next()) |parent| {
         defer i += 1;
-        switch (node_tags[parent]) {
+        switch (ast.nodeTag(parent)) {
             // initializing arrays to undefined can be ok, e.g. when using
             // @memset.
             .global_var_decl,
@@ -230,9 +225,8 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
                     // SAFETY: tags in case guarantee that a full variable declaration
                     // is present.
                     const decl = ast.fullVarDecl(parent) orelse unreachable;
-                    const ty = decl.ast.type_node;
-                    if (ty == Semantic.NULL_NODE) break;
-                    switch (node_tags[ty]) {
+                    const ty = decl.ast.type_node.unwrap() orelse break;
+                    switch (ast.nodeTag(ty)) {
                         .array_type, .array_type_sentinel => if (self.allow_arrays) {
                             @branchHint(.likely);
                             return;
@@ -242,7 +236,7 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
                     const typename = ctx.semantic.nodeSlice(ty);
                     if (self.isIgnoredType(typename)) return;
                 }
-                if (has_safety_comment or (safety_comment_check and hasSafetyComment(ctx, main_tokens[parent]))) return;
+                if (has_safety_comment or (safety_comment_check and hasSafetyComment(ctx, ast.nodeMainToken(parent)))) return;
                 safety_comment_check = false;
             },
 
@@ -252,12 +246,12 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
             .container_field,
             => {
                 if (has_safety_comment) return;
-                const type_node = datas[parent].lhs;
-                if (type_node != Semantic.NULL_NODE) {
+                const container_field = ast.fullContainerField(parent) orelse unreachable;
+                if (container_field.ast.type_expr.unwrap()) |type_node| {
                     const typename = ctx.semantic.nodeSlice(type_node);
                     if (self.isIgnoredType(typename)) return;
                 }
-                ctx.report(undefinedDefault(ctx, node.main_token));
+                ctx.report(undefinedDefault(ctx, main_token));
                 return;
             },
 
@@ -269,7 +263,7 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
             .less_than,
             .greater_or_equal,
             .greater_than,
-            => return ctx.report(undefinedComparison(ctx, node.main_token)),
+            => return ctx.report(undefinedComparison(ctx, main_token)),
 
             // `undefined` is safe in tests
             .test_decl => return,
@@ -277,7 +271,7 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
             // short circuit. Nothing interesting is above these nodes.
             .fn_decl => {
                 // check for `foo.* = undefined` in destructors, which is fine
-                const fn_keyword = main_tokens[parent];
+                const fn_keyword = ast.nodeMainToken(parent);
                 if (comptime util.IS_DEBUG) {
                     const tok_tags: []const Token.Tag = ast.tokens.items(.tag);
                     util.assert(
@@ -301,14 +295,14 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
                 // `undefined` is ok if a `SAFETY: <reason>` comment is present before it.
                 // NOTE: we do not exit early in case there's a safety comment over
                 // an `undefined` comparison
-                if (!has_safety_comment and safety_comment_check and hasSafetyComment(ctx, main_tokens[parent])) {
+                if (!has_safety_comment and safety_comment_check and hasSafetyComment(ctx, ast.nodeMainToken(parent))) {
                     has_safety_comment = true;
                 }
             },
         }
     }
 
-    ctx.report(undefinedMissingSafetyComment(ctx, node.main_token));
+    ctx.report(undefinedMissingSafetyComment(ctx, main_token));
 }
 
 fn isIgnoredType(self: *const UnsafeUndefined, identifier: []const u8) bool {

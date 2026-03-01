@@ -18,15 +18,19 @@
             "type": "lldb",
             "request": "launch",
             "program": "./zig-out/bin/zlint",
+            "args": ["--stdin"],
             "cwd": "${workspaceRoot}",
             "preLaunchTask": "build -Dsingle-threaded",
-            "postRunCommands": ["command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
+            "postRunCommands": [
+                "settings set target.input-path diff.in",
+                "command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
         },
         {
             "name": "zlint [bun]",
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceRoot}/zig-out/bin/zlint",
+            "args": ["--stdin"],
             "cwd": "${workspaceRoot}/zig-out/repos/bun",
             "preLaunchTask": "build -Dsingle-threaded",
             "postRunCommands": ["command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
@@ -69,6 +73,15 @@
             "preLaunchTask": "build -Dsingle-threaded",
             "postRunCommands": ["command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
         },
+        {
+            "name": "docgen",
+            "type": "lldb",
+            "request": "launch",
+            "program": "./zig-out/bin/docgen",
+            "cwd": "${workspaceRoot}",
+            "preLaunchTask": "build -Dsingle-threaded",
+            "postRunCommands": ["command source '${workspaceFolder}/tasks/lldb/.lldbinit'"]
+        }
         // {
         //     "name": "zig test [file]",
         //     "type": "lldb",

@@ -62,7 +62,7 @@ fn printSymbol(self: *SemanticPrinter, symbol: *const Semantic.Symbol, symbols: 
     try p.pPropStr("name", symbol.name);
     try p.pPropStr("debugName", symbol.debug_name);
     try p.pProp("token", "{any}", if (symbol.token.unwrap()) |t| t.int() else null);
-    const decl = self.semantic.parse.ast.nodes.items(.tag)[symbol.decl];
+    const decl = self.semantic.parse.ast.nodeTag(symbol.decl);
     try p.pPropWithNamespacedValue("declNode", decl);
     try p.pProp("scope", "{d}", symbol.scope);
     {
@@ -131,7 +131,7 @@ fn printReference(self: *SemanticPrinter, ref_id: Reference.Id) !void {
     const printable = PrintableReference{
         .symbol = sid,
         .scope = ref.scope.int(),
-        .node = tags[ref.node],
+        .node = tags[@intFromEnum(ref.node)],
         .identifier = ref.identifier,
         .flags = flags.items,
     };
@@ -219,5 +219,4 @@ const Semantic = @import("../Semantic.zig");
 const Symbol = Semantic.Symbol;
 const Scope = Semantic.Scope;
 const Reference = Semantic.Reference;
-const zig = @import("../zig.zig").@"0.14.1";
-const Node = zig.Ast.Node;
+const Node = Semantic.Ast.Node;

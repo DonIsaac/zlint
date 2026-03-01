@@ -36,8 +36,7 @@ const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 const ast_utils = @import("../ast_utils.zig");
 
-const zig = @import("../../zig.zig").@"0.14.1";
-const Ast = zig.Ast;
+const Ast = Semantic.Ast;
 const Node = Ast.Node;
 const Symbol = Semantic.Symbol;
 const LinterContext = @import("../lint_context.zig");
@@ -149,7 +148,7 @@ pub fn runOnSymbol(_: *const CaseConvention, symbol: Symbol.Id, ctx: *LinterCont
     } else {
         if (case != .camelCase) {
             const ast = ctx.ast();
-            const fn_keyword_token_idx: Ast.TokenIndex = ast.nodes.items(.main_token)[id];
+            const fn_keyword_token_idx: Ast.TokenIndex = ast.nodeMainToken(decl);
             const name_token_idx = fn_keyword_token_idx + 1;
             ctx.report(functionNameDiagnostic(ctx, fn_name, case, name_token_idx));
         }
@@ -157,9 +156,10 @@ pub fn runOnSymbol(_: *const CaseConvention, symbol: Symbol.Id, ctx: *LinterCont
 }
 
 fn fnReturnsType(ctx: *LinterContext, fn_proto: *const Ast.full.FnProto) bool {
+    const return_type_node = fn_proto.ast.return_type.unwrap() orelse return false;
     const return_type = ast_utils.getRightmostIdentifier(
         ctx,
-        ast_utils.getInnerType(ctx.ast(), fn_proto.ast.return_type),
+        ast_utils.getInnerType(ctx.ast(), return_type_node),
     ) orelse {
         return false;
     };

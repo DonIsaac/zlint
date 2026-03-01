@@ -31,11 +31,12 @@ references: std.AutoHashMapUnmanaged(Ast.TokenIndex, Reference.Id) = .{},
 
 pub fn init(alloc: Allocator, ast: *const Ast) Allocator.Error!NodeLinks {
     var links: NodeLinks = .{};
+    const node_count = ast.nodes.len;
 
-    try links.parents.ensureTotalCapacityPrecise(alloc, ast.nodes.len);
-    links.parents.appendNTimesAssumeCapacity(NULL_NODE, @intCast(ast.nodes.len));
-    try links.scopes.ensureTotalCapacityPrecise(alloc, ast.nodes.len);
-    links.scopes.appendNTimesAssumeCapacity(ROOT_SCOPE_ID, ast.nodes.len);
+    try links.parents.ensureTotalCapacityPrecise(alloc, node_count);
+    links.parents.appendNTimesAssumeCapacity(NULL_NODE, node_count);
+    try links.scopes.ensureTotalCapacityPrecise(alloc, node_count);
+    links.scopes.appendNTimesAssumeCapacity(ROOT_SCOPE_ID, node_count);
 
     try links.references.ensureTotalCapacity(alloc, 16);
 
@@ -49,13 +50,14 @@ pub fn deinit(self: *NodeLinks, alloc: Allocator) void {
 }
 
 pub inline fn setScope(self: *NodeLinks, node_id: NodeIndex, scope_id: Scope.Id) void {
+    const idx = @intFromEnum(node_id);
     assert(
-        node_id < self.scopes.items.len,
+        idx < self.scopes.items.len,
         "Node id out of bounds (id {d} >= {d})",
-        .{ node_id, self.scopes.items.len },
+        .{ idx, self.scopes.items.len },
     );
 
-    self.scopes.items[node_id] = scope_id;
+    self.scopes.items[idx] = scope_id;
 }
 
 pub inline fn getScope(self: *const NodeLinks, node_id: NodeIndex) ?Scope.Id {
@@ -63,32 +65,34 @@ pub inline fn getScope(self: *const NodeLinks, node_id: NodeIndex) ?Scope.Id {
         @branchHint(.cold);
         return null;
     }
+    const idx = @intFromEnum(node_id);
     assert(
-        node_id < self.scopes.items.len,
+        idx < self.scopes.items.len,
         "Node id out of bounds (id {d} >= {d})",
-        .{ node_id, self.scopes.items.len },
+        .{ idx, self.scopes.items.len },
     );
-    const scope_id = self.scopes.items[node_id];
+    const scope_id = self.scopes.items[idx];
     return if (scope_id == ROOT_SCOPE_ID) null else scope_id;
 }
 
 pub inline fn setParent(self: *NodeLinks, child_id: NodeIndex, parent_id: NodeIndex) void {
     assert(child_id != parent_id, "AST nodes cannot be children of themselves", .{});
     assert(child_id != NULL_NODE, "Re-assigning the root node's parent is illegal behavior", .{});
+    const parent_idx = @intFromEnum(parent_id);
     assert(
-        parent_id < self.parents.items.len,
+        parent_idx < self.parents.items.len,
         "Parent node id out of bounds (id {d} >= {d})",
-        .{ parent_id, self.parents.items.len },
+        .{ parent_idx, self.parents.items.len },
     );
 
-    self.parents.items[child_id] = parent_id;
+    self.parents.items[@intFromEnum(child_id)] = parent_id;
 }
 
 pub inline fn getParent(self: *const NodeLinks, node_id: NodeIndex) ?NodeIndex {
     if (node_id == ROOT_NODE_ID) {
         return null;
     }
-    return self.parents.items[node_id];
+    return self.parents.items[@intFromEnum(node_id)];
 }
 
 /// Iterate over a node's parents. The first element is the node itself, and
