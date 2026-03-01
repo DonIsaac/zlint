@@ -90,13 +90,13 @@ fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options 
             // TODO: comptime string concat on format names
             const fmt = argv.next() orelse {
                 if (err) |e| {
-                    e.* = Error.fmt(alloc, "Invalid format name: {s}. Valid names are {s}.", .{ arg, FORMAT_NAMES }) catch @panic("OOM");
+                    e.* = Error.fmt(alloc, "expected [{s}] after '{s}'", .{ FORMAT_NAMES, arg }) catch @panic("OOM");
                 }
                 return error.InvalidArg;
             };
             opts.format = std.meta.stringToEnum(formatter.Kind, fmt) orelse {
                 if (err) |e| {
-                    e.* = Error.fmt(alloc, "Invalid format name: {s}. Valid names are {s}.", .{ arg, FORMAT_NAMES }) catch @panic("OOM");
+                    e.* = Error.fmt(alloc, "expected [{s}] after '{s}', found '{s}'", .{ FORMAT_NAMES, arg, fmt }) catch @panic("OOM");
                 }
                 return error.InvalidArgValue;
             };
@@ -136,7 +136,7 @@ inline fn eq(arg: anytype, name: @TypeOf(arg)) bool {
     return std.mem.eql(u8, arg, name);
 }
 // TODO: comptime string concat on format names
-const FORMAT_NAMES: []const u8 = "ascii, unicode, github, json";
+const FORMAT_NAMES: []const u8 = "ascii|unicode|github|json";
 
 const Options = @This();
 const std = @import("std");
@@ -208,5 +208,13 @@ test "invalid --format" {
         error.InvalidArgValue,
         parse(t.allocator, argv, &err),
     );
-    try t.expect(std.mem.indexOf(u8, err.message.borrow(), "Invalid format name") != null);
+
+    const expected = try std.fmt.allocPrint(
+        t.allocator,
+        comptime "expected [{s}] after '--format', found 'this-is-not-a-valid-format'",
+        .{FORMAT_NAMES},
+    );
+    defer t.allocator.free(expected);
+    const actual = err.message.borrow();
+    try t.expectEqualSlices(u8, expected, actual);
 }
