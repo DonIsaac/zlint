@@ -86,7 +86,10 @@ fn duplicateCaseDiagnostic(ctx: *LinterContext, first: Node.Index, second: Node.
 
 pub fn runOnNode(_: *const DuplicateCase, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const ast = ctx.ast();
-    const switchStmt = ast.fullSwitch(wrapper.idx) orelse return;
+    const switchStmt = ast.fullSwitch(wrapper.idx) orelse {
+        @branchHint(.likely);
+        return;
+    };
     const cases = switchStmt.ast.cases;
 
     // check each case statement against each other
@@ -95,7 +98,8 @@ pub fn runOnNode(_: *const DuplicateCase, wrapper: NodeWrapper, ctx: *LinterCont
             const other = cases[j];
             const a = ast.fullSwitchCase(case) orelse unreachable;
             const b = ast.fullSwitchCase(other) orelse unreachable;
-            if (AstComparator.eql(ast, a.ast.target_expr, b.ast.target_expr)) {
+            const comparator = AstComparator{ .ast = ast, .tokens = ctx.tokens() };
+            if (comparator.eql(a.ast.target_expr, b.ast.target_expr)) {
                 ctx.report(duplicateCaseDiagnostic(ctx, case, other));
             }
         }
