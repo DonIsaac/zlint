@@ -1,7 +1,7 @@
 const std = @import("std");
 const util = @import("util");
 const span = @import("../span.zig");
-const zig = @import("../zig.zig").current;
+const zig = std.zig;
 
 const Allocator = std.mem.Allocator;
 const Span = span.Span;

@@ -38,12 +38,11 @@
 
 const std = @import("std");
 const util = @import("util");
-const zig = @import("../../zig.zig").@"0.14.1";
 const Semantic = @import("../../Semantic.zig");
 const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 
-const Ast = zig.Ast;
+const Ast = Semantic.Ast;
 const Node = Ast.Node;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
@@ -83,6 +82,7 @@ fn lolTheresAlreadyATypeAnnotationDiagnostic(ctx: *LinterContext, as_tok: Ast.To
 
 // Runs on each node in the AST. Useful for syntax-based rules.
 pub fn runOnNode(_: *const AvoidAs, wrapper: NodeWrapper, ctx: *LinterContext) void {
+    const ast = ctx.ast();
     const node = wrapper.node;
     if (node.tag != .builtin_call_two and node.tag != .builtin_call_comma) {
         return;
@@ -93,22 +93,24 @@ pub fn runOnNode(_: *const AvoidAs, wrapper: NodeWrapper, ctx: *LinterContext) v
         return;
     }
 
-    const tags: []const Node.Tag = ctx.ast().nodes.items(.tag);
-    const datas: []const Node.Data = ctx.ast().nodes.items(.data);
     const parent = ctx.links().getParent(wrapper.idx) orelse return;
 
-    switch (tags[parent]) {
+    // .builtin_call_two data is .opt_node_and_opt_node: [0]=first arg, [1]=second arg
+    const as_args = node.data.opt_node_and_opt_node;
+
+    switch (ast.nodeTag(parent)) {
         // var a: lhs = rhs
         .simple_var_decl => {
-            const data = datas[parent];
-            const ty_annotation = data.lhs;
-            const diagnostic = if (ty_annotation == Semantic.NULL_NODE)
+            // .simple_var_decl data is .opt_node_and_opt_node: [0]=type, [1]=init
+            const var_data = ast.nodeData(parent).opt_node_and_opt_node;
+            const ty_annotation = var_data[0];
+            const diagnostic = if (ty_annotation == .none)
                 preferTypeAnnotationDiagnostic(ctx, node.main_token)
             else
                 lolTheresAlreadyATypeAnnotationDiagnostic(ctx, node.main_token);
 
             ctx.reportWithFix(
-                VarFixer{ .var_decl = parent, .var_decl_data = data, .as_args = node.data },
+                VarFixer{ .var_decl = parent, .var_decl_data = var_data, .as_args = as_args },
                 diagnostic,
                 VarFixer.replaceWithTypeAnnotation,
             );
@@ -125,48 +127,55 @@ pub fn runOnNode(_: *const AvoidAs, wrapper: NodeWrapper, ctx: *LinterContext) v
 }
 
 fn removeAs(as_node: Node.Index, builder: Fix.Builder) !Fix {
-    const expr_node = builder.ctx.ast().nodes.items(.data)[as_node].rhs;
-    const as_span = builder.spanCovering(.node, as_node);
+    // .builtin_call_two data is .opt_node_and_opt_node: [0]=first arg, [1]=second arg
+    const expr_node = builder.ctx.ast().nodeData(as_node).opt_node_and_opt_node[1].unwrap() orelse
+        return builder.noop();
+    const as_span = builder.spanCovering(.node, @intFromEnum(as_node));
     return builder.replace(
         as_span,
-        Cow.initBorrowed(builder.snippet(.node, expr_node)),
+        Cow.initBorrowed(builder.snippet(.node, @intFromEnum(expr_node))),
     );
 }
+
+const OptNodePair = struct { Node.OptionalIndex, Node.OptionalIndex };
 
 const VarFixer = struct {
     /// this is a simple_var_decl node
     var_decl: Ast.Node.Index,
-    var_decl_data: Node.Data,
-    /// `@as(lhs, rhs)`
-    as_args: Ast.Node.Data,
+    /// .opt_node_and_opt_node: [0]=type, [1]=init
+    var_decl_data: OptNodePair,
+    /// `@as(lhs, rhs)` — .opt_node_and_opt_node: [0]=type arg, [1]=value arg
+    as_args: OptNodePair,
 
     fn replaceWithTypeAnnotation(this: VarFixer, builder: Fix.Builder) !Fix {
+        const as_type_arg = this.as_args[0].unwrap();
+        const as_value_arg = this.as_args[1].unwrap();
         // invalid, @as() has no args: `const x = @as();`
-        if (this.as_args.lhs == Semantic.NULL_NODE or this.as_args.rhs == Semantic.NULL_NODE) {
+        if (as_type_arg == null or as_value_arg == null) {
             @branchHint(.unlikely);
             return builder.noop();
         }
 
-        const nodes = builder.ctx.ast().nodes;
-        const toks = builder.ctx.ast().tokens;
+        const ast = builder.ctx.ast();
+        const toks = ast.tokens;
         const tok_tags: []const Semantic.Token.Tag = toks.items(.tag);
         const tok_locs: []const Semantic.Token.Loc = builder.ctx.tokens().items(.loc);
 
-        const ty_annotation = this.var_decl_data.lhs;
-        if (ty_annotation == Semantic.NULL_NODE) {
-            const start_tok = builder.ctx.ast().firstToken(this.var_decl);
+        const ty_annotation = this.var_decl_data[0];
+        if (ty_annotation == .none) {
+            const start_tok = ast.firstToken(this.var_decl);
             // `const` or `var`
-            var tok = nodes.items(.main_token)[this.var_decl];
+            var tok = ast.nodeMainToken(this.var_decl);
             const var_prelude = Span.new(@intCast(tok_locs[start_tok].start), @intCast(tok_locs[tok].end));
             tok += 1; // next tok is the identifier
             util.debugAssert(tok_tags[tok] == .identifier, "Expected identifier, got {}", .{tok_tags[tok]});
 
             const prelude = var_prelude.snippet(builder.ctx.source.text());
             const ident = builder.ctx.semantic.tokenSlice(tok);
-            const ty_text = builder.snippet(.node, this.as_args.lhs);
-            const expr_text = builder.snippet(.node, this.as_args.rhs);
+            const ty_text = builder.snippet(.node, @intFromEnum(as_type_arg.?));
+            const expr_text = builder.snippet(.node, @intFromEnum(as_value_arg.?));
             return builder.replace(
-                builder.spanCovering(.node, this.var_decl),
+                builder.spanCovering(.node, @intFromEnum(this.var_decl)),
                 try Cow.fmt(
                     builder.allocator,
                     "{s} {s}: {s} = {s}",
@@ -179,9 +188,10 @@ const VarFixer = struct {
                 ),
             );
         } else {
-            const expr = builder.snippet(.node, this.as_args.rhs);
+            const init_node = this.var_decl_data[1].unwrap() orelse return builder.noop();
+            const expr = builder.snippet(.node, @intFromEnum(as_value_arg.?));
             return builder.replace(
-                builder.spanCovering(.node, this.var_decl_data.rhs),
+                builder.spanCovering(.node, @intFromEnum(init_node)),
                 Cow.initBorrowed(expr),
             );
         }

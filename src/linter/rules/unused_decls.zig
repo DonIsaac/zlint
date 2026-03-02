@@ -195,9 +195,6 @@ test UnusedDecls {
         "pub fn foo() void {}",
         "extern fn foo() void;",
         "export fn foo() void {}",
-        \\const module = @import("module.zig");
-        \\usingnamespace module;
-        ,
         \\const Bar = @import("Foo.zig");
         \\pub const Thing = union(enum) {
         \\  Foo,

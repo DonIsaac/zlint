@@ -3,7 +3,7 @@
 //! Also includes additional types used in other semantic components.
 const std = @import("std");
 const NominalId = @import("util").NominalId;
-const zig = @import("../zig.zig").current;
+const zig = std.zig;
 
 pub const Ast = zig.Ast;
 pub const Node = Ast.Node;

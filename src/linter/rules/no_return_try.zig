@@ -43,8 +43,7 @@ const Semantic = @import("../../Semantic.zig");
 const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 
-const zig = @import("../../zig.zig").@"0.14.1";
-const Ast = zig.Ast;
+const Ast = Semantic.Ast;
 const Node = Ast.Node;
 const LinterContext = @import("../lint_context.zig");
 const LabeledSpan = _span.LabeledSpan;
@@ -72,15 +71,16 @@ fn returnTryDiagnostic(ctx: *LinterContext, return_start: u32, try_start: u32) E
 pub fn runOnNode(_: *const NoReturnTry, wrapper: NodeWrapper, ctx: *LinterContext) void {
     const ast = ctx.ast();
     const node = wrapper.node;
-    const returned_id = node.data.lhs;
-    if (node.tag != .@"return" or returned_id == Semantic.NULL_NODE) return;
+    if (node.tag != .@"return") return;
 
-    const returned: Node.Tag = ast.nodes.items(.tag)[returned_id];
-    if (returned != .@"try") return;
+    // .@"return" data is .opt_node
+    const returned_id = node.data.opt_node.unwrap() orelse return;
+
+    if (ast.nodeTag(returned_id) != .@"try") return;
 
     const starts = ast.tokens.items(.start);
     const return_start = starts[node.main_token];
-    const try_start = starts[ast.nodes.items(.main_token)[returned_id]];
+    const try_start = starts[ast.nodeMainToken(returned_id)];
     ctx.report(returnTryDiagnostic(ctx, return_start, try_start));
 }
 

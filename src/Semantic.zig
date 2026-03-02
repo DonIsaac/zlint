@@ -36,9 +36,13 @@ pub const BUILTIN_SCOPE_ID: Scope.Id = Scope.Id.from(1);
 /// > _note_: right now root/builtin scope ids are the same. This may change in
 /// the future.
 pub const ROOT_SCOPE_ID: Scope.Id = Scope.Id.from(0);
+/// Deprecated. use `.root` instead.
+///
 /// The root node always has an index of 0. Since it is never referenced by other nodes,
 /// the Zig team uses it to represent `null` without wasting extra memory.
-pub const ROOT_NODE_ID: Ast.Node.Index = 0;
+pub const ROOT_NODE_ID: Ast.Node.Index = .root;
+/// Deprecated. use `.root` instead.
+///
 /// Alias for `ROOT_NODE_ID`. Used in null-node check contexts for code clarity.
 pub const NULL_NODE: Ast.Node.Index = ROOT_NODE_ID;
 
@@ -143,9 +147,10 @@ const _tokenizer = @import("Semantic/tokenizer.zig");
 const TokenIndex = _ast.TokenIndex;
 
 // re-exports
-const zig = @import("zig.zig").current;
+const util = @import("util");
+const zig = std.zig;
 pub const Ast = zig.Ast;
-pub const Builder = @import("Semantic/SemanticBuilder.zig");
+pub const Builder = @import("Semantic/Builder.zig");
 pub const CommentList = _tokenizer.CommentList;
 pub const ModuleRecord = @import("Semantic/ModuleRecord.zig");
 pub const NodeLinks = @import("Semantic/NodeLinks.zig");
@@ -155,6 +160,10 @@ pub const Scope = @import("Semantic/Scope.zig");
 pub const Symbol = @import("Semantic/Symbol.zig");
 pub const Token = _tokenizer.Token;
 pub const TokenList = _tokenizer.TokenList;
+
+test {
+    std.testing.refAllDeclsRecursive(Builder);
+}
 
 test Semantic {
     const Source = @import("source.zig").Source;
