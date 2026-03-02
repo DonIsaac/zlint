@@ -14,7 +14,7 @@ quiet: bool = false,
 /// This is primarily for debugging purposes.
 print_ast: bool = false,
 /// How diagnostics are formatted.
-format: formatter.Kind = .graphical,
+format: formatter.Kind = .ascii,
 /// Print a summary about # of warnings and errors. Only applies for some formats.
 summary: bool = true,
 /// Instead of walking directories in cwd, read names of files to lint from stdin.
@@ -32,7 +32,7 @@ pub const usage =
 ;
 const help =
     \\--print-ast <file>  Parse a file and print its AST as JSON
-    \\-f, --format <fmt>  Choose an output format (default, graphical, json, github, gh)
+    \\-f, --format <fmt>  Choose an output format (ascii, unicode, github, json)
     \\--no-summary        Do not print a summary after linting
     \\-S, --stdin         Lint filepaths received from stdin (newline separated)
     \\--fix               Apply automatic fixes where possible
@@ -90,13 +90,13 @@ fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options 
             // TODO: comptime string concat on format names
             const fmt = argv.next() orelse {
                 if (err) |e| {
-                    e.* = Error.fmt(alloc, "Invalid format name: {s}. Valid names are {s}.", .{ arg, FORMAT_NAMES }) catch @panic("OOM");
+                    e.* = Error.fmt(alloc, "expected [{s}] after '{s}'", .{ FORMAT_NAMES, arg }) catch @panic("OOM");
                 }
                 return error.InvalidArg;
             };
-            opts.format = formatter.Kind.fromString(fmt) orelse {
+            opts.format = std.meta.stringToEnum(formatter.Kind, fmt) orelse {
                 if (err) |e| {
-                    e.* = Error.fmt(alloc, "Invalid format name: {s}. Valid names are {s}.", .{ arg, FORMAT_NAMES }) catch @panic("OOM");
+                    e.* = Error.fmt(alloc, "expected [{s}] after '{s}', found '{s}'", .{ FORMAT_NAMES, arg, fmt }) catch @panic("OOM");
                 }
                 return error.InvalidArgValue;
             };
@@ -136,7 +136,7 @@ inline fn eq(arg: anytype, name: @TypeOf(arg)) bool {
     return std.mem.eql(u8, arg, name);
 }
 // TODO: comptime string concat on format names
-const FORMAT_NAMES: []const u8 = "default, graphical, github, gh";
+const FORMAT_NAMES: []const u8 = "ascii|unicode|github|json";
 
 const Options = @This();
 const std = @import("std");
@@ -162,10 +162,14 @@ test parse {
 
     const test_cases = [_]Case{
         .{ "", .{} },
-        .{ "zlint", .{} },
+        .{ "zlint", .{ .format = formatter.Kind.ascii } },
         .{ "zlint --", .{} },
         .{ "zlint --print-ast", .{ .print_ast = true } },
         .{ "zlint --fix", .{ .fix = true } },
+        .{ "zlint --format ascii", .{ .format = formatter.Kind.ascii } },
+        .{ "zlint --format unicode", .{ .format = formatter.Kind.unicode } },
+        .{ "zlint --format github", .{ .format = formatter.Kind.github } },
+        .{ "zlint --format json", .{ .format = formatter.Kind.json } },
         .{ "zlint --no-summary", .{ .summary = false } },
         .{ "zlint --verbose", .{ .verbose = true } },
         .{ "zlint -V", .{ .verbose = true } },
@@ -187,6 +191,7 @@ test parse {
         try t.expectEqual(expected.verbose, opts.verbose);
         try t.expectEqual(expected.print_ast, opts.print_ast);
         try t.expectEqual(expected.args.items.len, opts.args.items.len);
+        try t.expectEqual(expected.format, opts.format);
         for (0..expected.args.items.len) |i| {
             try t.expectEqualStrings(
                 expected.args.items[i],
@@ -204,5 +209,13 @@ test "invalid --format" {
         error.InvalidArgValue,
         parse(t.allocator, argv, &err),
     );
-    try t.expect(std.mem.indexOf(u8, err.message.borrow(), "Invalid format name") != null);
+
+    const expected = try std.fmt.allocPrint(
+        t.allocator,
+        comptime "expected [{s}] after '--format', found 'this-is-not-a-valid-format'",
+        .{FORMAT_NAMES},
+    );
+    defer t.allocator.free(expected);
+    const actual = err.message.borrow();
+    try t.expectEqualSlices(u8, expected, actual);
 }

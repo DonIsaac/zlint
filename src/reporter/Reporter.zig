@@ -33,11 +33,15 @@ pub const Reporter = struct {
     }
 
     pub fn initKind(kind: formatters.Kind, writer: *io.Writer, allocator: Allocator) Allocator.Error!Reporter {
+        // TODO: any non-falsy value should turn off colors
+        const color = !util.env.checkEnvFlag("NO_COLOR", .enabled);
+
         switch (kind) {
-            .graphical => {
-                // TODO: check terminal support for unicode characters
-                // TODO: any non-falsy value should turn off colors
-                const color = !util.env.checkEnvFlag("NO_COLOR", .enabled);
+            .ascii => {
+                const f = formatters.Graphical.ascii(allocator, color);
+                return init(formatters.Graphical, f, writer, allocator);
+            },
+            .unicode => {
                 const f = formatters.Graphical.unicode(allocator, color);
                 return init(formatters.Graphical, f, writer, allocator);
             },

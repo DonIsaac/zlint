@@ -19,9 +19,17 @@ pub const printer = struct {
 
 pub const walk = @import("visit/walk.zig");
 
+pub const cli = struct {
+    pub const LintConfig = @import("cli/lint_config.zig");
+    pub const Options = @import("cli/Options.zig");
+    // TODO: Uncomment when cli/test/print_ast_test.zig is fixed.
+    //pub const PrintCommand = @import("cli/print_command.zig");
+};
+
 test {
     std.testing.refAllDecls(@import("util"));
     std.testing.refAllDeclsRecursive(printer);
     std.testing.refAllDeclsRecursive(zig);
     std.testing.refAllDeclsRecursive(json);
+    std.testing.refAllDeclsRecursive(cli);
 }
