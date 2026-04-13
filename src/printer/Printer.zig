@@ -137,7 +137,7 @@ pub fn pushArray(self: *Printer, comptime indent: bool) !void {
     }
 }
 
-/// Exit out of an object or array container, printing the correspodning
+/// Exit out of an object or array container, printing the corresponding
 /// closing token.
 pub fn pop(self: *Printer) void {
     const kind = self.container_stack.pop() orelse @panic("container stack is empty");

@@ -61,8 +61,7 @@ const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 const a = @import("../ast_utils.zig");
 
-const zig = @import("../../zig.zig").@"0.14.1";
-const Ast = zig.Ast;
+const Ast = Semantic.Ast;
 const Node = Ast.Node;
 const TokenIndex = Ast.TokenIndex;
 const Span = _span.Span;
@@ -105,21 +104,18 @@ pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterC
     const node = wrapper.node;
     if (node.tag != .@"catch") return;
 
-    // const slice = ctx.ast().nodes.slice
     const ast = ctx.ast();
-    const nodes = ast.nodes;
-    const tags: []Node.Tag = nodes.items(.tag);
 
-    const catch_body = node.data.rhs;
-    const caught = node.data.lhs;
-    switch (tags[catch_body]) {
+    const caught, const catch_body = node.data.node_and_node;
+    switch (ast.nodeTag(catch_body)) {
         // .block is only ever constructed for blocks with > 2 statements.
         .block_two, .block_two_semicolon => {
-            const stmts: Node.Data = nodes.items(.data)[catch_body];
-            if (stmts.rhs != NULL_NODE) return;
+            // .block_two data is .opt_node_and_opt_node
+            const first, const second = ast.nodeData(catch_body).opt_node_and_opt_node;
+            if (second != .none) return;
 
             // `catch {}`
-            if (stmts.lhs == NULL_NODE) {
+            const first_stmt = first.unwrap() orelse {
                 if (isSuppressingWriterError(ctx, caught)) return;
                 if (a.isInTest(ctx, wrapper.idx)) return;
                 const body_span = ast.nodeToSpan(catch_body);
@@ -127,12 +123,12 @@ pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterC
                 const span = Span.new(catch_keyword_start, body_span.end);
                 ctx.report(swallowedDiagnostic(ctx, span));
                 return;
-            }
-            switch (tags[stmts.lhs]) {
+            };
+            switch (ast.nodeTag(first_stmt)) {
                 .unreachable_literal => {
                     if (isSuppressingWriterError(ctx, caught)) return;
                     if (a.isInTest(ctx, wrapper.idx)) return;
-                    const span = ast.nodeToSpan(stmts.lhs);
+                    const span = ast.nodeToSpan(first_stmt);
                     ctx.report(unreachableDiagnostic(ctx, .{ .start = span.start, .end = span.end }));
                 },
                 else => return,
@@ -141,8 +137,7 @@ pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterC
         .unreachable_literal => {
             if (isSuppressingWriterError(ctx, caught)) return;
             if (a.isInTest(ctx, wrapper.idx)) return;
-            // lexeme() exists
-            const unreachable_token = ast.nodes.items(.main_token)[catch_body];
+            const unreachable_token = ast.nodeMainToken(catch_body);
             const start: u32 = ast.tokens.items(.start)[unreachable_token];
             ctx.report(unreachableDiagnostic(ctx, Span.sized(start, "unreachable".len)));
         },
@@ -152,30 +147,24 @@ pub fn runOnNode(_: *const SuppressedErrors, wrapper: NodeWrapper, ctx: *LinterC
 
 /// Is this catch suppressing errors from a `Writer` method?
 fn isSuppressingWriterError(ctx: *const LinterContext, caught: Node.Index) bool {
-    const nodes = ctx.ast().nodes;
-    const tags: []const Node.Tag = nodes.items(.tag);
-    const datas: []const Node.Data = nodes.items(.data);
+    const ast = ctx.ast();
 
-    switch (tags[caught]) {
-        .call,
-        .call_one,
-        .call_one_comma,
-        => {
-            const callee = datas[caught].lhs;
-            std.debug.assert(callee != NULL_NODE);
-            switch (tags[callee]) {
-                .field_access => {
-                    // identifier token
-                    const member: TokenIndex = datas[callee].rhs;
-                    std.debug.assert(member != NULL_NODE);
-                    return printMethods.has(ctx.ast().tokenSlice(member));
-                },
-                else => return false,
-            }
+    const callee = switch (ast.nodeTag(caught)) {
+        // .call/.call_comma data is .node_and_extra: [0]=callee
+        .call, .call_comma => ast.nodeData(caught).node_and_extra[0],
+        // .call_one/.call_one_comma data is .node_and_opt_node: [0]=callee
+        .call_one, .call_one_comma => ast.nodeData(caught).node_and_opt_node[0],
+        else => return false,
+    };
+
+    switch (ast.nodeTag(callee)) {
+        .field_access => {
+            // .field_access data is .node_and_token: [1]=field_token
+            const member: TokenIndex = ast.nodeData(callee).node_and_token[1];
+            return printMethods.has(ast.tokenSlice(member));
         },
         else => return false,
     }
-    unreachable;
 }
 
 const printMethods = std.StaticStringMap(void).initComptime(&[_]struct { []const u8 }{

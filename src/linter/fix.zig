@@ -95,7 +95,7 @@ pub const Fix = struct {
         pub fn spanCovering(self: Builder, comptime kind: Spanned, id: u32) Span {
             return switch (kind) {
                 .token => self.ctx.semantic.tokenSpan(id),
-                .node => self.ctx.semantic.nodeSpan(id),
+                .node => self.ctx.semantic.nodeSpan(@enumFromInt(id)),
             };
         }
     };

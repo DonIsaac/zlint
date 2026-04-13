@@ -104,7 +104,7 @@
       "name": "ptr", 
       "debugName": "", 
       "token": 35, 
-      "declNode": "root", 
+      "declNode": "fn_decl", 
       "scope": 3, 
       "flags": ["const","fn_param"], 
       "references": [

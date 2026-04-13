@@ -41,11 +41,10 @@ const std = @import("std");
 const util = @import("util");
 const Semantic = @import("../../Semantic.zig");
 const _rule = @import("../rule.zig");
-const zig = @import("../../zig.zig").@"0.14.1";
 
-const Ast = zig.Ast;
+const Ast = Semantic.Ast;
 const Node = Ast.Node;
-const Token = zig.Token;
+const Token = Semantic.Token;
 const TokenIndex = Ast.TokenIndex;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
@@ -74,27 +73,30 @@ fn noCatchReturnDiagnostic(ctx: *LinterContext, return_node: Node.Index) Error {
 
 // Runs on each node in the AST. Useful for syntax-based rules.
 pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterContext) void {
-    const tags: []const Node.Tag = ctx.ast().nodes.items(.tag);
-    const tok_tags: []const Token.Tag = ctx.ast().tokens.items(.tag);
-    const datas: []const Node.Data = ctx.ast().nodes.items(.data);
-    const NULL_NODE = Semantic.NULL_NODE;
+    const ast = ctx.ast();
+    const tok_tags: []const Token.Tag = ast.tokens.items(.tag);
     const node = wrapper.node;
 
     if (node.tag != .@"catch") return;
 
-    // look for a return statement. We loop to handle single-statement blocks.
-    if (node.data.rhs == NULL_NODE) return;
-    var return_node: Node.Index = node.data.rhs;
-    const end_of_last_tok = ctx.semantic.tokenSpan(ctx.ast().lastToken(return_node)).end;
+    // .@"catch" data is .node_and_node: [0]=operand, [1]=fallback
+    const catch_data = node.data.node_and_node;
+    if (catch_data[1] == Semantic.NULL_NODE) return; // NOTE: in v0.15, this is non-optional. Remove?
+    var return_node: Node.Index = catch_data[1];
+    const end_of_last_tok = ctx.semantic.tokenSpan(ast.lastToken(return_node)).end;
 
+    // look for a return statement. We loop to handle single-statement blocks.
     while (true) {
-        switch (tags[return_node]) {
+        switch (ast.nodeTag(return_node)) {
             .@"return" => break,
             .block_two, .block_two_semicolon => {
-                const data = datas[return_node];
+                // .block_two data is .opt_node_and_opt_node
+                const blk_data = ast.nodeData(return_node).opt_node_and_opt_node;
+                const first = blk_data[0].unwrap();
+                const second = blk_data[1].unwrap();
                 // we're looking for only a single statement in the block.
-                if (data.lhs == NULL_NODE or data.rhs != NULL_NODE) return;
-                return_node = data.lhs;
+                if (first == null or second != null) return;
+                return_node = first.?;
                 continue;
             },
             // guaranteed to have more than one statement
@@ -109,17 +111,18 @@ pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterCont
     if (tok_tags[ident_tok] == .asterisk) ident_tok += 1;
     if (tok_tags[ident_tok] != .identifier) return;
 
-    const return_param = datas[return_node].lhs;
-    if (return_param == NULL_NODE or tags[return_param] != .identifier) return;
+    // .@"return" data is .opt_node
+    const return_param = ast.nodeData(return_node).opt_node.unwrap() orelse return;
+    if (ast.nodeTag(return_param) != .identifier) return;
 
     // todo: add symbols to node links
     const error_param = ctx.semantic.tokenSlice(ident_tok);
-    const returned_ident = ctx.ast().getNodeSource(return_param);
+    const returned_ident = ast.getNodeSource(return_param);
     if (std.mem.eql(u8, error_param, returned_ident)) {
         ctx.reportWithFix(
             Ctx{
                 .catch_node = wrapper.idx,
-                .tried_expr = wrapper.node.data.lhs,
+                .tried_expr = catch_data[0],
                 .end = end_of_last_tok,
             },
             noCatchReturnDiagnostic(ctx, return_node),
@@ -137,13 +140,13 @@ const Ctx = struct {
 fn replaceWithTry(ctx: Ctx, builder: Fix.Builder) !Fix {
     const catch_node = ctx.catch_node;
     const tried_expr = ctx.tried_expr;
-    var span = builder.spanCovering(.node, catch_node);
+    var span = builder.spanCovering(.node, @intFromEnum(catch_node));
     span.end = ctx.end;
 
     return builder.replacef(
         span,
         "try {s}",
-        .{builder.snippet(.node, tried_expr)},
+        .{builder.snippet(.node, @intFromEnum(tried_expr))},
     );
 }
 

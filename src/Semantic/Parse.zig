@@ -42,8 +42,7 @@ pub fn deinit(self: *Parse, allocator: Allocator) void {
 
 const std = @import("std");
 const tokenizer = @import("tokenizer.zig");
-const zig = @import("../zig.zig").current;
 const Allocator = std.mem.Allocator;
-const Ast = zig.Ast;
+const Ast = @import("../Semantic.zig").Ast;
 const TokenList = tokenizer.TokenList;
 const CommentList = tokenizer.CommentList;

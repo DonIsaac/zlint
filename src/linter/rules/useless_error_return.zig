@@ -66,8 +66,8 @@ const a = @import("../ast_utils.zig");
 const walk = @import("../../visit/walk.zig");
 
 const Allocator = std.mem.Allocator;
-const zig = @import("../../zig.zig").@"0.14.1";
-const Ast = zig.Ast;
+
+const Ast = Semantic.Ast;
 const Node = Ast.Node;
 const Token = Semantic.Token;
 const TokenIndex = Ast.TokenIndex;
@@ -108,13 +108,12 @@ fn suppressesErrorsDiagnostic(
     fn_identifier: TokenIndex,
     catch_node: Node.Index,
 ) Error {
-    const main_tokens = ctx.ast().nodes.items(.main_token);
     var e = ctx.diagnosticf(
         "Function '{s}' has an error union return type but suppresses all its errors.",
         .{fn_name},
         .{
             ctx.labelT(fn_identifier, "'{s}' is declared here", .{fn_name}),
-            ctx.labelT(main_tokens[catch_node], "It catches errors here", .{}),
+            ctx.labelT(ctx.ast().nodeMainToken(catch_node), "It catches errors here", .{}),
         },
     );
     e.help = Cow.static("Use `try` to propagate errors to the caller.");
@@ -122,7 +121,7 @@ fn suppressesErrorsDiagnostic(
 }
 
 pub fn runOnSymbol(_: *const UselessErrorReturn, symbol: Symbol.Id, ctx: *LinterContext) void {
-    const nodes = ctx.ast().nodes;
+    const ast = ctx.ast();
     const symbols = ctx.symbols().symbols.slice();
     const symbol_flags: []const Symbol.Flags = symbols.items(.flags);
     const id = symbol.into(usize);
@@ -133,31 +132,29 @@ pub fn runOnSymbol(_: *const UselessErrorReturn, symbol: Symbol.Id, ctx: *Linter
     if (!flags.s_fn) return;
 
     // skip non-function declarations
-    const tags: []const Node.Tag = nodes.items(.tag);
     const decl: Node.Index = symbols.items(.decl)[id];
-    const tag: Node.Tag = tags[decl];
+    const tag: Node.Tag = ast.nodeTag(decl);
     if (tag != .fn_decl) return; // could be .fn_proto for e.g. fn types
 
     // skip declarations w/o a body (e.g. extern fns)
-    const datas: []const Node.Data = nodes.items(.data);
-    const data: Node.Data = datas[decl];
-    const body = data.rhs;
-    if (!a.isBlock(tags, body)) return;
+    const decl_data = ast.nodeData(decl).node_and_node;
+    const body = decl_data[1];
+    if (!a.isBlock(ast, body)) return;
 
     // 2. check if they return an error union
 
     var buf: [1]Node.Index = undefined;
-    // SAFETY: LHS of a fn_decl is always some variant of fn_proto
-    const fn_proto = ctx.ast().fullFnProto(&buf, data.lhs) orelse unreachable;
-    util.debugAssert(fn_proto.ast.return_type != Semantic.NULL_NODE, "fns always have a return type", .{});
-    const err_type: Node.Index = a.unwrapNode(a.getErrorUnion(ctx.ast(), fn_proto.ast.return_type)) orelse return;
-    const err_ident: ?[]const u8 = switch (tags[err_type]) {
+    const fn_proto = ast.fullFnProto(&buf, decl_data[0]) orelse unreachable;
+    const return_type = fn_proto.ast.return_type.unwrap() orelse unreachable;
+    const err_type: Node.Index = a.unwrapNode(a.getErrorUnion(ast, return_type)) orelse return;
+    const err_ident: ?[]const u8 = switch (ast.nodeTag(err_type)) {
         .error_union => blk: {
-            const error_expr = a.unwrapNode(datas[err_type].lhs) orelse break :blk null;
-            break :blk switch (tags[error_expr]) {
-                .identifier => ctx.ast().getNodeSource(error_expr),
-                .field_access => ctx.semantic.tokenSlice(datas[error_expr].rhs), // rhs is token idx
-                .error_set_decl => ctx.semantic.tokenSlice(nodes.items(.main_token)[error_expr]),
+            const eu_data = ast.nodeData(err_type).node_and_node;
+            const error_expr = a.unwrapNode(eu_data[0]) orelse break :blk null;
+            break :blk switch (ast.nodeTag(error_expr)) {
+                .identifier => ast.getNodeSource(error_expr),
+                .field_access => ctx.semantic.tokenSlice(ast.nodeData(error_expr).node_and_token[1]),
+                .error_set_decl => ctx.semantic.tokenSlice(ast.nodeMainToken(error_expr)),
                 else => null,
             };
         },
@@ -165,13 +162,11 @@ pub fn runOnSymbol(_: *const UselessErrorReturn, symbol: Symbol.Id, ctx: *Linter
     };
 
     // allow for `error{}!ty` return types
-    // len check is a hack b/c something is returning a token index when it
-    // should be a node index
-    if (err_type < ctx.ast().nodes.len and tags[err_type] == .error_union) {
-        const left = datas[err_type].lhs;
-        if (tags[left] == .error_set_decl) {
-            const maybe_lbrace = datas[left].rhs -| 1;
-            if (ctx.ast().tokens.items(.tag)[maybe_lbrace] == .l_brace) return;
+    if (@intFromEnum(err_type) < ast.nodes.len and ast.nodeTag(err_type) == .error_union) {
+        const left = ast.nodeData(err_type).node_and_node[0];
+        if (ast.nodeTag(left) == .error_set_decl) {
+            const maybe_lbrace = ast.nodeData(left).token_and_token[1] -| 1;
+            if (ast.tokens.items(.tag)[maybe_lbrace] == .l_brace) return;
         }
     }
 
@@ -275,8 +270,7 @@ const Visitor = struct {
     pub fn enterNode(self: *Visitor, node: Node.Index) void {
         // todo: nested returns/functions
         if (self.inReturn()) return;
-        const tag: Node.Tag = self.ast.nodes.items(.tag)[node];
-        if (tag == .@"return") self.curr_return = node;
+        if (self.ast.nodeTag(node) == .@"return") self.curr_return = node;
     }
 
     pub fn exitNode(self: *Visitor, node: Node.Index) void {
@@ -315,12 +309,13 @@ const Visitor = struct {
     /// ```
     pub fn visit_switch_case_one(self: *Visitor, node: Node.Index) VisitError!walk.WalkState {
         if (!self.inCatch()) return .Continue;
-        // LHS being null means `else` branch
-        if (self.ast.nodes.items(.data)[node].lhs != Semantic.NULL_NODE) return .Continue;
+        // LHS being .none means `else` branch
+        const case_data = self.ast.nodeData(node).opt_node_and_node;
+        if (case_data[0] != .none) return .Continue;
 
         const tok_tags: []const Token.Tag = self.ast.tokens.items(.tag);
 
-        const main_tok: TokenIndex = self.ast.nodes.items(.main_token)[node];
+        const main_tok: TokenIndex = self.ast.nodeMainToken(node);
         if (tok_tags[main_tok + 1] != .pipe) return .Continue;
 
         const identifier = main_tok + 2;
@@ -331,7 +326,7 @@ const Visitor = struct {
     }
 
     pub fn visit_switch_case_one_inline(self: *Visitor, node: Node.Index) VisitError!walk.WalkState {
-        return self.visit_switch_case_one(self, node);
+        return self.visit_switch_case_one(node);
     }
 
     pub fn visit_catch(self: *Visitor, node: Node.Index) VisitError!walk.WalkState {
@@ -339,11 +334,11 @@ const Visitor = struct {
             self.first_catch = node;
         }
 
-        const data: Node.Data = self.ast.nodes.items(.data)[node];
-        const fallback_first: TokenIndex = self.ast.firstToken(data.rhs);
+        const catch_data = self.ast.nodeData(node).node_and_node;
+        const fallback_first: TokenIndex = self.ast.firstToken(catch_data[1]);
 
         const tok_tags: []const Token.Tag = self.ast.tokens.items(.tag);
-        const main_token = self.ast.nodes.items(.main_token)[node];
+        const main_token = self.ast.nodeMainToken(node);
         // look for `catch |e|`, add `e` to the stack
         if (tok_tags[fallback_first -| 1] == .pipe) {
             const payload = main_token + 2;
@@ -358,7 +353,7 @@ const Visitor = struct {
         if (!self.inReturn()) return .Continue;
 
         for (self.err_stack.items) |curr_err| {
-            const ident_token = self.ast.nodes.items(.main_token)[node];
+            const ident_token = self.ast.nodeMainToken(node);
             const payload_name = self.ast.tokenSlice(curr_err.payload); // fixme: this re-tokenizes
             const ident_name = self.ast.tokenSlice(ident_token);
             if (std.mem.eql(u8, payload_name, ident_name)) {
@@ -373,11 +368,11 @@ const Visitor = struct {
     pub fn visit_field_access(self: *Visitor, node: Node.Index) VisitError!walk.WalkState {
         if (!self.inReturn()) return .Continue;
 
-        const nodes = self.ast.nodes;
-        const datas: []const Node.Data = nodes.items(.data);
-        const data: Node.Data = datas[node]; // lhs.a, a is token idx
+        const fa_data = self.ast.nodeData(node).node_and_token;
+        const obj = fa_data[0];
+        const field_token = fa_data[1];
 
-        const field_name = self.ast.tokenSlice(data.rhs); // todo: this re-tokenizes
+        const field_name = self.ast.tokenSlice(field_token);
         if (std.ascii.endsWithIgnoreCase(field_name, "error")) {
             self.seen.container_field_named_error = true;
             return .Stop;
@@ -385,8 +380,7 @@ const Visitor = struct {
 
         const err_name = self.err_name orelse return .Continue;
 
-        const obj = data.lhs;
-        switch (@as(Node.Tag, nodes.items(.tag)[obj])) {
+        switch (self.ast.nodeTag(obj)) {
             .identifier => {
                 const ident = self.ast.getNodeSource(obj);
                 if (std.mem.eql(u8, err_name, ident)) {
@@ -396,11 +390,9 @@ const Visitor = struct {
             },
             .container_field => {
                 // `SomeNamespace.SomeStruct.SomeError` <-- and we saw SomeError in return signature
-                const rhs = datas[obj].rhs;
                 if (std.mem.eql(
                     u8,
-                    // self.ast.tokenSlice(nodes.items(.main_token)),
-                    self.ast.tokenSlice(rhs),
+                    self.ast.tokenSlice(self.ast.nodeMainToken(obj)),
                     err_name,
                 )) {
                     self.seen.known_error_struct_access = true;

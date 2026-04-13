@@ -220,7 +220,7 @@ test "Scope.Tree.addScope" {
     var tree = Scope.Tree{};
     defer tree.deinit(alloc);
 
-    const root_id = try tree.addScope(alloc, null, 0, .{ .s_top = true });
+    const root_id = try tree.addScope(alloc, null, @enumFromInt(0), .{ .s_top = true });
     const root = tree.getScope(root_id);
     try expectEqual(1, tree.scopes.len);
     try expectEqual(0, root_id.int());
@@ -228,7 +228,7 @@ test "Scope.Tree.addScope" {
     try expectEqual(Scope.Flags{ .s_top = true }, root.flags);
     try expectEqual(root, tree.scopes.get(0));
 
-    const child_id = try tree.addScope(alloc, root.id, 0, .{});
+    const child_id = try tree.addScope(alloc, root.id, @enumFromInt(0), .{});
     const child = tree.getScope(child_id);
     try expectEqual(1, child.id.int());
     try expectEqual(Scope.Flags{}, child.flags);

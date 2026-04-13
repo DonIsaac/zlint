@@ -366,8 +366,8 @@ test "Symbol.Table.iter()" {
     var table = Symbol.Table{};
     defer table.deinit(a);
 
-    _ = try table.addSymbol(a, 1, "a", null, null, Scope.Id.new(0), .public, .{});
-    _ = try table.addSymbol(a, 1, "b", null, null, Scope.Id.new(1), .public, .{});
+    _ = try table.addSymbol(a, @enumFromInt(1), "a", null, null, Scope.Id.new(0), .public, .{});
+    _ = try table.addSymbol(a, @enumFromInt(1), "b", null, null, Scope.Id.new(1), .public, .{});
     try expectEqual(2, table.symbols.len);
 
     var iter = table.iter();

@@ -54,8 +54,7 @@ const _rule = @import("../rule.zig");
 const a = @import("../ast_utils.zig");
 const walk = @import("../../visit/walk.zig");
 
-const zig = @import("../../zig.zig").@"0.14.1";
-const Ast = zig.Ast;
+const Ast = Semantic.Ast;
 const Node = Ast.Node;
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
@@ -82,13 +81,13 @@ pub const meta: Rule.Meta = .{
 
 pub fn runOnNode(_: *const MustReturnRef, wrapper: NodeWrapper, ctx: *LinterContext) void {
     if (wrapper.node.tag != .fn_decl) return;
+    const ast = ctx.ast();
 
     var buf: [1]Node.Index = undefined;
     // SAFETY: fn decls always have a fn proto
-    const decl = ctx.ast().fullFnProto(&buf, wrapper.idx) orelse unreachable;
-    const body = wrapper.node.data.rhs;
-    std.debug.assert(body != Semantic.NULL_NODE);
-    const return_type = decl.ast.return_type;
+    const decl = ast.fullFnProto(&buf, wrapper.idx) orelse unreachable;
+    const body = wrapper.node.data.node_and_node[1];
+    const return_type = decl.ast.return_type.unwrap() orelse return;
     const returned_ident = a.getRightmostIdentifier(ctx, return_type) orelse return;
     if (!types_to_check.has(returned_ident)) return;
 
@@ -108,8 +107,7 @@ pub fn runOnNode(_: *const MustReturnRef, wrapper: NodeWrapper, ctx: *LinterCont
 const ReturnVisitor = struct {
     typename: []const u8,
     ctx: *LinterContext,
-    datas: []const Node.Data,
-    tags: []const Node.Tag,
+    ast: *const Ast,
 
     pub const VisitError = error{};
 
@@ -117,16 +115,14 @@ const ReturnVisitor = struct {
         return .{
             .typename = typename,
             .ctx = ctx,
-            .datas = ctx.ast().nodes.items(.data),
-            .tags = ctx.ast().nodes.items(.tag),
+            .ast = ctx.ast(),
         };
     }
 
     pub fn visit_return(self: *ReturnVisitor, node: Node.Index) VisitError!walk.WalkState {
-        const returned = self.datas[node].lhs;
-        if (returned == Semantic.NULL_NODE) return .Continue; // fn is missing return type, which is a semantic error
+        const returned = self.ast.nodeData(node).opt_node.unwrap() orelse return .Continue; // fn is missing return type, which is a semantic error
         // todo: check that leftmost ident is `this`.
-        if (self.tags[returned] != .field_access) return .Continue;
+        if (self.ast.nodeTag(returned) != .field_access) return .Continue;
 
         var ctx = self.ctx;
         ctx.report(mustReturnRefDiagnostic(ctx, self.typename, returned));

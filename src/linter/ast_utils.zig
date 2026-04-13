@@ -15,13 +15,14 @@ const NULL_NODE = Semantic.NULL_NODE;
 /// - `foo()` -> `foo`
 /// - `foo.bar()` -> `bar`
 pub fn getRightmostIdentifier(ctx: *Context, id: Node.Index) ?[]const u8 {
-    const nodes = ctx.ast().nodes;
-    const tag: Node.Tag = nodes.items(.tag)[id];
+    const ast = ctx.ast();
+    const tag = ast.nodeTag(id);
 
     return switch (tag) {
-        .identifier => ctx.semantic.tokenSlice(nodes.items(.main_token)[id]),
-        .field_access => ctx.semantic.tokenSlice(nodes.items(.data)[id].rhs),
-        .call, .call_comma, .call_one, .call_one_comma => getRightmostIdentifier(ctx, nodes.items(.data)[id].lhs),
+        .identifier => ctx.semantic.tokenSlice(ast.nodeMainToken(id)),
+        .field_access => ctx.semantic.tokenSlice(ast.nodeData(id).node_and_token[1]),
+        .call, .call_comma => getRightmostIdentifier(ctx, ast.nodeData(id).node_and_extra[0]),
+        .call_one, .call_one_comma => getRightmostIdentifier(ctx, ast.nodeData(id).node_and_opt_node[0]),
         else => null,
     };
 }
@@ -35,37 +36,30 @@ pub fn getRightmostIdentifier(ctx: *Context, id: Node.Index) ?[]const u8 {
 /// foo.bar().baz.? // "foo"
 /// ```
 pub fn getLeftmostIdentifier(ctx: *Context, id: Node.Index, comptime ignore_call: bool) ?Node.Index {
-    const nodes = ctx.ast().nodes;
-    const tags: []const Node.Tag = nodes.items(.tag);
-    const datas: []const Node.Data = nodes.items(.data);
+    const ast = ctx.ast();
 
     var curr = id;
     while (true) {
-        switch (tags[curr]) {
+        switch (ast.nodeTag(curr)) {
             .identifier => return curr,
-            // lhs(...)
-            .call,
-            .call_comma,
-            .call_one,
-            .call_one_comma,
-            => {
-                if (ignore_call) return null else curr = datas[curr].lhs;
+            .call, .call_comma => {
+                if (ignore_call) return null else curr = ast.nodeData(curr).node_and_extra[0];
             },
-            .field_access, // lhs.a
-            .unwrap_optional, // lhs.?
-            => curr = datas[curr].lhs,
+            .call_one, .call_one_comma => {
+                if (ignore_call) return null else curr = ast.nodeData(curr).node_and_opt_node[0];
+            },
+            .field_access, .unwrap_optional => curr = ast.nodeData(curr).node_and_token[0],
             else => return null,
         }
     }
 }
 
 pub fn isInTest(ctx: *const Context, node: Node.Index) bool {
-    const tags: []const Node.Tag = ctx.ast().nodes.items(.tag);
+    const ast = ctx.ast();
     var parents = ctx.links().iterParentIds(node);
 
     while (parents.next()) |parent| {
-        // NOTE: container and fn decls may be nested within a test.
-        switch (tags[parent]) {
+        switch (ast.nodeTag(parent)) {
             .test_decl => return true,
             else => continue,
         }
@@ -73,8 +67,8 @@ pub fn isInTest(ctx: *const Context, node: Node.Index) bool {
     return false;
 }
 
-pub fn isBlock(tags: []const Node.Tag, node: Node.Index) bool {
-    return switch (tags[node]) {
+pub fn isBlock(ast: *const Ast, node: Node.Index) bool {
+    return switch (ast.nodeTag(node)) {
         .block, .block_semicolon, .block_two, .block_two_semicolon => true,
         else => false,
     };
@@ -125,20 +119,17 @@ pub fn hasErrorUnion(ast: *const Ast, node: Node.Index) bool {
 }
 
 pub fn getErrorUnion(ast: *const Ast, node: Node.Index) Node.Index {
-    const tags: []const Node.Tag = ast.nodes.items(.tag);
     const tok_tags: []const Token.Tag = ast.tokens.items(.tag);
-    return switch (tags[node]) {
+    return switch (ast.nodeTag(node)) {
         .root => NULL_NODE,
         .error_union, .merge_error_sets, .error_set_decl => node,
-        .if_simple => getErrorUnion(ast, ast.nodes.items(.data)[node].rhs),
+        .if_simple => getErrorUnion(ast, ast.nodeData(node).node_and_node[1]),
         .@"if" => blk: {
             const ifnode = ast.ifFull(node);
-            // there's a bug in fn return types for functions with return types
-            // like `!if (cond) ...`. `ast.return_type` is `@"if"` instead of
-            // the error union.
-            const main = ast.nodes.items(.main_token)[node];
+            const main = ast.nodeMainToken(node);
             if (main > 1 and tok_tags[main - 1] == .bang) break :blk node;
-            break :blk unwrapNode(getErrorUnion(ast, ifnode.ast.then_expr)) orelse getErrorUnion(ast, ifnode.ast.else_expr);
+            break :blk unwrapNode(getErrorUnion(ast, ifnode.ast.then_expr)) orelse
+                if (ifnode.ast.else_expr.unwrap()) |else_expr| getErrorUnion(ast, else_expr) else NULL_NODE;
         },
         else => blk: {
             const prev_tok = ast.firstToken(node) -| 1;
@@ -157,23 +148,21 @@ pub fn getErrorUnion(ast: *const Ast, node: Node.Index) Node.Index {
 ///   Allocator.Error!*T
 /// ```
 pub fn isPointerType(ctx: *const Context, node: Node.Index) bool {
-    const nodes = ctx.ast().nodes;
-    const tags: []const Node.Tag = nodes.items(.tag);
+    const ast = ctx.ast();
+
     var curr = node;
     while (true) {
-        switch (tags[curr]) {
+        switch (ast.nodeTag(curr)) {
             Node.Tag.ptr_type,
             Node.Tag.ptr_type_aligned,
             Node.Tag.ptr_type_sentinel,
             Node.Tag.ptr_type_bit_range,
             => return true,
             .optional_type => {
-                // ?lhs
-                curr = nodes.items(.data)[curr].lhs;
+                curr = ast.nodeData(curr).node;
             },
             .error_union => {
-                // lhs!rhs
-                curr = nodes.items(.data)[curr].rhs;
+                curr = ast.nodeData(curr).node_and_node[1];
             },
             else => return false,
         }
@@ -186,18 +175,13 @@ pub fn isPointerType(ctx: *const Context, node: Node.Index) bool {
 /// - `Error!?T` -> `T`
 ///
 pub fn getInnerType(ast: *const Ast, node: Node.Index) Node.Index {
-    const nodes = ast.nodes;
-    const tags: []const Node.Tag = nodes.items(.tag);
-    const datas: []const Node.Data = nodes.items(.data);
     var curr = node;
     while (true) {
-        switch (tags[curr]) {
-            .ptr_type,
-            .ptr_type_aligned,
-            .ptr_type_sentinel,
-            => curr = datas[curr].rhs,
-            .optional_type => curr = datas[curr].lhs,
-            .error_union => curr = datas[curr].rhs,
+        switch (ast.nodeTag(curr)) {
+            .ptr_type, .ptr_type_bit_range => curr = ast.nodeData(curr).extra_and_node[1],
+            .ptr_type_aligned, .ptr_type_sentinel => curr = ast.nodeData(curr).opt_node_and_node[1],
+            .optional_type => curr = ast.nodeData(curr).node,
+            .error_union => curr = ast.nodeData(curr).node_and_node[1],
             else => break,
         }
     }
