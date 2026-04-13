@@ -780,17 +780,14 @@ fn visitAssignDestructure(
                     .s_const = token_tags[main_token] == .keyword_const,
                 },
             });
-        } else if (ast.nodeTag(var_id) == .identifier) {
-            // Destructuring allows arbitrary lvalue expressions; at minimum `identifier`
-            // covers `_` (discard) and assignment to existing names. Match plain `=`:
-            // LHS is a write, not a read.
+        } else {
+            // Destructuring allows arbitrary lvalue expressions: identifiers (`_`, existing
+            // names), field access, indexing, etc. Match plain `=` — LHS is a write, not a read.
             const flags = self._curr_reference_flags;
             defer self._curr_reference_flags = flags;
             self._curr_reference_flags.write = true;
             self._curr_reference_flags.read = false;
             try self.visit(var_id);
-        } else {
-            return SemanticError.FullMismatch;
         }
     }
     try self.visit(destructure.ast.value_expr);

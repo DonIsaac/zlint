@@ -1,19 +1,9 @@
-Passed: 98.12862% (2884/2939)
+Passed: 98.46887% (2894/2939)
 Panics: 0% (0/2939)
 
 doc/langref/invalid_doc-comment.zig: error.AnalysisFailed
 doc/langref/unattached_doc-comment.zig: error.AnalysisFailed
 doc/langref/var_must_be_initialized.zig: error.AnalysisFailed
-lib/compiler/aro/aro/Driver.zig: error.FullMismatch
-lib/compiler/aro/aro/Preprocessor.zig: error.FullMismatch
-lib/compiler/aro/aro/Tree.zig: error.FullMismatch
-lib/compiler_rt/divmodei4.zig: error.FullMismatch
-lib/fuzzer.zig: error.FullMismatch
-lib/std/Io/Threaded.zig: error.FullMismatch
-lib/std/Target/Query.zig: error.FullMismatch
-lib/std/math/big/int.zig: error.FullMismatch
-lib/std/zig/Ast.zig: error.FullMismatch
-src/codegen/x86_64/CodeGen.zig: error.FullMismatch
 test/cases/compile_errors/Issue_6823_dont_allow_._to_be_followed_by_.zig: error.AnalysisFailed
 test/cases/compile_errors/attempted_double_ampersand.zig: error.AnalysisFailed
 test/cases/compile_errors/chained_comparison_operators.zig: error.AnalysisFailed
