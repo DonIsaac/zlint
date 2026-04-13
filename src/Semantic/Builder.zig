@@ -766,22 +766,32 @@ fn visitAssignDestructure(
 
     for (destructure.ast.variables) |var_id| {
         const main_token: TokenIndex = ast.nodeMainToken(var_id);
-        const decl: full.VarDecl = ast.fullVarDecl(var_id) orelse {
-            return SemanticError.FullMismatch;
-        };
-        const identifier = try self.assertToken(main_token + 1, .identifier);
+        if (ast.fullVarDecl(var_id)) |decl| {
+            const identifier = try self.assertToken(main_token + 1, .identifier);
 
-        // note: intentionally not using bindSymbol (for now, at least)
-        _ = try self.declareSymbol(.{
-            .declaration_node = var_id,
-            .identifier = identifier,
-            .visibility = if (decl.visib_token != null) .public else .private,
-            .flags = .{
-                .s_variable = true,
-                .s_comptime = is_comptime,
-                .s_const = token_tags[main_token] == .keyword_const,
-            },
-        });
+            // note: intentionally not using bindSymbol (for now, at least)
+            _ = try self.declareSymbol(.{
+                .declaration_node = var_id,
+                .identifier = identifier,
+                .visibility = if (decl.visib_token != null) .public else .private,
+                .flags = .{
+                    .s_variable = true,
+                    .s_comptime = is_comptime,
+                    .s_const = token_tags[main_token] == .keyword_const,
+                },
+            });
+        } else if (ast.nodeTag(var_id) == .identifier) {
+            // Destructuring allows arbitrary lvalue expressions; at minimum `identifier`
+            // covers `_` (discard) and assignment to existing names. Match plain `=`:
+            // LHS is a write, not a read.
+            const flags = self._curr_reference_flags;
+            defer self._curr_reference_flags = flags;
+            self._curr_reference_flags.write = true;
+            self._curr_reference_flags.read = false;
+            try self.visit(var_id);
+        } else {
+            return SemanticError.FullMismatch;
+        }
     }
     try self.visit(destructure.ast.value_expr);
 }
