@@ -783,14 +783,51 @@ fn visitAssignDestructure(
         } else {
             // Destructuring allows arbitrary lvalue expressions: identifiers (`_`, existing
             // names), field access, indexing, etc. Match plain `=` — LHS is a write, not a read.
-            const flags = self._curr_reference_flags;
-            defer self._curr_reference_flags = flags;
-            self._curr_reference_flags.write = true;
-            self._curr_reference_flags.read = false;
-            try self.visit(var_id);
+            try self.visitAssignmentTarget(var_id);
         }
     }
     try self.visit(destructure.ast.value_expr);
+}
+
+/// Non-`var`/`const` destructuring targets: identifiers are writes; `a.b` / `a[i]` / `*p` use
+/// read flags for address operands (same idea as `visitSlice`).
+fn visitAssignmentTarget(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
+    if (node_id == NULL_NODE) return;
+
+    const ast = self.AST();
+    switch (ast.nodeTag(node_id)) {
+        .array_access => {
+            const left, const right = ast.nodeData(node_id).node_and_node;
+            const prev = self.takeReferenceFlags();
+            defer self._curr_reference_flags = prev;
+            self._curr_reference_flags.read = true;
+            self._curr_reference_flags.write = false;
+            self._curr_reference_flags.call = false;
+            try self.visit(left);
+            try self.visit(right);
+        },
+        .field_access => try self.visitAssignmentTargetReadOperand(ast.nodeData(node_id).node_and_token[0]),
+        .deref => try self.visitAssignmentTargetReadOperand(ast.nodeData(node_id).node),
+        .grouped_expression, .unwrap_optional => {
+            try self.visitAssignmentTarget(ast.nodeData(node_id).node_and_token[0]);
+        },
+        else => {
+            const prev = self.takeReferenceFlags();
+            defer self._curr_reference_flags = prev;
+            self._curr_reference_flags.write = true;
+            self._curr_reference_flags.read = false;
+            try self.visit(node_id);
+        },
+    }
+}
+
+fn visitAssignmentTargetReadOperand(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
+    const prev = self.takeReferenceFlags();
+    defer self._curr_reference_flags = prev;
+    self._curr_reference_flags.read = true;
+    self._curr_reference_flags.write = false;
+    self._curr_reference_flags.call = false;
+    try self.visit(node_id);
 }
 
 // ========================= VARIABLE/FIELD REFERENCES  ========================
