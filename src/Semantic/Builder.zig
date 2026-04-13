@@ -1889,6 +1889,7 @@ test {
     t.refAllDecls(@import("test/symbol_decl_test.zig"));
     t.refAllDecls(@import("test/symbol_ref_test.zig"));
     t.refAllDecls(@import("test/members_and_exports_test.zig"));
+    t.refAllDecls(@import("test/assign_destructure_test.zig"));
 }
 test "Struct/enum fields are bound bound to the struct/enums's member table" {
     const alloc = std.testing.allocator;
