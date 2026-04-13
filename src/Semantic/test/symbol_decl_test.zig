@@ -50,6 +50,13 @@ test "Symbol flags - variable declarations" {
             .{ .s_const = false, .s_variable = true },
         },
         .{
+            \\fn foo() void {
+            \\  _, const x = .{ @as(u32, 1), @as(u32, 2) };
+            \\}
+            ,
+            .{ .s_const = true, .s_variable = true },
+        },
+        .{
             "fn foo() u32 { comptime var x = 1; return x; }",
             .{ .s_variable = true, .s_comptime = true },
         },
