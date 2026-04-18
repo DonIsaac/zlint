@@ -23,7 +23,7 @@ src/collections/multi_array_list.zig: error.AnalysisFailed
 src/fs.zig: error.AnalysisFailed
 src/http/websocket_client/WebSocketProxy.zig: error.AnalysisFailed
 src/http/websocket_client/WebSocketProxyTunnel.zig: error.AnalysisFailed
-src/interchange/yaml.zig: error.FullMismatch
+src/interchange/yaml.zig: error.AnalysisFailed
 src/ptr/external_shared.zig: error.AnalysisFailed
 src/ptr/owned.zig: error.AnalysisFailed
 src/ptr/raw_ref_count.zig: error.AnalysisFailed
