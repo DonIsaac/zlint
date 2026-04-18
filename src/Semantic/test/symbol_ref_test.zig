@@ -581,6 +581,38 @@ test "Reference flags - `x` - arrays, slices, etc" {
             ,
             .{ .type = true },
         },
+        // writing through an index: `x[i] = v` — LHS array-access visits the
+        // receiver under the assignment's write flag, so `x` is recorded as a
+        // write (not a read).
+        .{
+            \\fn foo() void {
+            \\  var x = [_]u32{1, 2, 3};
+            \\  x[0] = 4;
+            \\}
+            ,
+            .{ .write = true },
+        },
+        // compound-assignment through an index: `x[i] += v` — LHS is both read
+        // and written.
+        .{
+            \\fn foo() void {
+            \\  var x = [_]u32{1, 2, 3};
+            \\  x[0] += 1;
+            \\}
+            ,
+            .{ .read = true, .write = true },
+        },
+        // `x` inside an array literal that is itself indexed in-place. The
+        // parser requires parens around the literal before the `[0]`; without
+        // them this is a syntax error. `x` is only read as an element value.
+        .{
+            \\fn foo() u32 {
+            \\  const x: u32 = 1;
+            \\  return ([_]u32{ x, 2, 3 })[0];
+            \\}
+            ,
+            .{ .read = true },
+        },
     });
 }
 
