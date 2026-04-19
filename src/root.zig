@@ -22,4 +22,5 @@ test {
     std.testing.refAllDecls(@import("util"));
     std.testing.refAllDeclsRecursive(printer);
     std.testing.refAllDeclsRecursive(json);
+    std.testing.refAllDecls(lint);
 }

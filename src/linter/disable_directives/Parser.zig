@@ -69,9 +69,18 @@ pub fn parse(self: *DisableDirectivesParser, allocator: Allocator, line_comment:
 
     // consume /\s*//[/!]?\s*/
     self.eatWhitespace(); // "\s*"
+    if (self.cursor == self.span.end or (self.span.end - self.cursor) < MIN_LEN) {
+        @branchHint(.unlikely);
+        return null;
+    }
     self.eatMany("//", false) orelse return null; // "//"
-    self.eat('!') orelse {}; // maybe '!' for module doc comments
-    self.eat('/') orelse {}; // maybe '/' for 'normal' doc comments
+    switch (self.curr()) {
+        // never out of bounds b/c of len check after whitespace
+        '!', // maybe a module doc comment
+        '/', // maybe a container/fn doc comment
+        => self.cursor += 1,
+        else => {},
+    }
     self.eatWhitespace(); // "\s*"
 
     // consume /zlint-disable[-next-line]/. determines directive kind.
@@ -95,15 +104,28 @@ pub fn parse(self: *DisableDirectivesParser, allocator: Allocator, line_comment:
         const start = self.cursor;
         while (self.cursor < self.span.end) : (self.cursor += 1) {
             switch (self.curr()) {
-                'a'...'z', 'A'...'Z', '-' => {},
+                'a'...'z', 'A'...'Z' => {},
+                '-' => {
+                    if (self.peek() == '-') break;
+                    // continue
+                },
                 else => break,
             }
         }
         self.cursor = @min(self.cursor, self.span.end);
+        // Skip unrecognized characters (digits, underscores, etc.) that the
+        // inner loop cannot consume.
+        if (self.cursor == start) {
+            @branchHint(.cold);
+            self.cursor += 1;
+            continue;
+        }
         try self.rules.append(alloc, Span.new(@intCast(start), @intCast(self.cursor)));
         self.eat(',') orelse {};
         self.eatWhitespace();
+        if (self.eatMany("--", false)) |_| break;
     }
+
     return self.build(allocator);
 }
 
@@ -137,6 +159,17 @@ fn eat(self: *DisableDirectivesParser, expected: u8) ?void {
     } else {
         return null;
     }
+}
+
+/// Safely read the next character. Returns `null` if we're at the end of the
+/// source slice.
+inline fn peek(self: *const DisableDirectivesParser) ?u8 {
+    const next_pos = self.cursor + 1;
+    if (next_pos >= self.span.end) {
+        @branchHint(.unlikely);
+        return null;
+    }
+    return self.source[next_pos];
 }
 
 /// Try to consume a slice. If found, the cursor is moved past `expected`,

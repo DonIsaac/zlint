@@ -15,6 +15,8 @@ const TestCase = struct {
 
 /// For when you don't care about the parsed comment's span
 const NULL_SPAN = Span{ .start = 0, .end = 0 };
+const global: DisableDirectiveComment = .{ .kind = .global, .span = NULL_SPAN };
+const line: DisableDirectiveComment = .{ .kind = .line, .span = NULL_SPAN };
 
 fn runTests(cases: []const TestCase) !void {
     for (cases) |case| {
@@ -74,15 +76,23 @@ test "line directives that disable all rules" {
 }
 
 test "comments" {
-    const global: DisableDirectiveComment = .{ .kind = .global, .span = NULL_SPAN };
-    const line: DisableDirectiveComment = .{ .kind = .line, .span = NULL_SPAN };
-
     const cases = &[_]TestCase{
         .{ .src = "// zlint-disable -- unsafe-undefined", .expected = global },
         .{ .src = "// zlint-disable-next-line -- unsafe-undefined", .expected = line },
         .{ .src = "// zlint-disable --", .expected = global },
         .{ .src = "// zlint-disable -- foo bar baz", .expected = global },
+        .{ .src = "// zlint-disable-- foo bar baz", .expected = global },
+        .{ .src = "// zlint-disable --foo bar baz", .expected = global },
         .{ .src = "// zlint-disable     --   foo bar baz", .expected = global },
+        // space omission: rule name directly followed by '--' (no space before comment marker)
+        .{
+            .src = "// zlint-disable-next-line unsafe-undefined-- now heres a comment",
+            .expected = .{
+                .kind = .line,
+                .span = NULL_SPAN,
+                .disabled_rules = @constCast(&[_]Span{Span.new(27, 43)}),
+            },
+        },
     };
 
     try runTests(cases);
@@ -134,6 +144,62 @@ test "disabling specific rules" {
                 }),
             },
         },
+    };
+    try runTests(cases);
+}
+
+test "non-letter characters in rule list do not cause infinite loop" {
+    // Digits, underscores, and other non-letter/non-hyphen characters are not
+    // valid in rule names. The parser must skip them rather than loop forever
+    // on a zero-length token.
+    const cases = &[_]TestCase{
+        // pure digit token — skipped entirely, no rules parsed
+        .{
+            .src = "// zlint-disable 123",
+            .expected = global,
+        },
+        // leading underscore is skipped; "foo" is still captured
+        .{
+            .src = "// zlint-disable _foo",
+            .expected = .{
+                .kind = .global,
+                .span = NULL_SPAN,
+                .disabled_rules = @constCast(&[_]Span{Span.new(18, 21)}),
+            },
+        },
+        // valid rule name preceded by digit garbage — digit skipped, rule captured
+        .{
+            .src = "// zlint-disable 1foo",
+            .expected = .{
+                .kind = .global,
+                .span = NULL_SPAN,
+                .disabled_rules = @constCast(&[_]Span{Span.new(18, 21)}),
+            },
+        },
+        // valid rule mixed with an all-digit token
+        .{
+            .src = "// zlint-disable foo 42 bar",
+            .expected = .{
+                .kind = .global,
+                .span = NULL_SPAN,
+                .disabled_rules = @constCast(&[_]Span{
+                    Span.new(17, 20),
+                    Span.new(24, 27),
+                }),
+            },
+        },
+    };
+    try runTests(cases);
+}
+
+test "empty comments" {
+    const cases = &[_]TestCase{
+        .{ .src = "//", .expected = null },
+        .{ .src = "///", .expected = null },
+        .{ .src = "//!", .expected = null },
+        .{ .src = "// ", .expected = null },
+        .{ .src = "/// ", .expected = null },
+        .{ .src = "//! ", .expected = null },
     };
     try runTests(cases);
 }
