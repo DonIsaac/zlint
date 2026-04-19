@@ -9,26 +9,10 @@ pub const Meta = struct {
 };
 
 pub const Kind = enum {
-    graphical,
+    ascii,
+    unicode,
     github,
     json,
-
-    const FormatMap = std.StaticStringMapWithEql(
-        Kind,
-        std.static_string_map.eqlAsciiIgnoreCase,
-    );
-    const formats = FormatMap.initComptime(&[_]struct { []const u8, Kind }{
-        .{ "github", .github },
-        .{ "gh", .github },
-        .{ "json", .json },
-        .{ "graphical", .graphical },
-        .{ "default", .graphical },
-    });
-
-    /// Get a formatter kind by name. Names are case-insensitive.
-    pub fn fromString(str: []const u8) ?Kind {
-        return formats.get(str);
-    }
 };
 
 pub const FormatError = io.Writer.Error || Allocator.Error;
