@@ -113,6 +113,13 @@ pub fn parse(self: *DisableDirectivesParser, allocator: Allocator, line_comment:
             }
         }
         self.cursor = @min(self.cursor, self.span.end);
+        // Skip unrecognized characters (digits, underscores, etc.) that the
+        // inner loop cannot consume.
+        if (self.cursor == start) {
+            @branchHint(.cold);
+            self.cursor += 1;
+            continue;
+        }
         try self.rules.append(alloc, Span.new(@intCast(start), @intCast(self.cursor)));
         self.eat(',') orelse {};
         self.eatWhitespace();
