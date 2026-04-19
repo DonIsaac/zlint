@@ -13,6 +13,6 @@ test {
     std.testing.refAllDeclsRecursive(@import("linter/rules.zig"));
 
     // Test suites
-    _ = @import("linter/test/disabling_rules_test.zig");
-    _ = @import("linter/test/fix_test.zig");
+    std.testing.refAllDecls(@import("linter/test/disabling_rules_test.zig"));
+    std.testing.refAllDecls(@import("linter/test/fix_test.zig"));
 }

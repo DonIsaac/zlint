@@ -82,7 +82,18 @@ test "comments" {
         .{ .src = "// zlint-disable-next-line -- unsafe-undefined", .expected = line },
         .{ .src = "// zlint-disable --", .expected = global },
         .{ .src = "// zlint-disable -- foo bar baz", .expected = global },
+        .{ .src = "// zlint-disable-- foo bar baz", .expected = global },
+        .{ .src = "// zlint-disable --foo bar baz", .expected = global },
         .{ .src = "// zlint-disable     --   foo bar baz", .expected = global },
+        // space omission: rule name directly followed by '--' (no space before comment marker)
+        .{
+            .src = "// zlint-disable-next-line unsafe-undefined-- now heres a comment",
+            .expected = .{
+                .kind = .line,
+                .span = NULL_SPAN,
+                .disabled_rules = @constCast(&[_]Span{Span.new(27, 43)}),
+            },
+        },
     };
 
     try runTests(cases);
@@ -134,6 +145,18 @@ test "disabling specific rules" {
                 }),
             },
         },
+    };
+    try runTests(cases);
+}
+
+test "empty comments" {
+    const cases = &[_]TestCase{
+        .{ .src = "//", .expected = null },
+        .{ .src = "///", .expected = null },
+        .{ .src = "//!", .expected = null },
+        .{ .src = "// ", .expected = null },
+        .{ .src = "/// ", .expected = null },
+        .{ .src = "//! ", .expected = null },
     };
     try runTests(cases);
 }
