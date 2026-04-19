@@ -69,7 +69,7 @@ pub fn parse(self: *DisableDirectivesParser, allocator: Allocator, line_comment:
 
     // consume /\s*//[/!]?\s*/
     self.eatWhitespace(); // "\s*"
-    if (self.remaining().len < MIN_LEN) {
+    if (self.cursor == self.span.end or (self.span.end - self.cursor) < MIN_LEN) {
         @branchHint(.unlikely);
         return null;
     }
