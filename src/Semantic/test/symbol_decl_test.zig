@@ -277,3 +277,139 @@ test "control flow payloads - value and error" {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// visitContainer must restore `_curr_symbol_flags` rather than re-applying
+// it, or container bits latch on for declarations that follow the container
+// visit. declareSymbol merges `_curr_symbol_flags` into each new symbol's
+// flags, so the leak would taint subsequent sibling members.
+// ---------------------------------------------------------------------------
+
+test "visitContainer: sibling members after a nested enum do not inherit s_enum" {
+    const src =
+        \\pub const Foo = struct {
+        \\    pub const Kind = enum { a, b };
+        \\    pub const x: u32 = 0;
+        \\};
+    ;
+    var sem = try build(src);
+    defer sem.deinit();
+
+    const kind = sem.symbols.getSymbolNamed("Kind") orelse return error.SymbolNotFound;
+    const x = sem.symbols.getSymbolNamed("x") orelse return error.SymbolNotFound;
+
+    const flags = sem.symbols.symbols.items(.flags);
+    try t.expect(flags[kind.int()].s_enum);
+    try t.expect(!flags[x.int()].s_enum);
+    try t.expect(!flags[x.int()].s_struct);
+    try t.expect(!flags[x.int()].s_union);
+}
+
+test "visitContainer: sibling members after a nested union do not inherit s_union" {
+    const src =
+        \\pub const Foo = struct {
+        \\    pub const U = union { a: u32, b: u32 };
+        \\    pub const y: u32 = 0;
+        \\};
+    ;
+    var sem = try build(src);
+    defer sem.deinit();
+
+    const u = sem.symbols.getSymbolNamed("U") orelse return error.SymbolNotFound;
+    const y = sem.symbols.getSymbolNamed("y") orelse return error.SymbolNotFound;
+    const flags = sem.symbols.symbols.items(.flags);
+    try t.expect(flags[u.int()].s_union);
+    try t.expect(!flags[y.int()].s_union);
+}
+
+// ---------------------------------------------------------------------------
+// visitFnDecl save/restore path: previously `prev_symbol_flags` captured
+// `_curr_reference_flags` but the next line mutated `_curr_symbol_flags`.
+// The defer restored reference flags (no-op), leaving symbol flags desynced.
+// Exercise the save/restore in a nested container: repeated sibling fns must
+// each correctly record as s_fn on their own symbol, and a sibling const
+// must keep its expected flag shape.
+// ---------------------------------------------------------------------------
+
+test "visitFnDecl: multiple sibling fns in a container keep correct flags" {
+    const src =
+        \\pub const Foo = struct {
+        \\    pub fn a() void {}
+        \\    pub fn b() void {}
+        \\    pub const c: u32 = 0;
+        \\};
+    ;
+    var sem = try build(src);
+    defer sem.deinit();
+
+    const a = sem.symbols.getSymbolNamed("a") orelse return error.SymbolNotFound;
+    const b = sem.symbols.getSymbolNamed("b") orelse return error.SymbolNotFound;
+    const c = sem.symbols.getSymbolNamed("c") orelse return error.SymbolNotFound;
+
+    const flags = sem.symbols.symbols.items(.flags);
+    try t.expect(flags[a.int()].s_fn);
+    try t.expect(flags[b.int()].s_fn);
+    // c is a const variable, not a function
+    try t.expect(!flags[c.int()].s_fn);
+    try t.expect(flags[c.int()].s_const);
+    try t.expect(flags[c.int()].s_variable);
+}
+
+// ---------------------------------------------------------------------------
+// visitSwitchCase previously had an unbalanced scope stack on the
+// MissingIdentifier early-return path because the exitScope defer was
+// registered after the early return. Lock in the payload scoping behavior.
+// ---------------------------------------------------------------------------
+
+test "visitSwitchCase: valid payload declares scoped binding" {
+    const src =
+        \\fn foo(x: anyerror!u32) void {
+        \\    switch (x) {
+        \\        else => |v| {
+        \\            _ = v;
+        \\        },
+        \\    }
+        \\}
+    ;
+    var sem = try build(src);
+    defer sem.deinit();
+
+    const v = sem.symbols.getSymbolNamed("v") orelse return error.SymbolNotFound;
+    const flags = sem.symbols.symbols.items(.flags);
+    try t.expect(flags[v.int()].s_payload);
+    try t.expect(flags[v.int()].s_const);
+}
+
+test "visitSwitchCase: pointer payload declares scoped binding" {
+    const src =
+        \\fn foo(x: *u32) void {
+        \\    switch (x.*) {
+        \\        else => |*p| {
+        \\            _ = p;
+        \\        },
+        \\    }
+        \\}
+    ;
+    var sem = try build(src);
+    defer sem.deinit();
+
+    const p = sem.symbols.getSymbolNamed("p") orelse return error.SymbolNotFound;
+    const flags = sem.symbols.symbols.items(.flags);
+    try t.expect(flags[p.int()].s_payload);
+}
+
+test "visitSwitchCase: no payload leaves scope stack intact" {
+    const src =
+        \\fn foo(x: u32) void {
+        \\    switch (x) {
+        \\        0 => {},
+        \\        else => {},
+        \\    }
+        \\}
+    ;
+    var sem = try build(src);
+    defer sem.deinit();
+    // Build returned cleanly; previously this path didn't touch the buggy
+    // defer but we lock it in as a regression guard.
+    try t.expect(sem.symbols.getSymbolNamed("foo") != null);
+}

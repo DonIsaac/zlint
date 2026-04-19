@@ -73,6 +73,7 @@ pub fn init(gpa: Allocator) SemanticBuilder {
 }
 
 pub fn withSource(self: *SemanticBuilder, source: *const _source.Source) void {
+    if (self._source_code) |*s| s.deinit();
     self._source_code = source.contents.clone();
     self._source_path = source.pathname;
 }
@@ -377,6 +378,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             const prev = self.setScopeFlag(.s_comptime, false);
             defer self.restoreScopeFlag(.s_comptime, prev);
             self._next_block_scope_flags = .{ .s_test = true, .s_block = true };
+            defer self._next_block_scope_flags = .{};
             // TODO: record .s_test symbol references when test name is an `.identifier`
             return self.visit(ast.nodeData(node_id).opt_token_and_node[1]);
         },
@@ -574,8 +576,9 @@ fn visitContainer(self: *SemanticBuilder, node: NodeIndex, container: full.Conta
     }
 
     self.currentContainerSymbolFlags().set(symbol_flags, true);
+    const prev_symbol_flags = self._curr_symbol_flags;
     self._curr_symbol_flags.set(symbol_flags, true);
-    defer self._curr_symbol_flags.set(symbol_flags, true);
+    defer self._curr_symbol_flags = prev_symbol_flags;
 
     try self.enterScope(.{
         .flags = scope_flags.merge(.{ .s_block = true }),
@@ -591,21 +594,13 @@ fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
 
     var curr_tok = self.getNodeData(node_id).token_and_token[1];
     util.debugAssert(tags[curr_tok] == Token.Tag.r_brace, "error_set_decl rhs should be an rbrace token.", .{});
-    curr_tok -= 1;
 
     try self.enterScope(.{ .flags = .{ .s_error = true } });
     defer self.exitScope();
     self.currentContainerSymbolFlags().s_error = true;
 
-    while (true) : (curr_tok -= 1) {
-        // NOTE: causes an out-of-bounds access in release builds, but the
-        // assertion never fails in debug builds. TODO: investigate and report
-        // to Zig team.
-        util.assert(
-            curr_tok > 0,
-            "an brace should always be encountered when walking an error declaration's members in a syntactically-valid program.",
-            .{},
-        );
+    while (curr_tok > 0) {
+        curr_tok -= 1;
         switch (tags[curr_tok]) {
             .identifier => {
                 _ = try self.declareMemberSymbol(.{
@@ -1009,19 +1004,20 @@ fn visitSwitchCase(self: *SemanticBuilder, node: NodeIndex, case: full.SwitchCas
 
     if (case.payload_token) |payload_token| {
         const tags = self.AST().tokens.items(.tag);
-        try self.enterScope(.{});
         var ident = payload_token;
         if (tags[ident] == .asterisk) ident += 1;
         if (tags[ident] != .identifier) return SemanticError.MissingIdentifier;
+        try self.enterScope(.{});
+        defer self.exitScope();
         _ = try self.bindSymbol(.{
             .declaration_node = node,
             .identifier = ident,
             .flags = .{ .s_payload = true, .s_const = true },
         });
+        return self.visit(case.ast.target_expr);
     }
-    defer if (case.payload_token != null) self.exitScope();
 
-    try self.visit(case.ast.target_expr);
+    return self.visit(case.ast.target_expr);
 }
 
 fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
@@ -1135,9 +1131,9 @@ fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) callconv(util.@"inlin
     // TODO: bound name vs escaped name
     const debug_name: ?[]const u8 = if (proto.name_token == null) "<anonymous fn>" else null;
 
-    const prev_symbol_flags = self._curr_reference_flags;
+    const prev_symbol_flags = self._curr_symbol_flags;
     self._curr_symbol_flags.set(Symbol.Flags.s_container, false);
-    defer self._curr_reference_flags = prev_symbol_flags;
+    defer self._curr_symbol_flags = prev_symbol_flags;
 
     var flags: Symbol.Flags = .{ .s_fn = true };
     if (proto.extern_export_inline_token) |tok| {
@@ -1661,11 +1657,15 @@ fn recordImport(self: *SemanticBuilder, node: NodeIndex) Allocator.Error!void {
         const loc: Token.Loc = self._semantic.tokens().items(.loc)[ast.nodeMainToken(specifier_node)];
         try e.labels.append(self._gpa, LabeledSpan.unlabeled(@intCast(loc.start), @intCast(loc.end)));
         try self._errors.append(self._gpa, e);
+        return;
     }
 
     var specifier = self.tokenSlice(ast.nodeMainToken(specifier_node));
     specifier = std.mem.trim(u8, specifier, "\"");
-    const is_file = specifier.len > 4 and specifier[specifier.len - 4] == '.';
+    const is_file = if (std.mem.lastIndexOfScalar(u8, specifier, '.')) |dot|
+        dot > 0 and dot < specifier.len - 1
+    else
+        false;
     try self._semantic.modules.imports.append(self._gpa, ModuleRecord.ImportEntry{
         .specifier = specifier,
         .node = node,
@@ -1764,7 +1764,6 @@ fn addAstError(self: *SemanticBuilder, ast: *const Ast, ast_err: Ast.Error) Allo
         ast.renderError(ast_err, &allocating.writer) catch break :blk &.{};
         break :blk allocating.toOwnedSlice() catch break :blk &.{};
     };
-    errdefer self._gpa.free(message);
 
     var err = Error.new(message, self._gpa);
     errdefer err.deinit(self._gpa);
@@ -1784,22 +1783,6 @@ fn addAstError(self: *SemanticBuilder, ast: *const Ast, ast_err: Ast.Error) Allo
     if (self._source_path) |path| err.source_name = try self._gpa.dupe(u8, path);
 
     try self._errors.append(self._gpa, err);
-}
-
-/// Record an error encountered during parsing or analysis.
-///
-/// All parameters are borrowed. Errors own their data, so each parameter gets cloned onto the heap.
-fn addError(self: *SemanticBuilder, message: []const u8, labels: []Span, help: ?[]const u8) Allocator.Error!void {
-    const alloc = self._errors.allocator;
-    const heap_message = try alloc.dupeZ(u8, message);
-    const heap_labels = try alloc.dupe(Span, labels);
-    const heap_help = if (help) |h| alloc.dupeZ(h) else null;
-    const err = try Error{
-        .message = .{ .str = heap_message, .static = false },
-        .labels = heap_labels,
-        .help = heap_help,
-    };
-    try self._errors.append(err);
 }
 
 // =========================================================================
