@@ -6,7 +6,7 @@ set up your development environment and contribution guidelines.
 ## Setup
 
 You'll obviously need to have [Zig](https://ziglang.org/) installed. Right now
-we are using version `0.13.0`.
+we are using version `0.15.0`.
 
 ### Tl;Dr
 
