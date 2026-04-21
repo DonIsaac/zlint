@@ -123,7 +123,7 @@ pub inline fn pComma(self: *Printer) void {
 /// be printed.
 pub fn pushObject(self: *Printer) !void {
     try self.container_stack.append(self.alloc, ContainerKind.object);
-    _ = try self.writer.write("{");
+    try self.writer.writeAll("{");
     try self.pIndent();
 }
 
@@ -131,7 +131,7 @@ pub fn pushObject(self: *Printer) !void {
 /// be printed.
 pub fn pushArray(self: *Printer, comptime indent: bool) !void {
     try self.container_stack.append(self.alloc, ContainerKind.array);
-    _ = try self.writer.write("[");
+    try self.writer.writeAll("[");
     if (indent) {
         try self.pIndent();
     }
@@ -142,14 +142,13 @@ pub fn pushArray(self: *Printer, comptime indent: bool) !void {
 pub fn pop(self: *Printer) void {
     const kind = self.container_stack.pop() orelse @panic("container stack is empty");
     self.pIndent() catch @panic("failed to write indent after container end");
-    const res = switch (kind) {
-        ContainerKind.object => self.writer.write("}"),
-        ContainerKind.array => self.writer.write("]"),
-    };
+    switch (kind) {
+        ContainerKind.object => self.writer.writeAll("}") catch @panic("failed to write container end"),
+        ContainerKind.array => self.writer.writeAll("]") catch @panic("failed to write container end"),
+    }
     if (self.container_stack.items.len > 0) {
         self.pComma();
     }
-    _ = res catch @panic("failed to write container end");
 }
 
 pub fn popIndent(self: *Printer) void {
