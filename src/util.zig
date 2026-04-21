@@ -45,9 +45,13 @@ pub inline fn assert(condition: bool, comptime fmt: []const u8, args: anytype) v
     }
 }
 
+/// Assert that `condition` is true, panicking in debug builds if it is not.
+/// Unlike `assert`, `debugAssert` will not trigger undefined behavior for
+/// `false` conditions in release builds.
 pub inline fn debugAssert(condition: bool, comptime fmt: []const u8, args: anytype) void {
-    if (comptime IS_DEBUG) {
-        if (!condition) std.debug.panic(fmt, args);
+    if (!condition) {
+        @branchHint(.cold); // panic sets .cold, but that's lost in release builds.
+        if (comptime IS_DEBUG) std.debug.panic(fmt, args);
     }
 }
 
