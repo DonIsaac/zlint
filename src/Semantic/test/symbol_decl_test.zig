@@ -194,17 +194,17 @@ test "Symbol flags - control flow payloads" {
         },
         // while
         // FIXME: x not bound
-        // .{
-        //     \\const std = @import("std");
-        //     \\fn foo(map: std.StringHashMap(u32)) void {
-        //     \\  var it = map.entries();
-        //     \\  while(it.next()) |x| {
-        //     \\    std.debug.print("{d}\n", .{x.valuePtr.*});
-        //     \\  }
-        //     \\}
-        //     ,
-        //     .{ .s_payload = true, .s_const = true },
-        // },
+        .{
+            \\const std = @import("std");
+            \\fn foo(map: std.StringHashMap(u32)) void {
+            \\  var it = map.entries();
+            \\  while(it.next()) |x| {
+            \\    std.debug.print("{d}\n", .{x.valuePtr.*});
+            \\  }
+            \\}
+            ,
+            .{ .s_payload = true, .s_const = true },
+        },
         // for
         .{
             "fn foo() void { for(0..10) |x| { _ = x; } }",

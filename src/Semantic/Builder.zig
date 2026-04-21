@@ -603,7 +603,7 @@ fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
         curr_tok -= 1;
         switch (tags[curr_tok]) {
             .identifier => {
-                _ = try self.declareMemberSymbol(.{
+                try self.declareMemberSymbol(.{
                     .declaration_node = node_id,
                     .identifier = curr_tok,
                     .visibility = Symbol.Visibility.public,
@@ -613,7 +613,6 @@ fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
             .comma, .doc_comment => {},
             .l_brace => break,
             else => {
-                @branchHint(.unlikely);
                 // in debug builds we want to know if we're missing something or
                 // handling errors incorrectly. in release mode we can safely
                 // ignore it.
@@ -648,7 +647,7 @@ fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.C
     // NOTE: container fields are always public
     const identifier = self.expectToken(main_token, .identifier);
 
-    _ = try self.declareMemberSymbol(.{
+    try self.declareMemberSymbol(.{
         .identifier = identifier,
         .flags = .{
             .s_comptime = field.comptime_token != null,
@@ -893,10 +892,22 @@ fn visitStructInit(self: *SemanticBuilder, _: NodeIndex, @"struct": full.StructI
 // ============================== STATEMENTS ===============================
 
 fn visitWhile(self: *SemanticBuilder, _: NodeIndex, while_stmt: full.While) callconv(util.@"inline") !void {
-    try self.visit(while_stmt.ast.cond_expr);
-    try self.visitOptional(while_stmt.ast.cont_expr);
-    try self.visit(while_stmt.ast.then_expr);
-    try self.visitOptional(while_stmt.ast.else_expr);
+    const ast = while_stmt.ast;
+    try self.visit(ast.cond_expr);
+    try self.visitOptional(ast.cont_expr);
+    {
+        try self.enterScope(.{});
+        defer self.exitScope();
+        if (while_stmt.payload_token) |payload| {
+            _ = try self.declareSymbol(.{
+                .declaration_node = ast.then_expr,
+                .identifier = payload,
+                .flags = .{ .s_payload = true, .s_const = true },
+            });
+        }
+        try self.visit(ast.then_expr);
+    }
+    try self.visitOptional(ast.else_expr);
 }
 
 fn visitFor(self: *SemanticBuilder, node: NodeIndex, for_stmt: full.For) callconv(util.@"inline") !void {
@@ -1470,11 +1481,11 @@ fn bindSymbol(self: *SemanticBuilder, opts: DeclareSymbol) Allocator.Error!Symbo
 }
 
 /// Declare a new symbol in the current scope/AST node and record it as a member to
-/// the most recent container symbol. Returns the new member symbol's ID.
+/// the most recent container symbol.
 fn declareMemberSymbol(
     self: *SemanticBuilder,
     opts: DeclareSymbol,
-) Allocator.Error!Symbol.Id {
+) Allocator.Error!void {
     var options = opts;
     options.flags.s_member = true;
     const member_symbol_id = try self.declareSymbol(options);
@@ -1482,8 +1493,6 @@ fn declareMemberSymbol(
     const container_symbol_id = self.currentContainerSymbolUnwrap();
     assert(!self._semantic.symbols.get(container_symbol_id).flags.s_member);
     try self._semantic.symbols.addMember(self._gpa, member_symbol_id, container_symbol_id);
-
-    return member_symbol_id;
 }
 
 /// Declare a symbol in the current scope. Symbols created this way are not

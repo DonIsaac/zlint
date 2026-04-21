@@ -91,8 +91,8 @@
       "flags": ["variable"], 
       "references": [
         {"symbol":5,"scope":2,"node":"identifier","identifier":"a","flags":["call"]}, 
-        {"symbol":5,"scope":3,"node":"identifier","identifier":"a","flags":["call"]}, 
-        {"symbol":5,"scope":3,"node":"identifier","identifier":"a","flags":["call"]}, 
+        {"symbol":5,"scope":4,"node":"identifier","identifier":"a","flags":["call"]}, 
+        {"symbol":5,"scope":4,"node":"identifier","identifier":"a","flags":["call"]}, 
         {"symbol":5,"scope":2,"node":"identifier","identifier":"a","flags":["call"]}, 
         
       ], 
@@ -109,9 +109,9 @@
       "flags": ["variable"], 
       "references": [
         {"symbol":6,"scope":2,"node":"identifier","identifier":"b","flags":["call"]}, 
-        {"symbol":6,"scope":3,"node":"identifier","identifier":"b","flags":["call"]}, 
-        {"symbol":6,"scope":3,"node":"identifier","identifier":"b","flags":["read"]}, 
-        {"symbol":6,"scope":3,"node":"identifier","identifier":"b","flags":["call"]}, 
+        {"symbol":6,"scope":4,"node":"identifier","identifier":"b","flags":["call"]}, 
+        {"symbol":6,"scope":4,"node":"identifier","identifier":"b","flags":["read"]}, 
+        {"symbol":6,"scope":4,"node":"identifier","identifier":"b","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -143,8 +143,8 @@
       "flags": ["variable"], 
       "references": [
         {"symbol":8,"scope":2,"node":"identifier","identifier":"c","flags":["call"]}, 
-        {"symbol":8,"scope":3,"node":"identifier","identifier":"c","flags":["call"]}, 
-        {"symbol":8,"scope":3,"node":"identifier","identifier":"c","flags":["read"]}, 
+        {"symbol":8,"scope":4,"node":"identifier","identifier":"c","flags":["call"]}, 
+        {"symbol":8,"scope":4,"node":"identifier","identifier":"c","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -212,11 +212,21 @@
             "children": [
               {
                 "id": 3, 
-                "flags": ["block"], 
+                "flags": [], 
                 "bindings": {
                   
                 }, 
-                "children": [], 
+                "children": [
+                  {
+                    "id": 4, 
+                    "flags": ["block"], 
+                    "bindings": {
+                      
+                    }, 
+                    "children": [], 
+                    
+                  }, 
+                ], 
                 
               }, 
             ], 
