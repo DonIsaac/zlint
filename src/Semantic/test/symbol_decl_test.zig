@@ -205,6 +205,63 @@ test "Symbol flags - control flow payloads" {
             ,
             .{ .s_payload = true, .s_const = true },
         },
+        .{
+            "fn foo(ptr: ?*u32) void { while (ptr) |*x| { _ = x; } }",
+            .{ .s_payload = true, .s_const = true },
+        },
+        .{
+            \\fn use(_: u32) void {}
+            \\fn foo(cond: ?u32) void {
+            \\  while (cond) |x| : (use(x)) { _ = x; }
+            \\}
+            ,
+            .{ .s_payload = true, .s_const = true },
+        },
+        // pointer capture + cont_expr referencing the payload: exercises both fixes together
+        .{
+            \\fn use(_: *u32) void {}
+            \\fn foo(ptr: ?*u32) void {
+            \\  while (ptr) |*x| : (use(x)) { _ = x; }
+            \\}
+            ,
+            .{ .s_payload = true, .s_const = true },
+        },
+        // while with error-union payload and else capture; ensure normal payload still binds
+        .{
+            \\fn next() anyerror!?u32 { return 1; }
+            \\fn foo() void {
+            \\  while (next() catch null) |x| {
+            \\    _ = x;
+            \\  } else {
+            \\    return;
+            \\  }
+            \\}
+            ,
+            .{ .s_payload = true, .s_const = true },
+        },
+        // labeled while with payload
+        .{
+            \\fn foo(cond: ?u32) void {
+            \\  outer: while (cond) |x| {
+            \\    _ = x;
+            \\    break :outer;
+            \\  }
+            \\}
+            ,
+            .{ .s_payload = true, .s_const = true },
+        },
+        // nested while; inner payload `x` shadows outer — inner (most recently declared) is looked up first
+        .{
+            \\fn foo(a: ?u32, b: ?u32) void {
+            \\  while (a) |_| {
+            \\    while (b) |x| {
+            \\      _ = x;
+            \\    }
+            \\  }
+            \\}
+            ,
+            .{ .s_payload = true, .s_const = true },
+        },
         // for
         .{
             "fn foo() void { for(0..10) |x| { _ = x; } }",

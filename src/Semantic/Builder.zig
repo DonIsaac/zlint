@@ -894,17 +894,20 @@ fn visitStructInit(self: *SemanticBuilder, _: NodeIndex, @"struct": full.StructI
 fn visitWhile(self: *SemanticBuilder, _: NodeIndex, while_stmt: full.While) callconv(util.@"inline") !void {
     const ast = while_stmt.ast;
     try self.visit(ast.cond_expr);
-    try self.visitOptional(ast.cont_expr);
     {
+        const tags = self.AST().tokens.items(.tag);
         try self.enterScope(.{});
         defer self.exitScope();
         if (while_stmt.payload_token) |payload| {
+            const identifier = if (tags[payload] == .identifier) payload else payload + 1;
+            if (tags[identifier] != .identifier) return error.MissingIdentifier;
             _ = try self.declareSymbol(.{
                 .declaration_node = ast.then_expr,
-                .identifier = payload,
+                .identifier = identifier,
                 .flags = .{ .s_payload = true, .s_const = true },
             });
         }
+        try self.visitOptional(ast.cont_expr);
         try self.visit(ast.then_expr);
     }
     try self.visitOptional(ast.else_expr);

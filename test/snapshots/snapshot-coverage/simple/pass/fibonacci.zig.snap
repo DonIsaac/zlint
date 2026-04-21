@@ -127,7 +127,7 @@
       "flags": ["variable"], 
       "references": [
         {"symbol":7,"scope":2,"node":"identifier","identifier":"i","flags":["read"]}, 
-        {"symbol":7,"scope":2,"node":"identifier","identifier":"i","flags":["read","write"]}, 
+        {"symbol":7,"scope":3,"node":"identifier","identifier":"i","flags":["read","write"]}, 
         
       ], 
       "members": [], 

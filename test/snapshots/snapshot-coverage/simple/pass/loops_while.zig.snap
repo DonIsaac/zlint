@@ -194,7 +194,7 @@
       "flags": ["variable"], 
       "references": [
         {"symbol":12,"scope":10,"node":"identifier","identifier":"x","flags":["read"]}, 
-        {"symbol":12,"scope":11,"node":"identifier","identifier":"x","flags":["read","write"]}, 
+        {"symbol":12,"scope":12,"node":"identifier","identifier":"x","flags":["read","write"]}, 
         {"symbol":12,"scope":13,"node":"identifier","identifier":"x","flags":["read"]}, 
         
       ], 
@@ -211,7 +211,7 @@
       "flags": ["variable"], 
       "references": [
         {"symbol":13,"scope":10,"node":"identifier","identifier":"y","flags":["read"]}, 
-        {"symbol":13,"scope":11,"node":"identifier","identifier":"y","flags":["read","write"]}, 
+        {"symbol":13,"scope":12,"node":"identifier","identifier":"y","flags":["read","write"]}, 
         {"symbol":13,"scope":13,"node":"identifier","identifier":"y","flags":["read"]}, 
         
       ], 
@@ -302,7 +302,7 @@
       "flags": ["variable"], 
       "references": [
         {"symbol":19,"scope":15,"node":"identifier","identifier":"i","flags":["read"]}, 
-        {"symbol":19,"scope":15,"node":"identifier","identifier":"i","flags":["read","write"]}, 
+        {"symbol":19,"scope":16,"node":"identifier","identifier":"i","flags":["read","write"]}, 
         {"symbol":19,"scope":17,"node":"identifier","identifier":"i","flags":["read"]}, 
         
       ], 
@@ -436,20 +436,20 @@
             "children": [
               {
                 "id": 11, 
-                "flags": ["block"], 
-                "bindings": {
-                  
-                }, 
-                "children": [], 
-                
-              }, {
-                "id": 12, 
                 "flags": [], 
                 "bindings": {
                   
                 }, 
                 "children": [
                   {
+                    "id": 12, 
+                    "flags": ["block"], 
+                    "bindings": {
+                      
+                    }, 
+                    "children": [], 
+                    
+                  }, {
                     "id": 13, 
                     "flags": ["block"], 
                     "bindings": {
