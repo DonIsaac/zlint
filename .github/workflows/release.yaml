@@ -21,6 +21,14 @@ jobs:
       matrix:
         os: [linux, windows, macos]
         arch: [aarch64, x86_64]
+        # riscv64 and loongarch64 are published for Linux only (there are no
+        # macOS/Windows builds for those arches), so add them as explicit
+        # combinations instead of expanding the full os/arch grid.
+        include:
+          - os: linux
+            arch: riscv64
+          - os: linux
+            arch: loongarch64
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
