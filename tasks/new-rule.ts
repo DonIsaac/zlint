@@ -2,11 +2,10 @@
 
 import path from 'path'
 import fs from 'fs'
-import assert from 'assert'
 
 const RULES_DIR = 'src/linter/rules'
 const RULES_MODULE = 'src/linter/rules.zig'
-const CONFIG_PATH = 'src/linter/config/rules_config.zig'
+const CONFIG_PATH = 'src/linter/config/rules_config_rules.zig'
 const p = (...segs: string[]) => path.join(__dirname, '..', ...segs)
 
 class RuleData {
@@ -63,19 +62,11 @@ async function main(argv: string[]) {
  * ```
  */
 const updateConfig = async (rule: RuleData) => {
-    let ruleConfig = await fs.promises.readFile(p(CONFIG_PATH), 'utf-8');
-    const pattern = "pub const RulesConfig = struct {"
-    let insertAt = ruleConfig.indexOf(pattern)
-    assert(insertAt > 0)
-    insertAt += pattern.length
-    do {
-        insertAt++
-    } while (ruleConfig[insertAt] !== '\n')
-    ruleConfig = ruleConfig.slice(0, insertAt) +
-        `    ${rule.underscored}: RuleConfig(rules.${rule.StructName}) = .{},` +
-        ruleConfig.slice(insertAt)
-
-    await fs.promises.writeFile(p(CONFIG_PATH), ruleConfig)
+    await fs.promises.appendFile(
+        p(CONFIG_PATH),
+        `${rule.underscored}: RuleConfig(rules.${rule.StructName}) = .{},`,
+        { flush: true }
+    )
 }
 
 const createRule = ({ name, StructName, underscored, camelCaseName }: RuleData) => {
