@@ -2,7 +2,6 @@
 
 import path from 'path'
 import fs from 'fs'
-import assert from 'assert'
 
 const RULES_DIR = 'src/linter/rules'
 const RULES_MODULE = 'src/linter/rules.zig'
