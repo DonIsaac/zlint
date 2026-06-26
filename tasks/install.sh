@@ -65,6 +65,12 @@ case $platform in
 'Linux aarch64' | 'Linux arm64')
     target=linux-aarch64
     ;;
+'Linux riscv64')
+    target=linux-riscv64
+    ;;
+'Linux loongarch64')
+    target=linux-loongarch64
+    ;;
 'MINGW64'*)
     target=windows-x86_64
     ;;
