@@ -5,13 +5,18 @@
         "hash": "d4f6ff278391611890ed654adf37c6b8d5dd7708"
     },
     {
-        "name": "bun",
-        "repo_url": "https://github.com/oven-sh/bun.git",
-        "hash": "b8ecc78b03c998c228be4520bb8d2f888624e4a1"
+        "name": "lightpanda",
+        "repo_url": "https://github.com/lightpanda-io/browser",
+        "hash": "f6fdec3300bbeb66ebd9026cb98b3fffa0185759"
     },
     {
         "name": "ghostty",
         "repo_url": "https://github.com/ghostty-org/ghostty",
         "hash": "d560c645488d158c3e554e13025c0eaad68d1f43"
+    },
+    {
+        "name": "nullclaw",
+        "repo_url": "https://github.com/nullclaw/nullclaw",
+        "hash": "9967eb9cacbf70e617602b6c36056ea67557614f"
     }
 ]
