@@ -62,7 +62,7 @@ pub const TestFolders = struct {
         const snapshot_dir = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, path_segs });
         defer alloc.free(snapshot_dir);
         const cwd = Io.Dir.cwd();
-        try cwd.createDir(io, snapshot_dir, .default_dir);
+        try cwd.createDirPath(io, snapshot_dir);
         return cwd.openDir(io, snapshot_dir, .{});
     }
 

@@ -47,10 +47,7 @@ pub inline fn rulesCount(self: *LintService) usize {
 
 /// `filepath` must be an owned allocation on the heap, and gets moved into the
 /// visitor. This is for thread safety reasons.
-///
-/// ## Errors
-/// if queueing the lint job fails. Does not error if linting fails.
-pub fn lintFileParallel(self: *LintService, filepath: []u8) !void {
+pub fn lintFileParallel(self: *LintService, filepath: []u8) void {
     self.group.async(self.io, LintService.lintFile, .{ self, filepath });
 }
 

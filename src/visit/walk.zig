@@ -153,8 +153,8 @@ pub fn Walker(Visitor: type, Error: type) type {
             if (!std.mem.eql(u8, name, "tag_table")) {
                 if (@hasDecl(Visitor, name)) {
                     @field(vt, name) = @field(Visitor, name);
+                    has_methods = true;
                 }
-                has_methods = true;
             }
         }
         break :blk .{ vt, has_methods };

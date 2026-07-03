@@ -91,7 +91,7 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
             while (try readUntilDelimiterOrEof(&reader.interface, &delim_buf, '\n')) |filepath| {
                 if (!std.mem.endsWith(u8, filepath, ".zig")) continue;
                 const owned = try alloc.dupe(u8, filepath);
-                try service.lintFileParallel(owned);
+                service.lintFileParallel(owned);
             }
         }
     }
@@ -141,11 +141,7 @@ const LintVisitor = struct {
                 const filepath = self.allocator.dupe(u8, entry.path) catch {
                     return WalkState.Stop;
                 };
-                self.service.lintFileParallel(filepath) catch |e| {
-                    std.log.err("Failed to spawn lint job on file '{s}': {any}\n", .{ filepath, e });
-                    self.allocator.free(filepath);
-                    return WalkState.Continue;
-                };
+                self.service.lintFileParallel(filepath);
             },
             else => {
                 // todo: warn
