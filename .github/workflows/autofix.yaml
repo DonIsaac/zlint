@@ -18,17 +18,17 @@ jobs:
   autofix:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: mlugg/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
 
       - name: Fix typos
-        uses: crate-ci/typos@v1.26.8
+        uses: crate-ci/typos@v1.48.0
         with:
           write_changes: true
       - run: zig fmt src test/harness tasks build.zig build.zig.zon
 
       - run: rm -f ./typos
 
-      - uses: autofix-ci/action@dd55f44df8f7cdb7a6bf74c78677eb8acd40cd0a
+      - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a # v1.3.4
