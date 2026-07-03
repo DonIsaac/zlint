@@ -1,10 +1,9 @@
-Passed: 98.46887% (2894/2939)
-Panics: 0% (0/2939)
+Passed: 98.52941% (2948/2992)
+Panics: 0% (0/2992)
 
 doc/langref/invalid_doc-comment.zig: error.AnalysisFailed
 doc/langref/unattached_doc-comment.zig: error.AnalysisFailed
 doc/langref/var_must_be_initialized.zig: error.AnalysisFailed
-test/cases/compile_errors/Issue_6823_dont_allow_._to_be_followed_by_.zig: error.AnalysisFailed
 test/cases/compile_errors/attempted_double_ampersand.zig: error.AnalysisFailed
 test/cases/compile_errors/chained_comparison_operators.zig: error.AnalysisFailed
 test/cases/compile_errors/const_is_a_statement_not_an_expression.zig: error.AnalysisFailed
