@@ -19,12 +19,12 @@ jobs:
     name: Collect and upload test coverage
     runs-on: "ubuntu-22.04"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install kcov
         run: |
           sudo apt-get update
           sudo apt-get install -y kcov
-      - uses: extractions/setup-just@v2
+      - uses: extractions/setup-just@v4
       - uses: mlugg/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
@@ -32,7 +32,7 @@ jobs:
       - run: just submodules
       - run: zig build
       - run: just coverage
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v7
         with:
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
