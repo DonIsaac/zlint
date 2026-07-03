@@ -20,7 +20,7 @@ pub const walk = @import("visit/walk.zig");
 
 test {
     std.testing.refAllDecls(@import("util"));
-    std.testing.refAllDeclsRecursive(printer);
-    std.testing.refAllDeclsRecursive(json);
+    std.testing.refAllDecls(printer);
+    std.testing.refAllDecls(json);
     std.testing.refAllDecls(lint);
 }

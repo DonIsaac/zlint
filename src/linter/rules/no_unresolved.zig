@@ -34,7 +34,6 @@
 //! ```
 const std = @import("std");
 const util = @import("util");
-const fs = std.fs;
 const path = std.fs.path;
 
 const Ast = @import("../../Semantic.zig").Ast;
@@ -90,9 +89,10 @@ pub fn runOnNode(_: *const NoUnresolved, wrapper: NodeWrapper, ctx: *LinterConte
     {
         // NOTE: pathname null check performed at start of function
         const dirname = path.dirname(ctx.source.pathname.?) orelse return;
-        var dir = fs.cwd().openDir(dirname, .{}) catch std.debug.panic("Failed to open dir: {s}", .{dirname});
-        defer dir.close();
-        const stat = dir.statFile(pathname) catch {
+        const io = ctx.io;
+        var dir = std.Io.Dir.cwd().openDir(io, dirname, .{}) catch std.debug.panic("Failed to open dir: {s}", .{dirname});
+        defer dir.close(io);
+        const stat = dir.statFile(io, pathname, .{}) catch {
             ctx.report(ctx.diagnosticf(
                 "Unresolved import to '{s}'",
                 .{pathname},

@@ -121,40 +121,44 @@ pub fn Walker(Visitor: type, Error: type) type {
     // variant of Node.Tag) gets a similarly named visit function. For example,
     // when visiting a `fn_proto` node, a pointer to `visit_fn_proto` gets
     // stored in the vtable at the int index for `fn_proto`.
-    comptime var vtable: WalkerVTable = .{};
+    //
+    // The vtable is built inside a comptime block and stored as a `const` so
+    // the returned type does not capture a reference to a comptime var (a
+    // compile error since Zig 0.16).
+    const vtable: WalkerVTable, const has_any_methods: bool = comptime blk: {
+        var vt: WalkerVTable = .{};
+        var has_methods = false;
+        for (tag_info.fields) |field| {
+            const id: usize = field.value;
+            // e.g. visit_if_stmt, visit_less_than, visit_greater_than
+            const visit_fn_name = "visit_" ++ field.name;
 
-    // comptime var vtable: [tag_info.fields.len]?*const VisitFn = undefined;
-    comptime var has_any_methods = false;
-    for (tag_info.fields) |field| {
-        const id: usize = field.value;
-        // e.g. visit_if_stmt, visit_less_than, visit_greater_than
-        const visit_fn_name = "visit_" ++ field.name;
-
-        // visitors who do not care about visiting certain kinds of nodes do not
-        // need to implement visitor methods for them. Visiting will simply be
-        // skipped, and walking will continue as normal.
-        if (!@hasDecl(Visitor, visit_fn_name)) {
-            vtable.tag_table[id] = null;
-            continue;
-        }
-        has_any_methods = true;
-        const visit_fn = @field(Visitor, visit_fn_name);
-        if (@typeInfo(@TypeOf(visit_fn)) != .@"fn") {
-            @compileError("Visitor method '" + @typeName(Visitor) ++ "." ++ visit_fn_name ++ "' must be function.");
-        }
-        vtable.tag_table[id] = &visit_fn;
-    }
-
-    // "full node" visitors
-    inline for (@typeInfo(WalkerVTable).@"struct".fields) |field| {
-        const name = field.name;
-        if (!std.mem.eql(u8, name, "tag_table")) {
-            if (@hasDecl(Visitor, name)) {
-                @field(vtable, name) = @field(Visitor, name);
+            // visitors who do not care about visiting certain kinds of nodes do not
+            // need to implement visitor methods for them. Visiting will simply be
+            // skipped, and walking will continue as normal.
+            if (!@hasDecl(Visitor, visit_fn_name)) {
+                vt.tag_table[id] = null;
+                continue;
             }
-            has_any_methods = true;
+            has_methods = true;
+            if (@typeInfo(@TypeOf(@field(Visitor, visit_fn_name))) != .@"fn") {
+                @compileError("Visitor method '" ++ @typeName(Visitor) ++ "." ++ visit_fn_name ++ "' must be function.");
+            }
+            vt.tag_table[id] = &@field(Visitor, visit_fn_name);
         }
-    }
+
+        // "full node" visitors
+        for (@typeInfo(WalkerVTable).@"struct".fields) |field| {
+            const name = field.name;
+            if (!std.mem.eql(u8, name, "tag_table")) {
+                if (@hasDecl(Visitor, name)) {
+                    @field(vt, name) = @field(Visitor, name);
+                }
+                has_methods = true;
+            }
+        }
+        break :blk .{ vt, has_methods };
+    };
 
     // It would be confusing for _nothing_ to happen after a walk b/c you misspelled visit_container_field or something
     if (!has_any_methods and
@@ -172,7 +176,7 @@ pub fn Walker(Visitor: type, Error: type) type {
         // per ptr.
 
         visitor: *Visitor,
-        stack: std.ArrayListUnmanaged(StackEntry) = .{},
+        stack: std.ArrayListUnmanaged(StackEntry) = .empty,
         alloc: Allocator,
 
         const Self = @This();
@@ -342,7 +346,6 @@ pub fn Walker(Visitor: type, Error: type) type {
 
                     // ast.fullAsm
                     .asm_simple, .@"asm" => self.walkFull(full.Asm, node, tag, .visitAsm, .fullAsm, .{}),
-                    .asm_legacy => false,
 
                     // ast.fullCall
                     .call, .call_comma => self.walkFull(full.Call, node, tag, .visitCall, .callFull, .{}),
@@ -740,7 +743,6 @@ pub fn Walker(Visitor: type, Error: type) type {
                     .tagged_union_enum_tag_trailing,
                     .container_field,
                     .@"asm",
-                    .asm_legacy,
                     .@"if",
                     .@"switch",
                     .switch_comma,

@@ -28,11 +28,11 @@ _curr_reference_flags: Reference.Flags = .{ .read = true },
 _next_block_scope_flags: Scope.Flags = .{},
 
 // stacks
-_scope_stack: std.ArrayList(Semantic.Scope.Id) = .{},
+_scope_stack: std.ArrayList(Semantic.Scope.Id) = .empty,
 /// When entering an initialization container for a symbol, that symbol's ID
 /// is pushed here. This lets us record members and exports.
-_symbol_stack: std.ArrayList(Semantic.Symbol.Id) = .{},
-_node_stack: std.ArrayList(NodeIndex) = .{},
+_symbol_stack: std.ArrayList(Semantic.Symbol.Id) = .empty,
+_node_stack: std.ArrayList(NodeIndex) = .empty,
 /// References encountered but that could not be resolved. Includes references
 /// that occur before symbol declaration, and we haven't seen the declaration yet.
 /// After analysis, references in this list are to symbols not declared anywhere
@@ -45,7 +45,7 @@ _semantic: Semantic,
 /// Errors encountered during parsing and analysis.
 ///
 /// Errors in this list are allocated using this list's allocator.
-_errors: std.ArrayList(Error) = .{},
+_errors: std.ArrayList(Error) = .empty,
 
 /// The root node always has an index of 0. Since it is never referenced by other nodes,
 /// the Zig team uses it to represent `null` without wasting extra memory.
@@ -152,7 +152,7 @@ pub fn build(builder: *SemanticBuilder, source: [:0]const u8) SemanticError!Resu
     // Semantic.
     const unresolved_frame_count = builder._unresolved_references.len();
     switch (unresolved_frame_count) {
-        0 => builder._semantic.symbols.unresolved_references = .{},
+        0 => builder._semantic.symbols.unresolved_references = .empty,
         1 => {
             const unresolved = try builder._unresolved_references.curr().toOwnedSlice(builder._gpa);
             builder._semantic.symbols.unresolved_references = .{
@@ -413,7 +413,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         .error_set_decl => return self.visitErrorSetDecl(node_id),
 
         // TODO: asm support
-        .@"asm", .asm_simple, .asm_output, .asm_input, .asm_legacy => return,
+        .@"asm", .asm_simple, .asm_output, .asm_input => return,
 
         .@"comptime" => {
             const prev_comptime = self.setScopeFlag(.s_comptime, true);

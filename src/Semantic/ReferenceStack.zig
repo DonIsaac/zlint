@@ -1,6 +1,6 @@
 const ReferenceStack = @This();
 
-frames: std.ArrayListUnmanaged(ReferenceIdList) = .{},
+frames: std.ArrayListUnmanaged(ReferenceIdList) = .empty,
 
 const ReferenceIdList = std.ArrayListUnmanaged(Reference.Id);
 
@@ -21,7 +21,7 @@ pub inline fn len(self: ReferenceStack) usize {
 }
 
 pub fn enter(self: *ReferenceStack, alloc: Allocator) Allocator.Error!void {
-    try self.frames.append(alloc, .{});
+    try self.frames.append(alloc, .empty);
 }
 
 /// Add an unresolved reference to the current frame

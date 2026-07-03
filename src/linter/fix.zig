@@ -127,7 +127,7 @@ pub const Fixer = struct {
 
         // items not allocated w stack fallback b/c error list must outlive
         // the lifetime of this function scope.
-        var unfixed_errors = std.ArrayListUnmanaged(Error){}; //.init(self.allocator);
+        var unfixed_errors: std.ArrayListUnmanaged(Error) = .empty;
         errdefer unfixed_errors.deinit(self.allocator);
 
         // filter out no-ops and sort by span start
@@ -145,7 +145,7 @@ pub const Fixer = struct {
         if (fixes.items.len == 0) return noFixes(unfixed_errors);
         mem.sortUnstable(Diagnostic, fixes.items, {}, spanStartLessThan);
 
-        var fixed: std.ArrayListUnmanaged(u8) = .{};
+        var fixed: std.ArrayListUnmanaged(u8) = .empty;
         try fixed.ensureTotalCapacity(self.allocator, source.len);
         errdefer fixed.deinit(self.allocator);
 
@@ -197,7 +197,7 @@ pub const Fixer = struct {
     inline fn noFixes(unfixed_errors: std.ArrayListUnmanaged(Error)) Result {
         return .{
             .did_fix = false,
-            .source = .{},
+            .source = .empty,
             .unfixed_errors = unfixed_errors,
         };
     }

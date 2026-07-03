@@ -53,7 +53,7 @@ pub fn print(self: *StringWriter, comptime format: []const u8, args: anytype) Al
 }
 
 const std = @import("std");
-const io = std.io;
+const io = std.Io;
 const fmt = std.fmt;
 const math = std.math;
 const Allocator = std.mem.Allocator;

@@ -1,6 +1,7 @@
 # build artifacts
 zig-out
 .zig-cache
+zig-pkg/
 
 # test artifacts
 .coverage

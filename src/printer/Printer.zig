@@ -165,7 +165,7 @@ pub fn pIndent(self: *Printer) !void {
 const Printer = @This();
 
 const std = @import("std");
-const io = std.io;
+const io = std.Io;
 const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 const stringify = std.json.stringify;

@@ -41,7 +41,7 @@ install dir="~/.bin":
 ready:
     # git diff --name-only --exit-code
     just fmt
-    zig build check --prominent-compile-errors
+    zig build check --error-style minimal
     zig build codegen
     zig build install
     zig build test
@@ -54,11 +54,11 @@ run *ARGS:
 
 # Build in debug mode
 build *ARGS:
-    zig build --prominent-compile-errors --summary all {{ARGS}}
+    zig build --error-style minimal --summary all {{ARGS}}
 
 # Check for syntax and semantic errors
 check:
-    zig build check --summary all --prominent-compile-errors
+    zig build check --summary all --error-style minimal
 
 check-ast:
     @for file in `git ls-files | grep '.zig$' | grep --invert-match 'fail'`; do zig ast-check "$file"; done
@@ -69,7 +69,7 @@ watch cmd="check":
 
 # Run unit tests
 test:
-    zig build test --prominent-compile-errors --summary all
+    zig build test --error-style minimal --summary all
 
 # Run end-to-end tests
 e2e *ARGS:

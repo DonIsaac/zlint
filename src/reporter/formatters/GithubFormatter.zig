@@ -58,7 +58,7 @@ test GithubFormatter {
     defer buf.deinit();
     var f = GithubFormatter{};
     // var w = buf.writer();
-    var w = std.io.Writer.Allocating.init(allocator);
+    var w = std.Io.Writer.Allocating.init(allocator);
     defer w.writer.flush() catch @panic("failed to flush writer");
     defer w.deinit();
 
@@ -97,7 +97,7 @@ test GithubFormatter {
 }
 
 const std = @import("std");
-const io = std.io;
+const io = std.Io;
 const formatter = @import("../formatter.zig");
 const Meta = formatter.Meta;
 const FormatError = formatter.FormatError;

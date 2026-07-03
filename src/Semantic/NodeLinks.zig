@@ -15,11 +15,11 @@ const NodeLinks = @This();
 /// ### Invariants:
 /// - No node is its own parent
 /// - No node is the parent of the root node (0 in this case means `null`).
-parents: std.ArrayListUnmanaged(NodeIndex) = .{},
+parents: std.ArrayListUnmanaged(NodeIndex) = .empty,
 /// Map AST nodes to the scope they are in. Index is the node id.
 ///
 /// This is _not_ a mapping for scopes that nodes create.
-scopes: std.ArrayListUnmanaged(Scope.Id) = .{},
+scopes: std.ArrayListUnmanaged(Scope.Id) = .empty,
 /// Maps identifier tokens to the symbols bound to them.
 ///
 /// These are the same as `symbol.identifier`, but allow for lookups the other

@@ -162,7 +162,7 @@ pub const Token = _tokenizer.Token;
 pub const TokenList = _tokenizer.TokenList;
 
 test {
-    std.testing.refAllDeclsRecursive(Builder);
+    std.testing.refAllDecls(Builder);
 }
 
 test Semantic {

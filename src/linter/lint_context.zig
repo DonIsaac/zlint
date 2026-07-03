@@ -2,6 +2,8 @@
 //! all rules
 semantic: *const Semantic,
 gpa: Allocator,
+/// For filesystem access from rules (e.g. resolving imports).
+io: std.Io,
 /// Errors collected by lint rules
 diagnostics: Diagnostic.List,
 
@@ -17,10 +19,11 @@ fix: Fix.Meta = Fix.Meta.disabled,
 
 source: *Source,
 
-pub fn init(gpa: Allocator, semantic: *const Semantic, source: *Source) Context {
+pub fn init(gpa: Allocator, io: std.Io, semantic: *const Semantic, source: *Source) Context {
     return Context{
         .semantic = semantic,
         .gpa = gpa,
+        .io = io,
         .diagnostics = Diagnostic.List.init(gpa),
         .source = source,
     };

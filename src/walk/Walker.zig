@@ -11,14 +11,15 @@ pub fn Walker(comptime Visitor: type) type {
         name_buffer: std.ArrayListUnmanaged(u8),
         visitor: *Visitor,
         allocator: Allocator,
+        io: Io,
 
         const Self = @This();
         // TODO: benchmark and experiment with different initial capacities
         const INITIAL_STACK_CAPACITY: usize = 8;
         const INITIAL_NAME_BUFFER_SIZE: usize = INITIAL_STACK_CAPACITY * 32;
 
-        pub fn init(allocator: Allocator, dir: fs.Dir, visitor: *Visitor) Allocator.Error!Self {
-            var stack: std.ArrayListUnmanaged(StackItem) = .{};
+        pub fn init(allocator: Allocator, io: Io, dir: Dir, visitor: *Visitor) Allocator.Error!Self {
+            var stack: std.ArrayListUnmanaged(StackItem) = .empty;
             try stack.ensureTotalCapacity(allocator, INITIAL_STACK_CAPACITY);
             errdefer stack.deinit(allocator);
 
@@ -29,41 +30,43 @@ pub fn Walker(comptime Visitor: type) type {
 
             return Self{
                 .stack = stack,
-                .name_buffer = .{},
+                .name_buffer = .empty,
                 .visitor = visitor,
                 .allocator = allocator,
+                .io = io,
             };
         }
 
         pub fn walk(self: *Self) !void {
             const gpa = self.allocator;
+            const io = self.io;
             while (self.stack.items.len != 0) {
                 // `top` and `containing` become invalid after appending to `self.stack`
                 var top = &self.stack.items[self.stack.items.len - 1];
                 var containing = top;
                 var dirname_len = top.dirname_len;
-                if (top.iter.next() catch |err| {
+                if (top.iter.next(io) catch |err| {
                     // If we get an error, then we want the user to be able to continue
                     // walking if they want, which means that we need to pop the directory
                     // that errored from the stack. Otherwise, all future `next` calls would
                     // likely just fail with the same error.
                     var item = self.stack.pop() orelse unreachable;
                     if (self.stack.items.len != 0) {
-                        item.iter.dir.close();
+                        item.iter.reader.dir.close(io);
                     }
                     // TODO: report errors
                     return err;
                 }) |base| {
                     self.name_buffer.shrinkRetainingCapacity(dirname_len);
                     if (self.name_buffer.items.len != 0) {
-                        try self.name_buffer.append(gpa, fs.path.sep);
+                        try self.name_buffer.append(gpa, std.fs.path.sep);
                         dirname_len += 1;
                     }
                     try self.name_buffer.ensureUnusedCapacity(gpa, base.name.len + 1);
                     self.name_buffer.appendSliceAssumeCapacity(base.name);
                     self.name_buffer.appendAssumeCapacity(0);
                     const ent = Entry{
-                        .dir = containing.iter.dir,
+                        .dir = containing.iter.reader.dir,
                         .basename = self.name_buffer.items[dirname_len .. self.name_buffer.items.len - 1 :0],
                         .path = self.name_buffer.items[0 .. self.name_buffer.items.len - 1 :0],
                         .kind = base.kind,
@@ -75,14 +78,14 @@ pub fn Walker(comptime Visitor: type) type {
                         WalkState.Skip => continue,
                     }
                     if (base.kind == .directory) {
-                        var new_dir = top.iter.dir.openDir(base.name, .{ .iterate = true }) catch |err| switch (err) {
+                        var new_dir = top.iter.reader.dir.openDir(io, base.name, .{ .iterate = true }) catch |err| switch (err) {
                             error.NameTooLong => unreachable, // no path sep in base.name
                             // TODO: report errors
                             // else => |e| return e,
                             else => continue,
                         };
                         {
-                            errdefer new_dir.close();
+                            errdefer new_dir.close(io);
                             try self.stack.append(gpa, .{
                                 .iter = new_dir.iterateAssumeFirstIteration(),
                                 .dirname_len = self.name_buffer.items.len - 1,
@@ -94,7 +97,7 @@ pub fn Walker(comptime Visitor: type) type {
                 } else {
                     var item = self.stack.pop() orelse unreachable;
                     if (self.stack.items.len != 0) {
-                        item.iter.dir.close();
+                        item.iter.reader.dir.close(io);
                     }
                 }
             }
@@ -106,7 +109,7 @@ pub fn Walker(comptime Visitor: type) type {
             // Close any remaining directories except the initial one (which is always at index 0)
             if (self.stack.items.len > 1) {
                 for (self.stack.items[1..]) |*item| {
-                    item.iter.dir.close();
+                    item.iter.reader.dir.close(self.io);
                 }
             }
             self.stack.deinit(gpa);
@@ -131,7 +134,7 @@ pub const Entry = struct {
     dir: Dir,
     basename: [:0]const u8,
     path: [:0]const u8,
-    kind: Dir.Entry.Kind,
+    kind: Io.File.Kind,
 };
 
 const StackItem = struct {
@@ -140,7 +143,7 @@ const StackItem = struct {
 };
 
 const std = @import("std");
-const fs = std.fs;
 
 const Allocator = std.mem.Allocator;
-const Dir = fs.Dir;
+const Io = std.Io;
+const Dir = Io.Dir;

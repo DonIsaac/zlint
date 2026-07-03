@@ -59,7 +59,7 @@ pub fn build(b: *std.Build) void {
         .linkage = .static,
     });
     l.link(zlint, false, .{});
-    b.modules.put(b.dupe("zlint"), zlint) catch @panic("OOM");
+    b.modules.put(b.allocator, b.dupe("zlint"), zlint) catch @panic("OOM");
     b.installArtifact(lib);
 
     const exe_mod = b.createModule(.{

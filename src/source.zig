@@ -1,6 +1,6 @@
 const std = @import("std");
 const ptrs = @import("smart-pointers");
-const fs = std.fs;
+const Io = std.Io;
 
 const Allocator = std.mem.Allocator;
 const Arc = ptrs.Arc;
@@ -17,13 +17,16 @@ pub const Source = struct {
     /// Create a source from an opened file. This file must be opened with at least read permissions.
     ///
     /// Both `file` and `pathname` are moved into the source.
-    pub fn init(gpa: Allocator, file: fs.File, pathname: ?[]const u8) !Source {
-        defer file.close();
-        const meta = try file.stat();
+    pub fn init(gpa: Allocator, io: Io, file: Io.File, pathname: ?[]const u8) !Source {
+        defer file.close(io);
+        const meta = try file.stat(io);
         const contents = try gpa.allocSentinel(u8, meta.size, 0);
         errdefer gpa.free(contents);
-        const bytes_read = try file.readAll(contents);
-        assert(bytes_read == meta.size);
+        var reader = file.reader(io, &.{});
+        reader.interface.readSliceAll(contents) catch |e| switch (e) {
+            error.EndOfStream => return error.UnexpectedEndOfFile,
+            error.ReadFailed => return reader.err orelse error.InputOutput,
+        };
         return Source{
             .contents = try ArcStr.init(gpa, contents),
             .pathname = pathname,

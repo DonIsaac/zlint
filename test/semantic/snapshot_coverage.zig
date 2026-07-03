@@ -20,21 +20,24 @@ const Error = error{
 } || FailError || Semantic.Builder.SemanticError || Allocator.Error;
 
 fn run(alloc: Allocator) !void {
-    const Suite = std.meta.Tuple(&[_]type{ []const u8, *const test_runner.TestSuite.TestFn });
+    const io = test_runner.io();
+    const Suite = struct { []const u8, *const test_runner.TestSuite.TestFn };
     inline for (.{
         Suite{ "pass", &runPass },
         Suite{ "fail", &runFail },
     }) |suite_inputs| {
         const suite_name, const suite_run_fn = suite_inputs;
 
-        var fixtures = try std.fs.cwd().openDir(
+        var fixtures = try std.Io.Dir.cwd().openDir(
+            io,
             "test/fixtures/simple/" ++ suite_name,
             .{ .iterate = true },
         );
-        defer fixtures.close();
+        defer fixtures.close(io);
 
         var suite = try test_runner.TestSuite.init(
             alloc,
+            io,
             fixtures,
             "snapshot-coverage/simple",
             suite_name,
@@ -67,11 +70,12 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     const source_name = try alloc.allocSentinel(u8, source.pathname.?.len, 0);
     defer alloc.free(source_name);
     _ = std.mem.replace(u8, source.pathname.?, std.fs.path.sep_str, "-", source_name);
-    const snapshot = try TestFolders.openSnapshotFile(alloc, "snapshot-coverage/simple/pass", utils.cleanStrSlice(source_name));
-    defer snapshot.close();
+    const io = test_runner.io();
+    const snapshot = try TestFolders.openSnapshotFile(alloc, io, "snapshot-coverage/simple/pass", utils.cleanStrSlice(source_name));
+    defer snapshot.close(io);
 
     var buf: [1024]u8 = undefined;
-    var writer = snapshot.writer(&buf);
+    var writer = snapshot.writer(io, &buf);
     defer writer.interface.flush() catch @panic("failed to flush writer");
     var printer = Printer.init(alloc, &writer.interface);
     var sem_printer = SemanticPrinter.new(&printer, &semantic);
@@ -106,16 +110,17 @@ fn runFail(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     defer alloc.free(source_name);
     _ = std.mem.replace(u8, source.pathname.?, std.fs.path.sep_str, "-", source_name);
 
-    const snapshot = try TestFolders.openSnapshotFile(alloc, "snapshot-coverage/simple/fail", utils.cleanStrSlice(source_name));
-    defer snapshot.close();
+    const io = test_runner.io();
+    const snapshot = try TestFolders.openSnapshotFile(alloc, io, "snapshot-coverage/simple/fail", utils.cleanStrSlice(source_name));
+    defer snapshot.close(io);
 
     var buf: [1024]u8 = undefined;
-    var writer = snapshot.writer(&buf);
+    var writer = snapshot.writer(io, &buf);
     var w = &writer.interface;
     defer w.flush() catch @panic("failed to flush writer");
 
     const formatter = zlint.report.formatter.Graphical.unicode(alloc, false);
-    var reporter = try zlint.report.Reporter.init(@TypeOf(formatter), formatter, w, alloc);
+    var reporter = try zlint.report.Reporter.init(@TypeOf(formatter), formatter, io, w, alloc);
     defer reporter.deinit();
 
     // run analysis

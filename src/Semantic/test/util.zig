@@ -30,9 +30,10 @@ pub fn buildWithErrors(src: [:0]const u8) !Semantic.Builder.Result {
 }
 
 pub fn build(src: [:0]const u8) !Semantic {
-    const w = std.fs.File.stderr().writer(&buf);
+    const w = std.Io.File.stderr().writer(t.io, &buf);
     var stderr = w.interface;
     var r = try report.Reporter.graphical(
+        t.io,
         &stderr,
         t.allocator,
         report.formatter.Graphical.Theme.unicodeNoColor(),
@@ -64,7 +65,8 @@ pub fn build(src: [:0]const u8) !Semantic {
 }
 
 pub fn debugSemantic(semantic: *const Semantic) !void {
-    var p = printer.Printer.init(t.allocator, std.io.getStdErr().writer());
+    var stderr_writer = std.Io.File.stderr().writer(t.io, &buf);
+    var p = printer.Printer.init(t.allocator, &stderr_writer.interface);
     defer p.deinit();
     var sp = printer.SemanticPrinter.new(&p, semantic);
 

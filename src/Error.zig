@@ -10,7 +10,7 @@ code: []const u8 = "",
 message: Cow(false),
 severity: Severity = .err,
 /// Text ranges over problematic parts of the source code.
-labels: std.ArrayListUnmanaged(LabeledSpan) = .{},
+labels: std.ArrayListUnmanaged(LabeledSpan) = .empty,
 // labels: []LabeledSpan = NO_SPANS,
 /// Name of the file being linted.
 source_name: ?[]const u8 = null,
@@ -162,7 +162,7 @@ pub fn Result(comptime T: type) type {
     return struct {
         value: T,
         ///
-        errors: ErrorList = .{},
+        errors: ErrorList = .empty,
         alloc: Allocator,
 
         const Self = @This();

@@ -317,7 +317,7 @@ fn hasSafetyComment(ctx: *const LinterContext, first_token: TokenIndex) bool {
     if (ctx.commentsBefore(first_token)) |comment| {
         var lines = mem.splitScalar(u8, comment, '\n');
         while (lines.next()) |line| {
-            const l = util.trimWhitespace(mem.trimLeft(u8, util.trimWhitespace(line), "//"));
+            const l = util.trimWhitespace(mem.trimStart(u8, util.trimWhitespace(line), "//"));
             if (ascii.startsWithIgnoreCase(l, "SAFETY:")) return true;
         }
     }

@@ -26,7 +26,7 @@ fn createCtx(src: [:0]const u8, sema_out: *Semantic, source_out: *Source) !Linte
         return error.TestFailed;
     }
     sema_out.* = res.value;
-    return LinterContext.init(t.allocator, sema_out, source_out);
+    return LinterContext.init(t.allocator, t.io, sema_out, source_out);
 }
 
 test "Dangerous fixes do not get saved when only safe fixes are allowed" {

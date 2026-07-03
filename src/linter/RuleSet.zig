@@ -1,4 +1,4 @@
-rules: std.ArrayListUnmanaged(Rule.WithSeverity) = .{},
+rules: std.ArrayListUnmanaged(Rule.WithSeverity) = .empty,
 
 const RuleSet = @This();
 
