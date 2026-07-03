@@ -10,7 +10,7 @@ test {
 
     // Ensure intellisense. Especially important when authoring a new rule.
     std.testing.refAllDecls(@This());
-    std.testing.refAllDeclsRecursive(@import("linter/rules.zig"));
+    std.testing.refAllDecls(@import("linter/rules.zig"));
 
     // Test suites
     std.testing.refAllDecls(@import("linter/test/disabling_rules_test.zig"));

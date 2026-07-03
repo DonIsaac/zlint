@@ -74,6 +74,7 @@ pub const Linter = struct {
     /// before exiting.
     pub fn runOnSource(
         self: *Linter,
+        io: std.Io,
         semantic: *const Semantic,
         source: *Source,
         errors: *?std.array_list.Managed(Context.Diagnostic),
@@ -81,7 +82,7 @@ pub const Linter = struct {
         var rulebuf: [RuleSet.RULES_COUNT]Rule.WithSeverity = undefined;
         const rules = try self.getRulesForFile(&rulebuf, semantic) orelse return;
 
-        var ctx = Context.init(self.gpa, semantic, source);
+        var ctx = Context.init(self.gpa, io, semantic, source);
         defer ctx.deinit();
         ctx.fix = self.options.fix;
         const nodes = ctx.semantic.nodes();

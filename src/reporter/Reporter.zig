@@ -7,8 +7,9 @@ pub const Reporter = struct {
     opts: Options = .{},
     stats: Stats = .{},
 
+    io: std.Io,
     writer: *io.Writer,
-    writer_lock: Mutex = .{},
+    writer_lock: Mutex = .init,
 
     alloc: Allocator,
     /// pointer to formatter impl. Allocation is owned.
@@ -22,6 +23,7 @@ pub const Reporter = struct {
     /// Shorthand for creating a `Reporter` with a `GraphicalFormatter`, since
     /// this is so common.
     pub fn graphical(
+        io_: std.Io,
         writer: *io.Writer,
         allocator: Allocator,
         // Optionally override the default theme
@@ -29,25 +31,25 @@ pub const Reporter = struct {
     ) Allocator.Error!Reporter {
         var formatter = formatters.Graphical{ .alloc = allocator };
         if (theme) |t| formatter.theme = t;
-        return init(formatters.Graphical, formatter, writer, allocator);
+        return init(formatters.Graphical, formatter, io_, writer, allocator);
     }
 
-    pub fn initKind(kind: formatters.Kind, writer: *io.Writer, allocator: Allocator) Allocator.Error!Reporter {
+    pub fn initKind(kind: formatters.Kind, io_: std.Io, environ: std.process.Environ, writer: *io.Writer, allocator: Allocator) Allocator.Error!Reporter {
         switch (kind) {
             .graphical => {
                 // TODO: check terminal support for unicode characters
                 // TODO: any non-falsy value should turn off colors
-                const color = !util.env.checkEnvFlag("NO_COLOR", .enabled);
+                const color = !util.env.checkEnvFlag(environ, "NO_COLOR", .enabled);
                 const f = formatters.Graphical.unicode(allocator, color);
-                return init(formatters.Graphical, f, writer, allocator);
+                return init(formatters.Graphical, f, io_, writer, allocator);
             },
             .github => {
                 const f = formatters.Github{};
-                return init(formatters.Github, f, writer, allocator);
+                return init(formatters.Github, f, io_, writer, allocator);
             },
             .json => {
                 const f = formatters.JSON{};
-                return init(formatters.JSON, f, writer, allocator);
+                return init(formatters.JSON, f, io_, writer, allocator);
             },
         }
     }
@@ -56,6 +58,7 @@ pub const Reporter = struct {
     pub fn init(
         comptime Formatter: type,
         formatter: Formatter,
+        io_: std.Io,
         writer: *io.Writer,
         allocator: Allocator,
     ) Allocator.Error!Reporter {
@@ -75,8 +78,8 @@ pub const Reporter = struct {
             fn deinit(ctx: *anyopaque, alloc: Allocator) void {
                 if (!@hasDecl(Formatter, "deinit")) return;
                 const this: *Formatter = @ptrCast(@alignCast(ctx));
-                const info = @typeInfo(Formatter.deinit);
-                switch (info.Fn.params.len) {
+                const info = @typeInfo(@TypeOf(Formatter.deinit));
+                switch (info.@"fn".params.len) {
                     1 => this.deinit(),
                     2 => this.deinit(alloc),
                     else => @compileError("Formatter.deinit must take (this) or (this, allocator) as parameters."),
@@ -89,6 +92,7 @@ pub const Reporter = struct {
         };
 
         return .{
+            .io = io_,
             .writer = writer,
             .opts = .{
                 .report_stats = meta.report_statistics,
@@ -115,7 +119,7 @@ pub const Reporter = struct {
         var stackalloc = std.heap.stackFallback(1024, alloc);
         const allocator = stackalloc.get();
 
-        var w = try std.io.Writer.Allocating.initCapacity(allocator, 256);
+        var w = try std.Io.Writer.Allocating.initCapacity(allocator, 256);
         defer w.deinit();
 
         for (errors) |err| {
@@ -129,8 +133,8 @@ pub const Reporter = struct {
         }
 
         w.writer.flush() catch @panic("failed to flush writer");
-        self.writer_lock.lock();
-        defer self.writer_lock.unlock();
+        self.writer_lock.lockUncancelable(self.io);
+        defer self.writer_lock.unlock(self.io);
         var written = w.toArrayList();
         defer written.deinit(allocator);
         _ = self.writer.writeAll(written.items) catch @panic("failed to write diagnostics to buffer");
@@ -161,8 +165,8 @@ pub const Reporter = struct {
     /// 1. The formatter has a `deinit()` method
     /// 2. This reporter owns the formatter.
     pub fn deinit(self: *Reporter) void {
-        self.writer_lock.lock();
-        defer self.writer_lock.unlock();
+        self.writer_lock.lockUncancelable(self.io);
+        defer self.writer_lock.unlock(self.io);
         self.writer.flush() catch |e| std.debug.panic("Reporter failed to flush writer: {s}", .{@errorName(e)});
         self.vtable.deinit(self.ptr, self.alloc);
         self.vtable.destroy(self.ptr, self.alloc);
@@ -231,7 +235,7 @@ const Stats = struct {
 };
 
 const std = @import("std");
-const io = std.io;
+const io = std.Io;
 const util = @import("util");
 const formatters = @import("./formatter.zig");
 const Chameleon = @import("chameleon");
@@ -241,7 +245,7 @@ const Allocator = std.mem.Allocator;
 const FormatError = formatters.FormatError;
 
 const AtomicUsize = std.atomic.Value(usize);
-const Mutex = std.Thread.Mutex;
+const Mutex = std.Io.Mutex;
 
 test {
     std.testing.refAllDecls(@This());

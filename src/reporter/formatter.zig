@@ -34,5 +34,5 @@ pub const Kind = enum {
 pub const FormatError = io.Writer.Error || Allocator.Error;
 
 const std = @import("std");
-const io = std.io;
+const io = std.Io;
 const Allocator = std.mem.Allocator;

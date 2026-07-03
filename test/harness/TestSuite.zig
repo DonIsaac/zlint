@@ -5,14 +5,15 @@ teardown_fn: ?*const fn (suite: *TestSuite) anyerror!void,
 
 group_name: []const u8,
 suite_name: []const u8,
-dir: fs.Dir,
-walker: fs.Dir.Walker,
+dir: Io.Dir,
+walker: Io.Dir.Walker,
 
-errors: std.ArrayListUnmanaged(string) = .{},
-errors_mutex: std.Thread.Mutex = .{},
+errors: std.ArrayListUnmanaged(string) = .empty,
+errors_mutex: Io.Mutex = .init,
 stats: Stats = .{},
 
 alloc: Allocator,
+io: Io,
 
 pub const TestFn = fn (alloc: Allocator, source: *const Source) anyerror!void;
 pub const SetupFn = fn (suite: *TestSuite) anyerror!void;
@@ -26,7 +27,8 @@ pub const TestSuiteFns = struct {
 /// Takes ownership of `dir`. Do not close it directly after passing.
 pub fn init(
     alloc: Allocator,
-    dir: fs.Dir,
+    io: Io,
+    dir: Io.Dir,
     group_name: string,
     suite_name: string,
     fns: TestSuiteFns,
@@ -42,12 +44,13 @@ pub fn init(
         .dir = dir,
         .walker = walker,
         .alloc = alloc,
+        .io = io,
     };
 }
 
 pub fn deinit(self: *TestSuite) void {
     self.walker.deinit();
-    self.dir.close();
+    self.dir.close(self.io);
     {
         var i: usize = 0;
         while (i < self.errors.items.len) {
@@ -63,9 +66,8 @@ pub fn run(self: *TestSuite) !void {
     if (self.setup_fn) |setup| {
         try setup(self);
     }
-    var pool: ThreadPool = undefined;
-    try pool.init(.{ .allocator = self.alloc });
-    while (try self.walker.next()) |ent| {
+    var group: Io.Group = .init;
+    while (try self.walker.next(self.io)) |ent| {
         if (ent.kind != .file) continue;
         if (!std.mem.endsWith(u8, ent.path, ".zig")) continue;
         if (std.mem.startsWith(u8, ent.path, ".git")) continue;
@@ -79,13 +81,9 @@ pub fn run(self: *TestSuite) !void {
         // walker.next() will clobber data addressed by these pointers, so we
         // must make our own copy.
         const entry_path = try self.alloc.dupe(u8, ent.path);
-        pool.spawn(runInThread, .{ self, entry_path }) catch |e| {
-            const msg = try std.fmt.allocPrint(self.alloc, "Failed to spawn task for test {s}", .{ent.path});
-            defer self.alloc.free(msg);
-            self.pushErr(msg, e);
-        };
+        group.async(self.io, runInThread, .{ self, entry_path });
     }
-    pool.deinit();
+    try group.await(self.io);
     try self.writeSnapshot();
 }
 
@@ -98,13 +96,13 @@ fn runInThread(self: *TestSuite, path: []const u8) void {
         path[0..s]
     else
         path;
-    const file = self.dir.openFile(filename, .{}) catch |e| {
+    const file = self.dir.openFile(self.io, filename, .{}) catch |e| {
         self.pushErr(path, e);
         return;
     };
     // TODO: use some kind of Cow wrapper to avoid duplication here
     const filename_owned = self.alloc.dupe(u8, filename) catch @panic("OOM");
-    var source = Source.init(self.alloc, file, filename_owned) catch |e| {
+    var source = Source.init(self.alloc, self.io, file, filename_owned) catch |e| {
         self.pushErr(path, e);
         return;
     };
@@ -127,16 +125,16 @@ fn pushErr(self: *TestSuite, msg: string, err: anytype) void {
     } else {
         self.stats.incFail();
     }
-    self.errors_mutex.lock();
-    defer self.errors_mutex.unlock();
+    self.errors_mutex.lockUncancelable(self.io);
+    defer self.errors_mutex.unlock(self.io);
     self.errors.append(self.alloc, err_msg) catch @panic("Failed to push error into error list.");
 }
 
 fn writeSnapshot(self: *TestSuite) !void {
     const snapshot = try self.openSnapshotFile();
-    defer snapshot.close();
+    defer snapshot.close(self.io);
     var buf: [1024]u8 = undefined;
-    var w = snapshot.writer(&buf);
+    var w = snapshot.writer(self.io, &buf);
     defer w.interface.flush() catch @panic("failed to flush writer");
 
     const pass = self.stats.pass.load(.monotonic);
@@ -151,8 +149,8 @@ fn writeSnapshot(self: *TestSuite) !void {
         const pct = 100.0 * (@as(f32, @floatFromInt(panics)) / @as(f32, @floatFromInt(total)));
         try w.interface.print("Panics: {d}% ({d}/{d})\n\n", .{ pct, panics, total });
     }
-    self.errors_mutex.lock();
-    defer self.errors_mutex.unlock();
+    self.errors_mutex.lockUncancelable(self.io);
+    defer self.errors_mutex.unlock(self.io);
     // errors must be sorted for stable `git diff` output
     std.mem.sort(string, self.errors.items, {}, stringsLessThan);
     for (self.errors.items) |err| {
@@ -160,7 +158,7 @@ fn writeSnapshot(self: *TestSuite) !void {
     }
 }
 
-fn openSnapshotFile(self: *TestSuite) !fs.File {
+fn openSnapshotFile(self: *TestSuite) !Io.File {
     const SNAP_EXT = ".snap";
 
     var stack_alloc = std.heap.stackFallback(1024, self.alloc);
@@ -169,7 +167,7 @@ fn openSnapshotFile(self: *TestSuite) !fs.File {
     const snapshot_name = try std.mem.concat(allocator, u8, &[_]string{ self.suite_name, SNAP_EXT });
     defer allocator.free(snapshot_name);
 
-    return utils.TestFolders.openSnapshotFile(allocator, self.group_name, snapshot_name);
+    return utils.TestFolders.openSnapshotFile(allocator, self.io, self.group_name, snapshot_name);
 }
 
 fn stringsLessThan(_: void, a: []const u8, b: []const u8) bool {
@@ -217,9 +215,8 @@ const Stats = struct {
 const TestSuite = @This();
 
 const std = @import("std");
-const fs = std.fs;
+const Io = std.Io;
 const Allocator = std.mem.Allocator;
-const ThreadPool = std.Thread.Pool;
 
 const recover = @import("recover");
 

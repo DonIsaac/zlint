@@ -104,11 +104,8 @@ pub fn NominalId(TRepr: type) type {
             }
         }
 
-        pub fn format(self: Id, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-            if (fmt.len > 0 and fmt[0] == 'd') {
-                return std.fmt.formatType(@intFromEnum(self), fmt, options, writer, 1);
-            }
-            return std.fmt.formatType(self, fmt, options, writer, 1);
+        pub fn format(self: Id, writer: *std.Io.Writer) std.Io.Writer.Error!void {
+            return writer.printInt(@intFromEnum(self), 10, .lower, .{});
         }
 
         /// Try to turn this id into its corresponding optional type. Returns

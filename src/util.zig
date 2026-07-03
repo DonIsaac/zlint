@@ -21,7 +21,7 @@ pub fn trimWhitespace(s: []const u8) []const u8 {
     return std.mem.trim(u8, s, &std.ascii.whitespace);
 }
 pub fn trimWhitespaceRight(s: []const u8) []const u8 {
-    return std.mem.trimRight(u8, s, &std.ascii.whitespace);
+    return std.mem.trimEnd(u8, s, &std.ascii.whitespace);
 }
 pub fn isWhitespace(c: u8) bool {
     return std.mem.indexOfScalar(u8, &std.ascii.whitespace, c) != null;
@@ -65,5 +65,5 @@ pub inline fn assertUnsafe(condition: bool) void {
 }
 
 test {
-    std.testing.refAllDeclsRecursive(@This());
+    std.testing.refAllDecls(@This());
 }

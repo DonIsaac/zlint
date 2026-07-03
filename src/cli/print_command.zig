@@ -8,7 +8,7 @@
 //! zig build run -- --print-ast | prettier --stdin-filepath foo.ast.json > tmp/foo.ast.json
 //! ```
 const std = @import("std");
-const io = std.io;
+const io = std.Io;
 const Allocator = std.mem.Allocator;
 
 const Options = @import("../cli/Options.zig");
@@ -20,7 +20,7 @@ const AstPrinter = @import("../printer/AstPrinter.zig");
 const SemanticPrinter = @import("../printer/SemanticPrinter.zig");
 
 /// Borrows source.
-pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source, writer_: ?*io.Writer) !void {
+pub fn parseAndPrint(alloc: Allocator, io_: io, opts: Options, source: Source, writer_: ?*io.Writer) !void {
     var buf: [4096]u8 = undefined;
     var builder = Semantic.Builder.init(alloc);
     defer builder.deinit();
@@ -33,10 +33,10 @@ pub fn parseAndPrint(alloc: Allocator, opts: Options, source: Source, writer_: ?
         return;
     }
     const sema = &sema_result.value;
-    var stdout: ?std.fs.File.Writer = null;
+    var stdout: ?io.File.Writer = null;
     defer if (stdout) |*out| out.interface.flush() catch @panic("failed to flush writer");
     var writer = writer_ orelse blk: {
-        stdout = std.fs.File.stdout().writer(&buf);
+        stdout = io.File.stdout().writer(io_, &buf);
         break :blk &stdout.?.interface;
     };
     defer writer.flush() catch @panic("failed to flush writer");

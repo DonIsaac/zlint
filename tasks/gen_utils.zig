@@ -60,8 +60,8 @@ pub const RuleInfo = struct {
 
 /// Fully read the contents of a zig source file into an allocated buffer.
 /// Caller owns the returned allocation.
-pub fn readSourceFile(alloc: Allocator, root: std.fs.Dir, path: []const u8) ![:0]u8 {
-    return root.readFileAllocOptions(alloc, path, MAX, null, .@"1", 0);
+pub fn readSourceFile(alloc: Allocator, io: std.Io, root: std.Io.Dir, path: []const u8) ![:0]u8 {
+    return root.readFileAllocOptions(io, path, alloc, .limited(MAX), .@"1", 0);
 }
 
 pub const SchemaMap = std.StringHashMap(Schema);

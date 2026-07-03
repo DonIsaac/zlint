@@ -4,7 +4,7 @@ const Source = @import("source.zig").Source;
 const config = @import("config");
 const Error = @import("Error.zig");
 
-const fs = std.fs;
+const Io = std.Io;
 const print = std.debug.print;
 
 const Options = @import("cli/Options.zig");
@@ -13,12 +13,13 @@ const lint_cmd = @import("cli/lint_command.zig");
 
 // in debug builds, include more information for debugging memory leaks,
 // double-frees, etc.
-const DebugAllocator = std.heap.GeneralPurposeAllocator(.{
+const DebugAllocator = std.heap.DebugAllocator(.{
     .never_unmap = util.IS_DEBUG,
     .retain_metadata = util.IS_DEBUG,
 });
 var debug_allocator = DebugAllocator.init;
-pub fn main() !u8 {
+pub fn main(init: std.process.Init) !u8 {
+    const io = init.io;
     const alloc = if (comptime util.IS_DEBUG)
         debug_allocator.allocator()
     else
@@ -31,7 +32,7 @@ pub fn main() !u8 {
     const stack_alloc = stack.get();
 
     var err: Error = undefined;
-    var opts = Options.parseArgv(stack_alloc, &err) catch {
+    var opts = Options.parseArgv(stack_alloc, io, init.minimal.args, &err) catch {
         std.debug.print("{s}\n{any}\n", .{ err.message.borrow(), Options.usage });
         err.deinit(stack_alloc);
         return 1;
@@ -39,7 +40,7 @@ pub fn main() !u8 {
     defer opts.deinit(stack_alloc);
 
     if (opts.version) {
-        var stdout = std.fs.File.stdout().writer(&.{});
+        var stdout = Io.File.stdout().writer(io, &.{});
         stdout.interface.print("{s}\n", .{config.version}) catch |e| {
             std.debug.panic("Failed to write version: {s}\n", .{@errorName(e)});
         };
@@ -52,15 +53,15 @@ pub fn main() !u8 {
 
         const relative_path = opts.args.items[0];
         print("Printing AST for {s}\n", .{relative_path});
-        const file = try fs.cwd().openFile(relative_path, .{});
-        errdefer file.close();
-        var source = try Source.init(alloc, file, null);
+        const file = try Io.Dir.cwd().openFile(io, relative_path, .{});
+        errdefer file.close(io);
+        var source = try Source.init(alloc, io, file, null);
         defer source.deinit();
-        try print_cmd.parseAndPrint(alloc, opts, source, null);
+        try print_cmd.parseAndPrint(alloc, io, opts, source, null);
         return 0;
     }
 
-    return lint_cmd.lint(alloc, opts);
+    return lint_cmd.lint(alloc, io, init.minimal.environ, opts);
 }
 
 test {

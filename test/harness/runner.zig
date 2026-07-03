@@ -8,7 +8,10 @@ const assert = std.debug.assert;
 const panic = std.debug.panic;
 const print = std.debug.print;
 
-const TestAllocator = std.heap.GeneralPurposeAllocator(.{
+const TestAllocator = std.heap.DebugAllocator(.{
+    // Stack unwinding is really expensive. Turning them off results in ~4x speedup.
+    // Comment out the line below to debug.
+    .stack_trace_frames = 0,
     // .never_unmap = true,
     // .retain_metadata = true,
 });
@@ -19,6 +22,16 @@ var global_runner_instance = TestRunner.new(if (is_debug)
     debug_allocator.allocator()
 else
     std.heap.smp_allocator);
+
+var io_threaded: std.Io.Threaded = undefined;
+var io_initialized = false;
+
+/// The `Io` instance shared by all e2e test suites. Only valid after
+/// `TestRunner.runAll` has started.
+pub fn io() std.Io {
+    std.debug.assert(io_initialized);
+    return io_threaded.io();
+}
 
 pub fn getRunner() *TestRunner {
     return &global_runner_instance;
@@ -32,6 +45,11 @@ pub fn addTest(test_file: TestRunner.TestFile) *TestRunner {
 pub fn globalShutdown() void {
     getRunner().deinit();
 
+    if (io_initialized) {
+        io_threaded.deinit();
+        io_initialized = false;
+    }
+
     if (is_debug) {
         _ = debug_allocator.detectLeaks();
         const status = debug_allocator.deinit();
@@ -42,7 +60,7 @@ pub fn globalShutdown() void {
 }
 
 pub const TestRunner = struct {
-    tests: std.ArrayListUnmanaged(TestFile) = .{},
+    tests: std.ArrayListUnmanaged(TestFile) = .empty,
     alloc: Allocator,
 
     pub inline fn new(alloc: Allocator) TestRunner {
@@ -70,7 +88,11 @@ pub const TestRunner = struct {
     // }
 
     pub inline fn runAll(self: *TestRunner) !void {
-        try utils.TestFolders.globalInit();
+        if (!io_initialized) {
+            io_threaded = .init(self.alloc, .{});
+            io_initialized = true;
+        }
+        try utils.TestFolders.globalInit(io());
 
         var last_error: ?anyerror = null;
         for (self.tests.items) |test_file| {
