@@ -84,6 +84,11 @@ coverage:
     kcov --include-path=src,test ./.coverage/test-e2e zig-out/bin/test-e2e
     kcov --include-path=src,test ./.coverage/test-zlint zig-out/bin/zlint || true
     kcov --merge ./.coverage/all ./.coverage/test ./.coverage/test-utils ./.coverage/test-e2e ./.coverage/test-zlint
+    # kcov writes an absolute <source> path into the cobertura report, which Codecov
+    # prepends to the (already repo-relative) filenames and then fails to map, producing
+    # an "unusable report / path mismatch". Relativize <source> so paths resolve.
+    sed -i.bak 's#<source>.*</source>#<source>.</source>#' ./.coverage/all/kcov-merged/cobertura.xml
+    rm -f ./.coverage/all/kcov-merged/cobertura.xml.bak
 
 # Run benchmarks. Optionally specify a `--release` mode.
 bench mode="fast":
