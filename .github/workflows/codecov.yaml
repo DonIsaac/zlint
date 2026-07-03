@@ -36,3 +36,6 @@ jobs:
         with:
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
+          disable_search: true
+          files: ./.coverage/all/kcov-merged/cobertura.xml
+          fail_ci_if_error: true
