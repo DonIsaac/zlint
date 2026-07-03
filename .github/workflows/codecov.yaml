@@ -38,4 +38,4 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           disable_search: true
           files: ./.coverage/all/kcov-merged/cobertura.xml
-          fail_on_error: true
+          fail_ci_if_error: true
