@@ -1,7 +1,7 @@
 const test_runner = @import("../harness.zig");
 
 const std = @import("std");
-const fs = std.fs;
+const Io = std.Io;
 const Allocator = std.mem.Allocator;
 const print = std.debug.print;
 
@@ -20,8 +20,9 @@ const SemanticError = zlint.semantic.Semantic.Builder.SemanticError;
 var is_tty: bool = false;
 
 pub fn globalSetup(alloc: Allocator) !void {
-    is_tty = std.fs.File.stderr().isTty();
-    var repos_dir_fd = fs.cwd().openDir(REPOS_DIR, .{}) catch |e| {
+    const io = test_runner.io();
+    is_tty = Io.File.stderr().isTty(io) catch false;
+    var repos_dir_fd = Io.Dir.cwd().openDir(io, REPOS_DIR, .{}) catch |e| {
         switch (e) {
             error.FileNotFound => {
                 print("Could not find git repos to test, please run `just submodules`", .{});
@@ -30,16 +31,12 @@ pub fn globalSetup(alloc: Allocator) !void {
             else => return e,
         }
     };
-    repos_dir_fd.close();
-    repos = try Repo.load(alloc);
+    repos_dir_fd.close(io);
+    repos = try Repo.load(alloc, io);
 }
 
 pub fn globalTeardown(_: Allocator) void {
     repos.deinit();
-}
-
-fn isTTY_() bool {
-    return std.io.getStdErr().isTTY();
 }
 
 fn testSemantic(alloc: Allocator, source: *const Source) !void {
@@ -59,9 +56,10 @@ fn testSemantic(alloc: Allocator, source: *const Source) !void {
 }
 
 pub fn run(alloc: Allocator) !void {
+    const io = test_runner.io();
     for (repos.value) |repo| {
-        const repo_dir = try utils.TestFolders.openRepo(alloc, repo.name);
-        var suite = try test_runner.TestSuite.init(alloc, repo_dir, "semantic-coverage", repo.name, .{ .test_fn = &testSemantic });
+        const repo_dir = try utils.TestFolders.openRepo(alloc, io, repo.name);
+        var suite = try test_runner.TestSuite.init(alloc, io, repo_dir, "semantic-coverage", repo.name, .{ .test_fn = &testSemantic });
         defer suite.deinit();
 
         try suite.run();

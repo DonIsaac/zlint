@@ -67,9 +67,9 @@ pub const Tree = struct {
     /// Indexed by scope id.
     scopes: std.MultiArrayList(Scope) = .{},
     /// Mappings from scopes to their descendants.
-    children: std.ArrayListUnmanaged(ScopeIdList) = .{},
+    children: std.ArrayListUnmanaged(ScopeIdList) = .empty,
 
-    bindings: std.ArrayListUnmanaged(SymbolIdList) = .{},
+    bindings: std.ArrayListUnmanaged(SymbolIdList) = .empty,
 
     const ScopeIdList = std.ArrayListUnmanaged(Scope.Id);
     const SymbolIdList = std.ArrayListUnmanaged(Symbol.Id);
@@ -115,8 +115,8 @@ pub const Tree = struct {
         });
 
         // set up it's child list
-        try self.children.append(alloc, .{});
-        try self.bindings.append(alloc, .{});
+        try self.children.append(alloc, .empty);
+        try self.bindings.append(alloc, .empty);
 
         // Add it to its parent's list of child scopes
         if (parent != null) {

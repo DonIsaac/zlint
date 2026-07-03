@@ -1,12 +1,12 @@
 const std = @import("std");
 const util = @import("util");
-const fs = std.fs;
 const path = std.fs.path;
 const json = std.json;
 const mem = std.mem;
 const Allocator = mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
-const Dir = std.fs.Dir;
+const Io = std.Io;
+const Dir = Io.Dir;
 const lint = @import("../lint.zig");
 const Cow = util.Cow(false);
 const Error = @import("../Error.zig");
@@ -14,6 +14,7 @@ const Span = @import("../span.zig").Span;
 
 pub fn resolveLintConfig(
     arena: *ArenaAllocator,
+    io: Io,
     cwd: Dir,
     config_filename: [:0]const u8,
     err_alloc: Allocator,
@@ -21,16 +22,16 @@ pub fn resolveLintConfig(
 ) !lint.Config.Managed {
     const arena_alloc = arena.allocator();
 
-    var it = try ParentIterator(4096).fromDir(cwd, config_filename);
+    var it = try ParentIterator(4096).fromDir(io, cwd, config_filename);
     while (it.next()) |maybe_path_to_config| {
-        const file = fs.openFileAbsolute(maybe_path_to_config, .{ .mode = .read_only }) catch |e| {
+        const file = Dir.openFileAbsolute(io, maybe_path_to_config, .{ .mode = .read_only }) catch |e| {
             switch (e) {
                 error.FileNotFound => continue,
                 else => return e,
             }
         };
-        defer file.close();
-        const source = try file.readToEndAlloc(arena_alloc, std.math.maxInt(u32));
+        defer file.close(io);
+        const source = try readToEndAlloc(file, io, arena_alloc, std.math.maxInt(u32));
         errdefer arena_alloc.free(source);
 
         var diagnostics: json.Diagnostics = .{};
@@ -57,9 +58,19 @@ pub fn resolveLintConfig(
     return lint.Config.DEFAULT.intoManaged(arena, null);
 }
 
+/// Read the remaining contents of `file`, up to `max_bytes`. Replaces
+/// `std.fs.File.readToEndAlloc` from Zig <= 0.15.
+fn readToEndAlloc(file: Io.File, io: Io, allocator: Allocator, max_bytes: usize) ![]u8 {
+    var reader = file.reader(io, &.{});
+    return reader.interface.allocRemaining(allocator, .limited(max_bytes)) catch |e| switch (e) {
+        error.ReadFailed => return reader.err orelse error.InputOutput,
+        else => |other| return other,
+    };
+}
+
 const ParentIterError = error{
     NotAbsolute,
-} || Dir.RealPathError;
+} || Dir.RealPathFileError;
 fn ParentIterator(comptime N: usize) type {
     return struct {
         // SAFETY: initialized during .init()
@@ -70,14 +81,14 @@ fn ParentIterator(comptime N: usize) type {
         const SLASH_STR = if (util.IS_WINDOWS) "\\" else "/";
 
         const Self = @This();
-        pub fn fromDir(starting_dir: Dir, filename: []const u8) ParentIterError!Self {
+        pub fn fromDir(io: Io, starting_dir: Dir, filename: []const u8) ParentIterError!Self {
             var self = Self{
                 .filename = filename,
                 .last_slash = 0,
             };
 
-            const curr_path = try starting_dir.realpath(".", self.buf[0..]);
-            try self.prepare(curr_path);
+            const curr_path_len = try starting_dir.realPathFile(io, ".", self.buf[0..]);
+            try self.prepare(self.buf[0..curr_path_len]);
 
             return self;
         }
@@ -166,7 +177,7 @@ const customRuleMessages = std.StaticStringMap([]const u8).initComptime([_]struc
 /// Try to read the contents of a `.gitignore` and add its entries to `config`'s
 /// ignore list. if `config` doesn't have a path, looks for `.gitignore` within
 /// `root`.
-pub fn readGitignore(config: *lint.Config.Managed, root: fs.Dir) !void {
+pub fn readGitignore(config: *lint.Config.Managed, io: Io, root: Dir) !void {
     const allocator = config.allocator();
     const dirname_: ?[]const u8 = if (config.path) |p| blk: {
         if (comptime util.IS_DEBUG) {
@@ -181,13 +192,13 @@ pub fn readGitignore(config: *lint.Config.Managed, root: fs.Dir) !void {
         const stackalloc = stackfb.get();
         const gitignore_path = try path.join(stackalloc, &[_][]const u8{ dirname, ".gitignore" });
         defer stackalloc.free(gitignore_path);
-        break :blk fs.openFileAbsolute(gitignore_path, .{ .mode = .read_only }) catch return;
+        break :blk Dir.openFileAbsolute(io, gitignore_path, .{ .mode = .read_only }) catch return;
     } else root: {
-        break :root root.openFile(".gitignore", .{ .mode = .read_only }) catch return;
+        break :root root.openFile(io, ".gitignore", .{ .mode = .read_only }) catch return;
     };
-    defer gitignore_file.close();
+    defer gitignore_file.close(io);
 
-    const gitignore = try gitignore_file.readToEndAlloc(allocator, std.math.maxInt(u32));
+    const gitignore = try readToEndAlloc(gitignore_file, io, allocator, std.math.maxInt(u32));
     var it = mem.splitScalar(u8, gitignore, '\n');
 
     // count lines to pre-allocate enough memory
@@ -233,9 +244,9 @@ test ParentIterator {
 }
 
 test resolveLintConfig {
-    const cwd = fs.cwd();
+    const cwd = Dir.cwd();
 
-    const fixtures_dir = try cwd.realpathAlloc(t.allocator, "test/fixtures/config");
+    const fixtures_dir = try cwd.realPathFileAlloc(t.io, "test/fixtures/config", t.allocator);
     defer t.allocator.free(fixtures_dir);
 
     var arena = ArenaAllocator.init(t.allocator);
@@ -244,7 +255,8 @@ test resolveLintConfig {
     var err: Error = undefined;
     const config = try resolveLintConfig(
         &arena,
-        try cwd.openDir(fixtures_dir, .{}),
+        t.io,
+        try cwd.openDir(t.io, fixtures_dir, .{}),
         "zlint.json",
         t.allocator,
         &err,

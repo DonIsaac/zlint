@@ -4,18 +4,17 @@
 //! the docs folder (`OUT_DIR`).
 
 const std = @import("std");
-const io = std.io;
+const io = std.Io;
 const gen = @import("./gen_utils.zig");
 const zlint = @import("zlint");
 const RULE_DOCS_DIR = @import("./constants.zig").@"docs/rules";
-const fs = std.fs;
 const log = std.log;
 const mem = std.mem;
-const path = fs.path;
+const path = std.fs.path;
 
 const Allocator = mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
-const Writer = fs.File.Writer;
+const Writer = io.File.Writer;
 const Schema = zlint.json.Schema;
 
 const panic = std.debug.panic;
@@ -36,6 +35,7 @@ const MdKind = enum {
 
 const Context = struct {
     alloc: Allocator,
+    io: io,
     ctx: *Schema.Context,
     schemas: *gen.SchemaMap,
     writer: *io.Writer,
@@ -44,15 +44,17 @@ const Context = struct {
 
 var buf: [1024]u8 = undefined;
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+pub fn main(init: std.process.Init) !void {
+    var gpa = std.heap.DebugAllocator(.{}){};
     const alloc = gpa.allocator();
-    const root = fs.cwd();
+    const task_io = init.io;
+    const root = io.Dir.cwd();
 
     var arena = ArenaAllocator.init(alloc);
     const schema_ctx, const schema_map = try gen.ruleSchemaMap(arena.allocator());
     var ctx = Context{
         .alloc = alloc,
+        .io = task_io,
         .ctx = schema_ctx,
         .schemas = schema_map,
         // safety: initialized when rendering a rule's docs, not used before.
@@ -61,16 +63,16 @@ pub fn main() !void {
 
     // rules are found using relative paths from the root directory. This check
     // makes sure relative path joining works as expected.
-    _ = root.statFile("build.zig") catch |err| {
+    _ = root.statFile(task_io, "build.zig", .{}) catch |err| {
         log.err("build.zig not found. Make sure you run docgen from the repo root.", .{});
         return err;
     };
 
-    try root.makePath(OUT_DIR);
+    try root.createDirPath(task_io, OUT_DIR);
 
     for (gen.RuleInfo.all_rules) |rule| {
         log.info("Rule: {s}", .{rule.meta.name});
-        const source = try gen.readSourceFile(alloc, root, rule.path);
+        const source = try gen.readSourceFile(alloc, task_io, root, rule.path);
         defer alloc.free(source);
 
         const rule_docs = try gen.getModuleDocs(source, alloc) orelse panic(
@@ -86,17 +88,17 @@ pub fn main() !void {
 }
 
 fn generateDocFile(ctx: *Context, rule: gen.RuleInfo, docs: []const u8) !void {
-    const outfile: fs.File = b: {
+    const outfile: io.File = b: {
         const name = try mem.concat(ctx.alloc, u8, &[_][]const u8{ rule.meta.name, comptime OUT_KIND.ext() });
         defer ctx.alloc.free(name);
         const outpath = try path.join(ctx.alloc, &[_][]const u8{ OUT_DIR, name });
         defer ctx.alloc.free(outpath);
         log.info("outpath: {s}", .{outpath});
-        break :b try fs.cwd().createFile(outpath, .{});
+        break :b try io.Dir.cwd().createFile(ctx.io, outpath, .{});
     };
-    defer outfile.close();
+    defer outfile.close(ctx.io);
     log.info("Writing docs for rule '{s}'\n", .{rule.meta.name});
-    var writer = outfile.writer(&buf);
+    var writer = outfile.writer(ctx.io, &buf);
     defer writer.interface.flush() catch @panic("failed to flush writer");
     ctx.writer = &writer.interface;
     // safety: no longer valid once file closes

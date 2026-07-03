@@ -108,16 +108,16 @@ pub const Schema = union(enum) {
             var schema = try root.toJson(self);
             if (schema == .object) {
                 var obj = &schema.object;
-                try obj.put("$schema", .{ .string = self.draft.uri() });
+                try obj.put(self.allocator, "$schema", .{ .string = self.draft.uri() });
                 if (self.definitions.count() > 0) {
                     var definitions = self.jsonObject();
                     var it = self.definitions.iterator();
                     while (it.next()) |entry| {
                         const key = entry.key_ptr.*;
                         const def_schema = entry.value_ptr.*;
-                        try definitions.put(key, try def_schema.toJson(self));
+                        try definitions.put(self.allocator, key, try def_schema.toJson(self));
                     }
-                    try obj.put("definitions", .{ .object = definitions });
+                    try obj.put(self.allocator, "definitions", .{ .object = definitions });
                 }
             }
             return schema;
@@ -296,11 +296,12 @@ pub const Schema = union(enum) {
         }
 
         fn jsonObject(self: *Context) ObjectMap {
-            return ObjectMap.init(self.allocator);
+            _ = self;
+            return .empty;
         }
         fn objectSized(self: *Context, len: usize) Allocator.Error!ObjectMap {
-            var obj = ObjectMap.init(self.allocator);
-            try obj.ensureUnusedCapacity(len);
+            var obj: ObjectMap = .empty;
+            try obj.ensureUnusedCapacity(self.allocator, len);
             return obj;
         }
         pub fn jsonArray(self: *Context, len: usize) Allocator.Error!json.Array {
@@ -332,14 +333,15 @@ pub const Schema = union(enum) {
             return self;
         }
 
-        fn toJson(self: *const Common, value: *ObjectMap) Allocator.Error!void {
-            if (self.title) |title| try value.put("title", .{ .string = title });
-            if (self.description) |desc| try value.put("description", .{ .string = desc });
-            if (self.default) |def| try value.put("default", def);
+        fn toJson(self: *const Common, ctx: *Schema.Context, value: *ObjectMap) Allocator.Error!void {
+            const allocator = ctx.allocator;
+            if (self.title) |title| try value.put(allocator, "title", .{ .string = title });
+            if (self.description) |desc| try value.put(allocator, "description", .{ .string = desc });
+            if (self.default) |def| try value.put(allocator, "default", def);
             if (self.examples.len > 0) {
-                const ex = try value.getOrPut("examples");
+                const ex = try value.getOrPut(allocator, "examples");
                 assert(!ex.found_existing);
-                var arr = json.Array.init(value.allocator);
+                var arr = json.Array.init(allocator);
                 try arr.ensureTotalCapacityPrecise(self.examples.len);
                 for (self.examples) |example| {
                     arr.appendAssumeCapacity(.{ .string = example });
@@ -348,9 +350,9 @@ pub const Schema = union(enum) {
             }
 
             var it = self.extra_values.iterator();
-            try value.ensureUnusedCapacity(self.extra_values.count());
+            try value.ensureUnusedCapacity(allocator, self.extra_values.count());
             while (it.next()) |entry| {
-                try value.put(entry.key_ptr.*, entry.value_ptr.*);
+                try value.put(allocator, entry.key_ptr.*, entry.value_ptr.*);
             }
         }
     };
@@ -373,17 +375,18 @@ pub const Schema = union(enum) {
             }
 
             fn toJson(self: *const @This(), ctx: *Schema.Context) Allocator.Error!json.Value {
+                const allocator = ctx.allocator;
                 var value = ctx.jsonObject();
                 switch (@typeInfo(Num)) {
                     .int, .comptime_int => {
-                        try value.put("type", Value{ .string = "integer" });
-                        if (self.min) |min| try value.put("minimum", Value{ .integer = @intCast(min) });
-                        if (self.max) |max| try value.put("maximum", Value{ .integer = @intCast(max) });
+                        try value.put(allocator, "type", Value{ .string = "integer" });
+                        if (self.min) |min| try value.put(allocator, "minimum", Value{ .integer = @intCast(min) });
+                        if (self.max) |max| try value.put(allocator, "maximum", Value{ .integer = @intCast(max) });
                     },
                     .float, .comptime_float => {
-                        try value.put("type", Value{ .string = "number" });
-                        if (self.min) |min| try value.put("minimum", Value{ .float = @floatCast(min) });
-                        if (self.max) |max| try value.put("maximum", Value{ .float = @floatCast(max) });
+                        try value.put(allocator, "type", Value{ .string = "number" });
+                        if (self.min) |min| try value.put(allocator, "minimum", Value{ .float = @floatCast(min) });
+                        if (self.max) |max| try value.put(allocator, "maximum", Value{ .float = @floatCast(max) });
                     },
                     else => unreachable,
                 }
@@ -402,8 +405,8 @@ pub const Schema = union(enum) {
 
         fn toJson(self: *const Boolean, ctx: *Schema.Context) Allocator.Error!json.Value {
             var value = ctx.jsonObject();
-            try value.put("type", Value{ .string = "boolean" });
-            try self.common.toJson(&value);
+            try value.put(ctx.allocator, "type", Value{ .string = "boolean" });
+            try self.common.toJson(ctx, &value);
 
             return .{ .object = value };
         }
@@ -451,13 +454,14 @@ pub const Schema = union(enum) {
         }
 
         fn toJson(self: *const String, ctx: *Schema.Context) Allocator.Error!json.Value {
+            const allocator = ctx.allocator;
             var value = ctx.jsonObject();
-            try value.put("type", .{ .string = "string" });
-            try self.common.toJson(&value);
-            if (self.minLength) |min| try value.put("minLength", .{ .integer = min });
-            if (self.maxLength) |max| try value.put("maxLength", .{ .integer = max });
-            if (self.pattern) |pattern| try value.put("pattern", .{ .string = pattern });
-            if (self.format) |format| try value.put("format", .{ .string = @tagName(format) });
+            try value.put(allocator, "type", .{ .string = "string" });
+            try self.common.toJson(ctx, &value);
+            if (self.minLength) |min| try value.put(allocator, "minLength", .{ .integer = min });
+            if (self.maxLength) |max| try value.put(allocator, "maxLength", .{ .integer = max });
+            if (self.pattern) |pattern| try value.put(allocator, "pattern", .{ .string = pattern });
+            if (self.format) |format| try value.put(allocator, "format", .{ .string = @tagName(format) });
 
             return .{ .object = value };
         }
@@ -472,10 +476,11 @@ pub const Schema = union(enum) {
         }
 
         fn toJson(self: *const Enum, ctx: *Schema.Context) Allocator.Error!json.Value {
+            const allocator = ctx.allocator;
             var value = ctx.jsonObject();
-            try value.put("type", .{ .string = "string" });
-            try value.put("enum", try ctx.toValue(self.@"enum") orelse unreachable);
-            try self.common.toJson(&value);
+            try value.put(allocator, "type", .{ .string = "string" });
+            try value.put(allocator, "enum", try ctx.toValue(self.@"enum") orelse unreachable);
+            try self.common.toJson(ctx, &value);
 
             return .{ .object = value };
         }
@@ -491,11 +496,12 @@ pub const Schema = union(enum) {
         }
 
         fn toJson(self: *const Array, ctx: *Schema.Context) Allocator.Error!json.Value {
+            const allocator = ctx.allocator;
             var value = ctx.jsonObject();
-            try value.put("type", .{ .string = "array" });
-            try self.common.toJson(&value);
+            try value.put(allocator, "type", .{ .string = "array" });
+            try self.common.toJson(ctx, &value);
             if (self.items) |items| {
-                try value.put("items", try items.toJson(ctx));
+                try value.put(allocator, "items", try items.toJson(ctx));
             }
             if (self.prefixItems) |prefix| {
                 var arr = try ctx.jsonArray(prefix.len);
@@ -503,7 +509,7 @@ pub const Schema = union(enum) {
                     const item_value = try item.toJson(ctx);
                     arr.appendAssumeCapacity(item_value);
                 }
-                try value.put("prefixItems", .{ .array = arr });
+                try value.put(allocator, "prefixItems", .{ .array = arr });
             }
 
             return .{ .object = value };
@@ -522,24 +528,25 @@ pub const Schema = union(enum) {
         }
 
         fn toJson(self: *const Object, ctx: *Schema.Context) Allocator.Error!json.Value {
+            const allocator = ctx.allocator;
             var value = ctx.jsonObject();
-            try value.put("type", .{ .string = "object" });
-            try self.common.toJson(&value);
+            try value.put(allocator, "type", .{ .string = "object" });
+            try self.common.toJson(ctx, &value);
 
             var properties = try ctx.objectSized(self.properties.count());
             var it = self.properties.iterator();
             while (it.next()) |entry| {
                 const key = entry.key_ptr.*;
-                try properties.put(key, try entry.value_ptr.toJson(ctx));
+                try properties.put(allocator, key, try entry.value_ptr.toJson(ctx));
             }
-            try value.put("properties", .{ .object = properties });
+            try value.put(allocator, "properties", .{ .object = properties });
 
             if (self.required.len > 0) {
                 var arr = try ctx.jsonArray(self.required.len);
                 for (self.required) |name| {
                     arr.appendAssumeCapacity(.{ .string = name });
                 }
-                try value.put("required", .{ .array = arr });
+                try value.put(allocator, "required", .{ .array = arr });
             }
 
             return .{ .object = value };
@@ -578,8 +585,8 @@ pub const Schema = union(enum) {
 
         fn toJson(self: *const Ref, ctx: *Schema.Context) Allocator.Error!json.Value {
             var value = ctx.jsonObject();
-            try value.put("$ref", .{ .string = self.uri });
-            try self.common.toJson(&value);
+            try value.put(ctx.allocator, "$ref", .{ .string = self.uri });
+            try self.common.toJson(ctx, &value);
             return .{ .object = value };
         }
     };
@@ -605,7 +612,7 @@ pub const Schema = union(enum) {
 
         fn toJson(self: *const Compound, ctx: *Schema.Context) Allocator.Error!json.Value {
             var value = ctx.jsonObject();
-            try self.common.toJson(&value);
+            try self.common.toJson(ctx, &value);
             const key: []const u8, const schemalist = switch (self.kind) {
                 .all_of => |l| .{ "allOf", l },
                 .any_of => |l| .{ "anyOf", l },
@@ -616,7 +623,7 @@ pub const Schema = union(enum) {
                 const schema_value = try schema.toJson(ctx);
                 arr.appendAssumeCapacity(schema_value);
             }
-            try value.put(key, .{ .array = arr });
+            try value.put(ctx.allocator, key, .{ .array = arr });
             return .{ .object = value };
         }
     };
@@ -636,7 +643,7 @@ fn toValueT(T: type, value: T, ctx: *Schema.Context) Allocator.Error!?Value {
                     *anyopaque => .{ .bool = true },
                     else => try toValueT(field.type, @field(value, field.name), ctx) orelse return null,
                 };
-                try obj.put(field.name, field_value);
+                try obj.put(ctx.allocator, field.name, field_value);
             }
             break :obj Value{ .object = obj };
         },

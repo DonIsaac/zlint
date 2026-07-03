@@ -4,12 +4,12 @@ linter: Linter,
 filename: []const u8,
 
 /// Test cases that should produce no violations when linted.
-passes: std.ArrayListUnmanaged([:0]const u8) = .{},
+passes: std.ArrayListUnmanaged([:0]const u8) = .empty,
 /// Test cases that should produce at least one violation when linted.
-fails: std.ArrayListUnmanaged([:0]const u8) = .{},
-fixes: std.ArrayListUnmanaged(FixCase) = .{},
+fails: std.ArrayListUnmanaged([:0]const u8) = .empty,
+fixes: std.ArrayListUnmanaged(FixCase) = .empty,
 /// Violation diagnostics collected by pass and fail cases.
-diagnostics: std.ArrayListUnmanaged(Linter.Diagnostic) = .{},
+diagnostics: std.ArrayListUnmanaged(Linter.Diagnostic) = .empty,
 diagnostic: TestDiagnostic = .{},
 fmt: GraphicalFormatter,
 
@@ -19,7 +19,7 @@ const RuleTester = @This();
 
 const SNAPSHOT_DIR = "src/linter/rules/snapshots";
 
-const SnapshotError = fs.Dir.OpenError || fs.Dir.MakeError || fs.Dir.StatFileError || fs.File.WriteError || Allocator.Error || std.io.Writer.Error;
+const SnapshotError = Io.Dir.OpenError || Io.Dir.CreateDirPathOpenError || Io.File.OpenError || Allocator.Error || std.Io.Writer.Error;
 
 const TestError = error{
     /// Expected no violations, but violations were found.
@@ -73,7 +73,7 @@ pub fn setFileName(self: *RuleTester, filename: []const u8) void {
 }
 
 pub fn withPath(self: *RuleTester, source_dir: []const u8) *RuleTester {
-    const new_name = fs.path.join(self.alloc, &[_][]const u8{ source_dir, self.filename }) catch @panic("OOM");
+    const new_name = std.fs.path.join(self.alloc, &[_][]const u8{ source_dir, self.filename }) catch @panic("OOM");
     self.alloc.free(self.filename);
     self.filename = new_name;
     return self;
@@ -109,8 +109,8 @@ pub fn run(self: *RuleTester) anyerror!void {
     self.runImpl() catch |e| {
         const msg = self.diagnostic.message.borrow();
         var buf: [512]u8 = undefined;
-        var writer = try self.alloc.create(std.fs.File.Writer);
-        writer.* = std.fs.File.stderr().writer(&buf);
+        var writer = try self.alloc.create(Io.File.Writer);
+        writer.* = Io.File.stderr().writer(std.testing.io, &buf);
         defer self.alloc.destroy(writer);
         var stderr = &writer.interface;
         defer stderr.flush() catch @panic("failed to flush writer");
@@ -300,19 +300,20 @@ fn lint(
     defer semantic_result.deinit();
     const semantic = semantic_result.value;
 
-    return self.linter.runOnSource(&semantic, &source, @ptrCast(errors));
+    return self.linter.runOnSource(std.testing.io, &semantic, &source, @ptrCast(errors));
 }
 
 fn saveSnapshot(self: *RuleTester) SnapshotError!void {
-    const snapshot_file: fs.File = brk: {
-        var snapshot_dir = fs.cwd().makeOpenPath(SNAPSHOT_DIR, .{}) catch |e| {
+    const io = std.testing.io;
+    const snapshot_file: Io.File = brk: {
+        var snapshot_dir = Io.Dir.cwd().createDirPathOpen(io, SNAPSHOT_DIR, .{}) catch |e| {
             self.diagnostic.message = Cow.static("Failed to open snapshot directory '" ++ SNAPSHOT_DIR ++ "'");
             return e;
         };
-        defer snapshot_dir.close();
+        defer snapshot_dir.close(io);
         const snapshot_filename = try std.mem.concat(self.alloc, u8, &[_][]const u8{ self.rule.meta.name, ".snap" });
         defer self.alloc.free(snapshot_filename);
-        const snapshot_file = snapshot_dir.createFile(snapshot_filename, .{ .truncate = true }) catch |e| {
+        const snapshot_file = snapshot_dir.createFile(io, snapshot_filename, .{ .truncate = true }) catch |e| {
             self.diagnostic.message = Cow.fmt(
                 self.alloc,
                 "Failed to open snapshot file '{s}'",
@@ -322,10 +323,10 @@ fn saveSnapshot(self: *RuleTester) SnapshotError!void {
         };
         break :brk snapshot_file;
     };
-    defer snapshot_file.close();
+    defer snapshot_file.close(io);
 
     var buf: [8192]u8 = undefined;
-    var writer = snapshot_file.writer(&buf);
+    var writer = snapshot_file.writer(io, &buf);
 
     for (self.diagnostics.items) |diagnostic| {
         try self.fmt.format(&writer.interface, diagnostic.err);
@@ -360,7 +361,7 @@ const TestDiagnostic = struct {
 };
 
 const std = @import("std");
-const fs = std.fs;
+const Io = std.Io;
 const util = @import("util");
 
 const Allocator = std.mem.Allocator;

@@ -6,11 +6,11 @@ const _lint = @import("../lint.zig");
 const reporters = @import("../reporter.zig");
 const lint_config = @import("lint_config.zig");
 
-const fs = std.fs;
 const mem = std.mem;
 const path = std.fs.path;
 
 const Allocator = std.mem.Allocator;
+const Io = std.Io;
 
 const WalkState = walk.WalkState;
 const Error = @import("../Error.zig");
@@ -21,11 +21,11 @@ const Options = @import("../cli/Options.zig");
 
 var buf: [4096]u8 = undefined;
 
-pub fn lint(alloc: Allocator, options: Options) !u8 {
+pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Options) !u8 {
     // writer cannot live on the stack.
     // this gets moved into Reporter, which runs on a different thread.
-    const writer = try alloc.create(std.fs.File.Writer);
-    writer.* = std.fs.File.stdout().writer(&buf);
+    const writer = try alloc.create(Io.File.Writer);
+    writer.* = Io.File.stdout().writer(io, &buf);
     defer alloc.destroy(writer);
     var stdout = &writer.interface;
     defer stdout.flush() catch @panic("failed to flush writer");
@@ -37,22 +37,22 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
     var arena = std.heap.ArenaAllocator.init(alloc);
     defer arena.deinit();
 
-    var reporter = try reporters.Reporter.initKind(options.format, &writer.interface, alloc);
+    var reporter = try reporters.Reporter.initKind(options.format, io, environ, &writer.interface, alloc);
     defer reporter.deinit();
     reporter.opts.quiet = options.quiet;
     reporter.opts.report_stats = reporter.opts.report_stats and options.summary;
 
     var config = resolve_config: {
         var errors: [1]Error = undefined;
-        const c = lint_config.resolveLintConfig(&arena, fs.cwd(), "zlint.json", alloc, &errors[0]) catch {
+        const c = lint_config.resolveLintConfig(&arena, io, Io.Dir.cwd(), "zlint.json", alloc, &errors[0]) catch {
             try reporter.reportErrorSlice(alloc, errors[0..1]);
             return 1;
         };
         break :resolve_config c;
     };
-    try lint_config.readGitignore(&config, fs.cwd());
+    try lint_config.readGitignore(&config, io, Io.Dir.cwd());
 
-    const start = std.time.milliTimestamp();
+    const start = Io.Timestamp.now(io, .real);
 
     {
         const fix = if (options.fix or options.fix_dangerously) Fix.Meta{
@@ -63,6 +63,7 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
         // TODO: use options to specify number of threads (if provided)
         var service = try LintService.init(
             alloc,
+            io,
             &reporter,
             config,
             .{ .fix = fix },
@@ -76,27 +77,27 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
                 .include = options.args.items,
                 .exclude = config.config.ignore,
             };
-            var src = try fs.cwd().openDir(".", .{ .iterate = true });
-            defer src.close();
-            var walker = try LintWalker.init(alloc, src, &visitor);
+            var src = try Io.Dir.cwd().openDir(io, ".", .{ .iterate = true });
+            defer src.close(io);
+            var walker = try LintWalker.init(alloc, io, src, &visitor);
             defer walker.deinit();
             try walker.walk();
         } else {
             // SAFETY: initialized by reader
             var msg_buf: [4096]u8 = undefined;
             var delim_buf: [1024]u8 = undefined;
-            var stdin = std.fs.File.stdin();
-            var reader = stdin.reader(&msg_buf);
+            var stdin = Io.File.stdin();
+            var reader = stdin.readerStreaming(io, &msg_buf);
             while (try readUntilDelimiterOrEof(&reader.interface, &delim_buf, '\n')) |filepath| {
                 if (!std.mem.endsWith(u8, filepath, ".zig")) continue;
                 const owned = try alloc.dupe(u8, filepath);
-                try service.lintFileParallel(owned);
+                service.lintFileParallel(owned);
             }
         }
     }
 
-    const stop = std.time.milliTimestamp();
-    const duration = stop - start;
+    const stop = Io.Timestamp.now(io, .real);
+    const duration: i64 = @intCast(@divTrunc(start.durationTo(stop).nanoseconds, std.time.ns_per_ms));
     reporter.printStats(duration);
     if (reporter.stats.numErrorsSync() > 0) {
         return 1;
@@ -140,11 +141,7 @@ const LintVisitor = struct {
                 const filepath = self.allocator.dupe(u8, entry.path) catch {
                     return WalkState.Stop;
                 };
-                self.service.lintFileParallel(filepath) catch |e| {
-                    std.log.err("Failed to spawn lint job on file '{s}': {any}\n", .{ filepath, e });
-                    self.allocator.free(filepath);
-                    return WalkState.Continue;
-                };
+                self.service.lintFileParallel(filepath);
             },
             else => {
                 // todo: warn
@@ -190,8 +187,8 @@ const LintVisitor = struct {
 /// Returns a slice of the stream data, with ptr equal to `buf.ptr`. The
 /// delimiter byte is written to the output buffer but is not included
 /// in the returned slice.
-pub fn readUntilDelimiterOrEof(self: *std.io.Reader, buffer: []u8, delimiter: u8) anyerror!?[]u8 {
-    var fbw = std.io.Writer.fixed(buffer);
+pub fn readUntilDelimiterOrEof(self: *std.Io.Reader, buffer: []u8, delimiter: u8) anyerror!?[]u8 {
+    var fbw = std.Io.Writer.fixed(buffer);
     const bytes_read = self.streamDelimiter(&fbw, delimiter) catch |err| switch (err) {
         error.EndOfStream => if (fbw.end == 0) {
             return null;

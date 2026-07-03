@@ -38,20 +38,20 @@ scope: Scope.Id,
 decl: Node.Index,
 visibility: Visibility,
 flags: Flags,
-references: std.ArrayListUnmanaged(Reference.Id) = .{},
+references: std.ArrayListUnmanaged(Reference.Id) = .empty,
 
 /// Symbols on "instance objects" (e.g. field properties and instance
 /// methods). Generally corresponds to `.container_field` nodes.
 ///
 /// Do not write to this list directly.
-members: SymbolIdList = .{},
+members: SymbolIdList = .empty,
 
 /// Symbols directly accessible on the symbol itself (e.g. static methods,
 /// constants, enum members). These are _not_ symbols exported via `export`;
 /// those are linker exports.
 ///
 /// Do not write to this list directly.
-exports: SymbolIdList = .{},
+exports: SymbolIdList = .empty,
 
 /// Uniquely identifies a symbol across a source file.
 pub const Id = NominalId(u32);
@@ -171,7 +171,7 @@ pub const Table = struct {
     /// Do not write to this list directly.
     symbols: std.MultiArrayList(Symbol) = .{},
     references: std.MultiArrayList(Reference) = .{},
-    unresolved_references: std.ArrayListUnmanaged(Reference.Id) = .{},
+    unresolved_references: std.ArrayListUnmanaged(Reference.Id) = .empty,
 
     /// Get a symbol from the table.
     pub inline fn get(self: *const Symbol.Table, id: Symbol.Id) *const Symbol {

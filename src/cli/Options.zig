@@ -25,7 +25,7 @@ fix: bool = false,
 /// Like `--fix`, but also enable potentially dangerous fixes.
 fix_dangerously: bool = false,
 /// Positional arguments
-args: std.ArrayListUnmanaged([]const u8) = .{},
+args: std.ArrayListUnmanaged([]const u8) = .empty,
 
 pub const usage =
     \\Usage: zlint [options] [<dirs>]
@@ -50,15 +50,15 @@ const ParseError = error{
     WriterError,
     WriteFailed,
 };
-pub fn parseArgv(alloc: Allocator, err: ?*Error) ParseError!Options {
-    // NOTE: args() is not supported on WASM and windows. When targeting another
-    // platform, argsWithAllocator does not actually allocate memory.
-    var argv = try std.process.argsWithAllocator(alloc);
+pub fn parseArgv(alloc: Allocator, io: std.Io, args: std.process.Args, err: ?*Error) ParseError!Options {
+    // NOTE: on most platforms this does not actually allocate memory; only
+    // Windows and WASI need the allocator to decode the command line.
+    var argv = std.process.Args.Iterator.initAllocator(args, alloc) catch return error.OutOfMemory;
     defer argv.deinit();
-    return parse(alloc, argv, err);
+    return parse(alloc, io, argv, err);
 }
 
-fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options {
+fn parse(alloc: Allocator, io: std.Io, args_iter: anytype, err: ?*Error) ParseError!Options {
     var argv = args_iter;
     var opts = Options{};
     errdefer opts.deinit(alloc);
@@ -106,7 +106,7 @@ fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options 
             opts.print_ast = true;
         } else if (eq(arg, "-h") or eq(arg, "--help") or eq(arg, "--hlep") or eq(arg, "-help")) {
             var buf: [512]u8 = undefined;
-            var writer = std.fs.File.stdout().writer(&buf);
+            var writer = std.Io.File.stdout().writer(io, &buf);
             var stdout = &writer.interface;
             defer stdout.flush() catch @panic("failed to flush writer");
 
@@ -149,7 +149,7 @@ const t = std.testing;
 
 test parse {
     const List = std.ArrayListUnmanaged([]const u8);
-    const Case = std.meta.Tuple(&[_]type{ []const u8, Options });
+    const Case = struct { []const u8, Options };
 
     const src_list: List = brk: {
         const items = &[_][]const u8{"src"};
@@ -181,7 +181,7 @@ test parse {
     for (test_cases) |test_case| {
         const argv = std.mem.splitScalar(u8, test_case[0], ' ');
         const expected: Options = test_case[1];
-        var opts = try parse(t.allocator, argv, null);
+        var opts = try parse(t.allocator, t.io, argv, null);
         defer opts.deinit(t.allocator);
 
         try t.expectEqual(expected.verbose, opts.verbose);
@@ -202,7 +202,7 @@ test "invalid --format" {
     defer err.deinit(t.allocator);
     try t.expectError(
         error.InvalidArgValue,
-        parse(t.allocator, argv, &err),
+        parse(t.allocator, t.io, argv, &err),
     );
     try t.expect(std.mem.indexOf(u8, err.message.borrow(), "Invalid format name") != null);
 }

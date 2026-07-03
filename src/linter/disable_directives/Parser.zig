@@ -18,7 +18,7 @@ kind: DisableDirectiveComment.Kind,
 /// Stack allocated. Must be copied into newly-allocated directives.
 ///
 /// @internal
-rules: std.ArrayListUnmanaged(Span) = .{},
+rules: std.ArrayListUnmanaged(Span) = .empty,
 
 const DisableDirectivesParser = @This();
 const MIN_LEN: u32 = "//zlint-disable".len;
@@ -64,7 +64,7 @@ pub fn parse(self: *DisableDirectivesParser, allocator: Allocator, line_comment:
     const alloc = fb.get();
     defer {
         self.rules.deinit(alloc);
-        self.rules = .{}; // Put rules back into a valid, empty state for the next parse.
+        self.rules = .empty; // Put rules back into a valid, empty state for the next parse.
     }
 
     // consume /\s*//[/!]?\s*/

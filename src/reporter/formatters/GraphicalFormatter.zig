@@ -485,7 +485,7 @@ fn writeBytesNTimes(w: *io.Writer, bytes: []const u8, n: usize) FormatError!void
 const GraphicalFormatter = @This();
 
 const std = @import("std");
-const io = std.io;
+const io = std.Io;
 const util = @import("util");
 
 const assert = std.debug.assert;

@@ -5,3 +5,4 @@ pub const getRunner = runner.getRunner;
 pub const addTest = runner.addTest;
 pub const globalShutdown = runner.globalShutdown;
 pub const TestFile = runner.TestFile;
+pub const io = runner.io;

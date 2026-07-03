@@ -10,11 +10,13 @@ linter: Linter,
 options: Options,
 config: Config.Managed,
 reporter: *reporters.Reporter,
-pool: *Thread.Pool,
+group: Io.Group = .init,
+io: Io,
 allocator: Allocator,
 
 pub fn init(
     allocator: Allocator,
+    io: Io,
     reporter: *reporters.Reporter,
     config: Config.Managed,
     options: Options,
@@ -22,27 +24,20 @@ pub fn init(
     errdefer config.arena.deinit();
     var linter = try Linter.initWithOptions(allocator, config, .{ .fix = options.fix });
     errdefer linter.deinit();
-    const pool = try allocator.create(Thread.Pool);
-    errdefer allocator.destroy(pool);
-    try pool.init(Thread.Pool.Options{
-        .n_jobs = if (options.n_threads) |nt| @intCast(nt) else null,
-        .allocator = allocator,
-    });
 
     return .{
         .linter = linter,
         .options = options,
         .config = config,
         .reporter = reporter,
-        .pool = pool,
+        .io = io,
         .allocator = allocator,
     };
 }
 
 pub fn deinit(self: *LintService) void {
-    self.pool.deinit();
-    self.allocator.destroy(self.pool);
-    // NOTE: threads must be joined first
+    self.group.await(self.io) catch {};
+    // NOTE: lint jobs must be joined first
     self.linter.deinit();
 }
 
@@ -52,12 +47,8 @@ pub inline fn rulesCount(self: *LintService) usize {
 
 /// `filepath` must be an owned allocation on the heap, and gets moved into the
 /// visitor. This is for thread safety reasons.
-///
-/// ## Errors
-/// if queueing the lint job to the thread pool fails. Does not error if
-/// linting fails.
-pub fn lintFileParallel(self: *LintService, filepath: []u8) !void {
-    return self.pool.spawn(LintService.lintFile, .{ self, filepath });
+pub fn lintFileParallel(self: *LintService, filepath: []u8) void {
+    self.group.async(self.io, LintService.lintFile, .{ self, filepath });
 }
 
 /// `filepath` must be an owned allocation on the heap, and gets moved into the
@@ -70,12 +61,12 @@ pub fn lintFile(self: *LintService, filepath: []u8) void {
 }
 
 fn tryLintFile(self: *LintService, filepath: []u8) !void {
-    const file = fs.cwd().openFile(filepath, .{}) catch |e| {
+    const file = Io.Dir.cwd().openFile(self.io, filepath, .{}) catch |e| {
         self.allocator.free(filepath);
         return e;
     };
 
-    var source = try Source.init(self.allocator, file, filepath);
+    var source = try Source.init(self.allocator, self.io, file, filepath);
     defer source.deinit();
     var errors: ?std.array_list.Managed(Error) = null;
 
@@ -125,7 +116,7 @@ pub fn lintSource(
     // NOTE: errors are moved into reporter, so only the list itself gets
     // destroyed (not the errors it contains.)
     defer if (diagnostics_) |*d| d.deinit();
-    self.linter.runOnSource(&semantic, source, &diagnostics_) catch |e| {
+    self.linter.runOnSource(self.io, &semantic, source, &diagnostics_) catch |e| {
         var diagnostics = diagnostics_ orelse return e;
 
         // FIXME: take errors from ctx. requires using Error instead of Diagnostic
@@ -157,15 +148,16 @@ fn applyFixes(self: *const LintService, diagnostics: *Linter.Diagnostic.List, so
         const pathname = source.pathname.?;
         // create instead of open to truncate contents
         // TODO: handle errors here instead of panicking
-        var file = fs.cwd().createFile(pathname, .{}) catch |e| {
+        var file = Io.Dir.cwd().createFile(self.io, pathname, .{}) catch |e| {
             std.debug.panic("Failed to apply fixes to '{s}': {}", .{ pathname, e });
         };
-        defer file.close();
-        file.writeAll(result.source.items) catch |e| std.debug.panic("Failed to save fixed source to '{s}': {s}", .{ pathname, @errorName(e) });
+        defer file.close(self.io);
+        var writer = file.writer(self.io, &.{});
+        writer.interface.writeAll(result.source.items) catch |e| std.debug.panic("Failed to save fixed source to '{s}': {s}", .{ pathname, @errorName(e) });
     }
 
     const managed = result.unfixed_errors.toManaged(self.allocator);
-    result.unfixed_errors = .{};
+    result.unfixed_errors = .empty;
     return managed;
 }
 
@@ -174,11 +166,10 @@ const LintError = Linter.LintError;
 const std = @import("std");
 const util = @import("util");
 
-const fs = std.fs;
+const Io = std.Io;
 
 const reporters = @import("../reporter.zig");
 
-const Thread = std.Thread;
 const Allocator = std.mem.Allocator;
 const Linter = @import("linter.zig").Linter;
 const Config = @import("Config.zig");
