@@ -9,6 +9,9 @@ const panic = std.debug.panic;
 const print = std.debug.print;
 
 const TestAllocator = std.heap.DebugAllocator(.{
+    // Stack unwinding is really expensive. Turning them off results in ~4x speedup.
+    // Comment out the line below to debug.
+    .stack_trace_frames = 0,
     // .never_unmap = true,
     // .retain_metadata = true,
 });
