@@ -37,10 +37,14 @@ jobs:
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
           disable_search: true
-          # Upload kcov's native Codecov-format JSON rather than its cobertura.xml.
-          # kcov's cobertura emits malformed attrs (e.g. branches-covered="1.0" as a
-          # float, no branches-valid, no <methods>) that Codecov rejects as an
-          # "unusable report / incorrect data format". The codecov.json report carries
-          # the same repo-relative paths and coverage in Codecov's own format.
-          files: ./.coverage/all/kcov-merged/codecov.json
+          files: ./.coverage/all/kcov-merged/cobertura.xml
           fail_ci_if_error: true
+
+      # TEMP DEBUG: capture the real kcov output CI produces so we can see why
+      # Codecov marks the report unusable. Remove once the upload is fixed.
+      - name: Upload kcov report as artifact (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kcov-merged-debug
+          path: ./.coverage/all/kcov-merged/
