@@ -20,10 +20,18 @@ jobs:
     runs-on: "ubuntu-22.04"
     steps:
       - uses: actions/checkout@v7
+      # Ubuntu's apt kcov (v38) is too old to parse the DWARF5 debug info in
+      # Zig 0.16 binaries: it instruments nothing and emits an empty report,
+      # which Codecov rejects as "unusable". Build a modern kcov from source.
       - name: Install kcov
         run: |
           sudo apt-get update
-          sudo apt-get install -y kcov
+          sudo apt-get install -y binutils-dev libcurl4-openssl-dev libdw-dev libelf-dev zlib1g-dev cmake g++ pkg-config
+          git clone --depth 1 --branch v43 https://github.com/SimonKagstrom/kcov.git /tmp/kcov
+          cmake -S /tmp/kcov -B /tmp/kcov/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/kcov/build --parallel
+          sudo cmake --install /tmp/kcov/build
+          kcov --version
       - uses: extractions/setup-just@v4
       - uses: mlugg/setup-zig@v2
         with:
@@ -39,12 +47,3 @@ jobs:
           disable_search: true
           files: ./.coverage/all/kcov-merged/cobertura.xml
           fail_ci_if_error: true
-
-      # TEMP DEBUG: capture the real kcov output CI produces so we can see why
-      # Codecov marks the report unusable. Remove once the upload is fixed.
-      - name: Upload kcov report as artifact (debug)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: kcov-merged-debug
-          path: ./.coverage/all/kcov-merged/
