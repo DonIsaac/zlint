@@ -47,3 +47,16 @@ jobs:
           disable_search: true
           files: ./.coverage/all/kcov-merged/cobertura.xml
           fail_ci_if_error: true
+
+      # TEMP DEBUG: capture individual + merged kcov reports to locate where
+      # coverage data is lost. Remove once fixed.
+      - name: Upload full kcov tree (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kcov-tree-debug
+          path: |
+            ./.coverage/test/**/cobertura.xml
+            ./.coverage/test-e2e/**/cobertura.xml
+            ./.coverage/test-zlint/**/cobertura.xml
+            ./.coverage/all/kcov-merged/cobertura.xml
