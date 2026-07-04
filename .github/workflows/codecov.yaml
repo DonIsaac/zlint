@@ -37,5 +37,10 @@ jobs:
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
           disable_search: true
-          files: ./.coverage/all/kcov-merged/cobertura.xml
+          # Upload kcov's native Codecov-format JSON rather than its cobertura.xml.
+          # kcov's cobertura emits malformed attrs (e.g. branches-covered="1.0" as a
+          # float, no branches-valid, no <methods>) that Codecov rejects as an
+          # "unusable report / incorrect data format". The codecov.json report carries
+          # the same repo-relative paths and coverage in Codecov's own format.
+          files: ./.coverage/all/kcov-merged/codecov.json
           fail_ci_if_error: true
