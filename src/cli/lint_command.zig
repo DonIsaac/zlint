@@ -74,7 +74,7 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
             var visitor: LintVisitor = .{
                 .service = &service,
                 .allocator = alloc,
-                .include = options.args.items,
+                .include = .new(options.args.items),
                 .exclude = config.config.ignore,
             };
             var src = try Io.Dir.cwd().openDir(io, ".", .{ .iterate = true });
@@ -114,21 +114,22 @@ const LintVisitor = struct {
     /// borrowed
     service: *LintService,
     allocator: Allocator,
-    include: []const glob.Pattern,
-    exclude: []const glob.Pattern,
+    include: glob.GlobSet,
+    exclude: glob.GlobSet,
 
     pub fn visit(self: *LintVisitor, entry: walk.Entry) ?walk.WalkState {
         switch (entry.kind) {
             .directory => {
                 if (entry.basename.len == 0 or entry.basename[0] == '.') {
                     return WalkState.Skip;
-                } else if (mem.eql(u8, entry.basename, "vendor") or mem.eql(u8, entry.basename, "zig-out")) {
+                } else if (mem.eql(u8, entry.basename, "vendor") or
+                    mem.eql(u8, entry.basename, "zig-out") or
+                    mem.eql(u8, entry.basename, "zig-pkg"))
+                {
                     return WalkState.Skip;
                 }
-                for (self.service.config.config.ignore) |ignore| {
-                    if (mem.startsWith(u8, entry.path, ignore)) {
-                        return WalkState.Skip;
-                    }
+                if (self.service.config.config.ignore.matches(entry.path)) {
+                    return WalkState.Skip;
                 }
             },
             .file => {
@@ -157,20 +158,16 @@ const LintVisitor = struct {
             .{},
         );
 
-        if (self.include.len > 0) matches_include: {
-            for (self.include) |pattern| {
-                if (glob.match(pattern, entry.path)) {
-                    break :matches_include;
-                }
+        if (self.include.patterns.len > 0) {
+            if (!self.include.matches(entry.path)) {
+                return false;
             }
-            return false;
         }
 
-        if (self.exclude.len > 0) {
-            for (self.exclude) |pattern| {
-                if (glob.match(pattern, entry.path)) {
-                    return false;
-                }
+        if (self.exclude.patterns.len > 0) {
+            if (self.exclude.matches(entry.path)) {
+                @branchHint(.unlikely);
+                return false;
             }
         }
 

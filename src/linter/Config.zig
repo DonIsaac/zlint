@@ -1,7 +1,12 @@
 rules: RulesConfig = .{},
-ignore: []const []const u8 = &[_][]const u8{},
+ignore: glob.GlobSet = .empty,
 
 const Config = @This();
+
+pub const DEFAULT: Config = .{
+    .rules = DEFAULT_RULES_CONFIG,
+    .ignore = .new(&[_]glob.Pattern{ "vendor/**", "zig-out/**", "zig-pkg/**" }),
+};
 
 pub const Managed = struct {
     /// should only be set if created from an on-disk config
@@ -20,10 +25,6 @@ pub const Managed = struct {
 pub fn intoManaged(self: Config, arena: *ArenaAllocator, path: ?[]const u8) Managed {
     return Managed{ .config = self, .arena = arena, .path = path };
 }
-
-pub const DEFAULT: Config = .{
-    .rules = DEFAULT_RULES_CONFIG,
-};
 
 // default rules config lives here b/c RulesConfig is auto-generated
 const DEFAULT_RULES_CONFIG: RulesConfig = blk: {
@@ -48,14 +49,13 @@ pub fn jsonSchema(ctx: *Schema.Context) !Schema {
     var schema = try ctx.genSchemaInner(Config);
     var ignore = schema.object.properties.getPtr("ignore").?;
 
-    var default = try ctx.jsonArray(2);
-    try default.appendSlice(&[_]json.Value{
-        .{ .string = "vendor" },
-        .{ .string = "zig-out" },
-    });
+    var schemaDefault = try ctx.jsonArray(DEFAULT.ignore.patterns.len);
+    for (DEFAULT.ignore.patterns) |pattern| {
+        try schemaDefault.append(.{ .string = pattern });
+    }
     var c = ignore.common();
-    c.default = .{ .array = default };
-    c.description = "Files and folders to skip. Uses `startsWith` to check if files are ignored.\n\n`zig-out` and `vendor` are always ignored, as well as hidden folders.";
+    c.default = .{ .array = schemaDefault };
+    c.description = "Files and folders to skip, matched using glob patterns.\n\n`zig-out`, `vendor`, and `zig-pkg` are always ignored, as well as hidden folders.";
 
     return schema;
 }
@@ -64,6 +64,7 @@ const all_rules = @import("rules.zig");
 const all_rule_decls = @typeInfo(all_rules).@"struct".decls;
 
 const std = @import("std");
+const glob = @import("../walk/glob.zig");
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Allocator = std.mem.Allocator;
 const Schema = @import("../json.zig").Schema;

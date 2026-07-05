@@ -214,14 +214,14 @@ pub fn readGitignore(config: *lint.Config.Managed, io: Io, root: Dir) !void {
     it.reset();
 
     // merge existing + new ignores
-    var ignores = try std.ArrayListUnmanaged([]const u8).initCapacity(allocator, config.config.ignore.len + lines);
-    ignores.appendSliceAssumeCapacity(config.config.ignore);
+    var ignores = try std.ArrayListUnmanaged([]const u8).initCapacity(allocator, config.config.ignore.patterns.len + lines);
+    ignores.appendSliceAssumeCapacity(config.config.ignore.patterns);
     while (it.next()) |line_| {
         const line = mem.trim(u8, line_, &std.ascii.whitespace);
         if (line.len == 0 or line[0] == '#') continue;
         ignores.appendAssumeCapacity(line);
     }
-    config.config.ignore = ignores.items;
+    config.config.ignore = .new(ignores.items);
 }
 
 const t = std.testing;
