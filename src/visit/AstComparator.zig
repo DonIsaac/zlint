@@ -231,5 +231,4 @@ const std = @import("std");
 const mem = std.mem;
 const Ast = @import("../Semantic.zig").Ast;
 const Node = Ast.Node;
-const NodeList = Ast.NodeList;
 const TokenIndex = Ast.TokenIndex;

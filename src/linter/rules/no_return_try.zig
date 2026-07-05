@@ -44,7 +44,6 @@ const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 
 const Ast = Semantic.Ast;
-const Node = Ast.Node;
 const LinterContext = @import("../lint_context.zig");
 const LabeledSpan = _span.LabeledSpan;
 const Rule = _rule.Rule;

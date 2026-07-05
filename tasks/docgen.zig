@@ -7,14 +7,12 @@ const std = @import("std");
 const io = std.Io;
 const gen = @import("./gen_utils.zig");
 const zlint = @import("zlint");
-const RULE_DOCS_DIR = @import("./constants.zig").@"docs/rules";
 const log = std.log;
 const mem = std.mem;
 const path = std.fs.path;
 
 const Allocator = mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
-const Writer = io.File.Writer;
 const Schema = zlint.json.Schema;
 
 const panic = std.debug.panic;

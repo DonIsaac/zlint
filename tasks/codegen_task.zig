@@ -1,5 +1,4 @@
 const std = @import("std");
-const builtin = @import("builtin");
 const c = @import("constants.zig");
 const Build = std.Build;
 const Module = Build.Module;

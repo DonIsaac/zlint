@@ -4,7 +4,6 @@ const path = std.fs.path;
 
 const Allocator = std.mem.Allocator;
 
-const print = std.debug.print;
 
 pub const string = []const u8;
 

@@ -64,11 +64,9 @@
 const std = @import("std");
 const util = @import("util");
 const ast_utils = @import("../ast_utils.zig");
-const _source = @import("../../source.zig");
 const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 
-const Loc = Semantic.Token.Loc;
 const Span = _span.Span;
 const LabeledSpan = _span.LabeledSpan;
 const LinterContext = @import("../lint_context.zig");
@@ -77,13 +75,9 @@ const NodeWrapper = _rule.NodeWrapper;
 
 const Semantic = @import("../../Semantic.zig");
 const Ast = Semantic.Ast;
-const Node = Ast.Node;
 const TokenIndex = Ast.TokenIndex;
-const Symbol = Semantic.Symbol;
-const Scope = Semantic.Scope;
 
 const Error = @import("../../Error.zig");
-const Cow = util.Cow(false);
 const eql = std.mem.eql;
 
 pub const meta: Rule.Meta = .{
