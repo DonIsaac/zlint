@@ -115,5 +115,4 @@ test {
     std.testing.refAllDecls(update_cmd);
     std.testing.refAllDecls(@import("cli/lint_config.zig"));
     std.testing.refAllDecls(@import("io/Walker.zig"));
-    std.testing.refAllDecls(@import("io/glob.zig"));
 }

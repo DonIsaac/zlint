@@ -24,6 +24,8 @@
 const std = @import("std");
 const mem = std.mem;
 
+pub const GlobSet = @import("./GlobSet.zig");
+
 // These store character indices into the glob and path strings.
 path_index: usize = 0,
 glob_index: usize = 0,

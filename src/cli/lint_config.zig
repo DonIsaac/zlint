@@ -322,14 +322,14 @@ pub fn readGitignore(config: *lint.Config.Managed, io: Io, root: Dir, search: Gi
     it.reset();
 
     // merge existing + new ignores
-    var ignores = try std.ArrayListUnmanaged([]const u8).initCapacity(allocator, config.config.ignore.len + lines);
-    ignores.appendSliceAssumeCapacity(config.config.ignore);
+    var ignores = try std.ArrayListUnmanaged([]const u8).initCapacity(allocator, config.config.ignore.patterns.len + lines);
+    ignores.appendSliceAssumeCapacity(config.config.ignore.patterns);
     while (it.next()) |line_| {
         const line = mem.trim(u8, line_, &std.ascii.whitespace);
         if (line.len == 0 or line[0] == '#') continue;
         ignores.appendAssumeCapacity(line);
     }
-    config.config.ignore = ignores.items;
+    config.config.ignore = .new(ignores.items);
 }
 
 const t = std.testing;
@@ -475,7 +475,7 @@ test "getLintConfig with an explicit path does not walk the directory tree" {
 }
 
 fn expectIgnores(config: lint.Config.Managed, expected: []const u8) !void {
-    for (config.config.ignore) |ignored| {
+    for (config.config.ignore.patterns) |ignored| {
         if (mem.eql(u8, ignored, expected)) return;
     }
     std.debug.print("expected ignore list to contain '{s}'\n", .{expected});
@@ -505,7 +505,7 @@ test "readGitignore does not fall back to cwd for a discovered config" {
     try t.expect(err == null);
 
     try readGitignore(&config, t.io, cwd, .beside_config);
-    try t.expectEqual(0, config.config.ignore.len);
+    try t.expectEqual(0, config.config.ignore.patterns.len);
 }
 
 test "getLintConfig falls back to resolution when no path is given" {
