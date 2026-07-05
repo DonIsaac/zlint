@@ -1,21 +1,22 @@
 //! ## What This Rule Does
 //!
-//! Disallows container-scoped variables that are declared but never used. Note
-//! that top-level declarations are included.
+//! Disallows unused top-level `const` declarations.
 //!
 //! The Zig compiler checks for unused parameters, payloads bound by `if`,
 //! `catch`, etc, and `const`/`var` declaration within functions. However,
 //! variables and functions declared in container scopes are not given the same
-//! treatment. This rule handles those cases.
+//! treatment. This rule handles a subset of those cases.
 //!
 //! :::warning
 //!
 //! ZLint's semantic analyzer does not yet record references to variables on
 //! member access expressions (e.g. `bar` on `foo.bar`). It also does not
 //! handle method calls correctly. Until these features are added, only
-//! top-level `const` variable declarations are checked.
+//! top-level `const` declarations are checked.
 //!
 //! :::
+//!
+//! ZLint can remove reported declarations with a dangerous autofix.
 //!
 //! ## Examples
 //!
@@ -25,13 +26,8 @@
 //! const std = @import("std");
 //! const Allocator = std.mem.Allocator;
 //!
-//! // Variables available to other code, either via `export` or `pub`, are not
-//! // reported.
-//! pub const x = 1;
-//! export fn foo(x: u32) void {}
-//!
-//! // `extern` functions are not reported
-//! extern fn bar(a: i32) void;
+//! // `extern const` declarations are reported when unused.
+//! extern const version: usize;
 //! ```
 //!
 //! Examples of **correct** code for this rule:
@@ -39,6 +35,12 @@
 //! // Discarded variables are considered "used".
 //! const x = 1;
 //! _ = x;
+//!
+//! // Variables available to other code via `pub` are not reported.
+//! pub const exported = 1;
+//!
+//! // `extern` functions are not reported.
+//! extern fn bar(a: i32) void;
 //!
 //! // non-container scoped variables are allowed by this rule but banned by the
 //! // compiler. `x`, `y`, and `z` are ignored by this rule.

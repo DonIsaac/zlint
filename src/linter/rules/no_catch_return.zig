@@ -4,6 +4,8 @@
 //! Catch blocks that do nothing but return their error can and should be
 //! replaced with a `try` statement. This rule allows for `catch`es that
 //! have side effects such as printing the error or switching over it.
+//! ZLint can safely fix these cases by replacing the `catch` expression with
+//! `try`.
 //!
 //! ## Examples
 //!
