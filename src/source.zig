@@ -4,7 +4,6 @@ const Io = std.Io;
 
 const Allocator = std.mem.Allocator;
 const Arc = ptrs.Arc;
-const assert = std.debug.assert;
 
 pub const ArcStr = Arc([:0]u8);
 

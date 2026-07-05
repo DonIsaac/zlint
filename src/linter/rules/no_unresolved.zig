@@ -36,7 +36,6 @@ const std = @import("std");
 const util = @import("util");
 const path = std.fs.path;
 
-const Ast = @import("../../Semantic.zig").Ast;
 const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;

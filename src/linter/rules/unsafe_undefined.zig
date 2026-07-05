@@ -140,7 +140,6 @@ const Semantic = @import("../../Semantic.zig");
 const Symbol = Semantic.Symbol;
 
 const Ast = Semantic.Ast;
-const Node = Ast.Node;
 const Token = Semantic.Token;
 const TokenIndex = Ast.TokenIndex;
 const LinterContext = @import("../lint_context.zig");

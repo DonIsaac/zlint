@@ -48,10 +48,8 @@
 //! ```
 
 const std = @import("std");
-const util = @import("util");
 const Semantic = @import("../../Semantic.zig");
 const _rule = @import("../rule.zig");
-const _span = @import("../../span.zig");
 const ast_utils = @import("../ast_utils.zig");
 
 const Ast = Semantic.Ast;

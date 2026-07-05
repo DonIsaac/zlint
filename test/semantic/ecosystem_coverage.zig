@@ -16,7 +16,6 @@ const REPOS_DIR = "zig-out/repos";
 // SAFETY: globalSetup is always run before this is read
 var repos: std.json.Parsed([]Repo) = undefined;
 
-const SemanticError = zlint.semantic.Semantic.Builder.SemanticError;
 var is_tty: bool = false;
 
 pub fn globalSetup(alloc: Allocator) !void {

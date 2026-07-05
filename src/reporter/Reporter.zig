@@ -240,7 +240,6 @@ const util = @import("util");
 const formatters = @import("./formatter.zig");
 const Chameleon = @import("chameleon");
 const Error = @import("../Error.zig");
-const StringWriter = @import("./StringWriter.zig");
 const Allocator = std.mem.Allocator;
 const FormatError = formatters.FormatError;
 

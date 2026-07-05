@@ -69,7 +69,6 @@ const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
 const LabeledSpan = _span.LabeledSpan;
 const NodeWrapper = _rule.NodeWrapper;
-const NULL_NODE = Semantic.NULL_NODE;
 const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
 
