@@ -128,7 +128,7 @@ const LintVisitor = struct {
                 {
                     return WalkState.Skip;
                 }
-                if (self.service.config.config.ignore.matches(entry.path)) {
+                if (self.exclude.matchesPrunableDirectory(entry.path)) {
                     return WalkState.Skip;
                 }
             },

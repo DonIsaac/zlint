@@ -199,6 +199,7 @@ pub fn readGitignore(config: *lint.Config.Managed, io: Io, root: Dir) !void {
     defer gitignore_file.close(io);
 
     const gitignore = try readToEndAlloc(gitignore_file, io, allocator, std.math.maxInt(u32));
+    errdefer allocator.free(gitignore);
     var it = mem.splitScalar(u8, gitignore, '\n');
 
     // count lines to pre-allocate enough memory
