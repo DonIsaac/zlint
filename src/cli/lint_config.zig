@@ -307,6 +307,7 @@ pub fn readGitignore(config: *lint.Config.Managed, io: Io, root: Dir, search: Gi
     defer gitignore_file.close(io);
 
     const gitignore = try readToEndAlloc(gitignore_file, io, allocator, std.math.maxInt(u32));
+    errdefer allocator.free(gitignore);
     var it = mem.splitScalar(u8, gitignore, '\n');
 
     // count lines to pre-allocate enough memory
@@ -321,18 +322,89 @@ pub fn readGitignore(config: *lint.Config.Managed, io: Io, root: Dir, search: Gi
     if (lines == 0) return;
     it.reset();
 
-    // merge existing + new ignores
-    var ignores = try std.ArrayListUnmanaged([]const u8).initCapacity(allocator, config.config.ignore.patterns.len + lines);
+    // merge existing + new ignores. Each line can expand to two globs.
+    var ignores = try std.ArrayListUnmanaged([]const u8).initCapacity(allocator, config.config.ignore.patterns.len + (lines * 2));
     ignores.appendSliceAssumeCapacity(config.config.ignore.patterns);
     while (it.next()) |line_| {
         const line = mem.trim(u8, line_, &std.ascii.whitespace);
         if (line.len == 0 or line[0] == '#') continue;
-        ignores.appendAssumeCapacity(line);
+        try gitignoreLineToGlobs(allocator, line, &ignores);
     }
     config.config.ignore = .new(ignores.items);
 }
 
+/// Rewrite one `.gitignore` line as the glob patterns that reproduce it, and
+/// append them to `out`.
+///
+/// `ignore` is a plain glob matcher, so the gitignore-specific rules have to be
+/// spelled out in the pattern itself: an unanchored name applies at any depth
+/// (`**/` prefix), and naming a folder excludes what's inside it (a `/**` form
+/// alongside the name). `line` must already be trimmed and non-empty.
+fn gitignoreLineToGlobs(
+    allocator: Allocator,
+    line: []const u8,
+    out: *std.ArrayListUnmanaged([]const u8),
+) !void {
+    var body = line;
+
+    const negated = body[0] == '!';
+    if (negated) body = body[1..];
+
+    // a trailing `/` means the entry only ever names a folder
+    const dirs_only = body.len > 0 and body[body.len - 1] == '/';
+    if (dirs_only) body = mem.trimEnd(u8, body, "/");
+
+    // a leading `/` anchors to the project root; so does an interior `/`
+    const rooted = body.len > 0 and body[0] == '/';
+    if (rooted) body = mem.trimStart(u8, body, "/");
+    const anchored = rooted or mem.indexOfScalar(u8, body, '/') != null;
+
+    // `!`, `/` and `//` carry no pattern
+    if (body.len == 0) return;
+
+    const prefix = if (negated) "!" else "";
+    const depth = if (anchored) "" else "**/";
+
+    if (!dirs_only) {
+        try out.append(allocator, try std.fmt.allocPrint(allocator, "{s}{s}{s}", .{ prefix, depth, body }));
+    }
+    try out.append(allocator, try std.fmt.allocPrint(allocator, "{s}{s}{s}/**", .{ prefix, depth, body }));
+}
+
 const t = std.testing;
+
+test gitignoreLineToGlobs {
+    const cases = [_]struct { line: []const u8, want: []const []const u8 }{
+        .{ .line = "build", .want = &.{ "**/build", "**/build/**" } },
+        .{ .line = "build/", .want = &.{"**/build/**"} },
+        .{ .line = "/dist", .want = &.{ "dist", "dist/**" } },
+        .{ .line = "/dist/", .want = &.{"dist/**"} },
+        .{ .line = "src/test", .want = &.{ "src/test", "src/test/**" } },
+        .{ .line = "*.gen.zig", .want = &.{ "**/*.gen.zig", "**/*.gen.zig/**" } },
+        .{ .line = "!keep.zig", .want = &.{ "!**/keep.zig", "!**/keep.zig/**" } },
+        .{ .line = "!lib/", .want = &.{"!**/lib/**"} },
+        // nothing to match
+        .{ .line = "/", .want = &.{} },
+        .{ .line = "!", .want = &.{} },
+    };
+
+    for (cases) |case| {
+        var out: std.ArrayListUnmanaged([]const u8) = .empty;
+        defer {
+            for (out.items) |g| t.allocator.free(g);
+            out.deinit(t.allocator);
+        }
+        try gitignoreLineToGlobs(t.allocator, case.line, &out);
+
+        t.expectEqual(case.want.len, out.items.len) catch |e| {
+            std.debug.print("`{s}` produced:\n", .{case.line});
+            for (out.items) |g| std.debug.print("  {s}\n", .{g});
+            return e;
+        };
+        for (case.want, out.items) |want, got| try t.expectEqualStrings(want, got);
+    }
+}
+
 test ParentIterator {
     if (util.IS_WINDOWS) {
         var it = try ParentIterator(4096).init("C:\\foo\\bar\\baz", "zlint.json");
@@ -503,7 +575,7 @@ test "getLintConfig with an explicit path does not walk the directory tree" {
     // come from the nearest .gitignore at or above cwd (here, the repo root's)
     // rather than the one beside the config file.
     try readGitignore(&config, t.io, Dir.cwd(), .nearest_from_root);
-    try expectIgnores(config, "zig-out");
+    try expectIgnores(config, "**/zig-out");
     try t.expectEqual(.err, config.config.rules.rules.unsafe_undefined.severity);
     try t.expectEqual(.warning, config.config.rules.rules.homeless_try.severity);
 }

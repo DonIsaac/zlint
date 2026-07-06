@@ -5,7 +5,11 @@ const Config = @This();
 
 pub const DEFAULT: Config = .{
     .rules = DEFAULT_RULES_CONFIG,
-    .ignore = .new(&[_]glob.Pattern{ "vendor", "zig-out", "zig-pkg" }),
+    .ignore = .new(&[_]glob.Pattern{
+        "**/vendor",  "**/vendor/**",
+        "**/zig-out", "**/zig-out/**",
+        "**/zig-pkg", "**/zig-pkg/**",
+    }),
 };
 
 pub const Managed = struct {
@@ -47,7 +51,7 @@ pub fn jsonSchema(ctx: *Schema.Context) !Schema {
     }
     var c = ignore.common();
     c.default = .{ .array = schemaDefault };
-    c.description = "Files and folders to skip, matched with `.gitignore`-style glob patterns. A pattern without a `/` matches at any depth, and a trailing `/` matches directories only.\n\n`zig-out`, `vendor`, and `zig-pkg` are always ignored, as well as hidden folders.";
+    c.description = "Files and folders to skip, as glob patterns. Patterns are anchored to your project root, so use a `**/` prefix to match at any depth and a `/**` suffix to skip a folder's contents.\n\n`.gitignore` entries are honored as well, and are translated to equivalent globs.\n\n`zig-out`, `vendor`, and `zig-pkg` are always ignored, as well as hidden folders.";
 
     return schema;
 }

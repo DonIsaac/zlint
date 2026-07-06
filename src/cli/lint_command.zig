@@ -157,7 +157,7 @@ pub fn FileFilter(comptime Sink: type) type {
                     {
                         return WalkState.Skip;
                     }
-                    if (self.exclude.matches(entry.path)) {
+                    if (self.exclude.matchesPrunableDirectory(entry.path)) {
                         return WalkState.Skip;
                     }
                 },

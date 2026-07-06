@@ -210,7 +210,7 @@ test "never lints a vendor directory nested inside the project" {
 test "ignore skips a directory named directly" {
     try expectLints(.{
         .files = &.{ .{ .path = "src/main.zig" }, .{ .path = "examples/demo.zig" } },
-        .ignore = &.{"examples"},
+        .ignore = &.{"**/examples/**"},
     }, &.{"src/main.zig"});
 }
 
@@ -244,14 +244,14 @@ test "ignore matches a directory at any depth" {
             .{ .path = "src/generated/proto.zig" },
             .{ .path = "lib/generated/other.zig" },
         },
-        .ignore = &.{"**/generated"},
+        .ignore = &.{"**/generated/**"},
     }, &.{"src/main.zig"});
 }
 
 test "ignore does not skip sibling directories that share a prefix" {
     try expectLints(.{
         .files = &.{ .{ .path = "src/main.zig" }, .{ .path = "srcgen/tool.zig" } },
-        .ignore = &.{"src"},
+        .ignore = &.{"src/**"},
     }, &.{"srcgen/tool.zig"});
 }
 
@@ -305,17 +305,32 @@ test "respects gitignore entries for a directory nested in the project" {
     } }, &.{"src/main.zig"});
 }
 
+test "a negated entry does not resurrect an ignored directory" {
+    try expectLints(.{ .files = &.{
+        .{ .path = ".gitignore", .contents = "build\n!src/keep.zig\n" },
+        .{ .path = "src/main.zig" },
+        .{ .path = "src/keep.zig" },
+        .{ .path = "build/gen.zig" },
+    } }, &.{ "src/keep.zig", "src/main.zig" });
+}
+
+// git re-includes nothing under an excluded folder; zlint honors the negation.
+test "a negation reaching into an ignored directory re-includes only what it names" {
+    try expectLints(.{ .files = &.{
+        .{ .path = ".gitignore", .contents = "build\n!gen.zig\n" },
+        .{ .path = "src/main.zig" },
+        .{ .path = "build/gen.zig" },
+        .{ .path = "build/other.zig" },
+    } }, &.{ "build/gen.zig", "src/main.zig" });
+}
+
 test "respects root-anchored gitignore entries" {
-    try todo(
-        "a leading `/` anchors a gitignore pattern to the project root; zlint " ++
-            "matches it literally, so it never matches anything",
-        expectLints(.{ .files = &.{
-            .{ .path = ".gitignore", .contents = "/dist\n" },
-            .{ .path = "src/main.zig" },
-            .{ .path = "dist/out.zig" },
-            .{ .path = "src/dist/keep.zig" },
-        } }, &.{ "src/dist/keep.zig", "src/main.zig" }),
-    );
+    try expectLints(.{ .files = &.{
+        .{ .path = ".gitignore", .contents = "/dist\n" },
+        .{ .path = "src/main.zig" },
+        .{ .path = "dist/out.zig" },
+        .{ .path = "src/dist/keep.zig" },
+    } }, &.{ "src/dist/keep.zig", "src/main.zig" });
 }
 
 // =============================================================================
@@ -360,7 +375,7 @@ test "lints a file named on the command line even when it is ignored" {
             "was skipped); today it is dropped silently and zlint exits 0",
         expectLints(.{
             .files = &.{ .{ .path = "src/main.zig" }, .{ .path = "generated/proto.zig" } },
-            .ignore = &.{"generated"},
+            .ignore = &.{"generated/**"},
             .args = &.{"generated/proto.zig"},
         }, &.{"generated/proto.zig"}),
     );
