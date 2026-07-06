@@ -32,10 +32,24 @@ pub fn main(init: std.process.Init) !u8 {
     const stack_alloc = stack.get();
 
     var err: Error = undefined;
-    var opts = Options.parseArgv(stack_alloc, io, init.minimal.args, &err) catch {
-        std.debug.print("{s}\n{any}\n", .{ err.message.borrow(), Options.usage });
-        err.deinit(stack_alloc);
-        return 1;
+    var opts = Options.parseArgv(stack_alloc, io, init.minimal.args, &err) catch |e| switch (e) {
+        // These variants populate `err` with a user-facing message describing
+        // exactly what went wrong (e.g. the unknown flag or invalid value).
+        error.InvalidArg, error.InvalidArgValue => {
+            std.debug.print("{s}\n{s}\n", .{ err.message.borrow(), Options.usage });
+            err.deinit(stack_alloc);
+            return 1;
+        },
+        // The remaining variants leave `err` undefined, so give the user a
+        // clear message here instead of letting the runtime dump a stack trace.
+        error.OutOfMemory => {
+            std.debug.print("error: ran out of memory while parsing command-line arguments\n", .{});
+            return 1;
+        },
+        error.WriteFailed, error.WriterError => {
+            std.debug.print("error: failed to write to stdout\n", .{});
+            return 1;
+        },
     };
     defer opts.deinit(stack_alloc);
 
