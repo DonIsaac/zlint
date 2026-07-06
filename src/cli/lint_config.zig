@@ -147,11 +147,14 @@ fn getReportForParseError(
     diagnostics: *const json.Diagnostics,
 ) Error {
     const offset: u32 = @truncate(diagnostics.getByteOffset());
-    var span = Span.sized(offset -| 1, 1);
+    const src_len: u32 = @intCast(source.len);
+    const clamped_offset = @min(offset, src_len);
+    var span = Span.sized(clamped_offset -| 1, 1);
+    span.end = @min(span.end, src_len);
 
     const message = switch (e) {
         error.UnknownField => blk: {
-            if (mem.lastIndexOfAny(u8, source[0..offset], &std.ascii.whitespace)) |start| {
+            if (mem.lastIndexOfAny(u8, source[0..clamped_offset], &std.ascii.whitespace)) |start| {
                 span.start = @intCast(start + 1);
             }
             const field = source[span.start..span.end];
@@ -268,4 +271,38 @@ test resolveLintConfig {
 
     try t.expectStringEndsWith(config.path.?, expected_path);
     try t.expectEqual(.warning, config.config.rules.rules.unsafe_undefined.severity);
+}
+
+// Regression test for https://github.com/DonIsaac/zlint/issues/360: an empty
+// zlint.json produced a label span past the end of the (empty) source, which
+// caused a `u32` underflow panic when the graphical formatter rendered it.
+test "resolveLintConfig with an empty zlint.json does not crash the formatter" {
+    const GraphicalFormatter = @import("../reporter.zig").formatter.Graphical;
+
+    const cwd = Dir.cwd();
+    const fixtures_dir = try cwd.realPathFileAlloc(t.io, "test/fixtures/config-empty", t.allocator);
+    defer t.allocator.free(fixtures_dir);
+
+    var arena = ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+
+    var err: Error = undefined;
+    try t.expectError(error.UnexpectedEndOfInput, resolveLintConfig(
+        &arena,
+        t.io,
+        try cwd.openDir(t.io, fixtures_dir, .{}),
+        "zlint.json",
+        t.allocator,
+        &err,
+    ));
+    defer err.deinit(t.allocator);
+
+    try t.expectEqual(0, err.source.?.deref().*.len);
+    try t.expectEqual(1, err.labels.items.len);
+    try t.expectEqual(Span.EMPTY, err.labels.items[0].span);
+
+    var fmt = GraphicalFormatter.unicode(t.allocator, false);
+    var w = std.Io.Writer.Allocating.init(t.allocator);
+    defer w.deinit();
+    try fmt.format(&w.writer, err);
 }

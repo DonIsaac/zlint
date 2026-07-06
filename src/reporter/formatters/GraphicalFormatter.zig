@@ -75,6 +75,8 @@ fn renderContext(self: *GraphicalFormatter, w: *io.Writer, e: *Error) FormatErro
     if (e.labels.items.len == 0 or e.source == null) return;
 
     const src: []const u8 = e.source.?.deref().*;
+    // No source text means there are no lines to render a code frame for.
+    if (src.len == 0) return;
 
     std.sort.insertion(LabeledSpan, e.labels.items, {}, labelsLt);
 
@@ -314,7 +316,7 @@ fn contextFor(
     assert(linebuf.len == expected_lines);
 
     // happens sometimes when reporting missing semicolon parse errors.
-    if (start == src.len) start -= 1;
+    if (start == src.len and start > 0) start -= 1;
 
     // expand start/end to cover the entire line
     while (start > 0) : (start -= 1) {
