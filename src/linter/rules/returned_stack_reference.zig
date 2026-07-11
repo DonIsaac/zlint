@@ -673,8 +673,6 @@ test ReturnedStackReference {
         \\  }.g };
         \\}
         ,
-        // FIXME: `bar` is a comptime-known function value; `&bar` has static
-        // lifetime.
         \\ const F = fn (a: bool) u32;
         \\fn foo() *const F {
         \\  const bar = struct {
