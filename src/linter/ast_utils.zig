@@ -36,20 +36,29 @@ pub fn getRightmostIdentifier(ctx: *Context, id: Node.Index) ?[]const u8 {
 /// foo.bar().baz.? // "foo"
 /// ```
 pub fn getLeftmostIdentifier(ctx: *Context, id: Node.Index, comptime ignore_call: bool) ?Node.Index {
+    const node = getLeftmostNode(ctx, id, ignore_call);
+    const tag = ctx.ast().nodeTag(node);
+    return if (tag == .identifier) node else null;
+}
+
+/// Get the left-most AST node in a field access chain.
+///
+/// When `ignore_call` is `true`, stops at the first call instead of traversing
+/// into its callee.
+pub fn getLeftmostNode(ctx: *Context, id: Node.Index, comptime ignore_call: bool) Node.Index {
     const ast = ctx.ast();
 
     var curr = id;
     while (true) {
         switch (ast.nodeTag(curr)) {
-            .identifier => return curr,
             .call, .call_comma => {
-                if (ignore_call) return null else curr = ast.nodeData(curr).node_and_extra[0];
+                if (ignore_call) return curr else curr = ast.nodeData(curr).node_and_extra[0];
             },
             .call_one, .call_one_comma => {
-                if (ignore_call) return null else curr = ast.nodeData(curr).node_and_opt_node[0];
+                if (ignore_call) return curr else curr = ast.nodeData(curr).node_and_opt_node[0];
             },
             .field_access, .unwrap_optional => curr = ast.nodeData(curr).node_and_token[0],
-            else => return null,
+            else => return curr,
         }
     }
 }
@@ -89,6 +98,27 @@ pub inline fn isStructInit(tag: Node.Tag) bool {
     };
 }
 
+/// Returns `true` for `struct`, `union`, `opaque`, `enum`, and their
+/// tagged/int-backed variants.
+pub inline fn isContainerDecl(tag: Node.Tag) bool {
+    return switch (tag) {
+        .container_decl,
+        .container_decl_trailing,
+        .container_decl_two,
+        .container_decl_two_trailing,
+        .container_decl_arg,
+        .container_decl_arg_trailing,
+        .tagged_union,
+        .tagged_union_trailing,
+        .tagged_union_enum_tag,
+        .tagged_union_enum_tag_trailing,
+        .tagged_union_two,
+        .tagged_union_two_trailing,
+        => true,
+        else => false,
+    };
+}
+
 pub inline fn isArrayInit(tag: Node.Tag) bool {
     return switch (tag) {
         .array_init,
@@ -99,8 +129,6 @@ pub inline fn isArrayInit(tag: Node.Tag) bool {
         .array_init_dot_two_comma,
         .array_init_one,
         .array_init_one_comma,
-        .array_init_two,
-        .array_init_two_comma,
         => true,
         else => false,
     };
