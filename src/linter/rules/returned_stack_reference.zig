@@ -52,6 +52,7 @@ const util = @import("util");
 const Semantic = @import("../../Semantic.zig");
 const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
+const ast_utils = @import("../ast_utils.zig");
 const walk = @import("../../visit/walk.zig");
 
 const Ast = Semantic.Ast;
@@ -84,9 +85,13 @@ fn stackRefDiagnostic(
         "Returning a slice to stack-allocated memory is undefined behavior."
     else
         "Returning a reference to stack-allocated memory is undefined behavior.";
+    const primary_label = if (is_slice)
+        "This slice refers to a local variable"
+    else
+        "This pointer refers to a local variable";
 
     var labels: [2]LabeledSpan = undefined;
-    labels[0] = ctx.labelN(node, "This pointer refers to a local variable", .{});
+    labels[0] = ctx.labelN(node, primary_label, .{});
     if (decl_loc) |loc| {
         labels[1] = LabeledSpan{ .span = loc, .label = .static("Variable is declared locally here") };
     }
@@ -194,9 +199,6 @@ const StackReferenceVisitor = struct {
         switch (self.ast.nodeTag(node)) {
             .@"return" => self.return_depth += 1,
             .call, .call_comma, .call_one, .call_one_comma => self.call_depth += 1,
-            .slice, .slice_open, .slice_sentinel => {
-                // todo: check inside slices and array literals for identifier references
-            },
             else => {},
         }
     }
@@ -219,6 +221,17 @@ const StackReferenceVisitor = struct {
                 self.ctx.report(stackRefDiagnostic(self.ctx, node, info.decl_loc, false));
             }
             return .Skip;
+        }
+        return .Continue;
+    }
+
+    pub fn visitSlice(self: *StackReferenceVisitor, node: Node.Index, slice: *const Ast.full.Slice) Err!walk.WalkState {
+        if (self.return_depth == 0 or self.call_depth > 0) return .Continue;
+
+        const sliced = ast_utils.getLeftmostIdentifier(self.ctx, slice.ast.sliced, true) orelse return .Continue;
+        const info = self.isDeclaredLocally(sliced);
+        if (info.is_local) {
+            self.ctx.report(stackRefDiagnostic(self.ctx, node, info.decl_loc, true));
         }
         return .Continue;
     }
@@ -325,6 +338,11 @@ test ReturnedStackReference {
         \\}
         ,
         "fn foo(buf: []u8) []u8 { return buf[0..]; }",
+        \\const Foo = struct { items: []const u8 };
+        \\fn foo(input: Foo) []const u8 {
+        \\  return input.items[0..];
+        \\}
+        ,
         "fn foo() []u8  { return &[_]u8{}; }",
         "fn foo() [2]u8 { return [2]u8{1, 2}; }",
         \\fn len(slice: *[]const u8) usize {
@@ -421,6 +439,27 @@ test ReturnedStackReference {
         \\fn foo() Foo {
         \\  const local: u32 = 1;
         \\  return .{ .x = &local };
+        \\}
+        ,
+        \\fn foo() []u32 {
+        \\  var x: [1]u32 = .{1};
+        \\  return x[0..];
+        \\}
+        ,
+        \\fn foo() []u32 {
+        \\  var x: [2]u32 = .{ 1, 2 };
+        \\  return x[0..1];
+        \\}
+        ,
+        \\fn foo() [:0]u8 {
+        \\  var x: [2:0]u8 = .{ 1, 2 };
+        \\  return x[0..2 :0];
+        \\}
+        ,
+        \\const Foo = struct { items: []const u8 };
+        \\fn foo() Foo {
+        \\  var buf: [2]u8 = .{ 1, 2 };
+        \\  return .{ .items = buf[0..] };
         \\}
     };
 

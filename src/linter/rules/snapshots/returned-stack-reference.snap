@@ -72,3 +72,47 @@
    ·                     ╰── This pointer refers to a local variable
    ╰────
 
+  𝙭 returned-stack-reference: Returning a slice to stack-allocated memory is undefined behavior.
+   ╭─[returned-stack-reference.zig:2:7]
+ 1 │ fn foo() []u32 {
+ 2 │   var x: [1]u32 = .{1};
+   ·       ┬
+   ·       ╰── Variable is declared locally here
+ 3 │   return x[0..];
+   ·          ───┬───
+   ·             ╰── This slice refers to a local variable
+   ╰────
+
+  𝙭 returned-stack-reference: Returning a slice to stack-allocated memory is undefined behavior.
+   ╭─[returned-stack-reference.zig:2:7]
+ 1 │ fn foo() []u32 {
+ 2 │   var x: [2]u32 = .{ 1, 2 };
+   ·       ┬
+   ·       ╰── Variable is declared locally here
+ 3 │   return x[0..1];
+   ·          ───┬───
+   ·             ╰── This slice refers to a local variable
+   ╰────
+
+  𝙭 returned-stack-reference: Returning a slice to stack-allocated memory is undefined behavior.
+   ╭─[returned-stack-reference.zig:2:7]
+ 1 │ fn foo() [:0]u8 {
+ 2 │   var x: [2:0]u8 = .{ 1, 2 };
+   ·       ┬
+   ·       ╰── Variable is declared locally here
+ 3 │   return x[0..2 :0];
+   ·          ─────┬─────
+   ·               ╰── This slice refers to a local variable
+   ╰────
+
+  𝙭 returned-stack-reference: Returning a slice to stack-allocated memory is undefined behavior.
+   ╭─[returned-stack-reference.zig:3:7]
+ 2 │ fn foo() Foo {
+ 3 │   var buf: [2]u8 = .{ 1, 2 };
+   ·       ─┬─
+   ·        ╰── Variable is declared locally here
+ 4 │   return .{ .items = buf[0..] };
+   ·                      ────┬────
+   ·                          ╰── This slice refers to a local variable
+   ╰────
+
