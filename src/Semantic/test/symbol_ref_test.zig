@@ -454,7 +454,17 @@ test "Reference flags - `x` - structs" {
             ,
             .{ .read = true },
         },
+        .{
+            \\const x = struct {};
+            \\const User = struct {
+            \\  inline_enum: enum { foo, bar },
+            \\  field: x,
+            \\};
+            ,
+            .{ .type = true },
+        },
     });
+
 }
 
 test "Reference flags - `x` - tuples" {

@@ -1,0 +1,136 @@
+{
+  "symbols": [
+    {
+      "name": "", 
+      "debugName": "@This()", 
+      "token": null, 
+      "declNode": "root", 
+      "scope": 0, 
+      "flags": ["const"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [1,3], 
+      
+    }, 
+    {
+      "name": "X", 
+      "debugName": "", 
+      "token": 1, 
+      "declNode": "simple_var_decl", 
+      "scope": 0, 
+      "flags": ["variable","const","struct"], 
+      "references": [
+        
+      ], 
+      "members": [2], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "field", 
+      "debugName": "", 
+      "token": 5, 
+      "declNode": "container_field_init", 
+      "scope": 1, 
+      "flags": ["member","struct"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "Container", 
+      "debugName": "", 
+      "token": 14, 
+      "declNode": "simple_var_decl", 
+      "scope": 0, 
+      "flags": ["variable","const","struct","enum"], 
+      "references": [
+        
+      ], 
+      "members": [4,5], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "foo", 
+      "debugName": "", 
+      "token": 18, 
+      "declNode": "container_field_init", 
+      "scope": 2, 
+      "flags": ["member","struct"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "bar", 
+      "debugName": "", 
+      "token": 30, 
+      "declNode": "container_field_init", 
+      "scope": 2, 
+      "flags": ["member","struct"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "unresolvedReferences": [],
+  "modules": {
+    "imports": [
+    ], 
+  }, 
+  "scopes": {
+    "id": 0, 
+    "flags": ["top"], 
+    "bindings": {
+      "@This()": 0, 
+      "X": 1, 
+      "Container": 3, 
+      
+    }, 
+    "children": [
+      {
+        "id": 1, 
+        "flags": ["struct","block"], 
+        "bindings": {
+          "field": 2, 
+          
+        }, 
+        "children": [], 
+        
+      }, {
+        "id": 2, 
+        "flags": ["struct","block"], 
+        "bindings": {
+          "foo": 4, 
+          "bar": 5, 
+          
+        }, 
+        "children": [
+          {
+            "id": 3, 
+            "flags": ["enum","block"], 
+            "bindings": {
+              
+            }, 
+            "children": [], 
+            
+          }, 
+        ], 
+        
+      }, 
+    ], 
+    
+  }, 
+}
