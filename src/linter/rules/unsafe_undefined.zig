@@ -224,16 +224,17 @@ pub fn runOnNode(self: *const UnsafeUndefined, wrapper: NodeWrapper, ctx: *Linte
                     // SAFETY: tags in case guarantee that a full variable declaration
                     // is present.
                     const decl = ast.fullVarDecl(parent) orelse unreachable;
-                    const ty = decl.ast.type_node.unwrap() orelse break;
-                    switch (ast.nodeTag(ty)) {
-                        .array_type, .array_type_sentinel => if (self.allow_arrays) {
-                            @branchHint(.likely);
-                            return;
-                        },
-                        else => {},
+                    if (decl.ast.type_node.unwrap()) |ty| {
+                        switch (ast.nodeTag(ty)) {
+                            .array_type, .array_type_sentinel => if (self.allow_arrays) {
+                                @branchHint(.likely);
+                                return;
+                            },
+                            else => {},
+                        }
+                        const typename = ctx.semantic.nodeSlice(ty);
+                        if (self.isIgnoredType(typename)) return;
                     }
-                    const typename = ctx.semantic.nodeSlice(ty);
-                    if (self.isIgnoredType(typename)) return;
                 }
                 if (has_safety_comment or (safety_comment_check and hasSafetyComment(ctx, ast.nodeMainToken(parent)))) return;
                 safety_comment_check = false;
@@ -430,6 +431,13 @@ test UnsafeUndefined {
         \\const Foo = struct {
         \\  pool: ThreadPool = undefined,
         \\};
+        ,
+        // safety comments on untyped declarations
+        \\// SAFETY: initialized before use
+        \\const y = undefined;
+        ,
+        \\// SAFETY: initialized before use
+        \\var y = undefined;
     };
     const fail = &[_][:0]const u8{
         "const x = undefined;",
