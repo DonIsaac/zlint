@@ -18,3 +18,13 @@
    ╰────
   help: This type records its allocation size, so mutating a copy can result in a memory leak.
 
+  𝙭 must-return-ref: Members of type `ArrayListAligned` must be passed by reference
+   ╭─[must-return-ref.zig:5:16]
+ 4 │     pub fn getList(self: *Foo) std.ArrayListAligned(u32, null) {
+ 5 │         return self.list;
+   ·                ────┬────
+   ·                    ╰── This is a copy, not a move.
+ 6 │     }
+   ╰────
+  help: This type records its allocation size, so mutating a copy can result in a memory leak.
+

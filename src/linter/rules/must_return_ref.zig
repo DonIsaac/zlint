@@ -121,13 +121,27 @@ const ReturnVisitor = struct {
 
     pub fn visit_return(self: *ReturnVisitor, node: Node.Index) VisitError!walk.WalkState {
         const returned = self.ast.nodeData(node).opt_node.unwrap() orelse return .Continue; // fn is missing return type, which is a semantic error
-        // todo: check that leftmost ident is `this`.
         if (self.ast.nodeTag(returned) != .field_access) return .Continue;
+
+        // e.g. `Type.empty`, `std.ArrayListUnmanaged(u32).empty` — object resolves
+        // to a type, so this is a fresh value, not a copied member.
+        const object = self.ast.nodeData(returned).node_and_token[0];
+        if (a.getRightmostIdentifier(self.ctx, object)) |name| {
+            if (name.len > 0 and std.ascii.isUpper(name[0])) return .Continue;
+        }
 
         var ctx = self.ctx;
         ctx.report(mustReturnRefDiagnostic(ctx, self.typename, returned));
 
         return .Continue;
+    }
+
+    pub fn visit_fn_decl(_: *ReturnVisitor, _: Node.Index) VisitError!walk.WalkState {
+        return .Skip;
+    }
+
+    pub fn visit_test_decl(_: *ReturnVisitor, _: Node.Index) VisitError!walk.WalkState {
+        return .Skip;
     }
 };
 
@@ -137,6 +151,10 @@ const types_to_check = std.StaticStringMap(void).initComptime(&[_]struct { []con
     .{"ArrayList"},
     .{"ArrayListUnmanaged"},
     .{"Managed"}, // std.array_list.Managed
+    .{"AlignedManaged"}, // std.array_list.AlignedManaged (old aligned managed list)
+    .{"Aligned"}, // std.array_list.Aligned (new aligned unmanaged list)
+    .{"ArrayListAligned"}, // deprecated top-level alias -> std.array_list.Aligned
+    .{"ArrayListAlignedUnmanaged"}, // deprecated top-level alias -> std.array_list.Aligned
     .{"AutoArrayHashMap"},
     .{"AutoArrayHashMapUnmanaged"},
     // multi array list
@@ -226,6 +244,26 @@ test MustReturnRef {
         \\
         \\    return count;
         \\}
+        ,
+        \\const std = @import("std");
+        \\pub fn newList() std.ArrayListUnmanaged(u32) {
+        \\    return std.ArrayListUnmanaged(u32).empty;
+        \\}
+        ,
+        \\pub fn makeList(self: *Foo) std.array_list.Managed(u32) {
+        \\    const Helper = struct {
+        \\        name: []const u8,
+        \\        fn getName(h: *const @This()) []const u8 {
+        \\            return h.name;
+        \\        }
+        \\    };
+        \\    return std.array_list.Managed(u32).init(self.allocator);
+        \\}
+        ,
+        \\const std = @import("std");
+        \\pub fn newAlignedList() std.array_list.Aligned(u32, null) {
+        \\    return std.array_list.Aligned(u32, null).empty;
+        \\}
     };
 
     // Code your rule should fail on
@@ -254,6 +292,14 @@ test MustReturnRef {
         // \\  else
         // \\    self.list;
         // \\}
+        ,
+        \\const std = @import("std");
+        \\const Foo = struct {
+        \\    list: std.ArrayListAligned(u32, null),
+        \\    pub fn getList(self: *Foo) std.ArrayListAligned(u32, null) {
+        \\        return self.list;
+        \\    }
+        \\};
     };
 
     try runner
