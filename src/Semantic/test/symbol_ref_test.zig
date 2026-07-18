@@ -531,6 +531,14 @@ test "Reference flags - `x` - tagged unions" {
             .{ .type = true },
         },
         .{
+            \\const x = u8;
+            \\const Foo = union(enum(x)) {
+            \\  a: u8,
+            \\};
+            ,
+            .{ .type = true },
+        },
+        .{
             \\const x = u32;
             \\const Foo = union(enum) {
             \\  y,
@@ -551,10 +559,32 @@ test "Reference flags - `x` - enums" {
             .{ .type = true },
         },
         .{
+            \\fn x() type {
+            \\  return u8;
+            \\}
+            \\const Foo = enum(x()) { a };
+            ,
+            .{ .type = true, .call = true },
+        },
+        .{
             \\const x = 1;
             \\const Foo = enum { a = 1, b = x };
             ,
             .{ .read = true },
+        },
+    });
+}
+
+test "Reference flags - `x` - container backing field access" {
+    try testRefsOnX(&[_]RefTestCase{
+        .{
+            \\const x = struct { value: u8 };
+            \\const Foo = packed struct(x.value) {
+            \\  a: bool,
+            \\  _: u7,
+            \\};
+            ,
+            .{ .type = true },
         },
     });
 }
