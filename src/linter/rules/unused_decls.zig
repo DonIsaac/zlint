@@ -210,6 +210,13 @@ test UnusedDecls {
         \\  };
         \\}
         \\const thing = struct {};
+        ,
+        \\const std = @import("std");
+        \\const Ast = std.zig.Ast;
+        \\pub const Wrapper = struct {
+        \\  flag: enum { foo, bar } = .foo,
+        \\  tree: ?Ast = null,
+        \\};
     };
 
     const fail = &[_][:0]const u8{

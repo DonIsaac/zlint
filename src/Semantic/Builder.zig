@@ -654,13 +654,9 @@ fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.C
             .s_struct = self.currentScope().eql(ROOT_SCOPE),
         },
     });
-    const parent = self.currentContainerSymbolUnwrap().into(usize);
-
     try self.visitOptional(field.ast.align_expr);
-    // NOTE: do not move this to the top of the function b/c for some reason it
-    // causes a segfault in release builds
-    const flags: []const Symbol.Flags = self.symbolTable().symbols.items(.flags);
-    if (!flags[parent].s_enum) {
+    const scope_flags = self.scopeTree().getScope(self.currentScope()).flags;
+    if (!scope_flags.s_enum) {
         try self.visitOptionalType(field.ast.type_expr);
     }
     try self.visitOptional(field.ast.value_expr);
