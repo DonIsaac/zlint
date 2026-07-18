@@ -217,6 +217,16 @@ test UnusedDecls {
         \\  flag: enum { foo, bar } = .foo,
         \\  tree: ?Ast = null,
         \\};
+        ,
+        \\const std = @import("std");
+        \\const E = enum(std.math.IntFittingRange(0, 100)) {
+        \\  a,
+        \\};
+        \\
+        \\pub fn main() void {
+        \\  _ = E.a;
+        \\}
+        ,
     };
 
     const fail = &[_][:0]const u8{

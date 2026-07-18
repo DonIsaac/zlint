@@ -238,7 +238,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         => {
             var buf: [2]NodeIndex = undefined;
             const container = ast.fullContainerDecl(&buf, node_id) orelse unreachable;
-            return self.visitContainer(node_id, container);
+            return self.visitContainer(container);
         },
 
         // container field declarations
@@ -533,12 +533,9 @@ fn visitBlock(self: *SemanticBuilder, statements: []const NodeIndex) !void {
     }
 }
 
-fn visitContainer(self: *SemanticBuilder, node: NodeIndex, container: full.ContainerDecl) !void {
+fn visitContainer(self: *SemanticBuilder, container: full.ContainerDecl) !void {
     const ast = self.AST();
-    const tags: []const Token.Tag = ast.tokens.items(.tag);
-
-    const main_token = ast.nodeMainToken(node);
-    const container_tag = tags[main_token];
+    const container_tag = ast.tokenTag(container.ast.main_token);
     const scope_flags: Scope.Flags, var symbol_flags: Symbol.Flags = switch (container_tag) {
         .keyword_enum => .{ .{ .s_enum = true }, .{ .s_enum = true } },
         .keyword_struct => .{ .{ .s_struct = true }, .{ .s_struct = true } },
@@ -549,31 +546,11 @@ fn visitContainer(self: *SemanticBuilder, node: NodeIndex, container: full.Conta
 
     // const Foo = packed struct { ... }
     //             ^^^^^^
-    if (container.layout_token) |layout_token| switch (tags[layout_token]) {
+    if (container.layout_token) |layout_token| switch (ast.tokenTag(layout_token)) {
         // TODO: extern/packed enums are not allowed. Report it.
         .keyword_extern => symbol_flags.s_extern = true,
         else => {},
     };
-
-    // packed structs, tagged unions, and enums may specify a representation type.
-    // We need to record a type reference for it.
-    // TODO: check if extern containers are banned from having a representation type.
-    // if so, report it.
-    if (container.ast.enum_token == null) {
-        const maybe_ident = main_token + 2;
-        if (tags[main_token + 1] == .l_paren and // w/o this, enum { x } triggers on x
-            tags[maybe_ident] == .identifier and
-            tags[maybe_ident + 1] != .period)
-        {
-            const prev = self.takeReferenceFlags();
-            defer self._curr_reference_flags = prev;
-            _ = try self.recordReference(.{
-                .flags = .{ .type = true },
-                .node = node,
-                .token = maybe_ident,
-            });
-        }
-    }
 
     self.currentContainerSymbolFlags().set(symbol_flags, true);
     const prev_symbol_flags = self._curr_symbol_flags;
@@ -584,6 +561,7 @@ fn visitContainer(self: *SemanticBuilder, node: NodeIndex, container: full.Conta
         .flags = scope_flags.merge(.{ .s_block = true }),
     });
     defer self.exitScope();
+    try self.visitOptionalType(container.ast.arg);
     for (container.ast.members) |member| {
         try self.visit(member);
     }
