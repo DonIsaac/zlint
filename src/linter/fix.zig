@@ -9,7 +9,7 @@ pub const Fix = struct {
     replacement: Cow,
 
     pub fn isNoop(self: Fix) bool {
-        return self.replacement.borrow().len == 0 and self.span.eql(Span.EMPTY);
+        return self.replacement.borrow().len == 0 and self.span.eql(.empty);
     }
 
     pub const Meta = packed struct {
@@ -47,14 +47,12 @@ pub const Fix = struct {
         allocator: Allocator,
         ctx: *const LinterContext,
 
-        const EMPTY = Cow.static("");
-
         pub fn noop(_: Builder) Fix {
             return Fix{
                 // SAFETY: noop fixes never have their meta field accessed
                 .meta = .disabled,
-                .span = Span.EMPTY,
-                .replacement = EMPTY,
+                .span = .empty,
+                .replacement = .empty,
             };
         }
 
@@ -62,7 +60,7 @@ pub const Fix = struct {
             return Fix{
                 .meta = self.meta,
                 .span = span,
-                .replacement = EMPTY,
+                .replacement = .empty,
             };
         }
 

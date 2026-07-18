@@ -54,7 +54,7 @@ test "Dangerous fixes do not get saved when only safe fixes are allowed" {
         }
     };
 
-    const fix_ctx = DangerousFixer{ .span = _span.Span.EMPTY };
+    const fix_ctx = DangerousFixer{ .span = .empty };
     ctx.reportWithFix(
         fix_ctx,
         ctx.diagnostic("ahhh", .{_span.LabeledSpan.from(fix_ctx.span)}),

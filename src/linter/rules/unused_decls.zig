@@ -132,7 +132,7 @@ const UnusedDeclsFixer = struct {
     span: Span,
 
     fn init(ctx: *const LinterContext, symbol: Symbol.Id) UnusedDeclsFixer {
-        if (ctx.fix.isDisabled()) return .{ .span = Span.EMPTY };
+        if (ctx.fix.isDisabled()) return .{ .span = .empty };
         // NOTE: if we cover more kinds of symbols in the future, this may cover
         // something we don't want (e.g. decl node for fn params is the fn proto).
         // Fine for now since we only report top-level vars.
