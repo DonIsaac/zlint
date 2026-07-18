@@ -464,7 +464,6 @@ test "Reference flags - `x` - structs" {
             .{ .type = true },
         },
     });
-
 }
 
 test "Reference flags - `x` - tuples" {
