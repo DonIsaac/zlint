@@ -282,6 +282,11 @@ test AvoidAs {
             .src = "const Foo = struct { x: u32 = @as(u32, 1) };",
             .expected = "const Foo = struct { x: u32 = 1 };",
         },
+        .{
+            .src = "const Foo = struct { x: u32 = @as(u32) };",
+            .expected = "const Foo = struct { x: u32 = @as(u32) };",
+            .fails_lint = true,
+        },
     };
 
     try runner

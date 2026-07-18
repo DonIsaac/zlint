@@ -52,7 +52,7 @@ pub const Fix = struct {
         pub fn noop(_: Builder) Fix {
             return Fix{
                 // SAFETY: noop fixes never have their meta field accessed
-                .meta = undefined,
+                .meta = .disabled,
                 .span = Span.EMPTY,
                 .replacement = EMPTY,
             };
@@ -191,6 +191,7 @@ pub const Fixer = struct {
                 );
             }
             self.unfixed_errors.deinit(allocator);
+            self.* = undefined;
         }
     };
 

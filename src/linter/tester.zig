@@ -42,6 +42,9 @@ pub const FixCase = struct {
     /// What kind of fix should have been provided. Leave this as `null` if you
     /// don't care.
     kind: ?Fix.Kind = null,
+    /// Set to `true` if the fixed source still violates the rule. Useful for
+    /// noop-fixer testing.
+    fails_lint: bool = false,
 };
 
 pub fn init(alloc: Allocator, rule: Rule) RuleTester {
@@ -204,9 +207,26 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
 
             var fixer: Fixer = .{ .allocator = self.alloc };
             var fixed = try fixer.applyFixes(case.src, fix_errors.items);
+            defer fixed.deinit(self.alloc);
             const unfixed = fixed.unfixed_errors.items;
 
             // TODO: check fix kind.
+
+            if (case.fails_lint) {
+                if (fixed.did_fix) {
+                    defer fixed.deinit(self.alloc);
+                    self.diagnostic.message = Cow.fmt(
+                        self.alloc,
+                        "Expected case #{d} not to fix any violations, but some fixes were applied.\n\n{s}",
+                        .{ i + 1, case.src },
+                    ) catch @panic("OOM");
+                    return error.FixMismatch;
+                }
+                for (fixed.unfixed_errors.items) |*err| {
+                    err.deinit(self.alloc);
+                }
+                continue;
+            }
 
             if (unfixed.len > 0) {
                 defer if (fixed.did_fix) fixed.source.deinit(self.alloc);
@@ -221,7 +241,6 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
                 ) catch @panic("OOM");
                 return error.FixFailed;
             }
-            defer fixed.deinit(self.alloc);
             if (!fixed.did_fix) {
                 self.diagnostic.message = Cow.fmt(
                     self.alloc,
