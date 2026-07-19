@@ -18,6 +18,17 @@
     },
     "$schema": "https://json-schema.org/draft-07/schema#",
     "definitions": {
+        "linter.rules.cognitive_complexity_file": {
+            "type": "object",
+            "title": "cognitive-complexity-file config",
+            "properties": {
+                "max_complexity": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295
+                }
+            }
+        },
         "linter.rules.allocator_first_param": {
             "type": "object",
             "title": "allocator-first-param config",
@@ -181,6 +192,28 @@
                                 },
                                 {
                                     "$ref": "#/definitions/linter.rules.unused_decls"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "cognitive-complexity": {
+                    "description": "## What This Rule Does\nLimits the [cognitive complexity](https://www.sonarsource.com/docs/CognitiveComplexity.pdf)\nof functions and test blocks.\n\nCognitive complexity measures how hard code is to follow. Unlike cyclomatic\ncomplexity, it penalizes nesting: a deeply nested `if` costs more than a\nflat one, while a `switch` with many cases costs the same as a single `if`.\n\nScores follow the SonarSource white paper, as implemented by\n[gocognit](https://github.com/uudashr/gocognit) and SonarSource rule\nS3776, mapped to Zig constructs:\n\n- **+1 plus nesting level**: `if`, `while`, `for`, `switch` (the whole\n  switch, not each case), and `catch` with a block handler.\n- **+1, no nesting penalty**: `else if` and plain `else`, on both `if` and\n  loops (e.g. `while (...) { ... } else { ... }`).\n- **+1**: each sequence of like boolean operators (`a and b and c` is +1,\n  `a and b or c` is +2), each labeled `break`/`continue`, and each direct\n  self-recursive call.\n\n### What does not count\n\n`orelse`, `try`, shorthand `catch` handlers (`catch unreachable`,\n`catch return err`), early `return`, unlabeled `break`/`continue`, and\n`defer`/`errdefer` are idiomatic shorthand and are free. An if-expression\n(`const x = if (c) a else b;`) counts as an `if` plus an `else` (2), just\nlike an if statement. Test blocks are scored like functions. Functions\ndeclared inside other functions are scored independently.\n\nThe maximum is configurable:\n\n```json\n{\n  \"rules\": {\n    \"cognitive-complexity\": [\"warn\", { \"max_complexity\": 15 }]\n  }\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule (with `max_complexity: 4`):\n```zig\nfn sumOfPrimes(max: u32) u32 { // score: 7\n    var total: u32 = 0;\n    outer: for (1..max) |i| {      // +1\n        var j: u32 = 2;\n        while (j < i) : (j += 1) { // +2 (nesting = 1)\n            if (i % j == 0) {      // +3 (nesting = 2)\n                continue :outer;   // +1\n            }\n        }\n        total += i;\n    }\n    return total;\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn getWords(n: u32) []const u8 { // score: 1\n    return switch (n) {          // +1\n        1 => \"one\",\n        2 => \"a couple\",\n        else => \"lots\",\n    };\n}\n```",
+                    "default": "off",
+                    "markdownDescription": "## What This Rule Does\nLimits the [cognitive complexity](https://www.sonarsource.com/docs/CognitiveComplexity.pdf)\nof functions and test blocks.\n\nCognitive complexity measures how hard code is to follow. Unlike cyclomatic\ncomplexity, it penalizes nesting: a deeply nested `if` costs more than a\nflat one, while a `switch` with many cases costs the same as a single `if`.\n\nScores follow the SonarSource white paper, as implemented by\n[gocognit](https://github.com/uudashr/gocognit) and SonarSource rule\nS3776, mapped to Zig constructs:\n\n- **+1 plus nesting level**: `if`, `while`, `for`, `switch` (the whole\n  switch, not each case), and `catch` with a block handler.\n- **+1, no nesting penalty**: `else if` and plain `else`, on both `if` and\n  loops (e.g. `while (...) { ... } else { ... }`).\n- **+1**: each sequence of like boolean operators (`a and b and c` is +1,\n  `a and b or c` is +2), each labeled `break`/`continue`, and each direct\n  self-recursive call.\n\n### What does not count\n\n`orelse`, `try`, shorthand `catch` handlers (`catch unreachable`,\n`catch return err`), early `return`, unlabeled `break`/`continue`, and\n`defer`/`errdefer` are idiomatic shorthand and are free. An if-expression\n(`const x = if (c) a else b;`) counts as an `if` plus an `else` (2), just\nlike an if statement. Test blocks are scored like functions. Functions\ndeclared inside other functions are scored independently.\n\nThe maximum is configurable:\n\n```json\n{\n  \"rules\": {\n    \"cognitive-complexity\": [\"warn\", { \"max_complexity\": 15 }]\n  }\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule (with `max_complexity: 4`):\n```zig\nfn sumOfPrimes(max: u32) u32 { // score: 7\n    var total: u32 = 0;\n    outer: for (1..max) |i| {      // +1\n        var j: u32 = 2;\n        while (j < i) : (j += 1) { // +2 (nesting = 1)\n            if (i % j == 0) {      // +3 (nesting = 2)\n                continue :outer;   // +1\n            }\n        }\n        total += i;\n    }\n    return total;\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn getWords(n: u32) []const u8 { // score: 1\n    return switch (n) {          // +1\n        1 => \"one\",\n        2 => \"a couple\",\n        else => \"lots\",\n    };\n}\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.cognitive_complexity"
                                 }
                             ]
                         }
@@ -362,6 +395,28 @@
                         }
                     ]
                 },
+                "cognitive-complexity-file": {
+                    "description": "## What This Rule Does\nLimits the total [cognitive complexity](https://www.sonarsource.com/docs/CognitiveComplexity.pdf)\nof an entire source file.\n\nThe file score is the sum of the cognitive complexity of everything in the\nfile: all functions and test blocks (each scored with nesting reset to 0,\nexactly as the `cognitive-complexity` rule scores them) plus any\ncontainer-level code such as `comptime` blocks and global variable\ninitializers. See the `cognitive-complexity` rule for how individual\nconstructs are scored.\n\nFiles with a high total are usually doing too much and are candidates for\nbeing split up, even when every individual function stays under its\nper-function budget.\n\nThis check is disabled until a maximum is configured:\n\n```json\n{\n  \"rules\": {\n    \"cognitive-complexity-file\": [\"warn\", { \"max_complexity\": 100 }]\n  }\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule (with `max_complexity: 8`):\n```zig\nfn sumOfPrimes(max: u32) u32 { // score: 7\n    var total: u32 = 0;\n    outer: for (1..max) |i| {\n        var j: u32 = 2;\n        while (j < i) : (j += 1) {\n            if (i % j == 0) continue :outer;\n        }\n        total += i;\n    }\n    return total;\n}\n\nfn classify(c: bool) u32 { // score: 2; file total: 9\n    const x: u32 = if (c) 1 else 2;\n    return x;\n}\n```\n\nExamples of **correct** code for this rule (with `max_complexity: 8`):\n```zig\nfn getWords(n: u32) []const u8 { // score: 1\n    return switch (n) {\n        1 => \"one\",\n        2 => \"a couple\",\n        else => \"lots\",\n    };\n}\n\nfn isPrime(n: u32) bool { // score: 3; file total: 4\n    if (n < 2) return false;\n    for (2..n) |i| {\n        if (n % i == 0) return false;\n    }\n    return true;\n}\n```",
+                    "default": "off",
+                    "markdownDescription": "## What This Rule Does\nLimits the total [cognitive complexity](https://www.sonarsource.com/docs/CognitiveComplexity.pdf)\nof an entire source file.\n\nThe file score is the sum of the cognitive complexity of everything in the\nfile: all functions and test blocks (each scored with nesting reset to 0,\nexactly as the `cognitive-complexity` rule scores them) plus any\ncontainer-level code such as `comptime` blocks and global variable\ninitializers. See the `cognitive-complexity` rule for how individual\nconstructs are scored.\n\nFiles with a high total are usually doing too much and are candidates for\nbeing split up, even when every individual function stays under its\nper-function budget.\n\nThis check is disabled until a maximum is configured:\n\n```json\n{\n  \"rules\": {\n    \"cognitive-complexity-file\": [\"warn\", { \"max_complexity\": 100 }]\n  }\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule (with `max_complexity: 8`):\n```zig\nfn sumOfPrimes(max: u32) u32 { // score: 7\n    var total: u32 = 0;\n    outer: for (1..max) |i| {\n        var j: u32 = 2;\n        while (j < i) : (j += 1) {\n            if (i % j == 0) continue :outer;\n        }\n        total += i;\n    }\n    return total;\n}\n\nfn classify(c: bool) u32 { // score: 2; file total: 9\n    const x: u32 = if (c) 1 else 2;\n    return x;\n}\n```\n\nExamples of **correct** code for this rule (with `max_complexity: 8`):\n```zig\nfn getWords(n: u32) []const u8 { // score: 1\n    return switch (n) {\n        1 => \"one\",\n        2 => \"a couple\",\n        else => \"lots\",\n    };\n}\n\nfn isPrime(n: u32) bool { // score: 3; file total: 4\n    if (n < 2) return false;\n    for (2..n) |i| {\n        if (n % i == 0) return false;\n    }\n    return true;\n}\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.cognitive_complexity_file"
+                                }
+                            ]
+                        }
+                    ]
+                },
                 "unsafe-undefined": {
                     "description": "## What This Rule Does\nDisallows initializing or assigning variables to `undefined`.\n\nReading uninitialized memory is one of the most common sources of undefined\nbehavior. While debug builds come with runtime safety checks for `undefined`\naccess, they are otherwise undetectable and will not cause panics in release\nbuilds.\n\n### Allowed Scenarios\n\nThere are some cases where using `undefined` makes sense, such as array\ninitialization. Some cases are implicitly allowed, but others should be\ncommunicated to other programmers via a safety comment. Adding `SAFETY:\n[reason]` before the line using `undefined` will not trigger a rule\nviolation.\n\n```zig\n// SAFETY: foo is written to by `initializeFoo`, so `undefined` is never\n// read.\nvar foo: u32 = undefined\ninitializeFoo(&foo);\n\n// SAFETY: this covers the entire initialization\nconst bar: Bar = .{\n  .a = undefined,\n  .b = undefined,\n};\n```\n\n:::info\nObviously unsafe usages of `undefined`, such `x == undefined`, are not\nallowed even in these exceptions.\n:::\n\n#### Arrays\nArray-typed variable declarations may be initialized to undefined.\nArray-typed container fields with `undefined` as a default value will still\ntrigger a violation.\n\n```zig\n// arrays may be set to undefined without a safety comment\nvar arr: [10]u8 = undefined;\n@memset(&arr, 0);\n\n// This is not allowed\nconst Foo = struct {\n  foo: [4]u32 = undefined\n};\n```\n\n#### Whitelisting Types\nYou may whitelist specific types that are allowed to be initialized to `undefined`.\nAny variable with this type will not have a violation triggered, as long as\nthe type is obvious to ZLint's semantic analyzer. By default the whitelist\ncontains `ThreadPool`/`Thread.Pool` from `std.Thread.Pool`\n\n```zig\n// \"unsafe-undefined\": [\"error\", { \"allow_types\": [\"CustomBuffer\"] }]\nconst CustomBuffer = [4096]u8;\nvar buf: CustomBuffer = undefined; // ok\n```\n\n:::warning\nZLint does not have a type checker yet, so implicit struct initializations\nwill not be ignored.\n:::\n\n#### Destructors\nInvalidating freed pointers/data by setting it to `undefined` is helpful for\nfinding use-after-free bugs. Using `undefined` in destructors will not trigger\na violation, unless it is obviously unsafe (e.g. in a comparison).\n\n```zig\nconst std = @import(\"std\");\nconst Foo = struct {\n  data: []u8,\n  pub fn init(allocator: std.mem.Allocator) !Foo {\n     const data = try allocator.alloc(u8, 8);\n     return .{ .data = data };\n  }\n  pub fn deinit(self: *Foo, allocator: std.mem.Allocator) void {\n    allocator.free(self.data);\n    self.* = undefined; // safe\n  }\n};\n```\n\nA method is considered a destructor if it is named\n- `deinit`\n- `destroy`\n- `reset`\n\n#### `test` blocks\nAll usages of `undefined` in `test` blocks are allowed. Code that isn't safe\nwill be caught by the test runner.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst x = undefined;\n\n// Consumers of `Foo` should be forced to initialize `x`.\nconst Foo = struct {\n  x: *u32 = undefined,\n};\n\nvar y: *u32 = allocator.create(u32);\ny.* = undefined;\n```\n\nExamples of **correct** code for this rule:\n```zig\nconst Foo = struct {\n  x: *u32,\n\n  fn init(allocator: *std.mem.Allocator, value: u32) void {\n    self.x = allocator.create(u32);\n    self.x.* = value;\n  }\n\n  // variables may be re-assigned to `undefined` in destructors\n  fn deinit(self: *Foo, alloc: std.mem.Allocator) void {\n    alloc.destroy(self.x);\n    self.x = undefined;\n  }\n};\n\ntest Foo {\n  // Allowed. If this is truly unsafe, it will be caught by the test.\n  var foo: Foo = undefined;\n  // ...\n}\n```",
                     "default": "warn",
@@ -449,6 +504,17 @@
                             ]
                         }
                     ]
+                }
+            }
+        },
+        "linter.rules.cognitive_complexity": {
+            "type": "object",
+            "title": "cognitive-complexity config",
+            "properties": {
+                "max_complexity": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295
                 }
             }
         },

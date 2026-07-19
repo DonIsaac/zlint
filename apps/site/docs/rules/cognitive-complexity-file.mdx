@@ -1,0 +1,82 @@
+---
+rule: '{"name":"cognitive-complexity-file","category":"restriction","default":"off","fix":{"kind":"none","dangerous":false}}'
+---
+
+# `cognitive-complexity-file`
+
+<RuleBanner category="restriction" default="off" />
+
+## What This Rule Does
+
+Limits the total [cognitive complexity](https://www.sonarsource.com/docs/CognitiveComplexity.pdf)
+of an entire source file.
+
+The file score is the sum of the cognitive complexity of everything in the
+file: all functions and test blocks (each scored with nesting reset to 0,
+exactly as the `cognitive-complexity` rule scores them) plus any
+container-level code such as `comptime` blocks and global variable
+initializers. See the `cognitive-complexity` rule for how individual
+constructs are scored.
+
+Files with a high total are usually doing too much and are candidates for
+being split up, even when every individual function stays under its
+per-function budget.
+
+This check is disabled until a maximum is configured:
+
+```json
+{
+  "rules": {
+    "cognitive-complexity-file": ["warn", { "max_complexity": 100 }]
+  }
+}
+```
+
+## Examples
+
+Examples of **incorrect** code for this rule (with `max_complexity: 8`):
+
+```zig
+fn sumOfPrimes(max: u32) u32 { // score: 7
+    var total: u32 = 0;
+    outer: for (1..max) |i| {
+        var j: u32 = 2;
+        while (j < i) : (j += 1) {
+            if (i % j == 0) continue :outer;
+        }
+        total += i;
+    }
+    return total;
+}
+
+fn classify(c: bool) u32 { // score: 2; file total: 9
+    const x: u32 = if (c) 1 else 2;
+    return x;
+}
+```
+
+Examples of **correct** code for this rule (with `max_complexity: 8`):
+
+```zig
+fn getWords(n: u32) []const u8 { // score: 1
+    return switch (n) {
+        1 => "one",
+        2 => "a couple",
+        else => "lots",
+    };
+}
+
+fn isPrime(n: u32) bool { // score: 3; file total: 4
+    if (n < 2) return false;
+    for (2..n) |i| {
+        if (n % i == 0) return false;
+    }
+    return true;
+}
+```
+
+## Configuration
+
+This rule accepts the following options:
+
+- max_complexity: int
