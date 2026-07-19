@@ -43,9 +43,12 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
     reporter.opts.report_stats = reporter.opts.report_stats and options.summary;
 
     var config = resolve_config: {
-        var errors: [1]Error = undefined;
-        const c = lint_config.resolveLintConfig(&arena, io, Io.Dir.cwd(), "zlint.json", alloc, &errors[0]) catch {
-            try reporter.reportErrorSlice(alloc, errors[0..1]);
+        var diagnostic: ?Error = null;
+        const c = lint_config.resolveLintConfig(&arena, io, Io.Dir.cwd(), "zlint.json", alloc, &diagnostic) catch {
+            var reported: [1]Error = .{
+                diagnostic orelse Error.newStatic("Failed to load zlint configuration."),
+            };
+            try reporter.reportErrorSlice(alloc, &reported);
             return 1;
         };
         break :resolve_config c;

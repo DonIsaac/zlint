@@ -98,9 +98,13 @@ pub fn getBinding(self: *const Semantic, scope_id: Scope.Id, name: []const u8) ?
     return null;
 }
 
-const BindingQuery = struct {
+pub const BindingQuery = struct {
     /// Symbols that have these flags will be skipped.
-    exclude: Symbol.Flags = .{},
+    exclude: Symbol.Flags,
+
+    pub const all: BindingQuery = .{ .exclude = .{} };
+    /// Declarations only. Filters out container fields.
+    pub const decls: BindingQuery = .{ .exclude = .{ .s_member = true } };
 };
 
 /// Find an in-scope symbol bound to an identifier name.
