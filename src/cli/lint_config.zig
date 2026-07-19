@@ -12,26 +12,43 @@ const Cow = util.Cow(false);
 const Error = @import("../Error.zig");
 const Span = @import("../span.zig").Span;
 
+/// Resolve the lint configuration, walking up the directory tree from `cwd`
+/// looking for `config_filename`.
+///
+/// On failure, this returns the original error and populates `err` with an
+/// actionable diagnostic *when possible*. `err` is left `null` if no diagnostic
+/// could be constructed (e.g. because allocating the diagnostic itself failed).
+/// Callers must therefore initialize `err` to `null` and tolerate it staying
+/// `null` on the error path.
 pub fn resolveLintConfig(
     arena: *ArenaAllocator,
     io: Io,
     cwd: Dir,
     config_filename: [:0]const u8,
     err_alloc: Allocator,
-    err: *Error,
+    err: *?Error,
 ) !lint.Config.Managed {
     const arena_alloc = arena.allocator();
 
-    var it = try ParentIterator(4096).fromDir(io, cwd, config_filename);
+    var it = ParentIterator(4096).fromDir(io, cwd, config_filename) catch |e| {
+        err.* = ioDiagnostic(err_alloc, "Failed to search for config file {s}: {s}", config_filename, e);
+        return e;
+    };
     while (it.next()) |maybe_path_to_config| {
         const file = Dir.openFileAbsolute(io, maybe_path_to_config, .{ .mode = .read_only }) catch |e| {
             switch (e) {
                 error.FileNotFound => continue,
-                else => return e,
+                else => {
+                    err.* = ioDiagnostic(err_alloc, "Failed to open {s}: {s}", maybe_path_to_config, e);
+                    return e;
+                },
             }
         };
         defer file.close(io);
-        const source = try readToEndAlloc(file, io, arena_alloc, std.math.maxInt(u32));
+        const source = readToEndAlloc(file, io, arena_alloc, std.math.maxInt(u32)) catch |e| {
+            err.* = ioDiagnostic(err_alloc, "Failed to read {s}: {s}", maybe_path_to_config, e);
+            return e;
+        };
         errdefer arena_alloc.free(source);
 
         var diagnostics: json.Diagnostics = .{};
@@ -46,8 +63,7 @@ pub fn resolveLintConfig(
             &scanner,
             .{ .ignore_unknown_fields = true },
         ) catch |e| {
-            err.* = getReportForParseError(err_alloc, e, source, &diagnostics);
-            err.source_name = err_alloc.dupe(u8, maybe_path_to_config) catch @panic(err.message.borrow());
+            err.* = getReportForParseError(err_alloc, e, source, &diagnostics, maybe_path_to_config);
             return e;
         };
         var managed = config.intoManaged(arena, null);
@@ -56,6 +72,20 @@ pub fn resolveLintConfig(
     }
 
     return lint.Config.DEFAULT.intoManaged(arena, null);
+}
+
+/// Build an actionable diagnostic for a config IO failure, e.g.
+/// `Failed to read /home/user/zlint.json: AccessDenied`. Returns `null` if the
+/// diagnostic itself could not be allocated.
+fn ioDiagnostic(
+    alloc: Allocator,
+    comptime template: []const u8,
+    subject: []const u8,
+    e: anyerror,
+) ?Error {
+    var err = Error.fmt(alloc, template, .{ subject, @errorName(e) }) catch return null;
+    err.code = "invalid-config";
+    return err;
 }
 
 /// Read the remaining contents of `file`, up to `max_bytes`. Replaces
@@ -140,12 +170,26 @@ fn ParentIterator(comptime N: usize) type {
     };
 }
 
+/// Build a diagnostic describing a config parse failure. Returns `null` if any
+/// allocation required to build the diagnostic fails, so the caller can fall
+/// back to a safe static message rather than crashing.
 fn getReportForParseError(
     alloc: Allocator,
     e: json.ParseError(json.Scanner),
     source: []const u8,
     diagnostics: *const json.Diagnostics,
-) Error {
+    source_name: []const u8,
+) ?Error {
+    return buildReportForParseError(alloc, e, source, diagnostics, source_name) catch null;
+}
+
+fn buildReportForParseError(
+    alloc: Allocator,
+    e: json.ParseError(json.Scanner),
+    source: []const u8,
+    diagnostics: *const json.Diagnostics,
+    source_name: []const u8,
+) Allocator.Error!Error {
     const offset: u32 = @truncate(diagnostics.getByteOffset());
     const src_len: u32 = @intCast(source.len);
     const clamped_offset = @min(offset, src_len);
@@ -167,10 +211,15 @@ fn getReportForParseError(
         .message = Cow.initBorrowed(message),
         .code = "invalid-config",
     };
+    errdefer err.deinit(alloc);
 
-    const own_source = alloc.dupeZ(u8, source) catch @panic(message);
-    err.source = Error.ArcStr.init(alloc, own_source) catch @panic(message);
-    err.labels.append(alloc, .{ .span = span }) catch @panic(message);
+    {
+        const own_source = try alloc.dupeZ(u8, source);
+        errdefer alloc.free(own_source);
+        err.source = try Error.ArcStr.init(alloc, own_source);
+    }
+    err.source_name = try alloc.dupe(u8, source_name);
+    try err.labels.append(alloc, .{ .span = span });
     return err;
 }
 const customRuleMessages = std.StaticStringMap([]const u8).initComptime([_]struct { []const u8, []const u8 }{
@@ -255,7 +304,8 @@ test resolveLintConfig {
     var arena = ArenaAllocator.init(t.allocator);
     defer arena.deinit();
 
-    var err: Error = undefined;
+    var err: ?Error = null;
+    defer if (err) |*e| e.deinit(t.allocator);
     const config = try resolveLintConfig(
         &arena,
         t.io,
@@ -264,6 +314,7 @@ test resolveLintConfig {
         t.allocator,
         &err,
     );
+    try t.expect(err == null);
     try t.expect(config.path != null);
 
     const expected_path = try path.resolve(t.allocator, &.{"zlint/test/fixtures/config/zlint.json"});
@@ -286,15 +337,17 @@ test "resolveLintConfig with an empty zlint.json does not crash the formatter" {
     var arena = ArenaAllocator.init(t.allocator);
     defer arena.deinit();
 
-    var err: Error = undefined;
+    var maybe_err: ?Error = null;
     try t.expectError(error.UnexpectedEndOfInput, resolveLintConfig(
         &arena,
         t.io,
         try cwd.openDir(t.io, fixtures_dir, .{}),
         "zlint.json",
         t.allocator,
-        &err,
+        &maybe_err,
     ));
+    try t.expect(maybe_err != null);
+    var err = maybe_err.?;
     defer err.deinit(t.allocator);
 
     try t.expectEqual(0, err.source.?.deref().*.len);
@@ -305,4 +358,18 @@ test "resolveLintConfig with an empty zlint.json does not crash the formatter" {
     var w = std.Io.Writer.Allocating.init(t.allocator);
     defer w.deinit();
     try fmt.format(&w.writer, err);
+}
+
+// Config IO failures (open/read errors) should surface an actionable
+// diagnostic that names both the offending path and the underlying OS error.
+test "config IO failures produce actionable diagnostics" {
+    var read_err = ioDiagnostic(t.allocator, "Failed to read {s}: {s}", "/home/user/zlint.json", error.AccessDenied).?;
+    defer read_err.deinit(t.allocator);
+    try t.expectEqualStrings("Failed to read /home/user/zlint.json: AccessDenied", read_err.message.borrow());
+    try t.expectEqualStrings("invalid-config", read_err.code);
+
+    var open_err = ioDiagnostic(t.allocator, "Failed to open {s}: {s}", "/home/user/zlint.json", error.IsDir).?;
+    defer open_err.deinit(t.allocator);
+    try t.expectEqualStrings("Failed to open /home/user/zlint.json: IsDir", open_err.message.borrow());
+    try t.expectEqualStrings("invalid-config", open_err.code);
 }
