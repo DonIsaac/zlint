@@ -227,6 +227,30 @@ test UnusedDecls {
         \\  _ = E.a;
         \\}
         ,
+        // https://github.com/DonIsaac/zlint/issues/366
+        \\const Inner = struct {
+        \\  limit: u32,
+        \\  fn f() u32 { return limit; }
+        \\};
+        \\const limit: u32 = 10;
+        \\pub fn main() void {
+        \\  _ = Inner.f();
+        \\  _ = Inner{ .limit = 1 };
+        \\}
+        ,
+        \\const Outer = struct {
+        \\  limit: u32,
+        \\  const Inner = struct {
+        \\    limit: u32,
+        \\    fn f() u32 { return limit; }
+        \\  };
+        \\};
+        \\const limit: u32 = 10;
+        \\pub fn main() void {
+        \\  _ = Outer.Inner.f();
+        \\  _ = Outer{ .limit = 1 };
+        \\}
+        ,
     };
 
     const fail = &[_][:0]const u8{
@@ -234,6 +258,18 @@ test UnusedDecls {
         \\const std = @import("std"); const Allocator = std.mem.Allocator;
         ,
         "extern const x: usize;",
+        // A field sharing a name with the unused root decl must not suppress the
+        // report: `f` never references `limit`, so the root `limit` is unused.
+        \\const Inner = struct {
+        \\  limit: u32,
+        \\  fn f() u32 { return 0; }
+        \\};
+        \\const limit: u32 = 10;
+        \\pub fn main() void {
+        \\  _ = Inner.f();
+        \\  _ = Inner{ .limit = 1 };
+        \\}
+        ,
     };
 
     const fix = &[_]RuleTester.FixCase{

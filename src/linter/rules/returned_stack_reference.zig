@@ -261,7 +261,7 @@ const StackReferenceVisitor = struct {
 
         const scope_id = sema.node_links.getScope(node) orelse return .no;
         const name = sema.nodeSlice(node);
-        const symbol_id = sema.resolveBinding(scope_id, name, .{}) orelse return .no;
+        const symbol_id = sema.resolveBinding(scope_id, name, .all) orelse return .no;
 
         const declared_in: Scope.Id = scopes[symbol_id.into(usize)];
         const decl_scope_flags: Scope.Flags = sema.scopes.scopes.items(.flags)[declared_in.int()];

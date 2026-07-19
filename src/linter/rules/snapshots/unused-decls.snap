@@ -16,3 +16,11 @@
    ·              ─
    ╰────
 
+  𝙭 unused-decls: variable 'limit' is declared but never used.
+   ╭─[unused-decls.zig:5:7]
+ 4 │ };
+ 5 │ const limit: u32 = 10;
+   ·       ─────
+ 6 │ pub fn main() void {
+   ╰────
+

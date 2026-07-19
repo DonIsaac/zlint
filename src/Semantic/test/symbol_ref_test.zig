@@ -655,6 +655,51 @@ test "Reference flags - `x` - arrays, slices, etc" {
     });
 }
 
+// A bare identifier bubbling out of a container method must resolve to the real
+// (later-declared) sibling declaration, never to a same-named container field.
+// See https://github.com/DonIsaac/zlint/issues/366.
+test "forward references never resolve to container fields" {
+    const src =
+        \\const Inner = struct {
+        \\    limit: u32,
+        \\    fn f() u32 { return limit; }
+        \\};
+        \\const limit: u32 = 10;
+        \\pub fn main() void { _ = Inner.f(); _ = Inner{ .limit = 1 }; }
+    ;
+    var sema = try build(src);
+    defer sema.deinit();
+
+    const names = sema.symbols.symbols.items(.name);
+    const flags = sema.symbols.symbols.items(.flags);
+
+    // `getSymbolNamed("limit")` returns the field, bound first, so distinguish the
+    // two `limit` symbols by their `s_member` flag.
+    var found_root = false;
+    var found_field = false;
+    var it = sema.symbols.iter();
+    while (it.next()) |symbol| {
+        const id = symbol.into(usize);
+        if (!std.mem.eql(u8, names[id], "limit")) continue;
+        const refs = sema.symbols.getReferences(symbol);
+        if (flags[id].s_member) {
+            found_field = true;
+            t.expectEqual(0, refs.len) catch |e| {
+                print("field `limit` should have 0 references, got {d}\n", .{refs.len});
+                return e;
+            };
+        } else {
+            found_root = true;
+            t.expectEqual(1, refs.len) catch |e| {
+                print("root `limit` should have 1 reference, got {d}\n", .{refs.len});
+                return e;
+            };
+        }
+    }
+    try t.expect(found_root);
+    try t.expect(found_field);
+}
+
 test "symbols referenced before their declaration" {
     const sources = [_][:0]const u8{
         \\const y = x;
