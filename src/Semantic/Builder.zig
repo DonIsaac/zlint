@@ -147,7 +147,7 @@ pub fn build(builder: *SemanticBuilder, source: [:0]const u8) SemanticError!Resu
     }
 
     // resolve references to symbols declared in root
-    try builder.resolveReferencesInCurrentScope(.{ .exclude = .{ .s_member = true } });
+    try builder.resolveReferencesInCurrentScope(.decls);
     // Take whatever references still haven't been resolved and move them to
     // Semantic.
     const unresolved_frame_count = builder._unresolved_references.len();
@@ -1344,7 +1344,7 @@ fn enterScope(self: *SemanticBuilder, opts: CreateScope) !void {
 /// Exit the current scope. It is a bug to pop the root scope.
 inline fn exitScope(self: *SemanticBuilder) void {
     self.assertCtx(self._scope_stack.items.len > 1, "Invariant violation: cannot pop the root scope", .{});
-    self.resolveReferencesInCurrentScope(.{ .exclude = .{ .s_member = true } }) catch @panic("OOM");
+    self.resolveReferencesInCurrentScope(.decls) catch @panic("OOM");
     _ = self._scope_stack.pop();
 }
 
@@ -1552,7 +1552,10 @@ fn recordReference(self: *SemanticBuilder, opts: CreateReference) SemanticError!
     return ref_id;
 }
 
-fn resolveReferencesInCurrentScope(self: *SemanticBuilder, query: Semantic.BindingQuery) Allocator.Error!void {
+fn resolveReferencesInCurrentScope(
+    self: *SemanticBuilder,
+    query: Semantic.BindingQuery,
+) Allocator.Error!void {
     var stacka = std.heap.stackFallback(64, self._gpa);
     const stack = stacka.get();
     //

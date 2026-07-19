@@ -158,7 +158,7 @@ pub fn runOnNode(self: *const AllocatorFirstParam, wrapper: NodeWrapper, ctx: *L
                         if (std.ascii.isLower(type_name[0])) break :check_self;
                         const scope: Scope.Id = ctx.links().getScope(ty) orelse break :check_self;
                         // find where it's declared
-                        const symbol_id = ctx.semantic.resolveBinding(scope, type_name, .{}) orelse break :check_self;
+                        const symbol_id = ctx.semantic.resolveBinding(scope, type_name, .all) orelse break :check_self;
                         const decl_node: Node.Index = ctx.symbols().symbols.items(.decl)[symbol_id.int()];
                         var parents = ctx.links().iterParentIds(ty);
                         while (parents.next()) |parent| {
