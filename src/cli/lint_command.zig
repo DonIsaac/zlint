@@ -45,14 +45,10 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
     var config = resolve_config: {
         var diagnostic: ?Error = null;
         const c = lint_config.resolveLintConfig(&arena, io, Io.Dir.cwd(), "zlint.json", alloc, &diagnostic) catch {
-            // `resolveLintConfig` only populates `diagnostic` when it could
-            // build an actionable message. If it couldn't (e.g. OOM), fall back
-            // to a safe static diagnostic so we never report an uninitialized
-            // error or exit zero on failure.
             var reported: [1]Error = .{
                 diagnostic orelse Error.newStatic("Failed to load zlint configuration."),
             };
-            try reporter.reportErrorSlice(alloc, reported[0..1]);
+            try reporter.reportErrorSlice(alloc, &reported);
             return 1;
         };
         break :resolve_config c;
