@@ -147,7 +147,7 @@ pub fn build(builder: *SemanticBuilder, source: [:0]const u8) SemanticError!Resu
     }
 
     // resolve references to symbols declared in root
-    try builder.resolveReferencesInCurrentScope();
+    try builder.resolveReferencesInCurrentScope(.{ .exclude = .{ .s_member = true } });
     // Take whatever references still haven't been resolved and move them to
     // Semantic.
     const unresolved_frame_count = builder._unresolved_references.len();
@@ -1344,7 +1344,7 @@ fn enterScope(self: *SemanticBuilder, opts: CreateScope) !void {
 /// Exit the current scope. It is a bug to pop the root scope.
 inline fn exitScope(self: *SemanticBuilder) void {
     self.assertCtx(self._scope_stack.items.len > 1, "Invariant violation: cannot pop the root scope", .{});
-    self.resolveReferencesInCurrentScope() catch @panic("OOM");
+    self.resolveReferencesInCurrentScope(.{ .exclude = .{ .s_member = true } }) catch @panic("OOM");
     _ = self._scope_stack.pop();
 }
 
@@ -1552,13 +1552,14 @@ fn recordReference(self: *SemanticBuilder, opts: CreateReference) SemanticError!
     return ref_id;
 }
 
-fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void {
+fn resolveReferencesInCurrentScope(self: *SemanticBuilder, query: Semantic.BindingQuery) Allocator.Error!void {
     var stacka = std.heap.stackFallback(64, self._gpa);
     const stack = stacka.get();
     //
     const curr = self._unresolved_references.curr();
     const parent = self._unresolved_references.parent();
     const names = self.symbolTable().symbols.items(.name);
+    const flags = self.symbolTable().symbols.items(.flags);
     const bindings: []const Symbol.Id = self.scopeTree().getBindings(self.currentScope());
     var references = self.symbolTable().references;
     const ref_names: []const []const u8 = references.items(.identifier);
@@ -1571,6 +1572,7 @@ fn resolveReferencesInCurrentScope(self: *SemanticBuilder) Allocator.Error!void 
     defer stack.free(resolved_map);
 
     for (bindings) |binding| {
+        if (!query.exclude.isEmpty() and flags[binding.int()].contains(query.exclude)) continue;
         const name: []const u8 = names[binding.int()];
         for (0..curr.items.len) |i| {
             if (resolved_map[i] or name.len == 0) continue;

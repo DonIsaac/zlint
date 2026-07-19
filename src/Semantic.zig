@@ -98,7 +98,7 @@ pub fn getBinding(self: *const Semantic, scope_id: Scope.Id, name: []const u8) ?
     return null;
 }
 
-const BindingQuery = struct {
+pub const BindingQuery = struct {
     /// Symbols that have these flags will be skipped.
     exclude: Symbol.Flags = .{},
 };
