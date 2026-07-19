@@ -1,0 +1,85 @@
+---
+rule: '{"name":"cognitive-complexity","category":"restriction","default":"off","fix":{"kind":"none","dangerous":false}}'
+---
+
+# `cognitive-complexity`
+
+<RuleBanner category="restriction" default="off" />
+
+## What This Rule Does
+
+Limits the [cognitive complexity](https://www.sonarsource.com/docs/CognitiveComplexity.pdf)
+of functions and test blocks.
+
+Cognitive complexity measures how hard code is to follow. Unlike cyclomatic
+complexity, it penalizes nesting: a deeply nested `if` costs more than a
+flat one, while a `switch` with many cases costs the same as a single `if`.
+
+Scores follow the SonarSource white paper, as implemented by
+[gocognit](https://github.com/uudashr/gocognit) and SonarSource rule
+S3776, mapped to Zig constructs:
+
+- **+1 plus nesting level**: `if`, `while`, `for`, `switch` (the whole
+  switch, not each case), and `catch` with a block handler.
+- **+1, no nesting penalty**: `else if` and plain `else`, on both `if` and
+  loops (e.g. `while (...) { ... } else { ... }`).
+- **+1**: each sequence of like boolean operators (`a and b and c` is +1,
+  `a and b or c` is +2), each labeled `break`/`continue`, and each direct
+  self-recursive call.
+
+### What does not count
+
+`orelse`, `try`, shorthand `catch` handlers (`catch unreachable`,
+`catch return err`), early `return`, unlabeled `break`/`continue`, and
+`defer`/`errdefer` are idiomatic shorthand and are free. An if-expression
+(`const x = if (c) a else b;`) counts as an `if` plus an `else` (2), just
+like an if statement. Test blocks are scored like functions. Functions
+declared inside other functions are scored independently.
+
+The maximum is configurable:
+
+```json
+{
+  "rules": {
+    "cognitive-complexity": ["warn", { "max_complexity": 15 }]
+  }
+}
+```
+
+## Examples
+
+Examples of **incorrect** code for this rule (with `max_complexity: 4`):
+
+```zig
+fn sumOfPrimes(max: u32) u32 { // score: 7
+    var total: u32 = 0;
+    outer: for (1..max) |i| {      // +1
+        var j: u32 = 2;
+        while (j < i) : (j += 1) { // +2 (nesting = 1)
+            if (i % j == 0) {      // +3 (nesting = 2)
+                continue :outer;   // +1
+            }
+        }
+        total += i;
+    }
+    return total;
+}
+```
+
+Examples of **correct** code for this rule:
+
+```zig
+fn getWords(n: u32) []const u8 { // score: 1
+    return switch (n) {          // +1
+        1 => "one",
+        2 => "a couple",
+        else => "lots",
+    };
+}
+```
+
+## Configuration
+
+This rule accepts the following options:
+
+- max_complexity: int

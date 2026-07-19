@@ -1,0 +1,193 @@
+  𝙭 cognitive-complexity: Cognitive complexity of function 'sumOfPrimes' is 7, which exceeds the maximum of 3.
+   ╭─[cognitive-complexity.zig:1:4]
+ 1 │ fn sumOfPrimes(max: u32) u32 {
+   ·    ─────┬─────
+   ·         ╰── complexity is 7
+ 2 │   var total: u32 = 0;
+ 3 │   outer: for (1..max) |i| {
+   ·          ─┬─
+   ·           ╰── +1
+ 4 │     var j: u32 = 2;
+ 5 │     while (j < i) : (j += 1) {
+   ·     ──┬──
+   ·       ╰── +2 (incl. 1 for nesting)
+ 6 │       if (i % j == 0) continue :outer;
+   ·       ─┬─
+   ·        ╰── +3 (incl. 2 for nesting)
+   ·                       ────┬────
+   ·                           ╰── +1
+   ╰────
+  help: Extract nested blocks into smaller functions; prefer `switch` over long `else if` chains and early returns over deep nesting.
+
+  𝙭 cognitive-complexity: Cognitive complexity of function 'f' is 6, which exceeds the maximum of 3.
+   ╭─[cognitive-complexity.zig:1:4]
+ 1 │ fn f(a: bool, b: bool, c: bool) void {
+   ·    ┬
+   ·    ╰── complexity is 6
+ 2 │   if (a) {
+   ·   ─┬─
+   ·    ╰── +1
+ 3 │     if (b) {
+   ·     ─┬─
+   ·      ╰── +2 (incl. 1 for nesting)
+ 4 │       if (c) {}
+   ·       ─┬─
+   ·        ╰── +3 (incl. 2 for nesting)
+   ╰────
+  help: Extract nested blocks into smaller functions; prefer `switch` over long `else if` chains and early returns over deep nesting.
+
+  𝙭 cognitive-complexity: Cognitive complexity of function 'f' is 4, which exceeds the maximum of 3.
+   ╭─[cognitive-complexity.zig:1:4]
+ 1 │ fn f(a: bool, b: bool) void {
+   ·    ┬
+   ·    ╰── complexity is 4
+ 2 │   if (a) {} else {
+   ·   ─┬─
+   ·    ╰── +1
+   ·             ──┬──
+   ·               ╰── +1
+ 3 │     if (b) {}
+   ·     ─┬─
+   ·      ╰── +2 (incl. 1 for nesting)
+ 4 │   }
+   ╰────
+  help: Extract nested blocks into smaller functions; prefer `switch` over long `else if` chains and early returns over deep nesting.
+
+  𝙭 cognitive-complexity: Cognitive complexity of function 'f' is 4, which exceeds the maximum of 3.
+   ╭─[cognitive-complexity.zig:1:4]
+ 1 │ fn f(a: bool, b: bool, c: bool) void {
+   ·    ┬
+   ·    ╰── complexity is 4
+ 2 │   if (a) {} else if (b) {
+   ·   ─┬─
+   ·    ╰── +1
+   ·                  ─┬─
+   ·                   ╰── +1
+ 3 │     if (c) {}
+   ·     ─┬─
+   ·      ╰── +2 (incl. 1 for nesting)
+ 4 │   }
+   ╰────
+  help: Extract nested blocks into smaller functions; prefer `switch` over long `else if` chains and early returns over deep nesting.
+
+  𝙭 cognitive-complexity: Cognitive complexity of function 'f' is 6, which exceeds the maximum of 3.
+   ╭─[cognitive-complexity.zig:1:4]
+ 1 │ fn f(x: anyerror!u32) u32 {
+   ·    ┬
+   ·    ╰── complexity is 6
+ 2 │   return x catch |err| {
+   ·            ──┬──
+   ·              ╰── +1
+ 3 │     if (err == error.Foo) {
+   ·     ─┬─
+   ·      ╰── +2 (incl. 1 for nesting)
+ 4 │       if (err == error.Bar) return 0;
+   ·       ─┬─
+   ·        ╰── +3 (incl. 2 for nesting)
+   ╰────
+  help: Extract nested blocks into smaller functions; prefer `switch` over long `else if` chains and early returns over deep nesting.
+
+  𝙭 cognitive-complexity: Cognitive complexity of function 'f' is 4, which exceeds the maximum of 3.
+   ╭─[cognitive-complexity.zig:1:4]
+ 1 │ fn f(a: bool, b: bool) void {
+   ·    ┬
+   ·    ╰── complexity is 4
+ 2 │   while (a) {
+   ·   ──┬──
+   ·     ╰── +1
+ 3 │     if (b) break;
+   ·     ─┬─
+   ·      ╰── +2 (incl. 1 for nesting)
+ 4 │   } else {
+   ·     ──┬──
+   ·       ╰── +1
+   ╰────
+  help: Extract nested blocks into smaller functions; prefer `switch` over long `else if` chains and early returns over deep nesting.
+
+  𝙭 cognitive-complexity: Cognitive complexity of function 'fib' is 4, which exceeds the maximum of 3.
+   ╭─[cognitive-complexity.zig:1:4]
+ 1 │ fn fib(n: u32) u32 {
+   ·    ─┬─
+   ·     ╰── complexity is 4
+ 2 │   if (n < 2) return n else return fib(n - 1) + fib(n - 2);
+   ·   ─┬─
+   ·    ╰── +1
+   ·                       ──┬──
+   ·                         ╰── +1
+   ·                                   ─┬─
+   ·                                    ╰── +1
+   ·                                                ─┬─
+   ·                                                 ╰── +1
+   ╰────
+  help: Extract nested blocks into smaller functions; prefer `switch` over long `else if` chains and early returns over deep nesting.
+
+  𝙭 cognitive-complexity: Cognitive complexity of function 'f' is 4, which exceeds the maximum of 3.
+   ╭─[cognitive-complexity.zig:1:4]
+ 1 │ fn f(a: bool, b: bool, c: bool, d: bool) void {
+   ·    ┬
+   ·    ╰── complexity is 4
+ 2 │   if ((a and b or c) and d) {}
+   ·   ─┬─
+   ·    ╰── +1
+   ·          ─┬─
+   ·           ╰── +1
+   ·                ─┬─
+   ·                 ╰── +1
+   ·                      ─┬─
+   ·                       ╰── +1
+   ╰────
+  help: Extract nested blocks into smaller functions; prefer `switch` over long `else if` chains and early returns over deep nesting.
+
+  𝙭 cognitive-complexity: Cognitive complexity of function 'f' is 4, which exceeds the maximum of 3.
+   ╭─[cognitive-complexity.zig:1:4]
+ 1 │ fn f(x: anyerror!u32) u32 {
+   ·    ┬
+   ·    ╰── complexity is 4
+ 2 │   if (x) |v| {
+   ·   ─┬─
+   ·    ╰── +1
+ 3 │     return v;
+ 4 │   } else |err| {
+   ·     ──┬──
+   ·       ╰── +1
+ 5 │     if (err == error.Foo) return 0;
+   ·     ─┬─
+   ·      ╰── +2 (incl. 1 for nesting)
+   ╰────
+  help: Extract nested blocks into smaller functions; prefer `switch` over long `else if` chains and early returns over deep nesting.
+
+  𝙭 cognitive-complexity: Cognitive complexity of test "complex" is 6, which exceeds the maximum of 3.
+   ╭─[cognitive-complexity.zig:1:6]
+ 1 │ test "complex" {
+   ·      ────┬────
+   ·          ╰── complexity is 6
+ 2 │   if (true) {
+   ·   ─┬─
+   ·    ╰── +1
+ 3 │     if (true) {
+   ·     ─┬─
+   ·      ╰── +2 (incl. 1 for nesting)
+ 4 │       if (true) {}
+   ·       ─┬─
+   ·        ╰── +3 (incl. 2 for nesting)
+   ╰────
+  help: Extract nested blocks into smaller functions; prefer `switch` over long `else if` chains and early returns over deep nesting.
+
+  𝙭 cognitive-complexity: Cognitive complexity of function 'inner' is 6, which exceeds the maximum of 3.
+   ╭─[cognitive-complexity.zig:3:8]
+ 2 │   const S = struct {
+ 3 │     fn inner() void {
+   ·        ──┬──
+   ·          ╰── complexity is 6
+ 4 │       if (true) {
+   ·       ─┬─
+   ·        ╰── +1
+ 5 │         if (true) {
+   ·         ─┬─
+   ·          ╰── +2 (incl. 1 for nesting)
+ 6 │           if (true) {}
+   ·           ─┬─
+   ·            ╰── +3 (incl. 2 for nesting)
+   ╰────
+  help: Extract nested blocks into smaller functions; prefer `switch` over long `else if` chains and early returns over deep nesting.
+

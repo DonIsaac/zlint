@@ -1,0 +1,8 @@
+  𝙭 cognitive-complexity-file: cognitive-complexity-file.zig: cognitive complexity is 13, which exceeds the maximum of 10.
+
+  help: Split large functions into smaller ones, or move unrelated code into its own file.
+
+  𝙭 cognitive-complexity-file: cognitive-complexity-file.zig: cognitive complexity is 13, which exceeds the maximum of 10.
+
+  help: Split large functions into smaller ones, or move unrelated code into its own file.
+
