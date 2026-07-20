@@ -1,0 +1,11 @@
+# Development toolchain. Run `mise install` to set everything up.
+#
+# `entr` (used by `just watch`) is not in the mise registry; install it with
+# your system package manager.
+[tools]
+# Must match `minimum_zig_version` in build.zig.zon.
+zig = "0.16.0"
+just = "1.40.0"
+bun = "1.3.14"
+# Keep in sync with crate-ci/typos in .github/workflows/autofix.yaml.
+typos = "1.48.0"
