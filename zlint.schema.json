@@ -5,15 +5,13 @@
             "$ref": "#/definitions/linter.config.rules_config.RulesConfig"
         },
         "ignore": {
-            "type": "array",
-            "description": "Files and folders to skip. Uses `startsWith` to check if files are ignored.\n\n`zig-out` and `vendor` are always ignored, as well as hidden folders.",
+            "$ref": "#/definitions/walk.GlobSet",
+            "description": "Files and folders to skip, matched using glob patterns.\n\n`zig-out`, `vendor`, and `zig-pkg` are always ignored, as well as hidden folders.",
             "default": [
-                "vendor",
-                "zig-out"
-            ],
-            "items": {
-                "type": "string"
-            }
+                "vendor/**",
+                "zig-out/**",
+                "zig-pkg/**"
+            ]
         }
     },
     "$schema": "https://json-schema.org/draft-07/schema#",
@@ -450,6 +448,12 @@
                         }
                     ]
                 }
+            }
+        },
+        "walk.GlobSet": {
+            "type": "array",
+            "items": {
+                "type": "string"
             }
         },
         "linter.rules.duplicate_case": {
