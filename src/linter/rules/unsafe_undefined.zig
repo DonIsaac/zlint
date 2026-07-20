@@ -55,7 +55,7 @@
 //! contains `ThreadPool`/`Thread.Pool` from `std.Thread.Pool`
 //!
 //! ```zig
-//! // "unsafe-undefined": ["error", { "allow_types": ["CustomBuffer"] }]
+//! // "unsafe-undefined": ["error", { "allowed_types": ["CustomBuffer"] }]
 //! const CustomBuffer = [4096]u8;
 //! var buf: CustomBuffer = undefined; // ok
 //! ```

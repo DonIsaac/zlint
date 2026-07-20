@@ -19,13 +19,14 @@
 //! Examples of **incorrect** code for this rule:
 //! ```zig
 //! fn this_one_is_in_snake_case() void {}
-//! fn generic(T: type) T { return T{}; }
+//! fn generic(T: type) type { return T; }
 //! ```
 //!
 //! Examples of **correct** code for this rule:
 //! ```zig
 //! fn thisFunctionIsInCamelCase() void {}
-//! fn Generic(T: type) T { return T{}; }
+//! fn generic(T: type) T { return T{}; }
+//! fn Generic(T: type) type { return T; }
 //! extern fn this_is_declared_in_c() void;
 //! ```
 

@@ -6,6 +6,7 @@ own semantic analyzer (inspired by [oxc](https://github.com/oxc-project/oxc))
 independent from the Zig compiler.
 
 ## Output Principles
+
 - All code must be correct and memory safe. No undefined behavior or sloppy work.
 - We care heavily about performance. Every cache miss and allocation matters.
 - Test everything extensively. Leave nothing unverified.
@@ -13,11 +14,13 @@ independent from the Zig compiler.
 - Ask yourself: "Would a staff engineer do this?" If the answer is no, don't do it.
 
 ## Rules
+
 - Do not commit, push, rebase, etc. unless explicitly asked.
 - Do not make false or unfounded assumptions. Collect evidence from the user, source code, etc.
 - Never write quick hacks. Address the root cause of the problem.
 
 ## Guidelines
+
 - Keep changes small and focused.
 - Favor editing existing files over creating new ones.
 - Check for existing solutions before proposing a new one; avoid reinventing the wheel.
@@ -42,16 +45,17 @@ independent from the Zig compiler.
 │   │   └── tester.zig            RuleTester (pass/fail/fix + snapshots)
 │   ├── cli/, reporter/, printer/, visit/, util/
 ├── tasks/
-│   ├── docgen.zig                Generates docs/rules/*.md from doc-comments
+│   ├── docgen.zig                Generates apps/site/docs/rules/*.mdx from doc-comments
 │   ├── confgen.zig               Generates rules_config.zig + zlint.schema.json
 │   └── new-rule.ts               Bun script that scaffolds a new rule
 ├── test/                         E2E binary, fixtures, snapshots, repos.json
-├── docs/rules/                   Auto-generated per-rule docs
+├── apps/site/docs/rules/         Auto-generated per-rule docs
 └── apps/{site, vscode-extension} Docs site (Docusaurus) + VS Code extension
 ```
 
 ## Tools
-Zig 0.15, `just` for tasks, `bun` for package management and running JS apps, `typos` for spell checking.
+
+Zig 0.16, `just` for tasks, `bun` for package management and running JS apps, `typos` for spell checking.
 
 ## Build, Test, Run
 
@@ -143,7 +147,7 @@ rules, prefer the higher-level helpers:
 After changing any rule, run `just codegen`. CI verifies the working tree is
 clean afterward. Never hand-edit generated files:
 
-- `docs/rules/*.md` (from `tasks/docgen.zig`)
+- `apps/site/docs/rules/*.mdx` (from `tasks/docgen.zig`)
 - `zlint.schema.json` and `src/linter/config/rules_config_rules.zig`
   (from `tasks/confgen.zig`)
 - Any `*.snap` file (its a test snapshot file)
@@ -163,17 +167,17 @@ locally covers all of these (minus the OS matrix).
 
 ## Quick Reference
 
-| Task                     | Command                             |
-| ------------------------ | ----------------------------------- |
-| List all just tasks      | `just`                              |
-| Build (debug)            | `just build`                        |
-| Run linter on a file     | `just run -- path/to/file.zig`      |
-| Fast semantic check      | `just check`                        |
-| Unit tests               | `just test`                         |
-| E2E tests                | `just submodules && just e2e`       |
-| Full pre-PR sweep        | `just ready`                        |
-| Scaffold a new rule      | `just new-rule rule-name`           |
-| Regenerate docs + schema | `just codegen`                      |
-| Format                   | `just fmt`                          |
-| Lint                     | `just lint`                         |
-| Watch mode               | `just watch [check\|test\|build]`   |
+| Task                     | Command                           |
+| ------------------------ | --------------------------------- |
+| List all just tasks      | `just`                            |
+| Build (debug)            | `just build`                      |
+| Run linter on a file     | `just run -- path/to/file.zig`    |
+| Fast semantic check      | `just check`                      |
+| Unit tests               | `just test`                       |
+| E2E tests                | `just submodules && just e2e`     |
+| Full pre-PR sweep        | `just ready`                      |
+| Scaffold a new rule      | `just new-rule rule-name`         |
+| Regenerate docs + schema | `just codegen`                    |
+| Format                   | `just fmt`                        |
+| Lint                     | `just lint`                       |
+| Watch mode               | `just watch [check\|test\|build]` |

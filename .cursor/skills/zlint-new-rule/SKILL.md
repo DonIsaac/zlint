@@ -56,16 +56,16 @@ Ask deeper questions only when the rule has real ambiguity:
 
 Mandatory, not optional. Pick a reference by shape:
 
-| Rule shape | Reference |
-| --- | --- |
-| Detect a specific call (identifier or `std.x.y`) | `no_print.zig` |
-| Compare two AST subtrees structurally | `duplicate_case.zig` |
-| Has config options + type/name whitelisting | `unsafe_undefined.zig` |
-| Operates on declared symbols | `unused_decls.zig` |
-| Checks source text, not AST | `line_length.zig` |
-| Flags a `fn` signature pattern | `allocator_first_param.zig`, `must_return_ref.zig` |
-| Provides an autofix | `useless_error_return.zig` |
-| Fires once per file | `empty_file.zig` |
+| Rule shape                                       | Reference                                          |
+| ------------------------------------------------ | -------------------------------------------------- |
+| Detect a specific call (identifier or `std.x.y`) | `no_print.zig`                                     |
+| Compare two AST subtrees structurally            | `duplicate_case.zig`                               |
+| Has config options + type/name whitelisting      | `unsafe_undefined.zig`                             |
+| Operates on declared symbols                     | `unused_decls.zig`                                 |
+| Checks source text, not AST                      | `line_length.zig`                                  |
+| Flags a `fn` signature pattern                   | `allocator_first_param.zig`, `must_return_ref.zig` |
+| Provides an autofix                              | `useless_error_return.zig`                         |
+| Fires once per file                              | `empty_file.zig`                                   |
 
 From each reference, extract: the `Rule.Meta` block, doc-comment structure,
 which hook it uses, which `LinterContext` helpers it calls, and the shape of
@@ -80,7 +80,7 @@ config field." That gives the user a chance to redirect.
 Write `//! ## What This Rule Does` as prose, using the confirmed examples.
 **Show this to the user and get approval before writing Zig.** The doc-comment
 pins down semantics; implementation then follows mechanically. It also becomes
-`docs/rules/<name>.md` via codegen, so it's user-facing. Users will correct
+`apps/site/docs/rules/<name>.mdx` via codegen, so it's user-facing. Users will correct
 prose faster than Zig.
 
 Format in Step 5.
@@ -105,30 +105,30 @@ It also runs `just codegen` and formats `src/linter` once. If you later change
 `meta.name` or `meta.category`, rerun `just codegen` manually.
 
 **Do not hand-edit** `src/linter/config/rules_config_rules.zig`,
-`zlint.schema.json`, `docs/rules/*.md`, or `*.snap` files — all generated.
+`zlint.schema.json`, `apps/site/docs/rules/*.mdx`, or `*.snap` files — all generated.
 
 ## Step 5: Fill in `Rule.Meta` and the doc-comment
 
 Every rule needs `pub const meta: Rule.Meta`:
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `name` | kebab-case string | Must match the `just new-rule` argument |
-| `category` | `Rule.Category` | See table below |
-| `default` | `Severity` | `.off` (default), `.warning`, or `.err` |
-| `fix` | `Fix.Meta` | Defaults to `Fix.Meta.disabled`. Set only for autofix rules |
+| Field      | Type              | Notes                                                       |
+| ---------- | ----------------- | ----------------------------------------------------------- |
+| `name`     | kebab-case string | Must match the `just new-rule` argument                     |
+| `category` | `Rule.Category`   | See table below                                             |
+| `default`  | `Severity`        | `.off` (default), `.warning`, or `.err`                     |
+| `fix`      | `Fix.Meta`        | Defaults to `Fix.Meta.disabled`. Set only for autofix rules |
 
 Pick the most specific category:
 
-| Category | When |
-| --- | --- |
-| `compiler` | Re-implements a check the Zig compiler already does |
-| `correctness` | Code is almost certainly wrong |
-| `suspicious` | Likely a mistake but has legitimate uses |
-| `restriction` | Stylistic or policy restriction users opt into |
-| `pedantic` | Strict best-practice enforcement |
-| `style` | Formatting / naming |
-| `nursery` | Experimental; not yet stable |
+| Category      | When                                                |
+| ------------- | --------------------------------------------------- |
+| `compiler`    | Re-implements a check the Zig compiler already does |
+| `correctness` | Code is almost certainly wrong                      |
+| `suspicious`  | Likely a mistake but has legitimate uses            |
+| `restriction` | Stylistic or policy restriction users opt into      |
+| `pedantic`    | Strict best-practice enforcement                    |
+| `style`       | Formatting / naming                                 |
+| `nursery`     | Experimental; not yet stable                        |
 
 **Size cap:** `Rule.MAX_SIZE = 32` bytes of rule state. Config fields
 deserialize into the rule struct, so keep them small (`bool`, `u32`, small
@@ -142,10 +142,10 @@ pub const meta: Rule.Meta = .{
 };
 ```
 
-**Doc-comment structure** (codegens to `docs/rules/<name>.md` — the headings
+**Doc-comment structure** (codegens to `apps/site/docs/rules/<name>.mdx` — the headings
 are load-bearing):
 
-```zig
+````zig
 //! ## What This Rule Does
 //! One paragraph. *What* is checked and *why* it matters.
 //!
@@ -163,20 +163,20 @@ are load-bearing):
 //! ```zig
 //! // does not trigger the rule
 //! ```
-```
+````
 
 Docusaurus-style admonitions (`:::info`, `:::warning`) are supported — see
 `unsafe_undefined.zig`. Document config options with a JSON block:
 
-````markdown
-//! ```json
+```markdown
+//! `json
 //! {
 //!   "rules": {
 //!     "returned-stack-reference": ["warn", { "allow_tests": false }]
 //!   }
 //! }
-//! ```
-````
+//! `
+```
 
 ## Step 6: Implement the hooks
 
@@ -187,11 +187,11 @@ Don't reinvent patterns that exist next door.
 Rules are duck-typed. **Delete any hook you don't use** — the scaffolder's
 stubs `@panic("TODO:")` at runtime.
 
-| Hook | Signature (as implemented; vtable allows `anyerror!void`) | When |
-| --- | --- | --- |
-| `runOnce` | `fn(*const Self, *LinterContext) void` | File-level checks |
-| `runOnNode` | `fn(*const Self, NodeWrapper, *LinterContext) void` | AST-driven (most common) |
-| `runOnSymbol` | `fn(*const Self, Symbol.Id, *LinterContext) void` | Symbol-table rules |
+| Hook          | Signature (as implemented; vtable allows `anyerror!void`) | When                     |
+| ------------- | --------------------------------------------------------- | ------------------------ |
+| `runOnce`     | `fn(*const Self, *LinterContext) void`                    | File-level checks        |
+| `runOnNode`   | `fn(*const Self, NodeWrapper, *LinterContext) void`       | AST-driven (most common) |
+| `runOnSymbol` | `fn(*const Self, Symbol.Id, *LinterContext) void`         | Symbol-table rules       |
 
 Also required:
 
@@ -321,7 +321,7 @@ output to `.expected` verbatim.
 ## Step 9: Regenerate and verify
 
 ```sh
-just codegen    # docs/rules/*.md, zlint.schema.json, rules_config_rules.zig
+just codegen    # apps/site/docs/rules/*.mdx, zlint.schema.json, rules_config_rules.zig
 just fmt        # zig fmt + typos
 just ready      # full pre-PR sweep (check + codegen + build + test + e2e)
 ```
@@ -352,7 +352,7 @@ from assumptions routinely needs 2-3.
   underscores.
 - **Forgetting `just codegen`.** CI's `Docs + JSON Schema` job fails on
   `git diff --exit-code`.
-- **Editing `docs/rules/<name>.md` by hand.** It gets overwritten.
+- **Editing `apps/site/docs/rules/<name>.mdx` by hand.** It gets overwritten.
 - **Leaving `@panic("TODO:")` stubs.** Delete hooks you don't use.
 - **Hand-editing `.snap` files.** Delete and regenerate.
 - **`std.debug.print` inside the rule.** `no-print` will flag it. Use
@@ -364,20 +364,20 @@ from assumptions routinely needs 2-3.
 
 ## Quick reference
 
-| Task | Command |
-| --- | --- |
-| Scaffold | `just new-rule <kebab-name>` |
-| Unit tests | `just test` (all tests; no single-rule filter) |
-| Regenerate docs + schema | `just codegen` |
-| Format | `just fmt` |
-| Pre-PR sweep | `just ready` |
-| Simple AST rule | `src/linter/rules/no_print.zig` |
-| AST comparison | `src/linter/rules/duplicate_case.zig` |
-| Rule with config | `src/linter/rules/unsafe_undefined.zig` |
-| Symbol-based | `src/linter/rules/unused_decls.zig` |
-| Source-text check | `src/linter/rules/line_length.zig` |
-| Fn signature check | `src/linter/rules/allocator_first_param.zig` |
-| Autofix | `src/linter/rules/useless_error_return.zig` |
-| File-level | `src/linter/rules/empty_file.zig` |
-| Shared AST helpers | `src/linter/ast_utils.zig` |
-| Symbol / scope APIs | `src/Semantic.zig`, `src/Semantic/` |
+| Task                     | Command                                        |
+| ------------------------ | ---------------------------------------------- |
+| Scaffold                 | `just new-rule <kebab-name>`                   |
+| Unit tests               | `just test` (all tests; no single-rule filter) |
+| Regenerate docs + schema | `just codegen`                                 |
+| Format                   | `just fmt`                                     |
+| Pre-PR sweep             | `just ready`                                   |
+| Simple AST rule          | `src/linter/rules/no_print.zig`                |
+| AST comparison           | `src/linter/rules/duplicate_case.zig`          |
+| Rule with config         | `src/linter/rules/unsafe_undefined.zig`        |
+| Symbol-based             | `src/linter/rules/unused_decls.zig`            |
+| Source-text check        | `src/linter/rules/line_length.zig`             |
+| Fn signature check       | `src/linter/rules/allocator_first_param.zig`   |
+| Autofix                  | `src/linter/rules/useless_error_return.zig`    |
+| File-level               | `src/linter/rules/empty_file.zig`              |
+| Shared AST helpers       | `src/linter/ast_utils.zig`                     |
+| Symbol / scope APIs      | `src/Semantic.zig`, `src/Semantic/`            |
