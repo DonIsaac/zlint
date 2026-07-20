@@ -51,7 +51,7 @@ independent from the Zig compiler.
 ```
 
 ## Tools
-Zig 0.15, `just` for tasks, `bun` for package management and running JS apps, `typos` for spell checking.
+Zig 0.16, `just` for tasks, `bun` for package management and running JS apps, `typos` for spell checking. All of these are pinned in `mise.toml` — run `mise install` to set them up. (`entr`, used by `just watch`, is not in the mise registry; install it with your package manager.)
 
 ## Build, Test, Run
 

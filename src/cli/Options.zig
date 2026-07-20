@@ -13,6 +13,10 @@ quiet: bool = false,
 ///
 /// This is primarily for debugging purposes.
 print_ast: bool = false,
+/// Print the default configuration to stdout and exit.
+print_config: bool = false,
+/// Write the default configuration to `./zlint.json` and exit.
+init: bool = false,
 /// How diagnostics are formatted.
 format: formatter.Kind = .graphical,
 /// Print a summary about # of warnings and errors. Only applies for some formats.
@@ -32,6 +36,8 @@ pub const usage =
 ;
 const help =
     \\--print-ast <file>  Parse a file and print its AST as JSON
+    \\--print-config      Print the default configuration to stdout and exit
+    \\--init              Write the default configuration to ./zlint.json and exit
     \\-f, --format <fmt>  Choose an output format (default, graphical, json, github, gh)
     \\--no-summary        Do not print a summary after linting
     \\-S, --stdin         Lint filepaths received from stdin (newline separated)
@@ -104,6 +110,10 @@ fn parse(alloc: Allocator, io: std.Io, args_iter: anytype, err: ?*Error) ParseEr
             opts.summary = false;
         } else if (eq(arg, "--print-ast")) {
             opts.print_ast = true;
+        } else if (eq(arg, "--print-config")) {
+            opts.print_config = true;
+        } else if (eq(arg, "--init")) {
+            opts.init = true;
         } else if (eq(arg, "-h") or eq(arg, "--help") or eq(arg, "--hlep") or eq(arg, "-help")) {
             var buf: [512]u8 = undefined;
             var writer = std.Io.File.stdout().writer(io, &buf);
@@ -165,6 +175,8 @@ test parse {
         .{ "zlint", .{} },
         .{ "zlint --", .{} },
         .{ "zlint --print-ast", .{ .print_ast = true } },
+        .{ "zlint --print-config", .{ .print_config = true } },
+        .{ "zlint --init", .{ .init = true } },
         .{ "zlint --fix", .{ .fix = true } },
         .{ "zlint --no-summary", .{ .summary = false } },
         .{ "zlint --verbose", .{ .verbose = true } },
@@ -186,6 +198,8 @@ test parse {
 
         try t.expectEqual(expected.verbose, opts.verbose);
         try t.expectEqual(expected.print_ast, opts.print_ast);
+        try t.expectEqual(expected.print_config, opts.print_config);
+        try t.expectEqual(expected.init, opts.init);
         try t.expectEqual(expected.args.items.len, opts.args.items.len);
         for (0..expected.args.items.len) |i| {
             try t.expectEqualStrings(

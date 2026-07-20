@@ -10,6 +10,7 @@ const print = std.debug.print;
 const Options = @import("cli/Options.zig");
 const print_cmd = @import("cli/print_command.zig");
 const lint_cmd = @import("cli/lint_command.zig");
+const lint = @import("lint.zig");
 
 // in debug builds, include more information for debugging memory leaks,
 // double-frees, etc.
@@ -58,6 +59,27 @@ pub fn main(init: std.process.Init) !u8 {
         stdout.interface.print("{s}\n", .{config.version}) catch |e| {
             std.debug.panic("Failed to write version: {s}\n", .{@errorName(e)});
         };
+        return 0;
+    } else if (opts.print_config) {
+        var buf: [4096]u8 = undefined;
+        var stdout = Io.File.stdout().writer(io, &buf);
+        try lint.Config.writeDefaultConfigJson(&stdout.interface);
+        try stdout.interface.flush();
+        return 0;
+    } else if (opts.init) {
+        const file = Io.Dir.cwd().createFile(io, "zlint.json", .{ .exclusive = true }) catch |e| switch (e) {
+            error.PathAlreadyExists => {
+                print("error: zlint.json already exists\n", .{});
+                return 1;
+            },
+            else => return e,
+        };
+        defer file.close(io);
+        var buf: [4096]u8 = undefined;
+        var writer = file.writer(io, &buf);
+        try lint.Config.writeDefaultConfigJson(&writer.interface);
+        try writer.interface.flush();
+        print("created zlint.json\n", .{});
         return 0;
     } else if (opts.print_ast) {
         if (opts.args.items.len == 0) {

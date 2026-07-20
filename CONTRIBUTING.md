@@ -6,14 +6,22 @@ set up your development environment and contribution guidelines.
 ## Setup
 
 You'll obviously need to have [Zig](https://ziglang.org/) installed. Right now
-we are using version `0.15.0`.
+we are using version `0.16.0`.
 
 ### Tl;Dr
 
-We use the following tools:
+The easiest way to get set up is [mise](https://mise.jdx.dev/):
+
+```sh
+mise install
+```
+
+This installs every tool pinned in `mise.toml`: Zig, `just`, `bun`, and
+`typos`. Otherwise, install the following tools manually:
 
 - [just](https://github.com/casey/just) for running tasks
-- [entr](http://eradman.com/entrproject/) for an ad-hoc watch mode
+- [entr](http://eradman.com/entrproject/) for an ad-hoc watch mode (not
+  managed by mise)
 - [typos](https://github.com/crate-ci/typos) for spell checking
 - [bun](https://bun.sh/) for generating boilerplate for new rules and other tasks
 
