@@ -44,6 +44,38 @@ const DEFAULT_RULES_CONFIG: RulesConfig = blk: {
     break :blk config;
 };
 
+const NamedSeverity = struct { []const u8, Severity };
+
+/// Every rule's `(name, default severity)`, sorted by name.
+const default_rule_severities: [all_rule_decls.len]NamedSeverity = blk: {
+    var entries: [all_rule_decls.len]NamedSeverity = undefined;
+    for (all_rule_decls, 0..) |decl, i| {
+        const RuleImpl = @field(all_rules, decl.name);
+        entries[i] = .{ RuleImpl.meta.name, RuleImpl.meta.default };
+    }
+    std.mem.sort(NamedSeverity, &entries, {}, struct {
+        fn lessThan(_: void, a: NamedSeverity, b: NamedSeverity) bool {
+            return std.mem.order(u8, a[0], b[0]) == .lt;
+        }
+    }.lessThan);
+    break :blk entries;
+};
+
+/// Write the default configuration to `writer` as JSON.
+///
+/// Every rule is listed at its default severity — including rules that are
+/// off by default — so the output doubles as a list of all available rules.
+/// The result is a valid `zlint.json` that preserves default behavior.
+pub fn writeDefaultConfigJson(writer: *std.Io.Writer) std.Io.Writer.Error!void {
+    try writer.writeAll("{\n  \"rules\": {\n");
+    for (default_rule_severities, 0..) |entry, i| {
+        try writer.print("    \"{s}\": \"{s}\"", .{ entry[0], entry[1].asSlice() });
+        if (i + 1 < default_rule_severities.len) try writer.writeByte(',');
+        try writer.writeByte('\n');
+    }
+    try writer.writeAll("  }\n}\n");
+}
+
 pub fn jsonSchema(ctx: *Schema.Context) !Schema {
     var schema = try ctx.genSchemaInner(Config);
     var ignore = schema.object.properties.getPtr("ignore").?;
@@ -67,6 +99,7 @@ const std = @import("std");
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Allocator = std.mem.Allocator;
 const Schema = @import("../json.zig").Schema;
+const Severity = @import("../Error.zig").Severity;
 
 pub const RulesConfig = @import("config/rules_config.zig").RulesConfig;
 
@@ -80,7 +113,6 @@ test {
 const t = std.testing;
 const print = std.debug.print;
 const json = std.json;
-const Severity = @import("../Error.zig").Severity;
 
 fn testConfig(source: []const u8, expected: RulesConfig) !void {
     var scanner = json.Scanner.initCompleteInput(t.allocator, source);
@@ -164,5 +196,30 @@ test "RulesConfig.jsonParse" {
             &scanner,
             .{},
         ));
+    }
+}
+
+test writeDefaultConfigJson {
+    var out = std.Io.Writer.Allocating.init(t.allocator);
+    defer out.deinit();
+    try writeDefaultConfigJson(&out.writer);
+    const source = out.written();
+
+    // Every rule is listed exactly once.
+    try t.expectEqual(all_rule_decls.len, std.mem.count(u8, source, "\n    \""));
+
+    // The output parses back into a config equivalent to the default one.
+    const parsed = try json.parseFromSlice(Config, t.allocator, source, .{});
+    defer parsed.deinit();
+    const fields = @typeInfo(RulesConfig.Rules).@"struct".fields;
+    try t.expectEqual(fields.len, all_rule_decls.len);
+    inline for (fields) |field| {
+        t.expectEqual(
+            @field(DEFAULT_RULES_CONFIG.rules, field.name).severity,
+            @field(parsed.value.rules.rules, field.name).severity,
+        ) catch |err| {
+            print("Mismatched severity for rule '{s}'\n", .{field.name});
+            return err;
+        };
     }
 }
