@@ -18,6 +18,9 @@ jobs:
   codecov:
     name: Collect and upload test coverage
     runs-on: "ubuntu-22.04"
+    permissions:
+      contents: read # actions/checkout
+      id-token: write # OIDC token for codecov-action (authenticates via the Codecov GitHub App)
     steps:
       - uses: actions/checkout@v7
       - name: Install kcov
@@ -35,7 +38,7 @@ jobs:
       - uses: codecov/codecov-action@v7
         with:
           verbose: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
           disable_search: true
           files: ./.coverage/all/kcov-merged/cobertura.xml
           fail_ci_if_error: true
