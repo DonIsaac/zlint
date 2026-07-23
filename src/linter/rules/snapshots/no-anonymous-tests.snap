@@ -1,0 +1,37 @@
+  𝙭 no-anonymous-tests: Anonymous test blocks always run, even under `--test-filter`.
+   ╭─[no-anonymous-tests.zig:1:1]
+ 1 │ test {
+   · ──┬──
+   ·   ╰── this test has no name to match against
+ 2 │     _ = @import("foo.zig");
+   ╰────
+  help: This block only wires up other tests. Convert it to a file-scope `comptime` block: analysis is still forced (so the referenced tests are collected), but it is no longer itself a test.
+
+  𝙭 no-anonymous-tests: Anonymous test blocks always run, even under `--test-filter`.
+   ╭─[no-anonymous-tests.zig:2:1]
+ 1 │ const std = @import("std");
+ 2 │ test {
+   · ──┬──
+   ·   ╰── this test has no name to match against
+ 3 │     std.testing.refAllDecls(@This());
+   ╰────
+  help: This block only wires up other tests. Convert it to a file-scope `comptime` block: analysis is still forced (so the referenced tests are collected), but it is no longer itself a test.
+
+  𝙭 no-anonymous-tests: Anonymous test blocks always run, even under `--test-filter`.
+   ╭─[no-anonymous-tests.zig:2:1]
+ 1 │ const std = @import("std");
+ 2 │ test {
+   · ──┬──
+   ·   ╰── this test has no name to match against
+ 3 │     try std.testing.expect(true);
+   ╰────
+  help: Give the test a name (e.g. `test "does the thing" { ... }`) so it can be selected or skipped by `--test-filter`.
+
+  𝙭 no-anonymous-tests: Anonymous test blocks always run, even under `--test-filter`.
+   ╭─[no-anonymous-tests.zig:1:1]
+ 1 │ test {}
+   · ──┬──
+   ·   ╰── this test has no name to match against
+   ╰────
+  help: Give the test a name (e.g. `test "does the thing" { ... }`) so it can be selected or skipped by `--test-filter`.
+

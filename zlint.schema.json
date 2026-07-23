@@ -197,6 +197,28 @@
                         }
                     ]
                 },
+                "no-anonymous-tests": {
+                    "description": "## What This Rule Does\nFlags anonymous `test { ... }` blocks — test declarations that have no name\nstring.\n\nZig's `--test-filter` (and the `.filters` build API) is a compile-time,\nname-substring filter. An anonymous test block has no name for the filter to\nmatch against, so it is *always* compiled in and *always* runs — even under\na filter that matches nothing. This makes `--test-filter` look broken: a\nnarrow inner-loop filter still drags in every anonymous block, running\nunrelated (and often slow) test binaries.\n\nThe common test-aggregation idiom is exactly this shape:\n\n```zig\ntest { _ = @import(\"foo.zig\"); }           // aggregation wiring\ntest { std.testing.refAllDecls(@This()); } // coverage wiring\n```\n\nThese are the worst offenders: they carry no assertions of their own, yet\nthey leak through every filter.\n\n### How to fix it\n- **Pure wiring** (a block whose statements are only `_ = ...;` discards or\n  `refAllDecls(...)` calls): move it to a file-scope `comptime { ... }`\n  block. A `comptime` block still forces the referenced declarations to be\n  analyzed, so their *named* tests are still collected and stay filterable —\n  but the block is no longer itself a test. This rewrite is mechanical\n  (`test` → `comptime`) and is offered as an auto-fix.\n- **A genuine anonymous test**: give it a name so it can be filtered.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\ntest {\n    _ = @import(\"foo.zig\");\n}\n\ntest {\n    try std.testing.expect(compute() == 42);\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\ntest \"compute returns the answer\" {\n    try std.testing.expect(compute() == 42);\n}\n\ncomptime {\n    _ = @import(\"foo.zig\");\n}\n```",
+                    "default": "off",
+                    "markdownDescription": "## What This Rule Does\nFlags anonymous `test { ... }` blocks — test declarations that have no name\nstring.\n\nZig's `--test-filter` (and the `.filters` build API) is a compile-time,\nname-substring filter. An anonymous test block has no name for the filter to\nmatch against, so it is *always* compiled in and *always* runs — even under\na filter that matches nothing. This makes `--test-filter` look broken: a\nnarrow inner-loop filter still drags in every anonymous block, running\nunrelated (and often slow) test binaries.\n\nThe common test-aggregation idiom is exactly this shape:\n\n```zig\ntest { _ = @import(\"foo.zig\"); }           // aggregation wiring\ntest { std.testing.refAllDecls(@This()); } // coverage wiring\n```\n\nThese are the worst offenders: they carry no assertions of their own, yet\nthey leak through every filter.\n\n### How to fix it\n- **Pure wiring** (a block whose statements are only `_ = ...;` discards or\n  `refAllDecls(...)` calls): move it to a file-scope `comptime { ... }`\n  block. A `comptime` block still forces the referenced declarations to be\n  analyzed, so their *named* tests are still collected and stay filterable —\n  but the block is no longer itself a test. This rewrite is mechanical\n  (`test` → `comptime`) and is offered as an auto-fix.\n- **A genuine anonymous test**: give it a name so it can be filtered.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\ntest {\n    _ = @import(\"foo.zig\");\n}\n\ntest {\n    try std.testing.expect(compute() == 42);\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\ntest \"compute returns the answer\" {\n    try std.testing.expect(compute() == 42);\n}\n\ncomptime {\n    _ = @import(\"foo.zig\");\n}\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.no_anonymous_tests"
+                                }
+                            ]
+                        }
+                    ]
+                },
                 "cognitive-complexity": {
                     "description": "## What This Rule Does\nLimits the [cognitive complexity](https://www.sonarsource.com/docs/CognitiveComplexity.pdf)\nof functions and test blocks.\n\nCognitive complexity measures how hard code is to follow. Unlike cyclomatic\ncomplexity, it penalizes nesting: a deeply nested `if` costs more than a\nflat one, while a `switch` with many cases costs the same as a single `if`.\n\nScores follow the SonarSource white paper, as implemented by\n[gocognit](https://github.com/uudashr/gocognit) and SonarSource rule\nS3776, mapped to Zig constructs:\n\n- **+1 plus nesting level**: `if`, `while`, `for`, `switch` (the whole\n  switch, not each case), and `catch` with a block handler.\n- **+1, no nesting penalty**: `else if` and plain `else`, on both `if` and\n  loops (e.g. `while (...) { ... } else { ... }`).\n- **+1**: each sequence of like boolean operators (`a and b and c` is +1,\n  `a and b or c` is +2), each labeled `break`/`continue`, and each direct\n  self-recursive call.\n\n### What does not count\n\n`orelse`, `try`, shorthand `catch` handlers (`catch unreachable`,\n`catch return err`), early `return`, unlabeled `break`/`continue`, and\n`defer`/`errdefer` are idiomatic shorthand and are free. An if-expression\n(`const x = if (c) a else b;`) counts as an `if` plus an `else` (2), just\nlike an if statement. Test blocks are scored like functions. Functions\ndeclared inside other functions are scored independently.\n\nThe maximum is configurable:\n\n```json\n{\n  \"rules\": {\n    \"cognitive-complexity\": [\"warn\", { \"max_complexity\": 15 }]\n  }\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule (with `max_complexity: 4`):\n```zig\nfn sumOfPrimes(max: u32) u32 { // score: 7\n    var total: u32 = 0;\n    outer: for (1..max) |i| {      // +1\n        var j: u32 = 2;\n        while (j < i) : (j += 1) { // +2 (nesting = 1)\n            if (i % j == 0) {      // +3 (nesting = 2)\n                continue :outer;   // +1\n            }\n        }\n        total += i;\n    }\n    return total;\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn getWords(n: u32) []const u8 { // score: 1\n    return switch (n) {          // +1\n        1 => \"one\",\n        2 => \"a couple\",\n        else => \"lots\",\n    };\n}\n```",
                     "default": "off",
@@ -517,6 +539,11 @@
                     "maximum": 4294967295
                 }
             }
+        },
+        "linter.rules.no_anonymous_tests": {
+            "type": "object",
+            "title": "no-anonymous-tests config",
+            "properties": {}
         },
         "linter.rules.duplicate_case": {
             "type": "object",

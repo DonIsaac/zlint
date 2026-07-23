@@ -1,0 +1,69 @@
+---
+rule: '{"name":"no-anonymous-tests","category":"suspicious","default":"off","fix":{"kind":"fix","dangerous":false}}'
+---
+
+# `no-anonymous-tests`
+
+<RuleBanner category="suspicious" default="off" fix={{ kind: 'fix', dangerous: false }} />
+
+## What This Rule Does
+
+Flags anonymous `test { ... }` blocks — test declarations that have no name
+string.
+
+Zig's `--test-filter` (and the `.filters` build API) is a compile-time,
+name-substring filter. An anonymous test block has no name for the filter to
+match against, so it is _always_ compiled in and _always_ runs — even under
+a filter that matches nothing. This makes `--test-filter` look broken: a
+narrow inner-loop filter still drags in every anonymous block, running
+unrelated (and often slow) test binaries.
+
+The common test-aggregation idiom is exactly this shape:
+
+```zig
+test { _ = @import("foo.zig"); }           // aggregation wiring
+test { std.testing.refAllDecls(@This()); } // coverage wiring
+```
+
+These are the worst offenders: they carry no assertions of their own, yet
+they leak through every filter.
+
+### How to fix it
+
+- **Pure wiring** (a block whose statements are only `_ = ...;` discards or
+  `refAllDecls(...)` calls): move it to a file-scope `comptime { ... }`
+  block. A `comptime` block still forces the referenced declarations to be
+  analyzed, so their _named_ tests are still collected and stay filterable —
+  but the block is no longer itself a test. This rewrite is mechanical
+  (`test` → `comptime`) and is offered as an auto-fix.
+- **A genuine anonymous test**: give it a name so it can be filtered.
+
+## Examples
+
+Examples of **incorrect** code for this rule:
+
+```zig
+test {
+    _ = @import("foo.zig");
+}
+
+test {
+    try std.testing.expect(compute() == 42);
+}
+```
+
+Examples of **correct** code for this rule:
+
+```zig
+test "compute returns the answer" {
+    try std.testing.expect(compute() == 42);
+}
+
+comptime {
+    _ = @import("foo.zig");
+}
+```
+
+## Configuration
+
+This rule has no configuration.

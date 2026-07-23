@@ -17,3 +17,4 @@ pub const UselessErrorReturn = @import("./rules/useless_error_return.zig");
 pub const DuplicateCase = @import("./rules/duplicate_case.zig");
 pub const CognitiveComplexity = @import("./rules/cognitive_complexity.zig");
 pub const CognitiveComplexityFile = @import("./rules/cognitive_complexity_file.zig");
+pub const NoAnonymousTests = @import("./rules/no_anonymous_tests.zig");
