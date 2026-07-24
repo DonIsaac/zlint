@@ -12,6 +12,11 @@ pub fn build(b: *std.Build) void {
     // cli options
     const single_threaded = b.option(bool, "single-threaded", "Build a single-threaded executable");
     const debug_release = b.option(bool, "debug-release", "Build with debug info in release mode") orelse false;
+    // Zig's self-hosted x86_64 backend (default for Debug on Linux) emits debug
+    // info that kcov cannot map to source lines, yielding empty coverage. Force
+    // the LLVM backend for coverage builds so kcov produces real reports.
+    const coverage = b.option(bool, "coverage", "Build test binaries with the LLVM backend for kcov coverage") orelse false;
+    const use_llvm: ?bool = if (coverage) true else null;
 
     var l = Linker.init(b);
     defer l.deinit();
@@ -76,6 +81,7 @@ pub fn build(b: *std.Build) void {
     const exe = b.addExecutable(.{
         .name = "zlint",
         .root_module = exe_mod,
+        .use_llvm = use_llvm,
     });
     b.installArtifact(exe);
 
@@ -95,6 +101,7 @@ pub fn build(b: *std.Build) void {
     const e2e = b.addExecutable(.{
         .name = "test-e2e",
         .root_module = e2e_mod,
+        .use_llvm = use_llvm,
     });
 
     // util and chameleon omitted
@@ -106,6 +113,7 @@ pub fn build(b: *std.Build) void {
     const test_exe = b.addTest(.{
         .name = "test",
         .root_module = zlint,
+        .use_llvm = use_llvm,
     });
     b.installArtifact(test_exe);
 
@@ -121,6 +129,7 @@ pub fn build(b: *std.Build) void {
     const test_utils = b.addTest(.{
         .name = "test-utils",
         .root_module = test_utils_mod,
+        .use_llvm = use_llvm,
     });
     b.installArtifact(test_utils);
 

@@ -77,7 +77,7 @@ e2e *ARGS:
 
 # Run and collect coverage for all tests
 coverage:
-    zig build
+    zig build -Dcoverage
     mkdir -p ./.coverage
     kcov --include-path=src,test ./.coverage/test zig-out/bin/test
     kcov --include-path=src,test ./.coverage/test-utils zig-out/bin/test-utils
