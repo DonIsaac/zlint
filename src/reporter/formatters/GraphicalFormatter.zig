@@ -162,7 +162,7 @@ fn renderContextLines(
     var LINEBUF: [MAX_CONTEXT_LINES * 2 + 1]Line = undefined;
     var linebuf = LINEBUF[0..(self.context_lines * 2 + 1)];
 
-    @memset(&LINEBUF, Line.EMPTY);
+    @memset(&LINEBUF, .empty);
     _ = contextFor(self.context_lines, linebuf, src, loc);
 
     var lines_start: usize = 0;
@@ -359,7 +359,7 @@ fn contextFor(
         // zero-out the rest of the buffer
         if (lines_left != 0) {
             for (0..lines_left) |i| {
-                linebuf[i] = Line.EMPTY;
+                linebuf[i] = .empty;
             }
         }
     }
@@ -384,7 +384,7 @@ fn contextFor(
         if (lines_left != 0) {
             const buf_start = context_lines + 1 + lines_left;
             for (buf_start..linebuf.len) |i| {
-                linebuf[i] = Line.EMPTY;
+                linebuf[i] = .empty;
             }
         }
     }
@@ -417,7 +417,7 @@ const Line = struct {
     /// String contents of the line. Can be used to get the line's length.
     contents: []const u8,
 
-    pub const EMPTY = Line{ .num = 0, .offset = 0, .contents = "" };
+    pub const empty: Line = .{ .num = 0, .offset = 0, .contents = "" };
 
     pub inline fn len(self: Line) u32 {
         return @intCast(self.contents.len);
@@ -561,7 +561,7 @@ test contextFor {
 
     // 0 surrounding lines
     {
-        var buf = [1]Line{Line.EMPTY};
+        var buf = [1]Line{.empty};
 
         const lines_collected = contextFor(0, &buf, src, bar_loc);
         try t.expectEqual(1, lines_collected);
@@ -574,7 +574,7 @@ test contextFor {
 
     // 1 surrounding line on each side
     {
-        var buf = [3]Line{ Line.EMPTY, Line.EMPTY, Line.EMPTY };
+        var buf = [3]Line{ .empty, .empty, .empty };
         const lines_collected = contextFor(1, &buf, src, bar_loc);
         try t.expectEqual(3, lines_collected);
 
@@ -591,7 +591,7 @@ test contextFor {
 
     // When surrounded by empty lines
     {
-        var buf = [3]Line{ Line.EMPTY, Line.EMPTY, Line.EMPTY };
+        var buf = [3]Line{ .empty, .empty, .empty };
         const lines_collected = contextFor(1, &buf, src, bad_loc);
         try t.expectEqual(3, lines_collected);
 
@@ -615,7 +615,7 @@ test contextFor {
 //     var bar_loc = LocationSpan.fromSpan(src, bar_span);
 //     try t.expectEqual(9, bar_loc.line());
 //     try t.expectEqual(11, bar_loc.column());
-//     var buf = [3]Line{ Line.EMPTY, Line.EMPTY, Line.EMPTY };
+//     var buf = [3]Line{ .empty, .empty, .empty };
 //     const lines_collected = contextFor(1, &buf, src, bar_loc);
 //     try t.expectEqual(3, lines_collected);
 

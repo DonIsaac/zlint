@@ -352,7 +352,7 @@ test "resolveLintConfig with an empty zlint.json does not crash the formatter" {
 
     try t.expectEqual(0, err.source.?.deref().*.len);
     try t.expectEqual(1, err.labels.items.len);
-    try t.expectEqual(Span.EMPTY, err.labels.items[0].span);
+    try t.expectEqual(.empty, err.labels.items[0].span);
 
     var fmt = GraphicalFormatter.unicode(t.allocator, false);
     var w = std.Io.Writer.Allocating.init(t.allocator);

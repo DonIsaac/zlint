@@ -41,6 +41,8 @@ pub fn Cow(comptime sentinel: bool) type {
 
         const Self = @This();
 
+        pub const empty: Self = .static("");
+
         /// Create a `Cow` from a static string.
         ///
         /// Static `Cow`s are valid for the entire lifetime of the program (
