@@ -30,11 +30,11 @@
     "all": "bun run build && bun package && bun install-extension"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "@types/vscode": "^1.78.0"
+    "@types/bun": "1.3.14",
+    "@types/vscode": "^1.125.0"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^7.0.2"
   },
   "activationEvents": [
     "onLanguage:zig"
