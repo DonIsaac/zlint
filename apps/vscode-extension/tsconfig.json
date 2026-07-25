@@ -8,6 +8,10 @@
     "jsx": "react-jsx",
     "allowJs": true,
 
+    // Must be explicit: TS7 does not auto-discover `node_modules/@types` under
+    // bun's isolated install layout. `bun` pulls in node's types too.
+    "types": ["bun"],
+
     // Bundler mode
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
