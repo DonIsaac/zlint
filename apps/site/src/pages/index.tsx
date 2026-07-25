@@ -6,8 +6,9 @@ import HomepageFeatures from '@site/src/components/HomepageFeatures'
 import Heading from '@theme/Heading'
 
 import styles from './index.module.css'
-import { GithubIcon, BookOpenIcon } from 'lucide-react'
+import { BookOpenIcon } from 'lucide-react'
 import Button from '../components/Button'
+import GithubIcon from '../components/icons/GithubIcon'
 
 function HomepageHeader() {
   const { siteConfig } = useDocusaurusContext()
