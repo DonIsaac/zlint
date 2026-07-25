@@ -87,7 +87,8 @@ pub const Flags = packed struct(FLAGS_REPR) {
     /// of this type will have their `declaration_node` set to the control flow
     /// block itself.
     ///
-    /// `while`, `for`, `if`, `else`, and `catch` may all bind payloads.  Like
+    /// `while`, `for`, `if`, `else`, `catch`, and `errdefer` may all bind
+    /// payloads.  Like
     /// function parameters, these are implicitly `const` and always have
     /// `s_const` set.
     s_payload: bool = false,

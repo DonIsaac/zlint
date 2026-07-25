@@ -318,8 +318,12 @@ const Visitor = struct {
         const main_tok: TokenIndex = self.ast.nodeMainToken(node);
         if (tok_tags[main_tok + 1] != .pipe) return .Continue;
 
-        const identifier = main_tok + 2;
-        if (comptime util.IS_DEBUG) assert(tok_tags[identifier] == .identifier);
+        // `PtrIndexPayload <- PIPE ASTERISK? IDENTIFIER (COMMA IDENTIFIER)? PIPE`.
+        // Only the first capture is the error value; skip a leading `*` to find
+        // it, and bail rather than assert if the shape is something else.
+        var identifier = main_tok + 2;
+        if (tok_tags[identifier] == .asterisk) identifier += 1;
+        if (tok_tags[identifier] != .identifier) return .Continue;
         try self.err_stack.append(ErrState{ .node = node, .payload = identifier });
 
         return .Continue;
@@ -449,6 +453,13 @@ test UselessErrorReturn {
         \\  bar() catch |err| switch (err) {
         \\    error.OutOfMemory => @panic("OOM"),
         \\    else => |e| return e,
+        \\  };
+        \\}
+        ,
+        // prongs whose capture isn't a plain identifier are skipped, not asserted on
+        \\fn foo() !void {
+        \\  bar() catch |err| switch (err) {
+        \\    else => |*e| return e.*,
         \\  };
         \\}
         ,

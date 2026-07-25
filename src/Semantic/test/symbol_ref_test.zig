@@ -204,6 +204,15 @@ test "Reference flags - `x` - control flow" {
             ,
             .{ .read = true, .write = true },
         },
+        // `while ... else |x|`: the else capture is read in the else branch
+        .{
+            \\fn next() anyerror!?u32 { return 1; }
+            \\fn foo() void {
+            \\  while (next()) |v| { _ = v; } else |x| { _ = x; }
+            \\}
+            ,
+            .{ .read = true },
+        },
         // switch
         .{
             \\fn foo(x: u32) void {

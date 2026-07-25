@@ -1,0 +1,630 @@
+{
+  "symbols": [
+    {
+      "name": "", 
+      "debugName": "@This()", 
+      "token": null, 
+      "declNode": "root", 
+      "scope": 0, 
+      "flags": ["const"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [1,4,6,8,9,11,14,18,22], 
+      
+    }, 
+    {
+      "name": "U", 
+      "debugName": "", 
+      "token": 2, 
+      "declNode": "simple_var_decl", 
+      "scope": 0, 
+      "flags": ["variable","const","union"], 
+      "references": [
+        {"symbol":1,"scope":16,"node":"identifier","identifier":"U","flags":["read"]}, 
+        {"symbol":1,"scope":21,"node":"identifier","identifier":"U","flags":["read"]}, 
+        
+      ], 
+      "members": [2,3], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "a", 
+      "debugName": "", 
+      "token": 9, 
+      "declNode": "container_field_init", 
+      "scope": 1, 
+      "flags": ["member","union"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "b", 
+      "debugName": "", 
+      "token": 13, 
+      "declNode": "container_field_init", 
+      "scope": 1, 
+      "flags": ["member","union"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "log", 
+      "debugName": "", 
+      "token": 20, 
+      "declNode": "fn_decl", 
+      "scope": 0, 
+      "flags": ["fn"], 
+      "references": [
+        {"symbol":4,"scope":9,"node":"identifier","identifier":"log","flags":["call"]}, 
+        {"symbol":4,"scope":15,"node":"identifier","identifier":"log","flags":["call"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "_", 
+      "debugName": "", 
+      "token": 22, 
+      "declNode": "identifier", 
+      "scope": 2, 
+      "flags": ["const","fn_param"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "puts", 
+      "debugName": "", 
+      "token": 31, 
+      "declNode": "fn_proto_simple", 
+      "scope": 0, 
+      "flags": ["extern","fn"], 
+      "references": [
+        {"symbol":6,"scope":27,"node":"identifier","identifier":"puts","flags":["call"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "s", 
+      "debugName": "", 
+      "token": 33, 
+      "declNode": "ptr_type_sentinel", 
+      "scope": 4, 
+      "flags": ["const","fn_param"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "next", 
+      "debugName": "", 
+      "token": 46, 
+      "declNode": "fn_decl", 
+      "scope": 0, 
+      "flags": ["fn"], 
+      "references": [
+        {"symbol":8,"scope":11,"node":"identifier","identifier":"next","flags":["call"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "errdeferPayload", 
+      "debugName": "", 
+      "token": 59, 
+      "declNode": "fn_decl", 
+      "scope": 0, 
+      "flags": ["fn"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "err", 
+      "debugName": "", 
+      "token": 67, 
+      "declNode": "errdefer", 
+      "scope": 9, 
+      "flags": ["payload","const"], 
+      "references": [
+        {"symbol":10,"scope":9,"node":"identifier","identifier":"err","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "whileElseCapture", 
+      "debugName": "", 
+      "token": 81, 
+      "declNode": "fn_decl", 
+      "scope": 0, 
+      "flags": ["fn"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "value", 
+      "debugName": "", 
+      "token": 93, 
+      "declNode": "block_two_semicolon", 
+      "scope": 12, 
+      "flags": ["payload","const"], 
+      "references": [
+        {"symbol":12,"scope":13,"node":"identifier","identifier":"value","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "err", 
+      "debugName": "", 
+      "token": 103, 
+      "declNode": "block_two_semicolon", 
+      "scope": 14, 
+      "flags": ["payload","const"], 
+      "references": [
+        {"symbol":13,"scope":15,"node":"identifier","identifier":"err","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "switchCaptures", 
+      "debugName": "", 
+      "token": 114, 
+      "declNode": "fn_decl", 
+      "scope": 0, 
+      "flags": ["fn"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "u", 
+      "debugName": "", 
+      "token": 116, 
+      "declNode": "identifier", 
+      "scope": 16, 
+      "flags": ["const","fn_param"], 
+      "references": [
+        {"symbol":15,"scope":17,"node":"identifier","identifier":"u","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "value", 
+      "debugName": "", 
+      "token": 131, 
+      "declNode": "switch_case_inline_one", 
+      "scope": 19, 
+      "flags": ["payload","const"], 
+      "references": [
+        {"symbol":16,"scope":20,"node":"identifier","identifier":"value","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "tag", 
+      "debugName": "", 
+      "token": 133, 
+      "declNode": "switch_case_inline_one", 
+      "scope": 19, 
+      "flags": ["payload","const"], 
+      "references": [
+        {"symbol":17,"scope":20,"node":"identifier","identifier":"tag","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "switchPointerCaptures", 
+      "debugName": "", 
+      "token": 149, 
+      "declNode": "fn_decl", 
+      "scope": 0, 
+      "flags": ["fn"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "u", 
+      "debugName": "", 
+      "token": 151, 
+      "declNode": "ptr_type_aligned", 
+      "scope": 21, 
+      "flags": ["const","fn_param"], 
+      "references": [
+        {"symbol":19,"scope":22,"node":"identifier","identifier":"u","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "value", 
+      "debugName": "", 
+      "token": 169, 
+      "declNode": "switch_case_inline_one", 
+      "scope": 24, 
+      "flags": ["payload","const"], 
+      "references": [
+        {"symbol":20,"scope":25,"node":"identifier","identifier":"value","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "tag", 
+      "debugName": "", 
+      "token": 171, 
+      "declNode": "switch_case_inline_one", 
+      "scope": 24, 
+      "flags": ["payload","const"], 
+      "references": [
+        {"symbol":21,"scope":25,"node":"identifier","identifier":"tag","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "callExternFn", 
+      "debugName": "", 
+      "token": 187, 
+      "declNode": "fn_decl", 
+      "scope": 0, 
+      "flags": ["fn"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "unresolvedReferences": [],
+  "modules": {
+    "imports": [
+    ], 
+  }, 
+  "scopes": {
+    "id": 0, 
+    "flags": ["top"], 
+    "bindings": {
+      "@This()": 0, 
+      "U": 1, 
+      "log": 4, 
+      "puts": 6, 
+      "next": 8, 
+      "errdeferPayload": 9, 
+      "whileElseCapture": 11, 
+      "switchCaptures": 14, 
+      "switchPointerCaptures": 18, 
+      "callExternFn": 22, 
+      
+    }, 
+    "children": [
+      {
+        "id": 1, 
+        "flags": ["union","block"], 
+        "bindings": {
+          "a": 2, 
+          "b": 3, 
+          
+        }, 
+        "children": [], 
+        
+      }, {
+        "id": 2, 
+        "flags": ["function"], 
+        "bindings": {
+          "_": 5, 
+          
+        }, 
+        "children": [
+          {
+            "id": 3, 
+            "flags": ["function","block"], 
+            "bindings": {
+              
+            }, 
+            "children": [], 
+            
+          }, 
+        ], 
+        
+      }, {
+        "id": 4, 
+        "flags": ["function"], 
+        "bindings": {
+          "s": 7, 
+          
+        }, 
+        "children": [], 
+        
+      }, {
+        "id": 5, 
+        "flags": ["function"], 
+        "bindings": {
+          
+        }, 
+        "children": [
+          {
+            "id": 6, 
+            "flags": ["function","block"], 
+            "bindings": {
+              
+            }, 
+            "children": [], 
+            
+          }, 
+        ], 
+        
+      }, {
+        "id": 7, 
+        "flags": ["function"], 
+        "bindings": {
+          
+        }, 
+        "children": [
+          {
+            "id": 8, 
+            "flags": ["function","block"], 
+            "bindings": {
+              
+            }, 
+            "children": [
+              {
+                "id": 9, 
+                "flags": [], 
+                "bindings": {
+                  "err": 10, 
+                  
+                }, 
+                "children": [], 
+                
+              }, 
+            ], 
+            
+          }, 
+        ], 
+        
+      }, {
+        "id": 10, 
+        "flags": ["function"], 
+        "bindings": {
+          
+        }, 
+        "children": [
+          {
+            "id": 11, 
+            "flags": ["function","block"], 
+            "bindings": {
+              
+            }, 
+            "children": [
+              {
+                "id": 12, 
+                "flags": [], 
+                "bindings": {
+                  "value": 12, 
+                  
+                }, 
+                "children": [
+                  {
+                    "id": 13, 
+                    "flags": ["block"], 
+                    "bindings": {
+                      
+                    }, 
+                    "children": [], 
+                    
+                  }, 
+                ], 
+                
+              }, {
+                "id": 14, 
+                "flags": [], 
+                "bindings": {
+                  "err": 13, 
+                  
+                }, 
+                "children": [
+                  {
+                    "id": 15, 
+                    "flags": ["block"], 
+                    "bindings": {
+                      
+                    }, 
+                    "children": [], 
+                    
+                  }, 
+                ], 
+                
+              }, 
+            ], 
+            
+          }, 
+        ], 
+        
+      }, {
+        "id": 16, 
+        "flags": ["function"], 
+        "bindings": {
+          "u": 15, 
+          
+        }, 
+        "children": [
+          {
+            "id": 17, 
+            "flags": ["function","block"], 
+            "bindings": {
+              
+            }, 
+            "children": [
+              {
+                "id": 18, 
+                "flags": [], 
+                "bindings": {
+                  
+                }, 
+                "children": [
+                  {
+                    "id": 19, 
+                    "flags": [], 
+                    "bindings": {
+                      "value": 16, 
+                      "tag": 17, 
+                      
+                    }, 
+                    "children": [
+                      {
+                        "id": 20, 
+                        "flags": ["block"], 
+                        "bindings": {
+                          
+                        }, 
+                        "children": [], 
+                        
+                      }, 
+                    ], 
+                    
+                  }, 
+                ], 
+                
+              }, 
+            ], 
+            
+          }, 
+        ], 
+        
+      }, {
+        "id": 21, 
+        "flags": ["function"], 
+        "bindings": {
+          "u": 19, 
+          
+        }, 
+        "children": [
+          {
+            "id": 22, 
+            "flags": ["function","block"], 
+            "bindings": {
+              
+            }, 
+            "children": [
+              {
+                "id": 23, 
+                "flags": [], 
+                "bindings": {
+                  
+                }, 
+                "children": [
+                  {
+                    "id": 24, 
+                    "flags": [], 
+                    "bindings": {
+                      "value": 20, 
+                      "tag": 21, 
+                      
+                    }, 
+                    "children": [
+                      {
+                        "id": 25, 
+                        "flags": ["block"], 
+                        "bindings": {
+                          
+                        }, 
+                        "children": [], 
+                        
+                      }, 
+                    ], 
+                    
+                  }, 
+                ], 
+                
+              }, 
+            ], 
+            
+          }, 
+        ], 
+        
+      }, {
+        "id": 26, 
+        "flags": ["function"], 
+        "bindings": {
+          
+        }, 
+        "children": [
+          {
+            "id": 27, 
+            "flags": ["function","block"], 
+            "bindings": {
+              
+            }, 
+            "children": [], 
+            
+          }, 
+        ], 
+        
+      }, 
+    ], 
+    
+  }, 
+}

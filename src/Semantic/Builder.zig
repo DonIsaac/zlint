@@ -441,7 +441,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         .@"defer",
         => return self.visit(ast.nodeData(node_id).node),
         .@"continue" => return self.visitOptional(ast.nodeData(node_id).opt_token_and_opt_node[1]),
-        .@"errdefer" => return self.visit(ast.nodeData(node_id).opt_token_and_node[1]),
+        .@"errdefer" => return self.visitErrdefer(node_id),
 
         // binary ops — .node_and_node
         .equal_equal,
@@ -881,8 +881,26 @@ fn visitWhile(self: *SemanticBuilder, _: NodeIndex, while_stmt: full.While) call
                 .flags = .{ .s_payload = true, .s_const = true },
             });
         }
+        // TODO: `cont_expr` is visited before `then_expr`, so a pending
+        // `_next_block_scope_flags` (e.g. `s_catch` from `visitCatch`) gets
+        // consumed by the continue block instead of the loop body.
         try self.visitOptional(ast.cont_expr);
         try self.visit(ast.then_expr);
+    }
+
+    // `while (it.next()) |x| { ... } else |err| { ... }`
+    //                                        ^^^ scoped to the else branch
+    if (while_stmt.error_token) |error_token| {
+        const else_expr = ast.else_expr.unwrap() orelse unreachable; // set together
+        try self.enterScope(.{});
+        defer self.exitScope();
+        defer self._next_block_scope_flags = .{};
+        _ = try self.declareSymbol(.{
+            .declaration_node = else_expr,
+            .identifier = try self.assertToken(error_token, .identifier),
+            .flags = .{ .s_payload = true, .s_const = true },
+        });
+        return self.visit(else_expr);
     }
     try self.visitOptional(ast.else_expr);
 }
@@ -990,19 +1008,29 @@ fn visitSwitch(self: *SemanticBuilder, _: NodeIndex, @"switch": full.Switch) !vo
 fn visitSwitchCase(self: *SemanticBuilder, node: NodeIndex, case: full.SwitchCase) !void {
     for (case.ast.values) |value| try self.visit(value);
 
-    if (case.payload_token) |payload_token| {
-        const tags = self.AST().tokens.items(.tag);
-        var ident = payload_token;
-        if (tags[ident] == .asterisk) ident += 1;
-        if (tags[ident] != .identifier) return SemanticError.MissingIdentifier;
-        try self.enterScope(.{});
-        defer self.exitScope();
-        _ = try self.bindSymbol(.{
-            .declaration_node = node,
-            .identifier = ident,
-            .flags = .{ .s_payload = true, .s_const = true },
-        });
-        return self.visit(case.ast.target_expr);
+    const payload_token = case.payload_token orelse return self.visit(case.ast.target_expr);
+
+    const tags = self.AST().tokens.items(.tag);
+    try self.enterScope(.{});
+    defer self.exitScope();
+
+    // `PtrIndexPayload <- PIPE ASTERISK? IDENTIFIER (COMMA IDENTIFIER)? PIPE`
+    // e.g. `inline else => |value, tag|` binds both `value` and `tag`.
+    var curr = payload_token;
+    while (true) {
+        switch (tags[curr]) {
+            .pipe => break,
+            .asterisk, .comma => curr += 1,
+            .identifier => {
+                _ = try self.declareSymbol(.{
+                    .declaration_node = node,
+                    .identifier = curr,
+                    .flags = .{ .s_payload = true, .s_const = true },
+                });
+                curr += 1;
+            },
+            else => return SemanticError.MissingIdentifier,
+        }
     }
 
     return self.visit(case.ast.target_expr);
@@ -1040,35 +1068,61 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
     return self.visit(pair[1]);
 }
 
-fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnProto) !void {
-    try self.enterScope(.{ .flags = .{ .s_function = true } });
+/// `errdefer expr`, `errdefer |payload| expr`.
+///
+/// The payload is an error capture scoped to the deferred expression. `Ast`
+/// stores it as `opt_token_and_node[0]`, pointing directly at the identifier —
+/// the grammar is `KEYWORD_errdefer Payload? BlockExprStatement`, so no `*` is
+/// possible.
+fn visitErrdefer(self: *SemanticBuilder, node_id: NodeIndex) !void {
+    const payload, const expr = self.getNodeData(node_id).opt_token_and_node;
+    const identifier = payload.unwrap() orelse return self.visit(expr);
+
+    try self.enterScope(.{});
     defer self.exitScope();
+    _ = try self.declareSymbol(.{
+        .declaration_node = node_id,
+        .identifier = try self.assertToken(identifier, .identifier),
+        .flags = .{ .s_payload = true, .s_const = true },
+    });
+    return self.visit(expr);
+}
 
+/// Derive `Symbol.Flags` for a function from its `extern`/`export`/`inline`
+/// modifier. `inline`/`noinline` contribute nothing.
+fn fnProtoFlags(self: *const SemanticBuilder, fn_proto: full.FnProto) Symbol.Flags {
+    var flags: Symbol.Flags = .{ .s_fn = true };
+    const tok = fn_proto.extern_export_inline_token orelse return flags;
+    const ast = self.AST();
+    const start = ast.tokens.items(.start)[tok];
+    if (ast.source[start] != 'e') return flags; // inline / noinline
+    if (ast.source[start + 2] == 't') {
+        flags.s_extern = true; // extern
+    } else {
+        assert(ast.source[start + 2] == 'p'); // export
+        flags.s_export = true;
+    }
+    return flags;
+}
+
+fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnProto) !void {
+    // Bind the fn's name in the *enclosing* scope, before pushing the parameter
+    // scope — otherwise `extern fn puts(...) c_int;` is only visible to its own
+    // parameter list. Mirrors `visitFnDecl`.
     if (fn_proto.name_token) |name_token| {
-        // const prev = self._curr_symbol_flags;
-        // defer self._curr_symbol_flags = prev;
-        var flags: Symbol.Flags = .{ .s_fn = true };
-        if (fn_proto.extern_export_inline_token) |tok| {
-            const ast = self.AST();
-            const start = ast.tokens.items(.start)[tok];
+        const prev_symbol_flags = self._curr_symbol_flags;
+        self._curr_symbol_flags.set(Symbol.Flags.s_container, false);
+        defer self._curr_symbol_flags = prev_symbol_flags;
 
-            if (ast.source[start] == 'e') {
-                if (ast.source[start + 2] == 't') {
-                    // extern
-                    flags.s_extern = true;
-                } else {
-                    // export
-                    assert(ast.source[start + 2] == 'p');
-                    flags.s_export = true;
-                }
-            }
-        }
         _ = try self.bindSymbol(.{
             .identifier = name_token,
-            .flags = flags,
+            .flags = self.fnProtoFlags(fn_proto),
             .visibility = if (fn_proto.visib_token) |_| .public else .private,
         });
     }
+
+    try self.enterScope(.{ .flags = .{ .s_function = true } });
+    defer self.exitScope();
 
     try self.visitFnProtoParams(fn_proto);
     {
@@ -1123,20 +1177,7 @@ fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) callconv(util.@"inlin
     self._curr_symbol_flags.set(Symbol.Flags.s_container, false);
     defer self._curr_symbol_flags = prev_symbol_flags;
 
-    var flags: Symbol.Flags = .{ .s_fn = true };
-    if (proto.extern_export_inline_token) |tok| {
-        const start = ast.tokens.items(.start)[tok];
-        if (ast.source[start] == 'e') {
-            if (ast.source[start + 2] == 't') {
-                // extern
-                flags.s_extern = true;
-            } else {
-                // export
-                assert(ast.source[start + 2] == 'p');
-                flags.s_export = true;
-            }
-        }
-    }
+    const flags = self.fnProtoFlags(proto);
     // TODO: bind methods as members
     _ = try self.bindSymbol(.{
         .identifier = proto.name_token,
