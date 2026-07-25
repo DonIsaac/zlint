@@ -86,7 +86,11 @@
       
     }, 
   ], 
-  "unresolvedReferences": [],
+  "unresolvedReferences": [
+    {"symbol":null,"scope":3,"node":"identifier","identifier":"a","flags":["type"]}, 
+    {"symbol":null,"scope":3,"node":"identifier","identifier":"b","flags":["type"]}, 
+    
+  ], 
   "modules": {
     "imports": [
     ], 

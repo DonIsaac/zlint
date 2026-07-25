@@ -1,0 +1,82 @@
+{
+  "symbols": [
+    {
+      "name": "", 
+      "debugName": "@This()", 
+      "token": null, 
+      "declNode": "root", 
+      "scope": 0, 
+      "flags": ["const"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [1,2,3], 
+      
+    }, 
+    {
+      "name": "a", 
+      "debugName": "", 
+      "token": 1, 
+      "declNode": "simple_var_decl", 
+      "scope": 0, 
+      "flags": ["variable","const"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "b", 
+      "debugName": "", 
+      "token": 6, 
+      "declNode": "simple_var_decl", 
+      "scope": 0, 
+      "flags": ["variable","const"], 
+      "references": [
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+    {
+      "name": "later", 
+      "debugName": "", 
+      "token": 11, 
+      "declNode": "simple_var_decl", 
+      "scope": 0, 
+      "flags": ["variable","const"], 
+      "references": [
+        {"symbol":3,"scope":0,"node":"identifier","identifier":"later","flags":["read"]}, 
+        
+      ], 
+      "members": [], 
+      "exports": [], 
+      
+    }, 
+  ], 
+  "unresolvedReferences": [
+    {"symbol":null,"scope":0,"node":"identifier","identifier":"missing_symbol","flags":["read"]}, 
+    
+  ], 
+  "modules": {
+    "imports": [
+    ], 
+  }, 
+  "scopes": {
+    "id": 0, 
+    "flags": ["top"], 
+    "bindings": {
+      "@This()": 0, 
+      "a": 1, 
+      "b": 2, 
+      "later": 3, 
+      
+    }, 
+    "children": [], 
+    
+  }, 
+}

@@ -2,6 +2,7 @@ const std = @import("std");
 const meta = std.meta;
 const test_util = @import("util.zig");
 
+const Semantic = @import("../../Semantic.zig");
 const Symbol = @import("../Symbol.zig");
 const Reference = @import("../Reference.zig");
 
@@ -757,4 +758,44 @@ test "symbols referenced before their declaration" {
             return e;
         };
     }
+}
+
+/// Collect the names of every reference left in `unresolved_references`.
+fn unresolvedNames(sem: *const Semantic, buf: [][]const u8) [][]const u8 {
+    const identifiers = sem.symbols.references.items(.identifier);
+    const unresolved = sem.symbols.unresolved_references.items;
+    for (unresolved, 0..) |ref_id, i| buf[i] = identifiers[ref_id.int()];
+    return buf[0..unresolved.len];
+}
+
+test "unresolved references only contain identifiers with no binding" {
+    const source: [:0]const u8 = @embedFile("fixtures/unresolved_reference.zig");
+    var sem = try build(source);
+    defer sem.deinit();
+
+    var buf: [8][]const u8 = undefined;
+    const names = unresolvedNames(&sem, &buf);
+
+    // `later` resolves via a forward reference, so `missing_symbol` is the only
+    // identifier that is genuinely undeclared.
+    try t.expectEqual(1, names.len);
+    try t.expectEqualStrings("missing_symbol", names[0]);
+}
+
+test "root-level references that resolve are never reported as unresolved" {
+    const source =
+        \\const a = nope_one;
+        \\const b = resolves;
+        \\const c = nope_two;
+        \\const resolves = 1;
+    ;
+    var sem = try build(source);
+    defer sem.deinit();
+
+    var buf: [8][]const u8 = undefined;
+    const names = unresolvedNames(&sem, &buf);
+
+    try t.expectEqual(2, names.len);
+    try t.expectEqualStrings("nope_one", names[0]);
+    try t.expectEqualStrings("nope_two", names[1]);
 }

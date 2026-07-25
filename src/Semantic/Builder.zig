@@ -1657,13 +1657,15 @@ fn resolveReferencesInCurrentScope(
             const last = self._unresolved_references.frames.pop();
             assert(last != null);
         } else {
-            const temp = try self._gpa.dupe(Reference.Id, curr.items);
-            defer self._gpa.free(temp);
-            var i: usize = 0;
+            // No parent frame to move unresolved references into, so compact
+            // them into the front of this frame in-place. `j` only advances on
+            // kept entries, so it can never outrun `i` and no scratch copy is
+            // needed.
             var j: usize = 0;
-            while (i < temp.len) : (i += 1) {
-                if (!resolved_map[i]) continue;
-                curr.items[j] = temp[i];
+            for (0..curr.items.len) |i| {
+                if (resolved_map[i]) continue;
+                util.debugAssert(j <= i, "in-place compaction would overwrite an unread entry: j ({d}) > i ({d})", .{ j, i });
+                curr.items[j] = curr.items[i];
                 j += 1;
             }
             curr.items.len = j;
