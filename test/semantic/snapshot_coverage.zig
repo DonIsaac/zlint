@@ -44,6 +44,10 @@ fn run(alloc: Allocator) !void {
             .{ .test_fn = suite_run_fn },
         );
         try suite.run();
+        if (suite.stats.total() == 0) {
+            std.debug.print("Suite {s} contains no test cases.\n", .{suite_name});
+            return error.SnapshotSuiteEmpty;
+        }
     }
     // var pass_fixtures = try std.fs.cwd().openDir("test/fixtures/simple/pass", .{ .iterate = true });
     // defer pass_fixtures.close();

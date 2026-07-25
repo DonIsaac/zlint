@@ -97,9 +97,10 @@ pub fn build(b: *std.Build) void {
         .root_module = e2e_mod,
     });
 
-    // util and chameleon omitted
+    // util omitted
     e2e_mod.addImport("zlint", zlint);
-    l.link(e2e_mod, true, .{ "smart-pointers", "recover" });
+    e2e_mod.addImport("chameleon", l.dependencies.get("chameleon").?.module("chameleon"));
+    l.link(e2e_mod, true, .{ "smart-pointers", "recover", "chameleon" });
 
     b.installArtifact(e2e);
 

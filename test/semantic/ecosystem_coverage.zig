@@ -16,15 +16,12 @@ const REPOS_DIR = "zig-out/repos";
 // SAFETY: globalSetup is always run before this is read
 var repos: std.json.Parsed([]Repo) = undefined;
 
-var is_tty: bool = false;
-
 pub fn globalSetup(alloc: Allocator) !void {
     const io = test_runner.io();
-    is_tty = Io.File.stderr().isTty(io) catch false;
     var repos_dir_fd = Io.Dir.cwd().openDir(io, REPOS_DIR, .{}) catch |e| {
         switch (e) {
             error.FileNotFound => {
-                print("Could not find git repos to test, please run `just submodules`", .{});
+                print("Could not find git repos to test, please run `just submodules`\n", .{});
                 return e;
             },
             else => return e,
@@ -39,14 +36,6 @@ pub fn globalTeardown(_: Allocator) void {
 }
 
 fn testSemantic(alloc: Allocator, source: *const Source) !void {
-    {
-        const p = source.pathname orelse "<missing>";
-        print("ecosystem coverage: {s}", .{p});
-        if (is_tty)
-            print("                                                                                                                           \r", .{})
-        else
-            print("\n", .{});
-    }
     var builder = zlint.Semantic.Builder.init(alloc);
     defer builder.deinit();
     var res = try builder.build(source.text());

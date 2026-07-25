@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const utils = @import("../utils.zig");
+const Config = @import("Config.zig");
 const TestSuite = @import("TestSuite.zig");
 
 const Allocator = std.mem.Allocator;
@@ -12,8 +13,6 @@ const TestAllocator = std.heap.DebugAllocator(.{
     // Stack unwinding is really expensive. Turning them off results in ~4x speedup.
     // Comment out the line below to debug.
     .stack_trace_frames = 0,
-    // .never_unmap = true,
-    // .retain_metadata = true,
 });
 
 const is_debug = builtin.mode == .Debug;
@@ -32,6 +31,10 @@ pub fn io() std.Io {
     std.debug.assert(io_initialized);
     return io_threaded.io();
 }
+
+/// Harness-wide settings (tty, color). Only meaningful once `runAll` has
+/// started; see `Config`.
+pub const config = Config.get;
 
 pub fn getRunner() *TestRunner {
     return &global_runner_instance;
@@ -62,9 +65,10 @@ pub fn globalShutdown() void {
 pub const TestRunner = struct {
     tests: std.ArrayListUnmanaged(TestFile) = .empty,
     alloc: Allocator,
+    config: Config,
 
     pub inline fn new(alloc: Allocator) TestRunner {
-        return TestRunner{ .alloc = alloc };
+        return TestRunner{ .alloc = alloc, .config = .{} };
     }
 
     pub inline fn deinit(self: *TestRunner) void {
@@ -75,17 +79,15 @@ pub const TestRunner = struct {
         }
         self.tests.deinit(self.alloc);
     }
+    pub inline fn setConfig(self: *TestRunner, cfg: Config) *TestRunner {
+        self.config = cfg;
+        return self;
+    }
 
     pub inline fn addTest(self: *TestRunner, test_file: TestFile) *TestRunner {
         self.tests.append(self.alloc, test_file) catch |e| panic("Failed to add test {s}: {any}\n", .{ test_file.name, e });
         return self;
     }
-
-    // pub inline fn addSuite(self: *TestRunner, test_suite: TestSuite) *TestRunner {
-    //     const test_file = TestFile {
-    //         const
-    //     }
-    // }
 
     pub inline fn runAll(self: *TestRunner) !void {
         if (!io_initialized) {
@@ -99,7 +101,7 @@ pub const TestRunner = struct {
             if (test_file.globalSetup) |global_setup| {
                 try global_setup(self.alloc);
             }
-            print("Running test {s}...\n", .{test_file.name});
+            print("Running {s}...\n", .{test_file.name});
             test_file.run(self.alloc) catch |e| {
                 print("Failed to run test {s}: {any}\n", .{ test_file.name, e });
                 last_error = e;

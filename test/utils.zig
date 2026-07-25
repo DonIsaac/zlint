@@ -1,8 +1,10 @@
 const std = @import("std");
 const Io = std.Io;
 const path = std.fs.path;
+const mem = std.mem;
 
-const Allocator = std.mem.Allocator;
+const Allocator = mem.Allocator;
+const Dir = Io.Dir;
 
 
 pub const string = []const u8;
@@ -19,21 +21,21 @@ pub const TestFolders = struct {
     const SNAP_EXT = ".snap";
 
     pub fn globalInit(io: Io) !void {
-        try Io.Dir.cwd().createDirPath(io, SNAPSHOTS_DIR);
+        try Dir.cwd().createDirPath(io, SNAPSHOTS_DIR);
     }
 
-    pub fn openFixtureDir(alloc: Allocator, io: Io, path_segs: []const string) !Io.Dir {
+    pub fn openFixtureDir(alloc: Allocator, io: Io, path_segs: []const string) !Dir {
         const fixture_dir = try path.join(alloc, &[_]string{ FIXTURES_DIR, path_segs });
         defer alloc.free(fixture_dir);
-        return Io.Dir.cwd().openDir(io, fixture_dir, .{});
+        return Dir.cwd().openDir(io, fixture_dir, .{});
     }
 
     pub fn openSnapshotFile(alloc: Allocator, io: Io, subpath: string, name: string) !Io.File {
         var snapshot_filename: string = "";
         var filename_needs_dealloc = false;
 
-        if (!std.mem.endsWith(u8, name, SNAP_EXT)) {
-            const with_ext = try std.mem.concat(alloc, u8, &[_]string{ name, SNAP_EXT });
+        if (!mem.endsWith(u8, name, SNAP_EXT)) {
+            const with_ext = try mem.concat(alloc, u8, &[_]string{ name, SNAP_EXT });
             filename_needs_dealloc = true;
             snapshot_filename = with_ext;
         } else {
@@ -41,7 +43,7 @@ pub const TestFolders = struct {
         }
 
         // create suite subfolder if it doesn't exist yet
-        const cwd = Io.Dir.cwd();
+        const cwd = Dir.cwd();
         {
             const snapshot_dir = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, subpath });
             defer alloc.free(snapshot_dir);
@@ -57,23 +59,25 @@ pub const TestFolders = struct {
         return cwd.createFile(io, relative_path, .{});
     }
 
-    pub fn openSnapshotDir(alloc: Allocator, io: Io, path_segs: []const string) !Io.Dir {
+    pub fn openSnapshotDir(alloc: Allocator, io: Io, path_segs: []const string) !Dir {
         const snapshot_dir = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, path_segs });
         defer alloc.free(snapshot_dir);
-        const cwd = Io.Dir.cwd();
+        const cwd = Dir.cwd();
         try cwd.createDirPath(io, snapshot_dir);
         return cwd.openDir(io, snapshot_dir, .{});
     }
 
+    const OpenRepoError = Dir.RealPathFileError || Dir.OpenError || mem.Allocator.Error;
+
     /// Opens a repository directory for iteration. Caller takes ownership of
     /// the opened folder.
-    pub fn openRepo(alloc: Allocator, io: Io, name: string) !Io.Dir {
+    pub fn openRepo(alloc: Allocator, io: Io, name: string) OpenRepoError!Io.Dir {
         const repo_dir_relative = try path.join(alloc, &[_]string{ REPOS_DIR, name });
         defer alloc.free(repo_dir_relative);
-        const repo_dir_absolute = try Io.Dir.cwd().realPathFileAlloc(io, repo_dir_relative, alloc);
+        const repo_dir_absolute = try Dir.cwd().realPathFileAlloc(io, repo_dir_relative, alloc);
         defer alloc.free(repo_dir_absolute);
 
-        return Io.Dir.openDirAbsolute(io, repo_dir_absolute, .{ .iterate = true });
+        return Dir.openDirAbsolute(io, repo_dir_absolute, .{ .iterate = true });
     }
 };
 
@@ -96,7 +100,7 @@ pub const Repo = struct {
 /// ThreadPool seems to be adding a null byte at the end of ent.path in some
 /// cases, which breaks openFile. TODO: open a bug report in Zig.
 pub fn cleanStrSlice(slice: string) string {
-    const sentinel = std.mem.indexOfScalar(u8, slice, 0);
+    const sentinel = mem.indexOfScalar(u8, slice, 0);
     if (sentinel) |s| {
         return slice[0..s];
     } else {
