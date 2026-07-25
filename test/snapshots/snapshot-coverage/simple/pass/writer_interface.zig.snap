@@ -64,7 +64,7 @@
       "token": 16, 
       "declNode": "ptr_type_aligned", 
       "scope": 2, 
-      "flags": ["const","fn_param","struct"], 
+      "flags": ["const","fn_param"], 
       "references": [
         
       ], 
@@ -78,7 +78,7 @@
       "token": 21, 
       "declNode": "ptr_type_aligned", 
       "scope": 2, 
-      "flags": ["const","fn_param","struct"], 
+      "flags": ["const","fn_param"], 
       "references": [
         
       ], 
