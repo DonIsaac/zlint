@@ -416,6 +416,48 @@ test "visitContainer: sibling members after a nested union do not inherit s_unio
     try t.expect(!flags[y.int()].s_union);
 }
 
+test "visitFnProto: parameters of a bodyless proto do not inherit container flags" {
+    const src =
+        \\pub const S = struct {
+        \\    pub extern fn foo(x: i32) i32;
+        \\};
+    ;
+    var sem = try build(src);
+    defer sem.deinit();
+
+    const foo = sem.symbols.getSymbolNamed("foo") orelse return error.SymbolNotFound;
+    const x = sem.symbols.getSymbolNamed("x") orelse return error.SymbolNotFound;
+    const flags = sem.symbols.symbols.items(.flags);
+
+    // `foo` is bound in the struct's scope, not in its own parameter scope, so
+    // it's visible to siblings.
+    try t.expect(flags[foo.int()].s_fn);
+    try t.expect(flags[foo.int()].s_extern);
+    const scopes = sem.symbols.symbols.items(.scope);
+    try t.expect(scopes[x.int()] != scopes[foo.int()]);
+
+    // A function parameter is not a struct.
+    try t.expect(flags[x.int()].s_fn_param);
+    try t.expect(flags[x.int()].s_const);
+    try t.expect(!flags[x.int()].s_struct);
+    try t.expect(!flags[foo.int()].s_struct);
+}
+
+test "visitFnProto: parameters of an anonymous proto do not inherit container flags" {
+    const src =
+        \\pub const S = struct {
+        \\    callback: *const fn (ptr: *anyopaque) void,
+        \\};
+    ;
+    var sem = try build(src);
+    defer sem.deinit();
+
+    const ptr = sem.symbols.getSymbolNamed("ptr") orelse return error.SymbolNotFound;
+    const flags = sem.symbols.symbols.items(.flags);
+    try t.expect(flags[ptr.int()].s_fn_param);
+    try t.expect(!flags[ptr.int()].s_struct);
+}
+
 // ---------------------------------------------------------------------------
 // visitFnDecl save/restore path: previously `prev_symbol_flags` captured
 // `_curr_reference_flags` but the next line mutated `_curr_symbol_flags`.

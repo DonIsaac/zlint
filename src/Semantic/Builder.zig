@@ -1106,14 +1106,14 @@ fn fnProtoFlags(self: *const SemanticBuilder, fn_proto: full.FnProto) Symbol.Fla
 }
 
 fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnProto) !void {
+    const prev_symbol_flags = self._curr_symbol_flags;
+    self._curr_symbol_flags.set(Symbol.Flags.s_container, false);
+    defer self._curr_symbol_flags = prev_symbol_flags;
+
     // Bind the fn's name in the *enclosing* scope, before pushing the parameter
     // scope — otherwise `extern fn puts(...) c_int;` is only visible to its own
     // parameter list. Mirrors `visitFnDecl`.
     if (fn_proto.name_token) |name_token| {
-        const prev_symbol_flags = self._curr_symbol_flags;
-        self._curr_symbol_flags.set(Symbol.Flags.s_container, false);
-        defer self._curr_symbol_flags = prev_symbol_flags;
-
         _ = try self.bindSymbol(.{
             .identifier = name_token,
             .flags = self.fnProtoFlags(fn_proto),
