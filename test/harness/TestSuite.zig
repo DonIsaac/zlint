@@ -1,7 +1,6 @@
-/// Root directory containing zig files being tested
-test_fn: *const TestFn,
-setup_fn: ?*const fn (suite: *TestSuite) anyerror!void,
-teardown_fn: ?*const fn (suite: *TestSuite) anyerror!void,
+const TestSuite = @This();
+
+vtable: TestSuiteFns,
 
 group_name: []const u8,
 suite_name: []const u8,
@@ -15,7 +14,7 @@ stats: Stats = .{},
 alloc: Allocator,
 io: Io,
 
-pub const TestFn = fn (alloc: Allocator, source: *const Source) anyerror!void;
+pub const TestFn = fn (allocator: Allocator, source: *const Source) anyerror!void;
 pub const SetupFn = fn (suite: *TestSuite) anyerror!void;
 
 pub const TestSuiteFns = struct {
@@ -33,12 +32,11 @@ pub fn init(
     suite_name: string,
     fns: TestSuiteFns,
 ) !TestSuite {
+    errdefer dir.close(io);
     const walker = try dir.walk(alloc);
 
     return TestSuite{
-        .test_fn = fns.test_fn,
-        .setup_fn = fns.setup_fn,
-        .teardown_fn = fns.teardown_fn,
+        .vtable = fns,
         .group_name = group_name,
         .suite_name = suite_name,
         .dir = dir,
@@ -63,9 +61,12 @@ pub fn deinit(self: *TestSuite) void {
 }
 
 pub fn run(self: *TestSuite) !void {
-    if (self.setup_fn) |setup| {
+    const cfg = harness.getRunner().config;
+    if (self.vtable.setup_fn) |setup| {
         try setup(self);
     }
+    self.beginLogGroup(cfg);
+    defer endLogGroup(cfg);
     var group: Io.Group = .init;
     while (try self.walker.next(self.io)) |ent| {
         if (ent.kind != .file) continue;
@@ -84,6 +85,7 @@ pub fn run(self: *TestSuite) !void {
         group.async(self.io, runInThread, .{ self, entry_path });
     }
     try group.await(self.io);
+    finishProgressLine(cfg);
     try self.writeSnapshot();
 }
 
@@ -108,14 +110,104 @@ fn runInThread(self: *TestSuite, path: []const u8) void {
     };
     defer source.deinit();
 
+    var passed = true;
     recover.call(runImpl, .{ self, &source }) catch |e| {
         self.pushErr(path, e);
-        return;
+        passed = false;
     };
-    self.stats.incPass();
+    self.printRun(&source, passed);
+    if (passed) self.stats.incPass();
 }
+
 pub fn runImpl(self: *TestSuite, source: *const Source) anyerror!void {
-    return @call(.never_inline, self.test_fn, .{ self.alloc, source });
+    return @call(.never_inline, self.vtable.test_fn, .{ self.alloc, source });
+}
+fn printRun(self: *const TestSuite, source: *const Source, passed: bool) void {
+    const cfg = harness.getRunner().config;
+    const status_icon = if (passed) "\u{2705}" else "\u{274C}";
+
+    var p = source.pathname orelse "<missing>";
+    // Passing runs are transient: they get overwritten by the next status via
+    // `\r`, which only returns to the start of the current *row*. A line that
+    // wraps would leave the cursor mid-message, so keep it short. Failures are
+    // permanent lines, so wrapping is harmless there and the full path matters.
+    if (cfg.is_tty and passed and p.len > max_transient_path) {
+        p = p[p.len - max_transient_path ..];
+    }
+
+    comptime var c = Chameleon.initComptime();
+    comptime var gray = c.gray().createPreset();
+    comptime var yellow = c.yellow().createPreset();
+
+    const fmt_color = gray.fmt("[{s}]") ++ yellow.fmt(" {s}") ++ ": {s} {s}";
+    const fmt_plain = "[{s}] {s}: {s} {s}";
+
+    var buf: [256]u8 = undefined;
+    const stderr = std.debug.lockStderr(&buf);
+    defer std.debug.unlockStderr();
+    const w = &stderr.file_writer.interface;
+
+    const args = .{ self.group_name, self.suite_name, status_icon, p };
+    if (cfg.color)
+        w.print(fmt_color, args) catch return
+    else
+        w.print(fmt_plain, args) catch return;
+
+    if (cfg.is_tty) {
+        // Passing runs are overwritten by the next status; failures stay put.
+        w.writeAll(if (passed) end_transient_line else end_permanent_line) catch {};
+    } else {
+        w.writeByte('\n') catch {};
+    }
+}
+
+/// Visible path budget for a single-row progress line. Conservative enough to
+/// leave room for the group/suite prefix on an 80-column terminal.
+const max_transient_path = 48;
+
+/// `ESC` (0x1B) followed by `[` is CSI, the introducer for an ANSI control
+/// sequence.
+const csi = "\x1b[";
+/// CSI `0K` is `EL` (erase in line) with parameter 0: clear from the cursor to
+/// the end of the current row, leaving the cursor where it is. Used to wipe
+/// leftovers from a longer status that was previously printed on this row.
+const erase_to_eol = csi ++ "0K";
+/// A status line that will be overwritten by the next one: erase this row's
+/// tail, then park the cursor back at column 0.
+const end_transient_line = erase_to_eol ++ "\r";
+/// A status line that stays in scrollback: erase this row's tail, then advance
+/// to a fresh row.
+const end_permanent_line = erase_to_eol ++ "\n";
+
+/// See: https://docs.github.com/actions/reference/workflow-commands-for-github-actions#grouping-log-lines
+const gh_group_start = "::group::";
+const gh_group_end = "::endgroup::\n";
+
+fn beginLogGroup(self: *const TestSuite, cfg: harness.Config) void {
+    switch (cfg.format) {
+        .utf8 => {},
+        .github => std.debug.print(gh_group_start ++ "{s}/{s}\n", .{
+            self.group_name,
+            self.suite_name,
+        }),
+    }
+}
+
+fn endLogGroup(cfg: harness.Config) void {
+    switch (cfg.format) {
+        .utf8 => {},
+        .github => std.debug.print(gh_group_end, .{}),
+    }
+}
+
+/// Commit the trailing transient progress line, if any, so subsequent output
+/// doesn't land on top of it.
+fn finishProgressLine(cfg: harness.Config) void {
+    if (!cfg.is_tty) return;
+    var buf: [8]u8 = undefined;
+    const stderr = std.debug.lockStderr(&buf);
+    defer std.debug.unlockStderr();
+    stderr.file_writer.interface.writeAll(erase_to_eol) catch {};
 }
 
 fn pushErr(self: *TestSuite, msg: string, err: anytype) void {
@@ -193,7 +285,7 @@ const Stats = struct {
         _ = self.panic.fetchAdd(1, .monotonic);
     }
 
-    inline fn total(self: *const Stats) usize {
+    pub inline fn total(self: *const Stats) usize {
         // zig fmt: off
         return self.pass.load(.monotonic)
              + self.fail.load(.monotonic)
@@ -212,15 +304,15 @@ const Stats = struct {
     }
 };
 
-const TestSuite = @This();
-
 const std = @import("std");
 const Io = std.Io;
 const Allocator = std.mem.Allocator;
 
 const recover = @import("recover");
+const Chameleon = @import("chameleon");
 
 const utils = @import("../utils.zig");
+const harness = @import("../harness.zig");
 const string = utils.string;
 const Source = zlint.Source;
 
