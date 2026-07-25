@@ -21,7 +21,11 @@ pub fn matches(self: GlobSet, path: []const u8) bool {
 }
 
 pub fn jsonParse(allocator: Allocator, source: *json.Scanner, options: json.ParseOptions) ParseError!GlobSet {
-    return .new(try json.parseFromTokenSourceLeaky(
+    // NOTE: must be `innerParse`, not a whole-document entry point like
+    // `parseFromTokenSourceLeaky`. Those assert that the scanner is at
+    // `.end_of_document` when they return, which is never true when a GlobSet is
+    // a field of an enclosing object (e.g. `Config.ignore`).
+    return .new(try json.innerParse(
         @FieldType(GlobSet, "patterns"),
         allocator,
         source,
@@ -85,4 +89,25 @@ test jsonParse {
     const ignore = value.value;
     try t.expectEqual(ignore.patterns.len, 1);
     try t.expectEqualStrings(ignore.patterns[0], "foo/**");
+}
+
+// Regression test for https://github.com/DonIsaac/zlint/issues/358: parsing a
+// GlobSet nested within an enclosing object crashed, since the scanner is not at
+// the end of the document once the set's patterns have been consumed.
+test "jsonParse within an enclosing object" {
+    const Wrapper = struct { ignore: GlobSet = .empty, after: u32 = 0 };
+    var value = try json.parseFromSlice(
+        Wrapper,
+        t.allocator,
+        \\{ "ignore": ["foo/**", "bar/*.zig"], "after": 1 }
+    ,
+        .{},
+    );
+    defer value.deinit();
+    const wrapper = value.value;
+    try t.expectEqual(2, wrapper.ignore.patterns.len);
+    try t.expectEqualStrings("foo/**", wrapper.ignore.patterns[0]);
+    try t.expectEqualStrings("bar/*.zig", wrapper.ignore.patterns[1]);
+    // fields following the glob set still parse
+    try t.expectEqual(1, wrapper.after);
 }

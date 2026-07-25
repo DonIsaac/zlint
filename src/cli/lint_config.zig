@@ -324,6 +324,40 @@ test resolveLintConfig {
     try t.expectEqual(.warning, config.config.rules.rules.unsafe_undefined.severity);
 }
 
+// Regression test for https://github.com/DonIsaac/zlint/issues/358: a zlint.json
+// containing an `ignore` key panicked while parsing the glob set.
+test "resolveLintConfig parses ignore globs" {
+    const cwd = Dir.cwd();
+
+    const fixtures_dir = try cwd.realPathFileAlloc(t.io, "test/fixtures/config-ignore", t.allocator);
+    defer t.allocator.free(fixtures_dir);
+
+    var arena = ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+
+    var err: ?Error = null;
+    defer if (err) |*e| e.deinit(t.allocator);
+    const config = try resolveLintConfig(
+        &arena,
+        t.io,
+        try cwd.openDir(t.io, fixtures_dir, .{}),
+        "zlint.json",
+        t.allocator,
+        &err,
+    );
+    try t.expect(err == null);
+
+    const ignore = config.config.ignore;
+    try t.expectEqual(2, ignore.patterns.len);
+    try t.expectEqualStrings("foo/**", ignore.patterns[0]);
+    try t.expectEqualStrings("bar/*.zig", ignore.patterns[1]);
+    try t.expect(ignore.matches("foo/bar.zig"));
+    try t.expect(!ignore.matches("src/foo.zig"));
+
+    // keys following `ignore` are still parsed
+    try t.expectEqual(.warning, config.config.rules.rules.unsafe_undefined.severity);
+}
+
 // Regression test for https://github.com/DonIsaac/zlint/issues/360: an empty
 // zlint.json produced a label span past the end of the (empty) source, which
 // caused a `u32` underflow panic when the graphical formatter rendered it.
