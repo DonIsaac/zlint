@@ -2,7 +2,7 @@
     "type": "object",
     "properties": {
         "rules": {
-            "$ref": "#/definitions/linter.config.rules_config.RulesConfig"
+            "$ref": "#/definitions/linter.config.RulesConfig"
         },
         "ignore": {
             "$ref": "#/definitions/walk.GlobSet",
@@ -70,7 +70,7 @@
                 }
             ]
         },
-        "linter.config.rules_config.RulesConfig": {
+        "linter.config.RulesConfig": {
             "type": "object",
             "description": "Configure which rules are enabled and how.",
             "properties": {
