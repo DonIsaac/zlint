@@ -88,7 +88,7 @@ fn stackRefDiagnostic(
     var labels: [2]LabeledSpan = undefined;
     labels[0] = ctx.labelN(node, "This pointer refers to a local variable", .{});
     if (decl_loc) |loc| {
-        labels[1] = LabeledSpan{ .span = loc, .label = .static("Variable is declared locally here") };
+        labels[1] = .labeled(loc, .static("Variable is declared locally here"));
     }
     const label_slice: []const LabeledSpan = labels[0..if (decl_loc) |_| 2 else 1];
 

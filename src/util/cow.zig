@@ -169,7 +169,10 @@ pub fn Cow(comptime sentinel: bool) type {
         /// are responsible for ensuring that borrowing `Cow`s have a lifetime
         /// that is less than or equal to the `Cow` being deinitialized.
         pub fn deinit(self: *Self, allocator: Allocator) void {
-            if (self.borrowed) return;
+            if (self.borrowed) {
+                self.* = undefined;
+                return;
+            }
 
             if (comptime IS_DEBUG) {
                 // All constructors/methods defined in Cow set __alloc when the

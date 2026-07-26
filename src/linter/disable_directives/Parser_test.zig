@@ -13,10 +13,13 @@ const TestCase = struct {
     check_span: bool = false,
 };
 
-/// For when you don't care about the parsed comment's span
-const NULL_SPAN = Span{ .start = 0, .end = 0 };
-const global: DisableDirectiveComment = .{ .kind = .global, .span = NULL_SPAN };
-const line: DisableDirectiveComment = .{ .kind = .line, .span = NULL_SPAN };
+fn global(span: Span) DisableDirectiveComment {
+    return .{ .kind = .global, .span = span };
+}
+
+fn line(span: Span) DisableDirectiveComment {
+    return .{ .kind = .line, .span = span };
+}
 
 fn runTests(cases: []const TestCase) !void {
     for (cases) |case| {
@@ -26,7 +29,7 @@ fn runTests(cases: []const TestCase) !void {
         const check_span = case.check_span;
 
         var parser = DisableDirectivesParser.new(source);
-        var actual = try parser.parse(t.allocator, Span.new(0, @intCast(source.len)));
+        var actual = try parser.parse(t.allocator, .new(0, @intCast(source.len)));
         if (actual) |*a| {
             defer a.deinit(t.allocator);
             const e: DisableDirectiveComment = expected.?;
@@ -58,39 +61,39 @@ fn runTests(cases: []const TestCase) !void {
 
 test "global directives that disable all rules" {
     const cases = &[_]TestCase{
-        .{ .src = "//zlint-disable", .expected = .{ .kind = .global, .span = .{ .start = 0, .end = 15 } }, .check_span = true },
-        .{ .src = "// zlint-disable", .expected = .{ .kind = .global, .span = .{ .start = 0, .end = 16 } }, .check_span = true },
-        .{ .src = "// zlint-disable            ", .expected = .{ .kind = .global, .span = .{ .start = 0, .end = 16 } }, .check_span = true },
-        .{ .src = "   //     zlint-disable", .expected = .{ .kind = .global, .span = .{ .start = 0, .end = 23 } }, .check_span = true },
+        .{ .src = "//zlint-disable", .expected = global(.new(0, 15)), .check_span = true },
+        .{ .src = "// zlint-disable", .expected = global(.new(0, 16)), .check_span = true },
+        .{ .src = "// zlint-disable            ", .expected = global(.new(0, 16)), .check_span = true },
+        .{ .src = "   //     zlint-disable", .expected = global(.new(0, 23)), .check_span = true },
     };
     try runTests(cases);
 }
 
 test "line directives that disable all rules" {
     const cases = &[_]TestCase{
-        .{ .src = "// zlint-disable-next-line", .expected = .{ .kind = .line, .span = .{ .start = 0, .end = 26 } }, .check_span = true },
-        .{ .src = "// zlint-disable-next-line            ", .expected = .{ .kind = .line, .span = .{ .start = 0, .end = 26 } }, .check_span = true },
-        .{ .src = "   //     zlint-disable-next-line", .expected = .{ .kind = .line, .span = .{ .start = 0, .end = 33 } }, .check_span = true },
+        .{ .src = "// zlint-disable-next-line", .expected = line(.new(0, 26)), .check_span = true },
+        .{ .src = "// zlint-disable-next-line            ", .expected = line(.new(0, 26)), .check_span = true },
+        .{ .src = "   //     zlint-disable-next-line", .expected = line(.new(0, 33)), .check_span = true },
     };
     try runTests(cases);
 }
 
 test "comments" {
     const cases = &[_]TestCase{
-        .{ .src = "// zlint-disable -- unsafe-undefined", .expected = global },
-        .{ .src = "// zlint-disable-next-line -- unsafe-undefined", .expected = line },
-        .{ .src = "// zlint-disable --", .expected = global },
-        .{ .src = "// zlint-disable -- foo bar baz", .expected = global },
-        .{ .src = "// zlint-disable-- foo bar baz", .expected = global },
-        .{ .src = "// zlint-disable --foo bar baz", .expected = global },
-        .{ .src = "// zlint-disable     --   foo bar baz", .expected = global },
+        .{ .src = "// zlint-disable -- unsafe-undefined", .expected = global(.empty) },
+        .{ .src = "// zlint-disable-next-line -- unsafe-undefined", .expected = line(.empty) },
+        .{ .src = "// zlint-disable --", .expected = global(.empty) },
+        .{ .src = "// zlint-disable -- foo bar baz", .expected = global(.empty) },
+        .{ .src = "// zlint-disable-- foo bar baz", .expected = global(.empty) },
+        .{ .src = "// zlint-disable --foo bar baz", .expected = global(.empty) },
+        .{ .src = "// zlint-disable     --   foo bar baz", .expected = global(.empty) },
         // space omission: rule name directly followed by '--' (no space before comment marker)
         .{
             .src = "// zlint-disable-next-line unsafe-undefined-- now heres a comment",
             .expected = .{
                 .kind = .line,
-                .span = NULL_SPAN,
-                .disabled_rules = @constCast(&[_]Span{Span.new(27, 43)}),
+                .span = .empty,
+                .disabled_rules = @constCast(&[_]Span{.new(27, 43)}),
             },
         },
     };
@@ -110,10 +113,11 @@ test "not a disable directive" {
 }
 
 test "disable directives may be in doc comments" {
+    const expected = global(.empty);
     const cases = &[_]TestCase{
-        .{ .src = "//  zlint-disable", .expected = .{ .kind = .global, .span = NULL_SPAN } },
-        .{ .src = "/// zlint-disable", .expected = .{ .kind = .global, .span = NULL_SPAN } },
-        .{ .src = "//! zlint-disable", .expected = .{ .kind = .global, .span = NULL_SPAN } },
+        .{ .src = "//  zlint-disable", .expected = expected },
+        .{ .src = "/// zlint-disable", .expected = expected },
+        .{ .src = "//! zlint-disable", .expected = expected },
     };
     try runTests(cases);
 }
@@ -124,11 +128,11 @@ test "disabling specific rules" {
             .src = "// zlint-disable foo bar baz",
             .expected = .{
                 .kind = .global,
-                .span = NULL_SPAN,
+                .span = .empty,
                 .disabled_rules = @constCast(&[_]Span{
-                    Span.new(17, 20),
-                    Span.new(21, 24),
-                    Span.new(25, 28),
+                    .new(17, 20),
+                    .new(21, 24),
+                    .new(25, 28),
                 }),
             },
         },
@@ -136,11 +140,11 @@ test "disabling specific rules" {
             .src = "// zlint-disable foo, bar, baz",
             .expected = .{
                 .kind = .global,
-                .span = NULL_SPAN,
+                .span = .empty,
                 .disabled_rules = @constCast(&[_]Span{
-                    Span.new(17, 20),
-                    Span.new(22, 25),
-                    Span.new(27, 30),
+                    .new(17, 20),
+                    .new(22, 25),
+                    .new(27, 30),
                 }),
             },
         },
@@ -156,15 +160,15 @@ test "non-letter characters in rule list do not cause infinite loop" {
         // pure digit token — skipped entirely, no rules parsed
         .{
             .src = "// zlint-disable 123",
-            .expected = global,
+            .expected = global(.empty),
         },
         // leading underscore is skipped; "foo" is still captured
         .{
             .src = "// zlint-disable _foo",
             .expected = .{
                 .kind = .global,
-                .span = NULL_SPAN,
-                .disabled_rules = @constCast(&[_]Span{Span.new(18, 21)}),
+                .span = .empty,
+                .disabled_rules = @constCast(&[_]Span{.new(18, 21)}),
             },
         },
         // valid rule name preceded by digit garbage — digit skipped, rule captured
@@ -172,8 +176,8 @@ test "non-letter characters in rule list do not cause infinite loop" {
             .src = "// zlint-disable 1foo",
             .expected = .{
                 .kind = .global,
-                .span = NULL_SPAN,
-                .disabled_rules = @constCast(&[_]Span{Span.new(18, 21)}),
+                .span = .empty,
+                .disabled_rules = @constCast(&[_]Span{.new(18, 21)}),
             },
         },
         // valid rule mixed with an all-digit token
@@ -181,10 +185,10 @@ test "non-letter characters in rule list do not cause infinite loop" {
             .src = "// zlint-disable foo 42 bar",
             .expected = .{
                 .kind = .global,
-                .span = NULL_SPAN,
+                .span = .empty,
                 .disabled_rules = @constCast(&[_]Span{
-                    Span.new(17, 20),
-                    Span.new(24, 27),
+                    .new(17, 20),
+                    .new(24, 27),
                 }),
             },
         },
