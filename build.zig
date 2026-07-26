@@ -166,9 +166,8 @@ pub fn build(b: *std.Build) void {
         e2e_step.dependOn(&run_e2e.step);
 
         const test_all_step = b.step("test-all", "Run all tests");
-        test_all_step.dependOn(&run_lib_tests.step);
-        test_all_step.dependOn(&run_utils_tests.step);
-        test_all_step.dependOn(&run_e2e.step);
+        test_all_step.dependOn(unit_step);
+        test_all_step.dependOn(e2e_step);
     }
 
     // zig build (docs, confgen, codegen

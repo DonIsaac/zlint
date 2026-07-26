@@ -23,6 +23,4 @@ test {
     std.testing.refAllDecls(printer);
     std.testing.refAllDecls(json);
     std.testing.refAllDecls(lint);
-    // std.testing.refAllDecls(@import("walk/glob.zig"));
-    // std.testing.refAllDecls(@import("cli/lint_command.zig"));
 }
