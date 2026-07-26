@@ -116,11 +116,7 @@ pub fn build(b: *std.Build) void {
         .root_module = zlint,
         .use_llvm = use_llvm,
     });
-    const test_exe = b.addTest(.{
-        .name = "test-bin",
-        .root_module = exe.root_module,
-        .use_llvm = use_llvm
-    });
+    const test_exe = b.addTest(.{ .name = "test-bin", .root_module = exe.root_module, .use_llvm = use_llvm });
     // Test fixtures live outside `src/`, so they must be registered as imports
     // before unit tests can `@embedFile` them.
     inline for (.{"unresolved_reference.zig"}) |fixture| {
