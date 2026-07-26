@@ -72,3 +72,27 @@ pub fn RuleConfig(RuleImpl: type) type {
         }
     };
 }
+
+test RuleConfig {
+    const allocator = std.testing.allocator;
+    const expectEqual = std.testing.expectEqual;
+    const expectEqualDeep = std.testing.expectEqualDeep;
+
+    const UnsafeUndefined = @import("../rules/unsafe_undefined.zig");
+    const Config = RuleConfig(UnsafeUndefined);
+
+    inline for (.{
+        \\"warn"
+        ,
+        \\["warn"]
+        ,
+        \\["warn", {}]
+        ,
+    }) |source| {
+        const parsed = try json.parseFromSlice(Config, allocator, source, .{});
+        defer parsed.deinit();
+        try expectEqual(Severity.warning, parsed.value.severity);
+        const parsed_rule: *UnsafeUndefined = @ptrCast(@alignCast(parsed.value.rule_impl));
+        try expectEqualDeep(&Config.default, parsed_rule);
+    }
+}

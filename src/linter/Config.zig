@@ -1,10 +1,10 @@
-rules: RulesConfig = .{},
+rules: RulesConfig = .empty,
 ignore: glob.GlobSet = .empty,
 
 const Config = @This();
 
 pub const DEFAULT: Config = .{
-    .rules = DEFAULT_RULES_CONFIG,
+    .rules = .default,
     .ignore = .new(&[_]glob.Pattern{ "vendor", "zig-out", "zig-pkg" }),
 };
 
@@ -25,17 +25,6 @@ pub const Managed = struct {
 pub fn intoManaged(self: Config, arena: *ArenaAllocator, path: ?[]const u8) Managed {
     return Managed{ .config = self, .arena = arena, .path = path };
 }
-
-// default rules config lives here b/c RulesConfig is auto-generated
-const DEFAULT_RULES_CONFIG: RulesConfig = blk: {
-    var config: RulesConfig = .{};
-
-    for (@typeInfo(RulesConfig.Rules).@"struct".fields) |field| {
-        @field(config.rules, field.name) = .{ .severity = field.type.meta.default };
-    }
-
-    break :blk config;
-};
 
 pub fn jsonSchema(ctx: *Schema.Context) !Schema {
     var schema = try ctx.genSchemaInner(Config);
@@ -58,7 +47,7 @@ const ArenaAllocator = std.heap.ArenaAllocator;
 const Allocator = std.mem.Allocator;
 const Schema = @import("../json.zig").Schema;
 
-pub const RulesConfig = @import("config/rules_config.zig").RulesConfig;
+pub const RulesConfig = @import("config/RulesConfig.zig");
 
 // =============================================================================
 
