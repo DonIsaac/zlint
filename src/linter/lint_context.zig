@@ -70,13 +70,11 @@ pub inline fn links(self: *const Context) *const Semantic.NodeLinks {
 // ============================ ERROR REPORTING ============================
 
 pub fn spanN(self: *const Context, node_id: Ast.Node.Index) LabeledSpan {
-    const span = self.semantic.nodeSpan(node_id);
-    return LabeledSpan{ .span = span };
+    return .unlabeled(self.semantic.nodeSpan(node_id));
 }
 
 pub fn spanT(self: *const Context, token_id: Ast.TokenIndex) LabeledSpan {
-    const span = self.semantic.tokenSpan(token_id);
-    return LabeledSpan{ .span = span };
+    return .unlabeled(self.semantic.tokenSpan(token_id));
 }
 
 pub inline fn labelN(
@@ -85,12 +83,9 @@ pub inline fn labelN(
     comptime fmt: []const u8,
     args: anytype,
 ) LabeledSpan {
-    const s = self.semantic.nodeSpan(node_id);
-    return LabeledSpan{
-        .span = s,
-        .label = util.Cow(false).fmt(self.gpa, fmt, args) catch @panic("OOM"),
-        .primary = false,
-    };
+    const s: Span = self.semantic.nodeSpan(node_id);
+    const label = util.Cow(false).fmt(self.gpa, fmt, args) catch std.debug.panic("OOM", .{});
+    return .labeled(s, label);
 }
 
 pub inline fn labelT(
@@ -99,22 +94,10 @@ pub inline fn labelT(
     comptime fmt: []const u8,
     args: anytype,
 ) LabeledSpan {
-    const s = self.semantic.parse.ast.tokenToSpan(token_id);
-    return LabeledSpan{
-        .span = .{ .start = s.start, .end = s.end },
-        .label = util.Cow(false).fmt(self.gpa, fmt, args) catch @panic("OOM"),
-        .primary = false,
-    };
+    const s: Span = .from(self.semantic.parse.ast.tokenToSpan(token_id));
+    const label = util.Cow(false).fmt(self.gpa, fmt, args) catch std.debug.panic("OOM", .{});
+    return .labeled(s, label);
 }
-
-// pub inline fn sliceOf(
-//     self: *const Context,
-//     comptime kind: enum { node, token },
-//     id: u32,
-// ) LabeledSpan {
-//     const span = if (kind == .node)
-//         self.semantic.nodeSpan()
-// }
 
 /// Create a new `Error` with a static message string.
 pub fn diagnostic(
@@ -290,6 +273,7 @@ const Ast = Semantic.Ast;
 const Error = @import("../Error.zig");
 const Severity = Error.Severity;
 const LabeledSpan = @import("../span.zig").LabeledSpan;
+const Span = @import("../span.zig").Span;
 const Rule = _rule.Rule;
 const Source = _source.Source;
 

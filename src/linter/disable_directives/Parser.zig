@@ -220,24 +220,24 @@ test parse {
         // global directives
         TestCase{
             "//zlint-disable",
-            .{ .kind = .global, .span = .{ .start = 0, .end = 15 } },
+            .{ .kind = .global, .span = .new(0, 15) },
             &[_][]const u8{},
         },
         TestCase{
             "// zlint-disable",
-            .{ .kind = .global, .span = .{ .start = 0, .end = 16 } },
+            .{ .kind = .global, .span = .new(0, 16) },
             &[_][]const u8{},
         },
         TestCase{
             "// zlint-disable -- unsafe-undefined",
-            .{ .kind = .global, .span = .{ .start = 0, .end = 16 } },
+            .{ .kind = .global, .span = .new(0, 16) },
             &[_][]const u8{},
         },
         TestCase{
             "// zlint-disable unsafe-undefined",
             .{
                 .kind = .global,
-                .span = .{ .start = 0, .end = 33 },
+                .span = .new(0, 33),
                 .disabled_rules = @constCast(&[_]Span{Span.new(17, 33)}),
             },
             &[_][]const u8{
@@ -248,7 +248,7 @@ test parse {
             "// zlint-disable foo bar baz",
             .{
                 .kind = .global,
-                .span = .{ .start = 0, .end = 28 },
+                .span = .new(0, 28),
                 .disabled_rules = @constCast(&[_]Span{
                     Span.new(17, 20),
                     Span.new(21, 24),
@@ -327,4 +327,4 @@ const Allocator = mem.Allocator;
 
 const assert = std.debug.assert;
 
-pub const DisableDirectiveComment = @import("./Comment.zig");
+const DisableDirectiveComment = @import("./Comment.zig");

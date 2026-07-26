@@ -66,7 +66,8 @@ pub const Span = struct {
             LabeledSpan => value.span,
             Ast.Span => .{ .start = value.start, .end = value.end },
             Token.Loc => .{ .start = @intCast(value.start), .end = @intCast(value.end) },
-            [2]u32 => .{ .start = value[0], .end = value[1] },
+            Ast.Location => .{ .start = @intCast(value.line_start), .end = @intCast(value.line_end) },
+            [2]u32 => .new(value[0], value[1]),
             else => |T| {
                 const info = @typeInfo(T);
                 switch (info) {
@@ -143,22 +144,29 @@ test "Span.shiftLeft" {
 
 pub const LabeledSpan = struct {
     span: Span,
-    label: ?util.Cow(false) = null,
+    label: ?Label = null,
     primary: bool = false,
 
-    pub inline fn unlabeled(start: u32, end: u32) LabeledSpan {
-        return .{
-            .span = .{ .start = start, .end = end },
-        };
+    pub const empty: LabeledSpan = .{ .span = .empty };
+
+    const Label = util.Cow(false);
+
+    pub inline fn unlabeled(span: Span) LabeledSpan {
+        return .{ .span = span, .label = null, .primary = false };
+    }
+    pub inline fn labeled(span: Span, label: Label) LabeledSpan {
+        return .{ .span = span, .label = label, .primary = false };
     }
 
     pub fn from(value: anytype) LabeledSpan {
         return switch (@TypeOf(value)) {
             LabeledSpan => value, // base case
-            Span => .{ .span = value },
-            Ast.Span => .{ .span = Span.from(value) },
-            Token.Loc => .{ .span = Span.from(value) },
-            [2]u32 => .{ .span = Span.from(value) },
+            Span => .unlabeled(value),
+            Ast.Span,
+            Token.Loc,
+            Ast.Location,
+            [2]u32,
+            => .unlabeled(.from(value)),
             else => |T| {
                 const info = @typeInfo(T);
                 switch (info) {
@@ -173,6 +181,12 @@ pub const LabeledSpan = struct {
             },
         };
     }
+
+    pub fn deinit(self: *LabeledSpan, allocator: std.mem.Allocator) void {
+        if (self.label) |*label| label.deinit(allocator);
+        self.* = undefined;
+    }
+
     pub fn fmtJson(self: LabeledSpan, source: []const u8) LocationFormatter {
         return .{ .span = self, .source = source };
     }
@@ -185,11 +199,9 @@ pub const LabeledSpan = struct {
             start: Location,
             end: Location,
             primary: bool,
-            label: ?util.Cow(false),
+            label: ?Label,
         };
 
-        // pub fn format(self: *const LocationFormatter, comptime _: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        // pub fn format(self: *const LocationFormatter, comptime _: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
         pub fn jsonStringify(self: *const LocationFormatter, jw: anytype) !void {
             const start_offset = self.span.span.start;
             const len = self.span.span.len();

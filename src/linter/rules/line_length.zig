@@ -49,7 +49,7 @@ pub fn lineLengthDiagnostic(ctx: *LinterContext, line_start: u32, line_length: u
     return ctx.diagnosticf(
         "line length of {} characters is too big.",
         .{line_length},
-        .{LabeledSpan.unlabeled(line_start, line_start + line_length)},
+        .{LabeledSpan.unlabeled(.sized(line_start, line_length))},
     );
 }
 

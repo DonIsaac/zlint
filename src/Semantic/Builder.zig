@@ -1689,7 +1689,7 @@ fn recordImport(self: *SemanticBuilder, node: NodeIndex) Allocator.Error!void {
         @branchHint(.cold);
         var e = Error.newStatic("@import specifiers must be string literals.");
         const loc: Token.Loc = self._semantic.tokens().items(.loc)[ast.nodeMainToken(specifier_node)];
-        try e.labels.append(self._gpa, LabeledSpan.unlabeled(@intCast(loc.start), @intCast(loc.end)));
+        try e.labels.append(self._gpa, LabeledSpan.from(loc));
         try self._errors.append(self._gpa, e);
         return;
     }
@@ -1807,7 +1807,7 @@ fn addAstError(self: *SemanticBuilder, ast: *const Ast, ast_err: Ast.Error) Allo
     {
         const byte_offset: Ast.ByteOffset = ast.tokens.items(.start)[ast_err.token];
         const loc = ast.tokenLocation(byte_offset, ast_err.token);
-        const span = LabeledSpan.unlabeled(@intCast(loc.line_start), @intCast(loc.line_end));
+        const span = LabeledSpan.from(loc);
         try err.labels.ensureTotalCapacityPrecise(self._gpa, 1);
         err.labels.appendAssumeCapacity(span);
     }

@@ -35,14 +35,16 @@ test JSONFormatter {
     var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
 
-    var err = Error.newStatic("oof");
-    err.source = src.contents;
-    err.source_name = src.pathname;
-    err.help = Cow.static("help pls");
-    err.code = "code";
+    var err = Error{
+        .code = "code",
+        .message = .static("oof"),
+        .help = .static("help pls"),
+        .source = src.contents,
+        .source_name = src.pathname,
+    };
     try err.labels.append(allocator, LabeledSpan{
-        .label = Cow.static("some label"),
-        .span = _span.Span.new(0, 4),
+        .label = .static("some label"),
+        .span = .new(0, 4),
         .primary = true,
     });
 

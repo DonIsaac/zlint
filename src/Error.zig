@@ -49,9 +49,10 @@ pub fn deinit(self: *Error, alloc: std.mem.Allocator) void {
     if (self.source_name) |src_name| alloc.free(src_name);
     if (self.source) |*src| src.deinit();
     for (self.labels.items) |*label| {
-        if (label.label) |*label_text| label_text.deinit(alloc);
+        label.deinit(alloc);
     }
     self.labels.deinit(alloc);
+    self.* = undefined;
 }
 
 pub fn jsonStringify(self: *const Error, jw: anytype) !void {

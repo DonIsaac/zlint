@@ -59,7 +59,7 @@ pub const meta: Rule.Meta = .{
 };
 
 fn returnTryDiagnostic(ctx: *LinterContext, return_start: u32, try_start: u32) Error {
-    const span = LabeledSpan.unlabeled(return_start, try_start + 3);
+    const span = LabeledSpan.unlabeled(.new(return_start, try_start + 3));
     var e = ctx.diagnostic("This error union can be directly returned.", .{span});
     e.help = Cow.static("Replace `return try` with `return`");
     return e;
