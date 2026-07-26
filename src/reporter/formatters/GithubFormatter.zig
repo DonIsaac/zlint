@@ -54,12 +54,8 @@ test GithubFormatter {
     const allocator = std.testing.allocator;
     const expectEqualStrings = std.testing.expectEqualStrings;
 
-    var buf = std.array_list.Managed(u8).init(allocator);
-    defer buf.deinit();
     var f = GithubFormatter{};
-    // var w = buf.writer();
     var w = std.Io.Writer.Allocating.init(allocator);
-    defer w.writer.flush() catch @panic("failed to flush writer");
     defer w.deinit();
 
     var err = Error.newStatic("Something happened");
@@ -67,10 +63,10 @@ test GithubFormatter {
     err.code = "code";
     err.source_name = "some/file.zig";
 
-    try f.format(&w, err);
-    try expectEqualStrings("::error file=some/file.zig,line=1,col=1,title=code::Something happened\n", buf.items);
+    try f.format(&w.writer, err);
+    try expectEqualStrings("::error file=some/file.zig,line=1,col=1,title=code::Something happened\n", w.writer.buffered());
 
-    buf.clearRetainingCapacity();
+    w.clearRetainingCapacity();
     err.severity = .warning;
     try err.labels.append(allocator, .{
         .label = Cow.static("here it is"),
@@ -78,10 +74,10 @@ test GithubFormatter {
     });
     defer err.labels.deinit(allocator);
 
-    try f.format(&w, err);
-    try expectEqualStrings("::warning file=some/file.zig,line=1,col=1,title=code::Something happened\n", buf.items);
+    try f.format(&w.writer, err);
+    try expectEqualStrings("::warning file=some/file.zig,line=1,col=1,title=code::Something happened\n", w.writer.buffered());
 
-    buf.clearRetainingCapacity();
+    w.clearRetainingCapacity();
     var src = try Error.ArcStr.init(
         allocator,
         try allocator.dupeZ(u8,
@@ -92,8 +88,8 @@ test GithubFormatter {
     defer src.deinit();
     err.source = src;
 
-    try f.format(&w, err);
-    try expectEqualStrings("::warning file=some/file.zig,line=2,col=5,title=code::Something happened\n", buf.items);
+    try f.format(&w.writer, err);
+    try expectEqualStrings("::warning file=some/file.zig,line=2,col=5,title=code::Something happened\n", w.writer.buffered());
 }
 
 const std = @import("std");

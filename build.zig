@@ -111,19 +111,24 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(e2e);
 
-    const test_exe = b.addTest(.{
+    const test_lib = b.addTest(.{
         .name = "test",
         .root_module = zlint,
         .use_llvm = use_llvm,
     });
+    const test_exe = b.addTest(.{
+        .name = "test-bin",
+        .root_module = exe.root_module,
+        .use_llvm = use_llvm
+    });
     // Test fixtures live outside `src/`, so they must be registered as imports
     // before unit tests can `@embedFile` them.
     inline for (.{"unresolved_reference.zig"}) |fixture| {
-        test_exe.root_module.addAnonymousImport("fixtures/" ++ fixture, .{
+        test_lib.root_module.addAnonymousImport("fixtures/" ++ fixture, .{
             .root_source_file = b.path("test/fixtures/simple/pass/" ++ fixture),
         });
     }
-    b.installArtifact(test_exe);
+    b.installArtifact(test_lib);
 
     const test_utils_mod = b.createModule(.{
         .root_source_file = b.path("src/util.zig"),
@@ -152,18 +157,20 @@ pub fn build(b: *std.Build) void {
 
     // zig build test
     {
+        const run_lib_tests = b.addRunArtifact(test_lib);
         const run_exe_tests = b.addRunArtifact(test_exe);
         const run_utils_tests = b.addRunArtifact(test_utils);
         const unit_step = b.step("test", "Run unit tests");
-        unit_step.dependOn(&run_exe_tests.step);
+        unit_step.dependOn(&run_lib_tests.step);
         unit_step.dependOn(&run_utils_tests.step);
+        unit_step.dependOn(&run_exe_tests.step);
 
         const run_e2e = b.addRunArtifact(e2e);
         const e2e_step = b.step("test-e2e", "Run e2e tests");
         e2e_step.dependOn(&run_e2e.step);
 
         const test_all_step = b.step("test-all", "Run all tests");
-        test_all_step.dependOn(&run_exe_tests.step);
+        test_all_step.dependOn(&run_lib_tests.step);
         test_all_step.dependOn(&run_utils_tests.step);
         test_all_step.dependOn(&run_e2e.step);
     }
