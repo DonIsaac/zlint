@@ -140,6 +140,14 @@ const UnusedDeclsFixer = struct {
         var span = ctx.spanN(decl).span;
         const text = ctx.source.text();
 
+        // Pull the deletion span back over attached doc comments (`.container_doc_comment`
+        // excluded) so `--fix` doesn't leave an unattached doc comment behind.
+        const token_tags = ctx.tokens().items(.tag);
+        const token_locs = ctx.tokens().items(.loc);
+        var first = ctx.ast().firstToken(decl);
+        while (first > 0 and token_tags[first - 1] == .doc_comment) first -= 1;
+        span.start = @intCast(token_locs[first].start);
+
         // if (span.end < text.len and text[span.end] == ';') span.end += 1;
         var needs_semicolon = true;
         while (span.end < text.len) {
@@ -307,6 +315,42 @@ test UnusedDecls {
             .expected =
             \\const x = 1;
             \\pub const z = x + 1;
+            ,
+        },
+        // doc-commented unused decl at end of file (issue #362)
+        .{
+            .src =
+            \\pub const y = 2;
+            \\/// Docs for x
+            \\const x = 1;
+            ,
+            .expected =
+            \\pub const y = 2;
+            \\
+            ,
+        },
+        // doc-commented unused decl followed by another decl (issue #362)
+        .{
+            .src =
+            \\/// Docs for x
+            \\const x = 1;
+            \\pub const y = 2;
+            ,
+            .expected =
+            \\pub const y = 2;
+            ,
+        },
+        // multi-line doc comment (issue #362)
+        .{
+            .src =
+            \\pub const y = 2;
+            \\/// Docs for x
+            \\/// more docs
+            \\const x = 1;
+            ,
+            .expected =
+            \\pub const y = 2;
+            \\
             ,
         },
     };
