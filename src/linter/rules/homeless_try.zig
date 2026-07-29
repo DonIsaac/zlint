@@ -1,5 +1,6 @@
 //! ## What This Rule Does
-//! Checks for `try` statements used outside of error-returning functions.
+//! Checks for `try` statements used where errors cannot be propagated: outside
+//! function or test blocks, and inside functions that do not return errors.
 //!
 //! As a `compiler`-level lint, this rule checks for errors also caught by the
 //! Zig compiler.
@@ -18,6 +19,8 @@
 //!
 //! fn bar() !void {
 //!   const Baz = struct {
+//!     // Container field defaults are not function or test-block bodies, even
+//!     // when the container is declared inside an error-returning function.
 //!     property: u32 = try std.heap.page_allocator.alloc(u8, 8),
 //!   };
 //! }
@@ -27,6 +30,19 @@
 //! ```zig
 //! fn foo() !void {
 //!   var my_str = try std.heap.page_allocator.alloc(u8, 8);
+//! }
+//!
+//! test "can use try" {
+//!   var my_str = try std.heap.page_allocator.alloc(u8, 8);
+//! }
+//!
+//! const FooError = error{Foo};
+//! fn maybeFoo() FooError {
+//!   return error.Foo;
+//! }
+//! fn bar() FooError {
+//!   try maybeFoo();
+//!   return error.Foo;
 //! }
 //! ```
 //!
@@ -45,20 +61,6 @@
 //! }
 //! ```
 //!
-//! Zig also allows `try` on functions whose error union sets are empty. ZLint
-//! does _not_ respect this case. Please refactor such functions to not return
-//! an error union.
-//! ```zig
-//! const std = @import("std");
-//! fn foo() !u32 {
-//!   // compiles, but treated as a violation. `bar` should return `u32`.
-//!   const x = try bar();
-//!   return x + 1;
-//! }
-//! fn bar() u32 {
-//!   return 1;
-//! }
-//! ```
 
 const std = @import("std");
 const util = @import("util");

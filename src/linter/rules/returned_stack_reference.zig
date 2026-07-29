@@ -3,7 +3,9 @@
 //!
 //! :::warning
 //!
-//! This rule is still in early development. PRs to improve it are welcome.
+//! This rule is still in early development. It currently detects returned
+//! pointers to local variables; returned slices into stack-allocated memory are
+//! not detected yet. PRs to improve it are welcome.
 //!
 //! :::
 //!
@@ -31,10 +33,6 @@
 //! fn foo() *u32 {
 //!   var x: u32 = 1;
 //!   return &x;
-//! }
-//! fn bar() []u32 {
-//!   var x: [1]u32 = .{1};
-//!   return x[0..];
 //! }
 //! ```
 //!

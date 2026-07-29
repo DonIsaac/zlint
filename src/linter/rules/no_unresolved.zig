@@ -3,9 +3,10 @@
 //! Checks for imports to files that do not exist.
 //!
 //! This rule only checks for file-based imports. Modules added by `build.zig`
-//! are not checked. More precisely, imports to paths ending in `.zig` will be
-//! resolved. This rule checks that a file exists at the imported path and is
-//! not a directory. Symlinks are allowed but are not followed.
+//! are not checked. More precisely, imports to paths ending in `.zig` or
+//! explicit relative imports starting with `./` will be resolved. This rule
+//! checks that a file exists at the imported path and is not a directory.
+//! Symlinks are allowed but are not followed.
 //!
 //! ## Examples
 //! Assume the following directory structure:
@@ -24,6 +25,8 @@
 //! // root.zig
 //! const x = @import("mod/foo.zig");    // foo.zig is in the root directory.
 //! const y = @import("not_a_file.zig"); // directory, not a file
+//! const z = @import("./mod");          // directory, not a file
+//! const w = @import();                 // missing path or module name
 //! ```
 //!
 //! Examples of **correct** code for this rule:

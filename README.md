@@ -15,20 +15,23 @@ An opinionated linter for the Zig programming language.
   elimination.
 - ⚡️ **Fast**. Designed from the ground-up to be highly performant, ZLint
   typically takes a few hundred milliseconds to lint large projects.
-- 💡 **Understandable**. Error messages are pretty, detailed, and easy to understand. 
+- 💡 **Understandable**. Error messages are pretty, detailed, and easy to understand.
   Most rules come with explanations on how to fix them and what _exactly_ is wrong.
   ![diagnostic example](./docs/assets/diagnostic-example.jpg)
 
 ## 📦 Installation
+
 Pre-built binaries for Windows, MacOS, and Linux on x64 and aarch64 are
 available [for each release](https://github.com/DonIsaac/zlint/releases/latest).
 
 ### Linux/macOS
+
 ```sh
 curl -fsSL https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/tasks/install.sh | bash
 ```
 
 ### Windows
+
 ```ps1
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/tasks/install.ps1" | Invoke-Expression
 ```
@@ -43,12 +46,13 @@ zig build --release=safe
 
 ## ⚡️ Lint Rules
 
-All lints and what they do can be found [here](docs/rules/).
+All lints and what they do can be found in the [site rule docs](apps/site/docs/rules/).
 
 ## ⚙️ Configuration
 
-Create a `zlint.json` file in the same directory as `build.zig`. This disables
-all default rules, only enabling the ones you choose.
+Create a `zlint.json` file in your project. ZLint searches for it from the
+current working directory upward. When a config file is found, all default rules
+are disabled and only the rules you choose are enabled.
 
 ```json
 {

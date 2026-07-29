@@ -6,7 +6,7 @@ set up your development environment and contribution guidelines.
 ## Setup
 
 You'll obviously need to have [Zig](https://ziglang.org/) installed. Right now
-we are using version `0.15.0`.
+we require Zig `0.16.0` or newer.
 
 ### Tl;Dr
 
@@ -60,12 +60,13 @@ just e2e -Dsingle-threaded
 ```
 
 ## Contributing New Rules
-Check out the [Creating
-Rules](https://github.com/DonIsaac/zlint/wiki/Creating-Rules) guide for how to
-write new lint rules. A list of rules we want to implement can be found on the
+
+Check out the [Creating Rules](apps/site/docs/contributing/creating-rules.md)
+guide for how to write new lint rules. A list of rules we want to implement can be found on the
 [Rule Ideas board](https://github.com/DonIsaac/zlint/issues/3).
 
 ## Conventions
+
 Please follow these conventions when contributing to ZLint.
 
 ### Constructors and Destructors

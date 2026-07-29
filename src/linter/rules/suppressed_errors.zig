@@ -31,11 +31,12 @@
 //! Examples of **incorrect** code for this rule:
 //! ```zig
 //! const x = foo() catch {};
-//! const y = foo() catch {
+//! const y = foo() catch |_| {};
+//! const z = foo() catch {
 //!   // comments within empty catch blocks are still considered violations.
 //! };
 //! // `unreachable` is for code that will never be reached due to invariants.
-//! const y = foo() catch unreachable
+//! const w = foo() catch unreachable
 //! ```
 //!
 //! Examples of **correct** code for this rule:

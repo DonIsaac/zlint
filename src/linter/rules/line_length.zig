@@ -1,6 +1,7 @@
 //! ## What This Rule Does
 //!
 //! Checks if any line goes beyond a given number of columns.
+//! The default maximum line length is 120 columns.
 //!
 //! ## Examples
 //!

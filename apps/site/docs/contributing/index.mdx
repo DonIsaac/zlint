@@ -1,5 +1,5 @@
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
+import Tabs from '@theme/Tabs'
+import TabItem from '@theme/TabItem'
 
 # Contributing
 
@@ -9,7 +9,7 @@ set up your development environment and contribution guidelines.
 ## Setup
 
 You'll obviously need to have [Zig](https://ziglang.org/) installed. Right now
-we are using version `0.14.0`.
+we require Zig `0.16.0` or newer.
 
 ### Tl;Dr
 
@@ -39,20 +39,13 @@ binstall`](https://github.com/cargo-bins/cargo-binstall).
 
 <Tabs>
   <TabItem value="cargo-binstall" label="cargo-binstall" default>
-    ```sh
-    cargo install cargo-binstall
-    cargo binstall just typos-cli
-    ```
+    ```sh cargo install cargo-binstall cargo binstall just typos-cli ```
   </TabItem>
   <TabItem value="cargo" label="cargo">
-    ```sh
-    cargo install just typos-cli
-    ```
+    ```sh cargo install just typos-cli ```
   </TabItem>
   <TabItem value="homebrew" label="homebrew">
-    ```sh
-    brew install just typos-cli
-    ```
+    ```sh brew install just typos-cli ```
   </TabItem>
 </Tabs>
 
@@ -69,14 +62,10 @@ your package manager of choice.
 
 <Tabs>
   <TabItem value="brew" label="brew" default>
-    ```sh
-    brew install entr
-    ```
+    ```sh brew install entr ```
   </TabItem>
   <TabItem value="apt" label="apt">
-    ```sh
-    apt install entr
-    ```
+    ```sh apt install entr ```
   </TabItem>
 </Tabs>
 
@@ -94,9 +83,8 @@ just e2e -Dsingle-threaded
 
 ## Contributing New Rules
 
-Check out the [Creating
-Rules](https://github.com/DonIsaac/zlint/wiki/Creating-Rules) guide for how to
-write new lint rules. A list of rules we want to implement can be found on the
+Check out the [Creating Rules](./creating-rules.md) guide for how to write new
+lint rules. A list of rules we want to implement can be found on the
 [Rule Ideas board](https://github.com/DonIsaac/zlint/issues/3).
 
 ## Conventions

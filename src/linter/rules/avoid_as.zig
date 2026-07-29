@@ -11,8 +11,13 @@
 //! :::warning
 //!
 //! Checks for function parameters and return types are not yet implemented.
+//! Today this rule checks variable declarations and container field defaults.
 //!
 //! :::
+//!
+//! ZLint can safely fix reported cases by moving the type from `@as()` into a
+//! declaration annotation, or by removing `@as()` when an annotation already
+//! provides the same type.
 //!
 //! ## Examples
 //!
@@ -20,20 +25,18 @@
 //! ```zig
 //! const x = @as(u32, 1);
 //!
-//! fn foo(x: u32) u64 {
-//!   return @as(u64, x); // type is inferred from return type
-//! }
-//! foo(@as(u32, 1)); // type is inferred from function signature
+//! const Foo = struct {
+//!   x: u32 = @as(u32, 1),
+//! };
 //! ```
 //!
 //! Examples of **correct** code for this rule:
 //! ```zig
 //! const x: u32 = 1;
 //!
-//! fn foo(x: u32) void {
-//!   // ...
-//! }
-//! foo(1);
+//! const Foo = struct {
+//!   x: u32 = 1,
+//! };
 //! ```
 
 const std = @import("std");
