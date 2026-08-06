@@ -48,7 +48,7 @@ pub fn main(init: std.process.Init) !void {
         );
     }
 
-    try w.writeAll( "pub const Optional = struct {\n");
+    try w.writeAll("pub const Optional = struct {\n");
     for (gen.RuleInfo.all_rules) |rule_info| {
         const snake_name = try rule_info.snakeName(stackalloc);
         defer stackalloc.free(snake_name);
@@ -61,7 +61,7 @@ pub fn main(init: std.process.Init) !void {
     }
     try w.writeAll("};\n");
     try w.flush();
-    
+
     try createJsonSchema(allocator, task_io);
 }
 
