@@ -266,14 +266,14 @@ pub fn readGitignore(config: *lint.Config.Managed, io: Io, root: Dir) !void {
     it.reset();
 
     // merge existing + new ignores
-    var ignores = try std.ArrayListUnmanaged([]const u8).initCapacity(allocator, config.config.ignore.len + lines);
-    ignores.appendSliceAssumeCapacity(config.config.ignore);
+    var ignores = try std.ArrayListUnmanaged([]const u8).initCapacity(allocator, config.config.ignore.patterns.len + lines);
+    ignores.appendSliceAssumeCapacity(config.config.ignore.patterns);
     while (it.next()) |line_| {
         const line = mem.trim(u8, line_, &std.ascii.whitespace);
         if (line.len == 0 or line[0] == '#') continue;
         ignores.appendAssumeCapacity(line);
     }
-    config.config.ignore = ignores.items;
+    config.config.ignore = .new(ignores.items);
 }
 
 const t = std.testing;
@@ -321,6 +321,40 @@ test resolveLintConfig {
     defer t.allocator.free(expected_path);
 
     try t.expectEqualStrings(expected_path, config.path.?);
+    try t.expectEqual(.warning, config.config.rules.rules.unsafe_undefined.severity);
+}
+
+// Regression test for https://github.com/DonIsaac/zlint/issues/358: a zlint.json
+// containing an `ignore` key panicked while parsing the glob set.
+test "resolveLintConfig parses ignore globs" {
+    const cwd = Dir.cwd();
+
+    const fixtures_dir = try cwd.realPathFileAlloc(t.io, "test/fixtures/config-ignore", t.allocator);
+    defer t.allocator.free(fixtures_dir);
+
+    var arena = ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+
+    var err: ?Error = null;
+    defer if (err) |*e| e.deinit(t.allocator);
+    const config = try resolveLintConfig(
+        &arena,
+        t.io,
+        try cwd.openDir(t.io, fixtures_dir, .{}),
+        "zlint.json",
+        t.allocator,
+        &err,
+    );
+    try t.expect(err == null);
+
+    const ignore = config.config.ignore;
+    try t.expectEqual(2, ignore.patterns.len);
+    try t.expectEqualStrings("foo/**", ignore.patterns[0]);
+    try t.expectEqualStrings("bar/*.zig", ignore.patterns[1]);
+    try t.expect(ignore.matches("foo/bar.zig"));
+    try t.expect(!ignore.matches("src/foo.zig"));
+
+    // keys following `ignore` are still parsed
     try t.expectEqual(.warning, config.config.rules.rules.unsafe_undefined.severity);
 }
 
