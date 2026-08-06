@@ -35,14 +35,14 @@ pub const Linter = struct {
         return Linter{ .gpa = gpa, .arena = ArenaAllocator.init(gpa) };
     }
 
-    pub fn init(gpa: Allocator, config: Config.Managed) !Linter {
+    pub fn init(gpa: Allocator, config: Config) !Linter {
         return initWithOptions(gpa, config, .{});
     }
-    pub fn initWithOptions(gpa: Allocator, config: Config.Managed, options: Options) !Linter {
+    pub fn initWithOptions(gpa: Allocator, config: Config, options: Options) !Linter {
         var arena = ArenaAllocator.init(gpa);
         errdefer arena.deinit();
         var ruleset = RuleSet{};
-        try ruleset.loadRulesFromConfig(arena.allocator(), &config.config.rules);
+        try ruleset.loadRulesFromConfig(arena.allocator(), &config.rules);
         const linter = Linter{
             .rules = ruleset,
             .gpa = gpa,

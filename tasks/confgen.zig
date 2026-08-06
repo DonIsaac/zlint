@@ -24,18 +24,18 @@ pub fn main(init: std.process.Init) !void {
 fn createJsonSchema(allocator: Allocator, task_io: Io) !void {
     var arena = ArenaAllocator.init(allocator);
     defer arena.deinit();
-    var ctx = Schema.Context.init(allocator);
-    const root = try ctx.genSchema(Config);
+    var ctx = Schema.Context.init(arena.allocator());
+    const root = try ctx.genSchema(Config.File);
     const rules_config: *Schema.Object = &ctx.getSchema(Config.RulesConfig).?.object;
 
     var source_arena = ArenaAllocator.init(allocator);
-    defer arena.deinit();
+    defer source_arena.deinit();
 
     const root_dir = Io.Dir.cwd();
     for (gen.RuleInfo.builtin_rules) |rule| {
         const alloc = source_arena.allocator();
         defer {
-            _ = arena.reset(.retain_capacity);
+            _ = source_arena.reset(.retain_capacity);
         }
 
         std.log.info("Rule: {s}", .{rule.path});
