@@ -1,6 +1,9 @@
 {
     "type": "object",
     "properties": {
+        "extends": {
+            "$ref": "#/definitions/linter.config.File.Extends"
+        },
         "rules": {
             "$ref": "#/definitions/linter.config.RulesConfig"
         },
@@ -455,6 +458,14 @@
             "items": {
                 "type": "string"
             }
+        },
+        "linter.config.File.Extends": {
+            "type": "string",
+            "enum": [
+                "zlint:empty",
+                "zlint:default"
+            ],
+            "default": "zlint:default"
         },
         "linter.rules.duplicate_case": {
             "type": "object",

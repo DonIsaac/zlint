@@ -30,45 +30,64 @@ pub const default: RulesConfig = blk: {
     break :blk config;
 };
 
-/// See: `std.json.parseFromTokenSource()`
-pub fn jsonParse(
-    allocator: Allocator,
-    source: *json.Scanner,
-    options: json.ParseOptions,
-) !RulesConfig {
-    var rules = Rules{};
+/// `RulesConfig`, but every field is nullable and defaults to `null`.
+pub const Optional = struct {
+    repr: Rules.Optional,
 
-    // eat '{'
-    if (try source.next() != .object_begin) return ParseError.UnexpectedToken;
+    pub const empty: RulesConfig.Optional = .{ .repr = .{} };
 
-    while (try source.peekNextTokenType() != .object_end) {
-        const key_tok = try source.next();
-        const key = switch (key_tok) {
-            .string => key_tok.string,
-            else => return ParseError.UnexpectedToken,
-        };
-
-        var found = false;
-        inline for (meta.fields(Rules)) |field| {
-            const RuleConfigImpl = @TypeOf(@field(rules, field.name));
-            if (mem.eql(u8, key, RuleConfigImpl.name)) {
-                @field(rules, field.name) = try RuleConfigImpl.jsonParse(allocator, source, options);
-                found = true;
-                break;
-            }
-        }
-        if (!found) return ParseError.UnknownField;
+    /// This is a parse-time wrapper, not a schema-level type. On-disk it is
+    /// just a `RulesConfig`, so point at that definition.
+    pub fn jsonSchema(ctx: *Schema.Context) !Schema {
+        return ctx.ref(RulesConfig);
     }
 
-    // eat '}'
-    const end = try source.next();
-    assert(end == .object_end);
+    const ParseError = json.ParseError(json.Scanner);
 
-    return .{ .rules = rules };
-}
+    /// See: `std.json.parseFromTokenSource()`
+    pub fn jsonParse(
+        allocator: Allocator,
+        source: *json.Scanner,
+        options: json.ParseOptions,
+    ) !RulesConfig.Optional {
+        var rules: Rules.Optional = .{};
+
+        // eat '{'
+        if (try source.next() != .object_begin) return ParseError.UnexpectedToken;
+
+        while (try source.peekNextTokenType() != .object_end) {
+            const key_tok = try source.next();
+            const key = switch (key_tok) {
+                .string => key_tok.string,
+                else => return ParseError.UnexpectedToken,
+            };
+
+            var found = false;
+            inline for (std.meta.fields(Rules.Optional)) |field| {
+                const RuleConfigImpl = @typeInfo(@TypeOf(@field(rules, field.name))).optional.child;
+                if (std.mem.eql(u8, key, RuleConfigImpl.name)) {
+                    @field(rules, field.name) = try RuleConfigImpl.jsonParse(allocator, source, options);
+                    found = true;
+                    break;
+                }
+            }
+            // Deliberately ignores `options.ignore_unknown_fields`. Unknown keys
+            // elsewhere in the document are tolerated for forward compatibility,
+            // but a misspelled rule name silently does nothing, which is the
+            // worst way for a linter config to fail.
+            if (!found) return ParseError.UnknownField;
+        }
+
+        // eat '}'
+        const end = try source.next();
+        if (end != .object_end) return ParseError.UnexpectedToken;
+
+        return .{ .repr = rules };
+    }
+};
 
 pub fn jsonSchema(ctx: *Schema.Context) !Schema {
-    const info = @typeInfo(RulesConfig.Rules).@"struct";
+    const info = @typeInfo(Rules).@"struct";
     var obj = try ctx.object(info.fields.len);
     inline for (info.fields) |field| {
         const Rule = field.type;
@@ -84,9 +103,5 @@ pub fn jsonSchema(ctx: *Schema.Context) !Schema {
 const std = @import("std");
 const json = std.json;
 const meta = std.meta;
-const mem = std.mem;
 const Schema = @import("../../json.zig").Schema;
-
 const Allocator = std.mem.Allocator;
-const assert = std.debug.assert;
-const ParseError = json.ParseError(json.Scanner);

@@ -47,25 +47,39 @@ pub fn main(init: std.process.Init) !void {
             .{ snake_name, rule_info.name(.pascale) },
         );
     }
+
+    try w.writeAll( "pub const Optional = struct {\n");
+    for (gen.RuleInfo.all_rules) |rule_info| {
+        const snake_name = try rule_info.snakeName(stackalloc);
+        defer stackalloc.free(snake_name);
+
+        // e.g. homeless_try: ?RuleConfig(rules.HomelessTry) = null,
+        try w.print(
+            "    {s}: ?RuleConfig(rules.{s}) = null,\n",
+            .{ snake_name, rule_info.name(.pascale) },
+        );
+    }
+    try w.writeAll("};\n");
     try w.flush();
+    
     try createJsonSchema(allocator, task_io);
 }
 
 fn createJsonSchema(allocator: Allocator, task_io: Io) !void {
     var arena = ArenaAllocator.init(allocator);
     defer arena.deinit();
-    var ctx = Schema.Context.init(allocator);
-    const root = try ctx.genSchema(Config);
+    var ctx = Schema.Context.init(arena.allocator());
+    const root = try ctx.genSchema(Config.File);
     const rules_config: *Schema.Object = &ctx.getSchema(Config.RulesConfig).?.object;
 
     var source_arena = ArenaAllocator.init(allocator);
-    defer arena.deinit();
+    defer source_arena.deinit();
 
     const root_dir = Io.Dir.cwd();
     for (gen.RuleInfo.all_rules) |rule| {
         const alloc = source_arena.allocator();
         defer {
-            _ = arena.reset(.retain_capacity);
+            _ = source_arena.reset(.retain_capacity);
         }
 
         std.log.info("Rule: {s}", .{rule.path});

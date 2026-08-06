@@ -673,7 +673,7 @@ fn toValueT(T: type, value: T, ctx: *Schema.Context) Allocator.Error!?Value {
             .one => toValueT(ptr.child, value.*, ctx),
             else => @panic("todo: " ++ @typeName(T)),
         },
-        .optional => |o| toValueT(o.child, value, ctx),
+        .optional => |o| if (value) |v| toValueT(o.child, v, ctx) else .null,
         .undefined, .void, .noreturn => |t| {
             @compileError("Cannot generate a json value from type " ++ @tagName(t));
         },
