@@ -317,10 +317,10 @@ test resolveLintConfig {
     try t.expect(err == null);
     try t.expect(config.path != null);
 
-    const expected_path = try path.resolve(t.allocator, &.{"zlint/test/fixtures/config/zlint.json"});
+    const expected_path = try path.join(t.allocator, &.{ fixtures_dir, "zlint.json" });
     defer t.allocator.free(expected_path);
 
-    try t.expectStringEndsWith(config.path.?, expected_path);
+    try t.expectEqualStrings(expected_path, config.path.?);
     try t.expectEqual(.warning, config.config.rules.rules.unsafe_undefined.severity);
 }
 
