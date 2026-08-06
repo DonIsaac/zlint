@@ -58,7 +58,7 @@ pub fn build(b: *std.Build) void {
         .strip = if (debug_release) false else null,
     });
     const lib = b.addLibrary(.{
-        .name = "zlint",
+        .name = "zlint-lib",
         .root_module = zlint,
         .linkage = .static,
     });
