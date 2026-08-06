@@ -8,7 +8,7 @@ pub const Options = struct {
 
 linter: Linter,
 options: Options,
-config: Config.Managed,
+config: Config,
 reporter: *reporters.Reporter,
 group: Io.Group = .init,
 io: Io,
@@ -18,10 +18,9 @@ pub fn init(
     allocator: Allocator,
     io: Io,
     reporter: *reporters.Reporter,
-    config: Config.Managed,
+    config: Config,
     options: Options,
 ) !LintService {
-    errdefer config.arena.deinit();
     var linter = try Linter.initWithOptions(allocator, config, .{ .fix = options.fix });
     errdefer linter.deinit();
 

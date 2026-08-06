@@ -57,8 +57,8 @@ pub fn resolveLintConfig(
         scanner.enableDiagnostics(&diagnostics);
         // FIXME: i hate all these allocations, but they're needed b/c of how
         // errors work. That needs refactoring.
-        const config = json.parseFromTokenSourceLeaky(
-            lint.Config,
+        var config = json.parseFromTokenSourceLeaky(
+            lint.Config.File,
             arena_alloc,
             &scanner,
             .{ .ignore_unknown_fields = true },
@@ -66,12 +66,12 @@ pub fn resolveLintConfig(
             err.* = getReportForParseError(err_alloc, e, source, &diagnostics, maybe_path_to_config);
             return e;
         };
-        var managed = config.intoManaged(arena, null);
+        var managed = config.resolve().intoManaged(arena, null);
         managed.path = try managed.arena.allocator().dupe(u8, maybe_path_to_config);
         return managed;
     }
 
-    return lint.Config.DEFAULT.intoManaged(arena, null);
+    return lint.Config.default.intoManaged(arena, null);
 }
 
 /// Build an actionable diagnostic for a config IO failure, e.g.
@@ -196,13 +196,14 @@ fn buildReportForParseError(
     var span = Span.sized(clamped_offset -| 1, 1);
     span.end = @min(span.end, src_len);
 
+    var suggestion: ?[]const u8 = null;
     const message = switch (e) {
         error.UnknownField => blk: {
-            if (mem.lastIndexOfAny(u8, source[0..clamped_offset], &std.ascii.whitespace)) |start| {
-                span.start = @intCast(start + 1);
-            }
+            if (unknownFieldSpan(source, clamped_offset)) |field_span| span = field_span;
             const field = source[span.start..span.end];
-            break :blk customRuleMessages.get(field) orelse "Unknown field";
+            if (customRuleMessages.get(field)) |custom| break :blk custom;
+            suggestion = closestRuleName(mem.trim(u8, field, "\""));
+            break :blk "Unknown field";
         },
         error.UnexpectedToken => "Unexpected Token",
         else => |err| @errorName(err),
@@ -212,6 +213,9 @@ fn buildReportForParseError(
         .code = "invalid-config",
     };
     errdefer err.deinit(alloc);
+    if (suggestion) |name| {
+        err.help = try Cow.fmt(alloc, "Did you mean `{s}`?", .{name});
+    }
 
     {
         const own_source = try alloc.dupeZ(u8, source);
@@ -225,6 +229,62 @@ fn buildReportForParseError(
 const customRuleMessages = std.StaticStringMap([]const u8).initComptime([_]struct { []const u8, []const u8 }{
     .{ "\"no-undefined\"", "`no-undefined` has been renamed to `unsafe-undefined`." },
 });
+
+/// Span of the quoted key that triggered `error.UnknownField`, quotes included.
+/// `offset` points just past that key, so walk back over its two quotes.
+fn unknownFieldSpan(source: []const u8, offset: u32) ?Span {
+    const close = mem.lastIndexOfScalar(u8, source[0..offset], '"') orelse return null;
+    const open = mem.lastIndexOfScalar(u8, source[0..close], '"') orelse return null;
+    return Span{ .start = @intCast(open), .end = @intCast(close + 1) };
+}
+
+const rule_names: []const []const u8 = names: {
+    const fields = @typeInfo(lint.Config.RulesConfig.Rules).@"struct".fields;
+    var names: [fields.len][]const u8 = undefined;
+    for (fields, &names) |field, *name| name.* = field.type.name;
+    const final = names;
+    break :names &final;
+};
+
+/// The registered rule whose name is closest to `field`, or `null` if none are
+/// close enough to be worth suggesting.
+fn closestRuleName(field: []const u8) ?[]const u8 {
+    var best: ?[]const u8 = null;
+    var best_distance: usize = max_edit_distance + 1;
+    for (rule_names) |name| {
+        const distance = editDistance(field, name) orelse continue;
+        if (distance < best_distance) {
+            best_distance = distance;
+            best = name;
+        }
+    }
+    return best;
+}
+
+const max_edit_distance = 3;
+const max_rule_name_len = 64;
+
+/// Levenshtein distance between `a` and `b`, or `null` if it exceeds
+/// `max_edit_distance` (or either input is too long to bother with).
+fn editDistance(a: []const u8, b: []const u8) ?usize {
+    if (a.len > max_rule_name_len or b.len > max_rule_name_len) return null;
+    if (a.len -| b.len > max_edit_distance or b.len -| a.len > max_edit_distance) return null;
+
+    var prev: [max_rule_name_len + 1]usize = undefined;
+    var curr: [max_rule_name_len + 1]usize = undefined;
+    for (0..b.len + 1) |i| prev[i] = i;
+
+    for (a, 1..) |a_char, i| {
+        curr[0] = i;
+        for (b, 1..) |b_char, j| {
+            const substitution = prev[j - 1] + @intFromBool(a_char != b_char);
+            curr[j] = @min(substitution, @min(prev[j], curr[j - 1]) + 1);
+        }
+        @memcpy(prev[0 .. b.len + 1], curr[0 .. b.len + 1]);
+    }
+
+    return if (prev[b.len] <= max_edit_distance) prev[b.len] else null;
+}
 
 /// Try to read the contents of a `.gitignore` and add its entries to `config`'s
 /// ignore list. if `config` doesn't have a path, looks for `.gitignore` within
@@ -278,6 +338,29 @@ pub fn readGitignore(config: *lint.Config.Managed, io: Io, root: Dir) !void {
 }
 
 const t = std.testing;
+
+test closestRuleName {
+    try t.expectEqualStrings("unsafe-undefined", closestRuleName("unsafe-undefned").?);
+    try t.expectEqualStrings("homeless-try", closestRuleName("homeless-try").?);
+    try t.expectEqualStrings("no-print", closestRuleName("no-prints").?);
+    // exact matches never reach this path, but shouldn't misbehave if they do
+    try t.expectEqualStrings("empty-file", closestRuleName("empty-file").?);
+    // too far from anything to be a useful guess
+    try t.expectEqual(null, closestRuleName("zzzzzzzzzzzz"));
+    try t.expectEqual(null, closestRuleName(""));
+}
+
+test unknownFieldSpan {
+    // `offset` points just past the offending key, as json.Diagnostics reports it
+    const compact =
+        \\{"rules":{"no-undefined":"allow"}}
+    ;
+    const span = unknownFieldSpan(compact, 24).?;
+    try t.expectEqualStrings("\"no-undefined\"", compact[span.start..span.end]);
+
+    try t.expectEqual(null, unknownFieldSpan("{}", 2));
+}
+
 test ParentIterator {
     if (util.IS_WINDOWS) {
         var it = try ParentIterator(4096).init("C:\\foo\\bar\\baz", "zlint.json");

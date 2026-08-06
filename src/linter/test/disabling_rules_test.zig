@@ -60,7 +60,7 @@ test "Enabled rules have their violations reported" {
     const sema = semantic_result.value;
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
+        var linter = try Linter.init(t.allocator, config);
         defer linter.deinit();
         linter.runOnSource(std.testing.io, &sema, &src, &errors) catch |e| {
             switch (e) {
@@ -95,7 +95,7 @@ test "When no rules are enabled, no violations are reported" {
     const sema = res.value;
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = .{} });
+        var linter = try Linter.init(t.allocator, .{ .rules = .empty });
 
         defer linter.deinit();
         try linter.runOnSource(std.testing.io, &sema, &src, &errors);
@@ -132,7 +132,7 @@ test "When a rule is configured to 'off', none of its violations are reported" {
     const sema = res.value;
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
+        var linter = try Linter.init(t.allocator, config);
         defer linter.deinit();
         linter.runOnSource(std.testing.io, &sema, &src, &errors) catch |e| {
             switch (e) {
@@ -181,7 +181,7 @@ test "When rules are configured but a specific rule is disabled with 'zlint-disa
     const sema = res.value;
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
+        var linter = try Linter.init(t.allocator, config);
         defer linter.deinit();
         linter.runOnSource(std.testing.io, &sema, &src, &errors) catch |e| {
             switch (e) {
@@ -230,7 +230,7 @@ test "When rules are configured but disabled with 'zlint-disable', nothing gets 
     const sema = res.value;
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
+        var linter = try Linter.init(t.allocator, config);
         defer linter.deinit();
         linter.runOnSource(std.testing.io, &sema, &src, &errors) catch |e| {
             switch (e) {
@@ -278,7 +278,7 @@ test "When the global disable directive is misplaced, violations still gets repo
     const sema = res.value;
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
+        var linter = try Linter.init(t.allocator, config);
         defer linter.deinit();
         linter.runOnSource(std.testing.io, &sema, &src, &errors) catch |e| {
             switch (e) {
@@ -324,7 +324,7 @@ test "When the multiple global directives are set, all rules are honored" {
     const sema = res.value;
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
+        var linter = try Linter.init(t.allocator, config);
         defer linter.deinit();
 
         linter.runOnSource(std.testing.io, &sema, &src, &errors) catch |e| {

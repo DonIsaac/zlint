@@ -68,7 +68,7 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
             alloc,
             io,
             &reporter,
-            config,
+            config.config,
             .{ .fix = fix },
         );
         defer service.deinit();
