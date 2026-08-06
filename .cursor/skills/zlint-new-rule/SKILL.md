@@ -99,7 +99,7 @@ This does three things — do not redo them by hand:
 
 1. Creates `src/linter/rules/<name>.zig` from a template.
 2. Appends a re-export to `src/linter/rules.zig`.
-3. Inserts a `RuleConfig` field into `src/linter/config/rules_config.zig`.
+3. Inserts a `RuleConfig` field into `src/linter/config/RulesConfig.zig`.
 
 It also runs `just codegen` and formats `src/linter` once. If you later change
 `meta.name` or `meta.category`, rerun `just codegen` manually.
