@@ -153,11 +153,11 @@ test parse {
 
     const src_list: List = brk: {
         const items = &[_][]const u8{"src"};
-        break :brk List{ .items = @constCast(items) };
+        break :brk List{ .items = @constCast(items), .capacity = items.len };
     };
     const src_test_list: List = brk: {
         const items = &[_][]const u8{ "src", "test" };
-        break :brk List{ .items = @constCast(items) };
+        break :brk List{ .items = @constCast(items), .capacity = items.len };
     };
 
     const test_cases = [_]Case{

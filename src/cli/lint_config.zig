@@ -317,10 +317,10 @@ test resolveLintConfig {
     try t.expect(err == null);
     try t.expect(config.path != null);
 
-    const expected_path = try path.resolve(t.allocator, &.{"zlint/test/fixtures/config/zlint.json"});
+    const expected_path = try path.join(t.allocator, &.{ fixtures_dir, "zlint.json" });
     defer t.allocator.free(expected_path);
 
-    try t.expectStringEndsWith(config.path.?, expected_path);
+    try t.expectEqualStrings(expected_path, config.path.?);
     try t.expectEqual(.warning, config.config.rules.rules.unsafe_undefined.severity);
 }
 
@@ -352,7 +352,7 @@ test "resolveLintConfig with an empty zlint.json does not crash the formatter" {
 
     try t.expectEqual(0, err.source.?.deref().*.len);
     try t.expectEqual(1, err.labels.items.len);
-    try t.expectEqual(.empty, err.labels.items[0].span);
+    try t.expectEqual(Span.empty, err.labels.items[0].span);
 
     var fmt = GraphicalFormatter.unicode(t.allocator, false);
     var w = std.Io.Writer.Allocating.init(t.allocator);

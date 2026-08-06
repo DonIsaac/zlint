@@ -77,9 +77,3 @@ pub fn main(init: std.process.Init) !u8 {
 
     return lint_cmd.lint(alloc, io, init.minimal.environ, opts);
 }
-
-test {
-    std.testing.refAllDecls(@This());
-    std.testing.refAllDecls(@import("visit/walk.zig"));
-    std.testing.refAllDecls(@import("json.zig"));
-}

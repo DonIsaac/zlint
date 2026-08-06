@@ -23,4 +23,12 @@ test {
     std.testing.refAllDecls(printer);
     std.testing.refAllDecls(json);
     std.testing.refAllDecls(lint);
+    std.testing.refAllDecls(walk);
+
+    // `src/cli/` isn't part of the public library surface, so it's only pulled
+    // in here to get its tests compiled and run.
+    std.testing.refAllDecls(@import("cli/Options.zig"));
+    std.testing.refAllDecls(@import("cli/lint_command.zig"));
+    std.testing.refAllDecls(@import("cli/lint_config.zig"));
+    std.testing.refAllDecls(@import("cli/print_command.zig"));
 }

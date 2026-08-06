@@ -114,7 +114,7 @@ fn printReference(self: *SemanticPrinter, ref_id: Reference.Id) !void {
     const tags = ast.nodes.items(.tag);
 
     const flag_fields = std.meta.fields(Reference.Flags);
-    var buf: [flag_fields.len * @sizeOf([]const u8)]u8 = undefined;
+    var buf: [flag_fields.len * @sizeOf([]const u8) + @alignOf([]const u8) - 1]u8 = undefined;
     var fixed_alloc = std.heap.FixedBufferAllocator.init(&buf);
     const alloc = fixed_alloc.allocator();
     var flags = std.array_list.Managed([]const u8).init(alloc);
