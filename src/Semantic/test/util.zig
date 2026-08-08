@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const _source = @import("../../source.zig");
+const Source = @import("../../source.zig").Source;
 const Semantic = @import("../../Semantic.zig");
 const report = @import("../../reporter.zig");
 
@@ -17,7 +17,7 @@ var buf: [1024]u8 = undefined;
 pub fn buildWithErrors(src: [:0]const u8) !Semantic.Builder.Result {
     var builder = Semantic.Builder.init(t.allocator);
     errdefer builder.deinit();
-    var source = try _source.Source.fromString(
+    var source = try Source.fromString(
         t.allocator,
         try t.allocator.dupeZ(u8, src),
         try t.allocator.dupe(u8, "test.zig"),
@@ -40,7 +40,7 @@ pub fn build(src: [:0]const u8) !Semantic {
     );
     defer r.deinit();
     var builder = Semantic.Builder.init(t.allocator);
-    var source = try _source.Source.fromString(
+    var source = try Source.fromString(
         t.allocator,
         try t.allocator.dupeZ(u8, src),
         try t.allocator.dupe(u8, "test.zig"),

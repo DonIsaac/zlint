@@ -17,8 +17,8 @@ test "functions create a parameter list + function body scope" {
     const scopes = sem.scopes.scopes;
 
     const root: Scope = scopes.get(0);
-    try t.expectEqual(Semantic.ROOT_NODE_ID, root.node);
-    try t.expectEqual(Semantic.ROOT_SCOPE_ID, root.id);
+    try t.expectEqual(.root, root.node);
+    try t.expectEqual(.root, root.id);
     try t.expectEqual(2, sem.scopes.getBindings(root.id).len); // `add` + implicit file-level container
 
     // root scope only has one child: the function declaration

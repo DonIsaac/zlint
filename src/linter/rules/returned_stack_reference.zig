@@ -252,7 +252,7 @@ const StackReferenceVisitor = struct {
         node: Node.Index,
     ) IsLocal {
         const sema = self.ctx.semantic;
-        std.debug.assert(node != Semantic.NULL_NODE);
+        std.debug.assert(node != .root);
         if (self.ast.nodeTag(node) != .identifier) return .no;
 
         const symbols = sema.symbols.symbols.slice();

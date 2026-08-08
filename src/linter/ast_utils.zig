@@ -4,8 +4,6 @@ const Ast = Semantic.Ast;
 const Node = Ast.Node;
 const Token = Semantic.Token;
 
-const NULL_NODE = Semantic.NULL_NODE;
-
 /// Get the right-most identifier in a field access chain.
 ///
 /// This is the opposite of `getLeftmostIdentifier`.
@@ -115,13 +113,13 @@ pub inline fn isArrayInit(tag: Node.Tag) bool {
 /// if (cond) !void else void
 /// ```
 pub fn hasErrorUnion(ast: *const Ast, node: Node.Index) bool {
-    return getErrorUnion(ast, node) != NULL_NODE;
+    return getErrorUnion(ast, node) != .root;
 }
 
 pub fn getErrorUnion(ast: *const Ast, node: Node.Index) Node.Index {
     const tok_tags: []const Token.Tag = ast.tokens.items(.tag);
     return switch (ast.nodeTag(node)) {
-        .root => NULL_NODE,
+        .root => .root,
         .error_union, .merge_error_sets, .error_set_decl => node,
         .if_simple => getErrorUnion(ast, ast.nodeData(node).node_and_node[1]),
         .@"if" => blk: {
@@ -129,11 +127,11 @@ pub fn getErrorUnion(ast: *const Ast, node: Node.Index) Node.Index {
             const main = ast.nodeMainToken(node);
             if (main > 1 and tok_tags[main - 1] == .bang) break :blk node;
             break :blk unwrapNode(getErrorUnion(ast, ifnode.ast.then_expr)) orelse
-                if (ifnode.ast.else_expr.unwrap()) |else_expr| getErrorUnion(ast, else_expr) else NULL_NODE;
+                if (ifnode.ast.else_expr.unwrap()) |else_expr| getErrorUnion(ast, else_expr) else .root;
         },
         else => blk: {
             const prev_tok = ast.firstToken(node) -| 1;
-            break :blk if (tok_tags[prev_tok] == .bang) node else NULL_NODE;
+            break :blk if (tok_tags[prev_tok] == .bang) node else .root;
         },
     };
 }
@@ -190,5 +188,5 @@ pub fn getInnerType(ast: *const Ast, node: Node.Index) Node.Index {
 
 /// Returns `null` if `node` is the null node. Identity function otherwise.
 pub inline fn unwrapNode(node: Node.Index) ?Node.Index {
-    return if (node == NULL_NODE) null else node;
+    return if (node == .root) null else node;
 }

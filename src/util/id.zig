@@ -18,14 +18,15 @@ pub fn NominalId(TRepr: type) type {
             else => @compileError(err),
         }
     }
-    const max = std.math.maxInt(TRepr);
+    const max_repr = std.math.maxInt(TRepr);
 
     return enum(TRepr) {
+        root = 0,
         _,
 
         const Id = @This();
         pub const Repr = TRepr;
-        pub const MAX = max;
+        pub const max: Id = .from(max_repr);
 
         pub inline fn new(value: Repr) Id {
             return @enumFromInt(value);
@@ -59,7 +60,7 @@ pub fn NominalId(TRepr: type) type {
                     switch (intoInfo) {
                         .int => {
                             if (comptime intoInfo.int.bits > info.int.bits) {
-                                assert(value <= max);
+                                assert(value <= max_repr);
                             }
                             if (comptime intoInfo.int.signedness == .signed) {
                                 assert(value >= 0);
@@ -85,7 +86,7 @@ pub fn NominalId(TRepr: type) type {
                 Repr => return @intFromEnum(self),
                 Id => return self,
                 Optional => {
-                    std.debug.assert(self.int() != MAX);
+                    std.debug.assert(self != max);
                     return @enumFromInt(@intFromEnum(self));
                 },
                 // try to turn this into another int type
@@ -111,7 +112,7 @@ pub fn NominalId(TRepr: type) type {
         /// Try to turn this id into its corresponding optional type. Returns
         /// `null` if the id is `MAX` (which is used to represent `Optional.none`).
         pub inline fn optional(self: Id) ?Optional {
-            return if (@intFromEnum(self) == MAX)
+            return if (self == .max)
                 null
             else
                 @enumFromInt(@intFromEnum(self));
@@ -119,13 +120,14 @@ pub fn NominalId(TRepr: type) type {
 
         /// A compact representation of `?Id` using the Id's maximum value as `null`.
         pub const Optional = enum(Repr) {
-            none = max,
+            none = max_repr,
             _,
 
-            pub const MAX = max - 1;
+            /// The largest value that is not `none`.
+            pub const max: Optional = @enumFromInt(max_repr - 1);
 
             pub inline fn new(value: ?Repr) Optional {
-                return if (value == null or value.? == max) Optional.none else @enumFromInt(value.?);
+                return if (value == null or value.? == max_repr) Optional.none else @enumFromInt(value.?);
             }
 
             /// Get this id in its integer representation.
@@ -160,6 +162,14 @@ pub fn NominalId(TRepr: type) type {
             }
         };
     };
+}
+
+test NominalId {
+    const Id = NominalId(u32);
+    try std.testing.expectEqual(std.math.maxInt(u32), Id.max.int());
+    try std.testing.expectEqual(std.math.maxInt(u32) - 1, Id.Optional.max.int());
+    try std.testing.expectEqual(Id.Optional.none, Id.Optional.new(std.math.maxInt(u32)));
+    try std.testing.expectEqual(Id.root, Id.Optional.new(0).unwrap());
 }
 
 pub fn IndexVecUnmanaged(Id: type, T: type) type {

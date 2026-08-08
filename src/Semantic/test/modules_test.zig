@@ -16,7 +16,7 @@ test "@import(\"std\")" {
     const import = sema.modules.imports.items[0];
     try t.expectEqualStrings("std", import.specifier);
     try t.expectEqual(.module, import.kind);
-    try t.expect(import.node != Semantic.NULL_NODE);
+    try t.expect(import.node != .root);
 }
 
 test "@import(\"foo.zig\")" {
@@ -29,7 +29,7 @@ test "@import(\"foo.zig\")" {
     const import = sema.modules.imports.items[0];
     try t.expectEqualStrings("foo.zig", import.specifier);
     try t.expectEqual(.file, import.kind);
-    try t.expect(import.node != Semantic.NULL_NODE);
+    try t.expect(import.node != .root);
 }
 
 // ---------------------------------------------------------------------------

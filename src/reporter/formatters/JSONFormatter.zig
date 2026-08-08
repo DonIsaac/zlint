@@ -69,7 +69,6 @@ test JSONFormatter {
 
 const std = @import("std");
 const io = std.Io;
-const Cow = @import("util").Cow(false);
 const formatter = @import("../formatter.zig");
 const Meta = formatter.Meta;
 const FormatError = formatter.FormatError;

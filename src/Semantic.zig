@@ -16,35 +16,13 @@
 const Semantic = @This();
 
 parse: Parse, // NOTE: allocated in _arena
-symbols: Symbol.Table = .{},
-scopes: Scope.Tree = .{},
-modules: ModuleRecord = .{},
-node_links: NodeLinks = .{},
+symbols: Symbol.Table,
+scopes: Scope.Tree,
+modules: ModuleRecord,
+node_links: NodeLinks,
 _gpa: Allocator,
 /// Used to allocate AST nodes
 _arena: ArenaAllocator,
-
-/// The scope where symbols built in to the language are declared.
-///
-/// The root scope is eventually the parent of all other scopes. Its parent is
-/// always `null`.
-pub const BUILTIN_SCOPE_ID: Scope.Id = Scope.Id.from(1);
-/// The scope created by a program/compilation unit.
-///
-/// Its parent is always `BUILTIN_SCOPE_ID`.
-///
-/// > _note_: right now root/builtin scope ids are the same. This may change in
-/// the future.
-pub const ROOT_SCOPE_ID: Scope.Id = Scope.Id.from(0);
-/// Deprecated. use `.root` instead.
-///
-/// The root node always has an index of 0. Since it is never referenced by other nodes,
-/// the Zig team uses it to represent `null` without wasting extra memory.
-pub const ROOT_NODE_ID: Ast.Node.Index = .root;
-/// Deprecated. use `.root` instead.
-///
-/// Alias for `ROOT_NODE_ID`. Used in null-node check contexts for code clarity.
-pub const NULL_NODE: Ast.Node.Index = ROOT_NODE_ID;
 
 pub inline fn source(self: *const Semantic) [:0]const u8 {
     return self.parse.ast.source;

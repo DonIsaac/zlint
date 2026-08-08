@@ -78,7 +78,6 @@ const Rule = _rule.Rule;
 
 const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
-const assert = std.debug.assert;
 
 // Rule metadata
 const UselessErrorReturn = @This();
@@ -202,7 +201,7 @@ const Visitor = struct {
     ast: *const Ast,
 
     // state
-    curr_return: Node.Index = Semantic.NULL_NODE,
+    curr_return: Node.Index = .root,
     err_stack: std.array_list.Managed(ErrState),
 
     /// Known name of error type.
@@ -219,7 +218,7 @@ const Visitor = struct {
     seen: Seen = .{},
 
     /// location of first `catch` block found. used for error reporting.
-    first_catch: Node.Index = Semantic.NULL_NODE,
+    first_catch: Node.Index = .root,
 
     const Seen = packed struct {
         return_call: bool = false, // `return foo()`;
@@ -256,7 +255,7 @@ const Visitor = struct {
     }
 
     inline fn inReturn(self: *const Visitor) bool {
-        return self.curr_return != Semantic.NULL_NODE;
+        return self.curr_return != .root;
     }
 
     inline fn inCatch(self: *const Visitor) bool {
@@ -276,8 +275,8 @@ const Visitor = struct {
     pub fn exitNode(self: *Visitor, node: Node.Index) void {
         if (self.curr_return == node) {
             // TODO: @branchHint(.unlikely) after 0.14 is released
-            util.debugAssert(node != Semantic.NULL_NODE, "null node should never be visited", .{});
-            self.curr_return = Semantic.NULL_NODE;
+            util.debugAssert(node != .root, "null node should never be visited", .{});
+            self.curr_return = .root;
         } else if (self.err_stack.getLastOrNull()) |err| {
             if (err.node == node) {
                 _ = self.err_stack.pop();
@@ -334,7 +333,7 @@ const Visitor = struct {
     }
 
     pub fn visit_catch(self: *Visitor, node: Node.Index) VisitError!walk.WalkState {
-        if (self.first_catch == Semantic.NULL_NODE) {
+        if (self.first_catch == .root) {
             self.first_catch = node;
         }
 
@@ -409,7 +408,7 @@ const Visitor = struct {
     }
 
     pub fn visitCall(self: *Visitor, _: Node.Index, _: *const Ast.full.Call) VisitError!walk.WalkState {
-        if (self.curr_return == Semantic.NULL_NODE) return .Continue;
+        if (self.curr_return == .root) return .Continue;
 
         self.seen.return_call = true;
         return .Stop;

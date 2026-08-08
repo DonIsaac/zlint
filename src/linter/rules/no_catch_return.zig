@@ -81,7 +81,7 @@ pub fn runOnNode(_: *const NoCatchReturn, wrapper: NodeWrapper, ctx: *LinterCont
 
     // .@"catch" data is .node_and_node: [0]=operand, [1]=fallback
     const catch_data = node.data.node_and_node;
-    if (catch_data[1] == Semantic.NULL_NODE) return; // NOTE: in v0.15, this is non-optional. Remove?
+    if (catch_data[1] == .root) return; // NOTE: in v0.15, this is non-optional. Remove?
     var return_node: Node.Index = catch_data[1];
     const end_of_last_tok = ctx.semantic.tokenSpan(ast.lastToken(return_node)).end;
 
