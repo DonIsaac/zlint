@@ -17,6 +17,16 @@ pub fn build(b: *std.Build) void {
     // the LLVM backend for coverage builds so kcov produces real reports.
     const coverage = b.option(bool, "coverage", "Build test binaries with the LLVM backend for kcov coverage") orelse false;
     const use_llvm: ?bool = if (coverage) true else null;
+    // these are relative to the caller, so if we are a dependency, it will be relative to the depender
+    const custom_rule_paths = b.option(
+        []const Build.LazyPath,
+        "custom_rules",
+        "comma separated list of custom rule files. See DOC LINK TODO",
+    ) orelse &.{};
+    std.debug.print("custom_rule_paths:\n", .{});
+    for (custom_rule_paths) |p| {
+        std.debug.print("{any}\n", .{p});
+    }
 
     var l = Linker.init(b);
     defer l.deinit();
@@ -77,6 +87,40 @@ pub fn build(b: *std.Build) void {
         .strip = if (debug_release) false else null,
     });
     l.link(exe_mod, false, .{});
+
+    var custom_rules_bytes = std.Io.Writer.Allocating.init(b.allocator);
+    defer custom_rules_bytes.deinit();
+    if (custom_rule_paths.len > 0) {
+        custom_rules_bytes.writer.writeAll(
+            \\pub const custom_rules = &.{
+            \\
+        ) catch @panic("OOM");
+        for (custom_rule_paths, 0..) |p, i| {
+            // NOTE: never freed, we assume the build graph keeps a ref
+            const name = std.fmt.allocPrint(b.allocator, "custom_rules_{d}", .{i}) catch @panic("OOM");
+            exe_mod.addAnonymousImport(name, .{
+                .root_source_file = p,
+                .target = l.target,
+                .optimize = l.optimize,
+            });
+            custom_rules_bytes.writer.print(
+                \\  pub const {0s} = @import("{0s}"),
+            , .{name}) catch @panic("OOM");
+        }
+        custom_rules_bytes.writer.writeAll(
+            \\};
+            \\
+        ) catch @panic("OOM");
+    }
+
+    const custom_rules_files = b.addWriteFiles();
+    const custom_rules_index = custom_rules_files.add("custom_rules_index.zig", custom_rules_bytes.written());
+
+    exe_mod.addAnonymousImport("custom_rules_index", .{
+        .root_source_file = custom_rules_index,
+        .target = l.target,
+        .optimize = l.optimize,
+    });
 
     const exe = b.addExecutable(.{
         .name = "zlint",
