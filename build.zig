@@ -88,39 +88,46 @@ pub fn build(b: *std.Build) void {
     });
     l.link(exe_mod, false, .{});
 
-    var custom_rules_bytes = std.Io.Writer.Allocating.init(b.allocator);
+    const custom_rules_mod = b.createModule(.{
+        // root_source_file set below
+        .target = l.target,
+        .optimize = l.optimize,
+    });
+
+    const custom_rules_header =
+        \\pub const custom_rules = struct {
+        \\
+    ;
+    const custom_rules_footer =
+        \\};
+        \\
+    ;
+    var custom_rules_bytes = std.Io.Writer.Allocating.initCapacity(
+        b.allocator,
+        custom_rules_header.len + custom_rules_footer.len + 1,
+    ) catch @panic("OOM");
     defer custom_rules_bytes.deinit();
     if (custom_rule_paths.len > 0) {
-        custom_rules_bytes.writer.writeAll(
-            \\pub const custom_rules = &.{
-            \\
-        ) catch @panic("OOM");
+        custom_rules_bytes.writer.writeAll(custom_rules_header) catch @panic("OOM");
         for (custom_rule_paths, 0..) |p, i| {
             // NOTE: never freed, we assume the build graph keeps a ref
             const name = std.fmt.allocPrint(b.allocator, "custom_rules_{d}", .{i}) catch @panic("OOM");
-            exe_mod.addAnonymousImport(name, .{
+            custom_rules_mod.addAnonymousImport(name, .{
                 .root_source_file = p,
                 .target = l.target,
                 .optimize = l.optimize,
             });
             custom_rules_bytes.writer.print(
-                \\  pub const {0s} = @import("{0s}"),
+                \\  pub const {0s} = @import("{0s}");
             , .{name}) catch @panic("OOM");
         }
-        custom_rules_bytes.writer.writeAll(
-            \\};
-            \\
-        ) catch @panic("OOM");
+        custom_rules_bytes.writer.writeAll(custom_rules_footer) catch @panic("OOM");
     }
 
     const custom_rules_files = b.addWriteFiles();
-    const custom_rules_index = custom_rules_files.add("custom_rules_index.zig", custom_rules_bytes.written());
-
-    exe_mod.addAnonymousImport("custom_rules_index", .{
-        .root_source_file = custom_rules_index,
-        .target = l.target,
-        .optimize = l.optimize,
-    });
+    const custom_rules_mod_file = custom_rules_files.add("custom_rules.zig", custom_rules_bytes.written());
+    custom_rules_mod.root_source_file = custom_rules_mod_file;
+    exe_mod.addImport("custom_rules", custom_rules_mod);
 
     const exe = b.addExecutable(.{
         .name = "zlint",

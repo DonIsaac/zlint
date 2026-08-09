@@ -1,14 +1,15 @@
 const std = @import("std");
 const util = @import("util");
 const Semantic = @import("../Semantic.zig");
-const AllRules = @import("./rules.zig");
-
 const Ast = Semantic.Ast;
 const Symbol = Semantic.Symbol;
 const Severity = @import("../Error.zig").Severity;
 const Fix = @import("./fix.zig").Fix;
 
 const LinterContext = @import("lint_context.zig");
+
+const CustomRules = @import("custom_rules").custom_rules;
+const BuiltinRules = @import("./rules.zig");
 
 pub const NodeWrapper = struct {
     node: *const Ast.Node,
@@ -158,14 +159,25 @@ pub const Rule = struct {
 const IdMap = std.StaticStringMap(Rule.Id);
 const rule_ids: IdMap = ids: {
     const Type = std.builtin.Type;
-    const RuleDecls: []const Type.Declaration = @typeInfo(AllRules).@"struct".decls;
+    const BuiltinRuleDecls: []const Type.Declaration = @typeInfo(BuiltinRules).@"struct".decls;
+    const CustomRuleDecls: []const Type.Declaration = @typeInfo(CustomRules).@"struct".decls;
+    const RuleDecls = BuiltinRuleDecls ++ CustomRuleDecls;
     var ids: [RuleDecls.len]struct { []const u8, Rule.Id } = undefined;
-    for (RuleDecls, 0..) |decl, i| {
-        const RuleImpl = @field(AllRules, decl.name);
+    for (BuiltinRuleDecls, 0..) |decl, i| {
+        const RuleImpl = @field(BuiltinRules, decl.name);
         if (!@hasDecl(RuleImpl, "meta")) {
-            @compileError("Rule '" ++ decl.name ++ "' is missing a meta: Rule.Meta property.");
+            @compileError("Builtin rule '" ++ decl.name ++ "' is missing a meta: Rule.Meta property.");
         }
-        const name: []const u8 = @field(AllRules, decl.name).meta.name;
+        const name: []const u8 = @field(BuiltinRules, decl.name).meta.name;
+        const id = Rule.Id.new(i);
+        ids[i] = .{ name, id };
+    }
+    for (CustomRuleDecls, BuiltinRuleDecls.len..) |decl, i| {
+        const RuleImpl = @field(CustomRules, decl.name);
+        if (!@hasDecl(RuleImpl, "meta")) {
+            @compileError("Custom rule '" ++ decl.name ++ "' is missing a meta: Rule.Meta property.");
+        }
+        const name: []const u8 = @field(BuiltinRules, decl.name).meta.name;
         const id = Rule.Id.new(i);
         ids[i] = .{ name, id };
     }
@@ -176,7 +188,7 @@ test rule_ids {
     const t = std.testing;
     comptime {
         try t.expectEqual(
-            @typeInfo(AllRules).@"struct".decls.len,
+            @typeInfo(BuiltinRules).@"struct".decls.len,
             rule_ids.kvs.len,
         );
         try t.expect(rule_ids.get("unsafe-undefined") != null);
