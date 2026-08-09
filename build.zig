@@ -3,11 +3,7 @@ const Build = std.Build;
 const Module = std.Build.Module;
 const codegen = @import("tasks/codegen_task.zig");
 
-const ZLintBuildGraph = struct {
-    exe: *Build.Step.Compile,
-};
-
-fn _build(b: *std.Build, in_opts: Linker.Options) ZLintBuildGraph {
+pub fn build(b: *std.Build) void {
     // default to -freference-trace, but respect -fnoreference-trace
     if (b.reference_trace == null) {
         b.reference_trace = 256;
@@ -22,7 +18,7 @@ fn _build(b: *std.Build, in_opts: Linker.Options) ZLintBuildGraph {
     const coverage = b.option(bool, "coverage", "Build test binaries with the LLVM backend for kcov coverage") orelse false;
     const use_llvm: ?bool = if (coverage) true else null;
 
-    var l = Linker.init(b, in_opts);
+    var l = Linker.init(b);
     defer l.deinit();
     if (debug_release) {
         l.optimize = .ReleaseSafe;
@@ -234,17 +230,6 @@ fn _build(b: *std.Build, in_opts: Linker.Options) ZLintBuildGraph {
     check.dependOn(&ct.docgen().step);
     check.dependOn(&ct.confgen().step);
     check.dependOn(&e2e.step);
-
-    return .{
-        .exe = exe,
-    };
-}
-
-pub fn build(b: *std.Build) void {
-    _ = _build(b, .{
-        .target = b.standardTargetOptions(.{}),
-        .optimize = b.standardOptimizeOption(.{}),
-    });
 }
 
 /// Stores modules and dependencies. Use `link` to register them as imports.
@@ -257,19 +242,14 @@ const Linker = struct {
     modules: std.StringHashMapUnmanaged(*Module) = .{},
     dev_modules: std.StringHashMapUnmanaged(*Module) = .{},
 
-    pub const Options = struct {
-        target: Build.ResolvedTarget,
-        optimize: std.builtin.OptimizeMode,
-    };
-
-    fn init(b: *Build, in_opts: Options) Linker {
+    fn init(b: *Build) Linker {
         var opts = b.addOptions();
         opts.addOption([]const u8, "version", b.option([]const u8, "version", "ZLint version") orelse "v0.0.0");
         var linker = Linker{
             .b = b,
             .options = opts,
-            .target = in_opts.target,
-            .optimize = in_opts.optimize,
+            .target = b.standardTargetOptions(.{}),
+            .optimize = b.standardOptimizeOption(.{}),
         };
         const opts_module = opts.createModule();
         linker.modules.put(b.allocator, "config", opts_module) catch @panic("OOM");
