@@ -162,7 +162,9 @@ const rule_ids: IdMap = ids: {
     const BuiltinRuleDecls: []const Type.Declaration = @typeInfo(BuiltinRules).@"struct".decls;
     const CustomRuleDecls: []const Type.Declaration = @typeInfo(CustomRules).@"struct".decls;
     const RuleDecls = BuiltinRuleDecls ++ CustomRuleDecls;
+
     var ids: [RuleDecls.len]struct { []const u8, Rule.Id } = undefined;
+
     for (BuiltinRuleDecls, 0..) |decl, i| {
         const RuleImpl = @field(BuiltinRules, decl.name);
         if (!@hasDecl(RuleImpl, "meta")) {
@@ -172,6 +174,7 @@ const rule_ids: IdMap = ids: {
         const id = Rule.Id.new(i);
         ids[i] = .{ name, id };
     }
+
     for (CustomRuleDecls, BuiltinRuleDecls.len..) |decl, i| {
         const RuleImpl = @field(CustomRules, decl.name);
         if (!@hasDecl(RuleImpl, "meta")) {
@@ -181,6 +184,7 @@ const rule_ids: IdMap = ids: {
         const id = Rule.Id.new(i);
         ids[i] = .{ name, id };
     }
+
     break :ids IdMap.initComptime(ids);
 };
 
@@ -188,7 +192,7 @@ test rule_ids {
     const t = std.testing;
     comptime {
         try t.expectEqual(
-            @typeInfo(BuiltinRules).@"struct".decls.len,
+            @typeInfo(BuiltinRules).@"struct".decls.len + @typeInfo(BuiltinRules).@"struct".decls.len,
             rule_ids.kvs.len,
         );
         try t.expect(rule_ids.get("unsafe-undefined") != null);
