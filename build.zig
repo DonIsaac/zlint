@@ -103,24 +103,25 @@ pub fn build(b: *std.Build) void {
         custom_rules_header.len + custom_rules_footer.len + 1,
     ) catch @panic("OOM");
     defer custom_rules_bytes.deinit();
-    if (custom_rule_paths.len > 0) {
-        custom_rules_bytes.writer.writeAll(custom_rules_header) catch @panic("OOM");
-        for (custom_rule_paths, 0..) |p, i| {
-            // NOTE: never freed, we assume the build graph keeps a ref
-            const name = std.fmt.allocPrint(b.allocator, "custom_rules_{d}", .{i}) catch @panic("OOM");
-            const custom_rule_mod = b.createModule(.{
-                .root_source_file = p,
-                .target = l.target,
-                .optimize = l.optimize,
-            });
-            custom_rule_mod.addImport("zlint", exe_mod);
-            custom_rules_mod.addImport(name, custom_rule_mod);
-            custom_rules_bytes.writer.print(
-                \\  pub const {0s} = @import("{0s}");
-            , .{name}) catch @panic("OOM");
-        }
-        custom_rules_bytes.writer.writeAll(custom_rules_footer) catch @panic("OOM");
+
+    custom_rules_bytes.writer.writeAll(custom_rules_header) catch @panic("OOM");
+
+    for (custom_rule_paths, 0..) |p, i| {
+        // NOTE: never freed, we assume the build graph keeps a ref
+        const name = std.fmt.allocPrint(b.allocator, "custom_rules_{d}", .{i}) catch @panic("OOM");
+        const custom_rule_mod = b.createModule(.{
+            .root_source_file = p,
+            .target = l.target,
+            .optimize = l.optimize,
+        });
+        custom_rule_mod.addImport("zlint", exe_mod);
+        custom_rules_mod.addImport(name, custom_rule_mod);
+        custom_rules_bytes.writer.print(
+            \\  pub const {0s} = @import("{0s}");
+        , .{name}) catch @panic("OOM");
     }
+
+    custom_rules_bytes.writer.writeAll(custom_rules_footer) catch @panic("OOM");
 
     const custom_rules_files = b.addWriteFiles();
     const custom_rules_mod_file = custom_rules_files.add("custom_rules.zig", custom_rules_bytes.written());
