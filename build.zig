@@ -322,3 +322,16 @@ const Linker = struct {
         self.modules.deinit(self.b.allocator);
     }
 };
+
+pub const ZLintStep = struct {
+    step: Build.Step,
+};
+
+pub fn addRunLint(b: *std.Build, zlint_dep: *std.Build.Dependency) *ZLintStep {
+    const exe = zlint_dep.artifact("zlint");
+    const run = b.addRunArtifact(exe);
+    if (b.args) |args| {
+        run.addArgs(args);
+    }
+    return @ptrCast(run);
+}
