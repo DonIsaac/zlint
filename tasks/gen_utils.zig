@@ -19,10 +19,26 @@ pub const RuleInfo = struct {
     /// `SomeRule`. Name used by rule struct.
     name_pascale: []const u8,
     pub const all_rules = blk: {
-        const rule_decls: []const std.builtin.Type.Declaration = @typeInfo(zlint.lint.rules).@"struct".decls;
-        var rule_infos: [rule_decls.len]RuleInfo = undefined;
+        const builtin_rule_decls: []const std.builtin.Type.Declaration = @typeInfo(zlint.lint.rules).@"struct".decls;
+        const custom_rules = @import("custom_rules").custom_rules;
+        const custom_rule_decls: []const std.builtin.Type.Declaration = @typeInfo(custom_rules).@"struct".decls;
+
+        var rule_infos: [builtin_rule_decls.len + custom_rule_decls.len]RuleInfo = undefined;
         var i = 0;
-        for (rule_decls) |rule_decl| {
+        for (builtin_rule_decls) |rule_decl| {
+            const rule = @field(zlint.lint.rules, rule_decl.name);
+            const rule_meta: Rule.Meta = rule.meta;
+            var snake_case_name: [rule_meta.name.len]u8 = undefined;
+            @memcpy(&snake_case_name, rule_meta.name);
+            mem.replaceScalar(u8, &snake_case_name, '-', '_');
+            rule_infos[i] = RuleInfo{
+                .meta = rule_meta,
+                .path = c.@"linter/rules" ++ "/" ++ snake_case_name ++ ".zig",
+                .name_pascale = rule_decl.name,
+            };
+            i += 1;
+        }
+        for (custom_rule_decls) |rule_decl| {
             const rule = @field(zlint.lint.rules, rule_decl.name);
             const rule_meta: Rule.Meta = rule.meta;
             var snake_case_name: [rule_meta.name.len]u8 = undefined;
