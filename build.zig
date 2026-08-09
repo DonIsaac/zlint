@@ -323,7 +323,7 @@ const Linker = struct {
     }
 };
 
-const ZLintStep = struct {
+pub const ZLintStep = struct {
     step: Build.Step,
 };
 
