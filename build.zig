@@ -23,10 +23,6 @@ pub fn build(b: *std.Build) void {
         "custom_rules",
         "comma separated list of custom rule files. See DOC LINK TODO",
     ) orelse &.{};
-    std.debug.print("custom_rule_paths:\n", .{});
-    for (custom_rule_paths) |p| {
-        std.debug.print("{any}\n", .{p});
-    }
 
     var l = Linker.init(b);
     defer l.deinit();
@@ -112,11 +108,13 @@ pub fn build(b: *std.Build) void {
         for (custom_rule_paths, 0..) |p, i| {
             // NOTE: never freed, we assume the build graph keeps a ref
             const name = std.fmt.allocPrint(b.allocator, "custom_rules_{d}", .{i}) catch @panic("OOM");
-            custom_rules_mod.addAnonymousImport(name, .{
+            const custom_rule_mod = b.createModule(.{
                 .root_source_file = p,
                 .target = l.target,
                 .optimize = l.optimize,
             });
+            custom_rule_mod.addImport("zlint", exe_mod);
+            custom_rules_mod.addImport(name, custom_rule_mod);
             custom_rules_bytes.writer.print(
                 \\  pub const {0s} = @import("{0s}");
             , .{name}) catch @panic("OOM");

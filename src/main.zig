@@ -77,3 +77,14 @@ pub fn main(init: std.process.Init) !u8 {
 
     return lint_cmd.lint(alloc, io, init.minimal.environ, opts);
 }
+
+// FIXME: better names
+// START CUSTOM RULE API
+pub const ast_utils = @import("./linter/ast_utils.zig");
+pub const span = @import("./span.zig");
+pub const rule = @import("./linter/rule.zig");
+pub const lint_context = @import("./linter/lint_context.zig");
+pub const Semantic = @import("./Semantic.zig");
+//pub const Error = @import("./Error.zig");
+pub const tester = @import("./linter/tester.zig");
+// FINISH CUSTOM RULE API

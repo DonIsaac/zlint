@@ -177,7 +177,7 @@ const rule_ids: IdMap = ids: {
         if (!@hasDecl(RuleImpl, "meta")) {
             @compileError("Custom rule '" ++ decl.name ++ "' is missing a meta: Rule.Meta property.");
         }
-        const name: []const u8 = @field(BuiltinRules, decl.name).meta.name;
+        const name: []const u8 = @field(CustomRules, decl.name).meta.name;
         const id = Rule.Id.new(i);
         ids[i] = .{ name, id };
     }
