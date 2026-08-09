@@ -3,7 +3,11 @@ const Build = std.Build;
 const Module = std.Build.Module;
 const codegen = @import("tasks/codegen_task.zig");
 
-pub fn build(b: *std.Build) void {
+const ZLintBuildGraph = struct {
+    exe: *Build.Step.Compile,
+};
+
+fn _build(b: *std.Build, in_opts: Linker.Options) ZLintBuildGraph {
     // default to -freference-trace, but respect -fnoreference-trace
     if (b.reference_trace == null) {
         b.reference_trace = 256;
@@ -18,7 +22,7 @@ pub fn build(b: *std.Build) void {
     const coverage = b.option(bool, "coverage", "Build test binaries with the LLVM backend for kcov coverage") orelse false;
     const use_llvm: ?bool = if (coverage) true else null;
 
-    var l = Linker.init(b);
+    var l = Linker.init(b, in_opts);
     defer l.deinit();
     if (debug_release) {
         l.optimize = .ReleaseSafe;
@@ -230,6 +234,17 @@ pub fn build(b: *std.Build) void {
     check.dependOn(&ct.docgen().step);
     check.dependOn(&ct.confgen().step);
     check.dependOn(&e2e.step);
+
+    return .{
+        .exe = exe,
+    };
+}
+
+pub fn build(b: *std.Build) void {
+    _ = _build(b, .{
+        .target = b.standardTargetOptions(.{}),
+        .optimize = b.standardOptimizeOption(.{}),
+    });
 }
 
 /// Stores modules and dependencies. Use `link` to register them as imports.
@@ -242,14 +257,19 @@ const Linker = struct {
     modules: std.StringHashMapUnmanaged(*Module) = .{},
     dev_modules: std.StringHashMapUnmanaged(*Module) = .{},
 
-    fn init(b: *Build) Linker {
+    pub const Options = struct {
+        target: Build.ResolvedTarget,
+        optimize: std.builtin.OptimizeMode,
+    };
+
+    fn init(b: *Build, in_opts: Options) Linker {
         var opts = b.addOptions();
         opts.addOption([]const u8, "version", b.option([]const u8, "version", "ZLint version") orelse "v0.0.0");
         var linker = Linker{
             .b = b,
             .options = opts,
-            .target = b.standardTargetOptions(.{}),
-            .optimize = b.standardOptimizeOption(.{}),
+            .target = in_opts.target,
+            .optimize = in_opts.optimize,
         };
         const opts_module = opts.createModule();
         linker.modules.put(b.allocator, "config", opts_module) catch @panic("OOM");
@@ -322,3 +342,16 @@ const Linker = struct {
         self.modules.deinit(self.b.allocator);
     }
 };
+
+const ZLintStep = struct {
+    step: Build.Step,
+};
+
+pub fn addRunLint(b: *std.Build, zlint_dep: *std.Build.Dependency) *ZLintStep {
+    const exe = zlint_dep.artifact("zlint");
+    const run = b.addRunArtifact(exe);
+    if (b.args) |args| {
+        run.addArgs(args);
+    }
+    return @ptrCast(run);
+}
