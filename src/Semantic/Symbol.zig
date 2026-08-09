@@ -38,7 +38,7 @@ scope: Scope.Id,
 decl: Node.Index,
 visibility: Visibility,
 flags: Flags,
-references: std.ArrayListUnmanaged(Reference.Id) = .empty,
+references: std.ArrayList(Reference.Id) = .empty,
 
 /// Symbols on "instance objects" (e.g. field properties and instance
 /// methods). Generally corresponds to `.container_field` nodes.
@@ -55,9 +55,8 @@ exports: SymbolIdList = .empty,
 
 /// Uniquely identifies a symbol across a source file.
 pub const Id = NominalId(u32);
-pub const MAX_ID = Id.MAX;
 
-const SymbolIdList = std.ArrayListUnmanaged(Symbol.Id);
+const SymbolIdList = std.ArrayList(Symbol.Id);
 
 /// Visibility to external code.
 ///
@@ -70,8 +69,7 @@ pub const Visibility = enum {
     private,
 };
 
-const FLAGS_REPR = u16;
-pub const Flags = packed struct(FLAGS_REPR) {
+pub const Flags = packed struct(u16) {
     /// A container-level or local variable.
     ///
     /// If it's declared with a `const` or `var` keyword, this is true. Note
@@ -170,9 +168,15 @@ pub const Table = struct {
     /// Indexed by symbol id.
     ///
     /// Do not write to this list directly.
-    symbols: std.MultiArrayList(Symbol) = .{},
-    references: std.MultiArrayList(Reference) = .{},
-    unresolved_references: std.ArrayListUnmanaged(Reference.Id) = .empty,
+    symbols: std.MultiArrayList(Symbol),
+    references: std.MultiArrayList(Reference),
+    unresolved_references: std.ArrayList(Reference.Id),
+
+    pub const empty: Table = .{
+        .symbols = .empty,
+        .references = .empty,
+        .unresolved_references = .empty,
+    };
 
     /// Get a symbol from the table.
     pub inline fn get(self: *const Symbol.Table, id: Symbol.Id) *const Symbol {
@@ -190,7 +194,7 @@ pub const Table = struct {
         visibility: Symbol.Visibility,
         flags: Symbol.Flags,
     ) Allocator.Error!Symbol.Id {
-        assert(self.symbols.len < Symbol.MAX_ID);
+        assert(self.symbols.len < Symbol.Id.max.int());
 
         // const id: Symbol.Id = @intCast(self.symbols.len).into();
         const id = Id.from(self.symbols.len);
@@ -364,7 +368,7 @@ test "Symbol.Table.iter()" {
     const a = std.testing.allocator;
     const expectEqual = std.testing.expectEqual;
 
-    var table = Symbol.Table{};
+    var table: Symbol.Table = .empty;
     defer table.deinit(a);
 
     _ = try table.addSymbol(a, @enumFromInt(1), "a", null, null, Scope.Id.new(0), .public, .{});

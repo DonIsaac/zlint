@@ -213,7 +213,7 @@ pub fn Walker(Visitor: type, Error: type) type {
             visitor: *Visitor,
             node: Node.Index,
         ) InitError!Self {
-            if (node == Semantic.NULL_NODE) {
+            if (node == .root) {
                 @branchHint(.cold);
                 return InitError.NullNode;
             }
@@ -450,7 +450,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                         }
                     }
                     if (param.type_expr) |type_node| {
-                        if (type_node != Semantic.NULL_NODE) try parambuf.append(type_node);
+                        if (type_node != .root) try parambuf.append(type_node);
                     }
                 }
                 std.mem.reverse(Item, parambuf.items);
@@ -489,7 +489,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                                 self.push(el, .{ .assume_capacity = true });
                             }
                         },
-                        Node.Index => if (subnode != Semantic.NULL_NODE) {
+                        Node.Index => if (subnode != .root) {
                             if (comptime std.mem.eql(u8, field.name, "proto_node")) {
                                 if (own_id != subnode) try self.push(subnode, .{ .maybe_null = false });
                             } else {
@@ -499,7 +499,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                         },
                         Node.OptionalIndex => {
                             if (subnode.unwrap()) |n| {
-                                if (n != Semantic.NULL_NODE) {
+                                if (n != .root) {
                                     util.assert(n != own_id, "Cycle detected on node {d}", .{@intFromEnum(own_id)});
                                     try self.push(n, .{ .maybe_null = false });
                                 }
@@ -507,7 +507,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                         },
                         ?Node.Index => {
                             if (subnode) |n| {
-                                if (n != Semantic.NULL_NODE) {
+                                if (n != .root) {
                                     util.assert(n != own_id, "Cycle detected on node {d}", .{@intFromEnum(own_id)});
                                     try self.push(n, .{ .maybe_null = false });
                                 }
@@ -830,7 +830,7 @@ pub fn Walker(Visitor: type, Error: type) type {
         ///   pushing many nodes at once.
         inline fn push(self: *Self, node: Node.Index, comptime opts: PushOpts) if (opts.assume_capacity) void else Allocator.Error!void {
             if (comptime opts.maybe_null) {
-                if (node == Semantic.NULL_NODE) return;
+                if (node == .root) return;
             }
             if (comptime util.RUNTIME_SAFETY) self.assertInRange(node);
             if (comptime opts.assume_capacity) {
@@ -861,7 +861,7 @@ pub fn Walker(Visitor: type, Error: type) type {
         /// Sanity check that is only enabled in safe/debug builds. Inlined so
         /// compiler can optimize away checks that aren't needed.
         inline fn assertInRange(self: *Self, node: Node.Index) void {
-            util.assert(node != Semantic.NULL_NODE, "Tried to push null node onto stack", .{});
+            util.assert(node != .root, "Tried to push null node onto stack", .{});
 
             if (comptime util.RUNTIME_SAFETY) {
                 if (@intFromEnum(node) >= self.ast.nodes.len) {

@@ -16,8 +16,6 @@ flags: Flags,
 
 pub const Id = NominalId(u32);
 
-const FLAGS_REPR = u8;
-
 /// Describes how a reference uses a symbol.
 ///
 /// ## Chained references
@@ -27,7 +25,7 @@ const FLAGS_REPR = u8;
 /// - `foo` is `member | read`
 /// - `bar` is `member | call`
 /// - `baz` is `call`
-pub const Flags = packed struct(FLAGS_REPR) {
+pub const Flags = packed struct(u8) {
     /// Reference is reading a symbol's value.
     read: bool = false,
     /// Reference is modifying the value stored in a symbol.

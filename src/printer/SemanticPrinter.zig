@@ -139,7 +139,7 @@ fn printReference(self: *SemanticPrinter, ref_id: Reference.Id) !void {
 }
 
 pub fn printScopeTree(self: *SemanticPrinter) !void {
-    return self.printScope(&self.semantic.scopes.getScope(Semantic.ROOT_SCOPE_ID));
+    return self.printScope(&self.semantic.scopes.getScope(.root));
 }
 
 fn printScope(self: *SemanticPrinter, scope: *const Semantic.Scope) !void {

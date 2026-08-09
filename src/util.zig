@@ -66,4 +66,5 @@ pub inline fn assertUnsafe(condition: bool) void {
 
 test {
     std.testing.refAllDecls(@This());
+    _ = @import("util/id.zig");
 }

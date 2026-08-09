@@ -1,6 +1,8 @@
 const ReferenceStack = @This();
 
-frames: std.ArrayListUnmanaged(ReferenceIdList) = .empty,
+frames: std.ArrayList(ReferenceIdList),
+
+pub const empty: ReferenceStack = .{ .frames = .empty };
 
 const ReferenceIdList = std.ArrayListUnmanaged(Reference.Id);
 

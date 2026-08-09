@@ -15,28 +15,43 @@ const NodeLinks = @This();
 /// ### Invariants:
 /// - No node is its own parent
 /// - No node is the parent of the root node (0 in this case means `null`).
-parents: std.ArrayListUnmanaged(NodeIndex) = .empty,
+parents: NodeMap(NodeIndex),
 /// Map AST nodes to the scope they are in. Index is the node id.
 ///
 /// This is _not_ a mapping for scopes that nodes create.
-scopes: std.ArrayListUnmanaged(Scope.Id) = .empty,
+scopes: NodeMap(Scope.Id),
 /// Maps identifier tokens to the symbols bound to them.
 ///
 /// These are the same as `symbol.identifier`, but allow for lookups the other
 /// way.
-symbols: std.AutoHashMapUnmanaged(Ast.TokenIndex, Symbol.Id) = .{},
+symbols: TokenMap(Symbol.Id),
 /// Maps tokens (usually `.identifier`s) to the references they create. Since
 /// references are sparse in an AST, a hashmap is used to avoid wasting memory.
-references: std.AutoHashMapUnmanaged(Ast.TokenIndex, Reference.Id) = .{},
+references: TokenMap(Reference.Id),
+
+fn NodeMap(T: type) type {
+    return std.ArrayList(T);
+}
+
+fn TokenMap(T: type) type {
+    return std.AutoHashMapUnmanaged(Ast.TokenIndex, T);
+}
+
+pub const empty: NodeLinks = .{
+    .parents = .empty,
+    .scopes = .empty,
+    .symbols = .empty,
+    .references = .empty,
+};
 
 pub fn init(alloc: Allocator, ast: *const Ast) Allocator.Error!NodeLinks {
-    var links: NodeLinks = .{};
+    var links: NodeLinks = .empty;
     const node_count = ast.nodes.len;
 
     try links.parents.ensureTotalCapacityPrecise(alloc, node_count);
-    links.parents.appendNTimesAssumeCapacity(NULL_NODE, node_count);
+    links.parents.appendNTimesAssumeCapacity(.root, node_count);
     try links.scopes.ensureTotalCapacityPrecise(alloc, node_count);
-    links.scopes.appendNTimesAssumeCapacity(ROOT_SCOPE_ID, node_count);
+    links.scopes.appendNTimesAssumeCapacity(.root, node_count);
 
     try links.references.ensureTotalCapacity(alloc, 16);
 
@@ -61,7 +76,7 @@ pub inline fn setScope(self: *NodeLinks, node_id: NodeIndex, scope_id: Scope.Id)
 }
 
 pub inline fn getScope(self: *const NodeLinks, node_id: NodeIndex) ?Scope.Id {
-    if (node_id == ROOT_NODE_ID) {
+    if (node_id == .root) {
         @branchHint(.cold);
         return null;
     }
@@ -72,12 +87,12 @@ pub inline fn getScope(self: *const NodeLinks, node_id: NodeIndex) ?Scope.Id {
         .{ idx, self.scopes.items.len },
     );
     const scope_id = self.scopes.items[idx];
-    return if (scope_id == ROOT_SCOPE_ID) null else scope_id;
+    return if (scope_id == .root) null else scope_id;
 }
 
 pub inline fn setParent(self: *NodeLinks, child_id: NodeIndex, parent_id: NodeIndex) void {
     assert(child_id != parent_id, "AST nodes cannot be children of themselves", .{});
-    assert(child_id != NULL_NODE, "Re-assigning the root node's parent is illegal behavior", .{});
+    assert(child_id != .root, "Re-assigning the root node's parent is illegal behavior", .{});
     const parent_idx = @intFromEnum(parent_id);
     assert(
         parent_idx < self.parents.items.len,
@@ -89,7 +104,7 @@ pub inline fn setParent(self: *NodeLinks, child_id: NodeIndex, parent_id: NodeIn
 }
 
 pub inline fn getParent(self: *const NodeLinks, node_id: NodeIndex) ?NodeIndex {
-    if (node_id == ROOT_NODE_ID) {
+    if (node_id == .root) {
         return null;
     }
     return self.parents.items[@intFromEnum(node_id)];
@@ -121,9 +136,6 @@ const util = @import("util");
 const Ast = _ast.Ast;
 const NodeIndex = _ast.NodeIndex;
 const Semantic = @import("../Semantic.zig");
-const ROOT_NODE_ID = Semantic.ROOT_NODE_ID;
-const NULL_NODE = Semantic.NULL_NODE;
-const ROOT_SCOPE_ID = Semantic.ROOT_SCOPE_ID;
 const Scope = Semantic.Scope;
 const Symbol = Semantic.Symbol;
 const Reference = Semantic.Reference;
