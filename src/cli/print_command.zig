@@ -58,6 +58,36 @@ pub fn parseAndPrint(alloc: Allocator, io_: io, opts: Options, source: Source, w
     try semantic_printer.printModuleRecord();
 }
 
+/// Borrows source. Analyzes the file and writes its control flow graph as
+/// Graphviz DOT.
+pub fn printCfg(alloc: Allocator, io_: io, opts: Options, source: Source, writer_: ?*io.Writer) !void {
+    var buf: [4096]u8 = undefined;
+    var builder = Semantic.Builder.init(alloc);
+    defer builder.deinit();
+    builder.withCfg(true);
+    var sema_result = try builder.build(source.text());
+    defer sema_result.deinit();
+    if (sema_result.hasErrors()) {
+        for (sema_result.errors.items) |err| {
+            std.debug.print("{s}\n", .{err.message.str});
+        }
+        return;
+    }
+
+    var stdout: ?io.File.Writer = null;
+    defer if (stdout) |*out| out.interface.flush() catch @panic("failed to flush writer");
+    const writer = writer_ orelse blk: {
+        stdout = io.File.stdout().writer(io_, &buf);
+        break :blk &stdout.?.interface;
+    };
+    defer writer.flush() catch @panic("failed to flush writer");
+
+    try Semantic.Cfg.dot.render(alloc, &sema_result.value, writer, .{
+        .decls = opts.cfg_decls,
+        .title = if (opts.args.items.len > 0) opts.args.items[0] else null,
+    });
+}
+
 test {
     _ = @import("test/print_ast_test.zig");
 }

@@ -28,6 +28,9 @@ symbols: TokenMap(Symbol.Id),
 /// Maps tokens (usually `.identifier`s) to the references they create. Since
 /// references are sparse in an AST, a hashmap is used to avoid wasting memory.
 references: TokenMap(Reference.Id),
+/// Maps AST nodes to the basic block they were lowered into. Only allocated
+/// when CFG construction is enabled; empty otherwise.
+blocks: NodeMap(Cfg.BasicBlock.Id.Optional),
 
 fn NodeMap(T: type) type {
     return std.ArrayList(T);
@@ -42,6 +45,7 @@ pub const empty: NodeLinks = .{
     .scopes = .empty,
     .symbols = .empty,
     .references = .empty,
+    .blocks = .empty,
 };
 
 pub fn init(alloc: Allocator, ast: *const Ast) Allocator.Error!NodeLinks {
@@ -59,7 +63,7 @@ pub fn init(alloc: Allocator, ast: *const Ast) Allocator.Error!NodeLinks {
 }
 
 pub fn deinit(self: *NodeLinks, alloc: Allocator) void {
-    inline for (.{ "parents", "scopes", "symbols", "references" }) |name| {
+    inline for (.{ "parents", "scopes", "symbols", "references", "blocks" }) |name| {
         @field(self, name).deinit(alloc);
     }
 }
@@ -135,6 +139,7 @@ const util = @import("util");
 
 const Ast = _ast.Ast;
 const NodeIndex = _ast.NodeIndex;
+const Cfg = @import("Cfg.zig");
 const Semantic = @import("../Semantic.zig");
 const Scope = Semantic.Scope;
 const Symbol = Semantic.Symbol;

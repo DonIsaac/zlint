@@ -105,6 +105,7 @@ fn runInThread(self: *TestSuite, path: []const u8) void {
     // TODO: use some kind of Cow wrapper to avoid duplication here
     const filename_owned = self.alloc.dupe(u8, filename) catch @panic("OOM");
     var source = Source.init(self.alloc, self.io, file, filename_owned) catch |e| {
+        self.alloc.free(filename_owned);
         self.pushErr(path, e);
         return;
     };

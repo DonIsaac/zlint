@@ -60,6 +60,7 @@ fn runPass(alloc: Allocator, source: *const zlint.Source) anyerror!void {
     // run analysis
     var builder = Semantic.Builder.init(alloc);
     defer builder.deinit();
+    builder.withCfg(true);
     var semantic_result = try builder.build(source.text());
     defer semantic_result.deinit();
     if (semantic_result.hasErrors()) {
