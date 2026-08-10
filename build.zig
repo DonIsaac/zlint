@@ -83,6 +83,11 @@ pub fn build(b: *std.Build) void {
         .strip = if (debug_release) false else null,
     });
     l.link(exe_mod, false, .{});
+    // The CLI consumes the library as a module rather than re-including its
+    // sources, so a custom rule's `@import("zlint")` refers to the same module
+    // the exe was built from.
+    exe_mod.addImport("zlint", zlint);
+    zlint.addImport("zlint", zlint);
 
     const custom_rules_mod = b.createModule(.{
         // root_source_file set below
@@ -114,10 +119,11 @@ pub fn build(b: *std.Build) void {
             .target = l.target,
             .optimize = l.optimize,
         });
-        custom_rule_mod.addImport("zlint", exe_mod);
+        custom_rule_mod.addImport("zlint", zlint);
         custom_rules_mod.addImport(name, custom_rule_mod);
         custom_rules_bytes.writer.print(
-            \\  pub const {0s} = @import("{0s}");
+            \\    pub const {0s} = @import("{0s}");
+            \\
         , .{name}) catch @panic("OOM");
     }
 
@@ -126,18 +132,15 @@ pub fn build(b: *std.Build) void {
     const custom_rules_files = b.addWriteFiles();
     const custom_rules_mod_file = custom_rules_files.add("custom_rules.zig", custom_rules_bytes.written());
     custom_rules_mod.root_source_file = custom_rules_mod_file;
-    exe_mod.addImport("custom_rules", custom_rules_mod);
+    zlint.addImport("custom_rules", custom_rules_mod);
 
-    // zig build (docs, confgen, codegen
+    // zig build docs
     var ct = codegen.CodegenTasks{
         .b = b,
         .optimize = l.optimize,
         .target = l.target,
         .zlint = zlint,
     };
-
-    const conf_mod = ct.configMod();
-    exe_mod.addImport("rules_config_generated", conf_mod);
 
     {
         const docs_step = ct.docs();
@@ -198,6 +201,15 @@ pub fn build(b: *std.Build) void {
     }
     b.installArtifact(test_lib);
 
+    // `src/cli/` and `src/walk/` live in the exe's module, so their tests need
+    // their own artifact.
+    const test_cli = b.addTest(.{
+        .name = "test-cli",
+        .root_module = exe_mod,
+        .use_llvm = use_llvm,
+    });
+    b.installArtifact(test_cli);
+
     const test_utils_mod = b.createModule(.{
         .root_source_file = b.path("src/util.zig"),
         .single_threaded = single_threaded,
@@ -226,9 +238,11 @@ pub fn build(b: *std.Build) void {
     // zig build test
     {
         const run_lib_tests = b.addRunArtifact(test_lib);
+        const run_cli_tests = b.addRunArtifact(test_cli);
         const run_utils_tests = b.addRunArtifact(test_utils);
         const unit_step = b.step("test", "Run unit tests");
         unit_step.dependOn(&run_lib_tests.step);
+        unit_step.dependOn(&run_cli_tests.step);
         unit_step.dependOn(&run_utils_tests.step);
 
         const run_e2e = b.addRunArtifact(e2e);

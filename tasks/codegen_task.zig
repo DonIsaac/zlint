@@ -31,21 +31,6 @@ pub const CodegenTasks = struct {
         return docs_step;
     }
 
-    /// `zig build config`
-    pub fn configMod(self: *CodegenTasks) *Build.Module {
-        const b = self.b;
-        const confgen_exe = self.confgen();
-        const confgen_run = b.addRunArtifact(confgen_exe);
-
-        const conf_mod = self.b.createModule(.{
-            .root_source_file = confgen_run.captureStdOut(.{}),
-            .optimize = self.optimize,
-            .target = self.target,
-        });
-
-        return conf_mod;
-    }
-
     pub fn docgen(self: *CodegenTasks) *Step.Compile {
         if (self._docgen_exe) |exe| return exe;
         const b = self.b;

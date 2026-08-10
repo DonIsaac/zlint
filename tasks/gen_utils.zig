@@ -18,14 +18,14 @@ pub const RuleInfo = struct {
     path: []const u8,
     /// `SomeRule`. Name used by rule struct.
     name_pascale: []const u8,
+    /// Builtin rules only. Custom rules are registered by the consuming build
+    /// and their sources live outside this repo, so there's nothing to
+    /// document or read here.
     pub const all_rules = blk: {
-        const builtin_rule_decls: []const std.builtin.Type.Declaration = @typeInfo(zlint.lint.rules).@"struct".decls;
-        const custom_rules = @import("custom_rules").custom_rules;
-        const custom_rule_decls: []const std.builtin.Type.Declaration = @typeInfo(custom_rules).@"struct".decls;
+        const rule_decls: []const std.builtin.Type.Declaration = @typeInfo(zlint.lint.rules).@"struct".decls;
 
-        var rule_infos: [builtin_rule_decls.len + custom_rule_decls.len]RuleInfo = undefined;
-        var i = 0;
-        for (builtin_rule_decls) |rule_decl| {
+        var rule_infos: [rule_decls.len]RuleInfo = undefined;
+        for (rule_decls, 0..) |rule_decl, i| {
             const rule = @field(zlint.lint.rules, rule_decl.name);
             const rule_meta: Rule.Meta = rule.meta;
             var snake_case_name: [rule_meta.name.len]u8 = undefined;
@@ -36,22 +36,6 @@ pub const RuleInfo = struct {
                 .path = c.@"linter/rules" ++ "/" ++ snake_case_name ++ ".zig",
                 .name_pascale = rule_decl.name,
             };
-            i += 1;
-        }
-        std.debug.print("CUSTOM RULE DECLS:\n", .{});
-        for (custom_rule_decls) |rule_decl| {
-            const rule = @field(zlint.lint.rules, rule_decl.name);
-            const rule_meta: Rule.Meta = rule.meta;
-            var snake_case_name: [rule_meta.name.len]u8 = undefined;
-            @memcpy(&snake_case_name, rule_meta.name);
-            mem.replaceScalar(u8, &snake_case_name, '-', '_');
-            rule_infos[i] = RuleInfo{
-                .meta = rule_meta,
-                .path = c.@"linter/rules" ++ "/" ++ snake_case_name ++ ".zig",
-                .name_pascale = rule_decl.name,
-            };
-            std.debug.print("rule: {s}, path: {s}", .{ rule_meta.name, snake_case_name });
-            i += 1;
         }
         break :blk rule_infos;
     };

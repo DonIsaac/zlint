@@ -1,8 +1,8 @@
 const std = @import("std");
 const util = @import("util");
-const Source = @import("source.zig").Source;
+const Source = @import("zlint").Source;
 const config = @import("config");
-const Error = @import("Error.zig");
+const Error = @import("zlint").Error;
 
 const Io = std.Io;
 const print = std.debug.print;
@@ -78,13 +78,13 @@ pub fn main(init: std.process.Init) !u8 {
     return lint_cmd.lint(alloc, io, init.minimal.environ, opts);
 }
 
-// FIXME: better names
-// START CUSTOM RULE API
-pub const ast_utils = @import("./linter/ast_utils.zig");
-pub const span = @import("./span.zig");
-pub const rule = @import("./linter/rule.zig");
-pub const lint_context = @import("./linter/lint_context.zig");
-pub const Semantic = @import("./Semantic.zig");
-//pub const Error = @import("./Error.zig");
-pub const tester = @import("./linter/tester.zig");
-// FINISH CUSTOM RULE API
+test {
+    // `src/cli/` and `src/walk/` aren't part of the library surface, so their
+    // tests are compiled and run from here.
+    std.testing.refAllDecls(Options);
+    std.testing.refAllDecls(lint_cmd);
+    std.testing.refAllDecls(print_cmd);
+    std.testing.refAllDecls(@import("cli/lint_config.zig"));
+    std.testing.refAllDecls(@import("walk/Walker.zig"));
+    std.testing.refAllDecls(@import("walk/glob.zig"));
+}

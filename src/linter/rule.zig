@@ -8,8 +8,7 @@ const Fix = @import("./fix.zig").Fix;
 
 const LinterContext = @import("lint_context.zig");
 
-const CustomRules = @import("custom_rules").custom_rules;
-const BuiltinRules = @import("./rules.zig");
+const all_rules = @import("./all_rules.zig");
 
 pub const NodeWrapper = struct {
     node: *const Ast.Node,
@@ -158,43 +157,18 @@ pub const Rule = struct {
 
 const IdMap = std.StaticStringMap(Rule.Id);
 const rule_ids: IdMap = ids: {
-    const Type = std.builtin.Type;
-    const BuiltinRuleDecls: []const Type.Declaration = @typeInfo(BuiltinRules).@"struct".decls;
-    const CustomRuleDecls: []const Type.Declaration = @typeInfo(CustomRules).@"struct".decls;
-    const RuleDecls = BuiltinRuleDecls ++ CustomRuleDecls;
-
-    var ids: [RuleDecls.len]struct { []const u8, Rule.Id } = undefined;
-
-    for (BuiltinRuleDecls, 0..) |decl, i| {
-        const RuleImpl = @field(BuiltinRules, decl.name);
-        if (!@hasDecl(RuleImpl, "meta")) {
-            @compileError("Builtin rule '" ++ decl.name ++ "' is missing a meta: Rule.Meta property.");
-        }
-        const name: []const u8 = @field(BuiltinRules, decl.name).meta.name;
-        const id = Rule.Id.new(i);
-        ids[i] = .{ name, id };
+    var ids: [all_rules.all.len]struct { []const u8, Rule.Id } = undefined;
+    for (all_rules.all, 0..) |RuleImpl, i| {
+        const name: []const u8 = RuleImpl.meta.name;
+        ids[i] = .{ name, Rule.Id.new(i) };
     }
-
-    for (CustomRuleDecls, BuiltinRuleDecls.len..) |decl, i| {
-        const RuleImpl = @field(CustomRules, decl.name);
-        if (!@hasDecl(RuleImpl, "meta")) {
-            @compileError("Custom rule '" ++ decl.name ++ "' is missing a meta: Rule.Meta property.");
-        }
-        const name: []const u8 = @field(CustomRules, decl.name).meta.name;
-        const id = Rule.Id.new(i);
-        ids[i] = .{ name, id };
-    }
-
     break :ids IdMap.initComptime(ids);
 };
 
 test rule_ids {
     const t = std.testing;
     comptime {
-        try t.expectEqual(
-            @typeInfo(BuiltinRules).@"struct".decls.len + @typeInfo(BuiltinRules).@"struct".decls.len,
-            rule_ids.kvs.len,
-        );
+        try t.expectEqual(all_rules.all.len, rule_ids.kvs.len);
         try t.expect(rule_ids.get("unsafe-undefined") != null);
     }
 }
