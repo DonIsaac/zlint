@@ -128,6 +128,29 @@ pub fn build(b: *std.Build) void {
     custom_rules_mod.root_source_file = custom_rules_mod_file;
     exe_mod.addImport("custom_rules", custom_rules_mod);
 
+    // zig build (docs, confgen, codegen
+    var ct = codegen.CodegenTasks{
+        .b = b,
+        .optimize = l.optimize,
+        .target = l.target,
+        .zlint = zlint,
+    };
+
+    const conf_mod = ct.configMod();
+    exe_mod.addImport("rules_config_generated", conf_mod);
+
+    {
+        const docs_step = ct.docs();
+        b.getInstallStep().dependOn(docs_step);
+
+        var lib_docs = b.addInstallDirectory(.{
+            .source_dir = lib.getEmittedDocs(),
+            .install_dir = .prefix,
+            .install_subdir = "docs",
+        });
+        docs_step.dependOn(&lib_docs.step);
+    }
+
     const exe = b.addExecutable(.{
         .name = "zlint",
         .root_module = exe_mod,
@@ -215,29 +238,6 @@ pub fn build(b: *std.Build) void {
         const test_all_step = b.step("test-all", "Run all tests");
         test_all_step.dependOn(unit_step);
         test_all_step.dependOn(e2e_step);
-    }
-
-    // zig build (docs, confgen, codegen
-    var ct = codegen.CodegenTasks{
-        .b = b,
-        .optimize = l.optimize,
-        .target = l.target,
-        .zlint = zlint,
-    };
-    {
-        const config_step = ct.config();
-        const docs_step = ct.docs();
-
-        var lib_docs = b.addInstallDirectory(.{
-            .source_dir = lib.getEmittedDocs(),
-            .install_dir = .prefix,
-            .install_subdir = "docs",
-        });
-        docs_step.dependOn(&lib_docs.step);
-
-        const codegen_step = b.step("codegen", "Generate all codegen artifacts");
-        codegen_step.dependOn(config_step);
-        codegen_step.dependOn(docs_step);
     }
 
     // // check is down here because it's weird. We create mocks of each artifacts

@@ -38,6 +38,7 @@ pub const RuleInfo = struct {
             };
             i += 1;
         }
+        std.debug.print("CUSTOM RULE DECLS:\n", .{});
         for (custom_rule_decls) |rule_decl| {
             const rule = @field(zlint.lint.rules, rule_decl.name);
             const rule_meta: Rule.Meta = rule.meta;
@@ -49,6 +50,7 @@ pub const RuleInfo = struct {
                 .path = c.@"linter/rules" ++ "/" ++ snake_case_name ++ ".zig",
                 .name_pascale = rule_decl.name,
             };
+            std.debug.print("rule: {s}, path: {s}", .{ rule_meta.name, snake_case_name });
             i += 1;
         }
         break :blk rule_infos;
