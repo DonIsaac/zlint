@@ -84,49 +84,84 @@ pub fn build(b: *std.Build) void {
     });
     l.link(exe_mod, false, .{});
 
-    const custom_rules_mod = b.createModule(.{
+    const all_rules_mod = b.createModule(.{
         // root_source_file set below
         .target = l.target,
         .optimize = l.optimize,
     });
 
-    const custom_rules_header =
-        \\pub const custom_rules = struct {
+    const all_rules_header =
+        \\pub const all_rules = struct {
         \\
     ;
-    const custom_rules_footer =
+    const all_rules_footer =
         \\};
         \\
     ;
-    var custom_rules_bytes = std.Io.Writer.Allocating.initCapacity(
+    var all_rules_bytes = std.Io.Writer.Allocating.initCapacity(
         b.allocator,
-        custom_rules_header.len + custom_rules_footer.len + 1,
+        all_rules_header.len + all_rules_footer.len + 1,
     ) catch @panic("OOM");
-    defer custom_rules_bytes.deinit();
+    defer all_rules_bytes.deinit();
 
-    custom_rules_bytes.writer.writeAll(custom_rules_header) catch @panic("OOM");
+    all_rules_bytes.writer.writeAll(all_rules_header) catch @panic("OOM");
 
     for (custom_rule_paths, 0..) |p, i| {
         // NOTE: never freed, we assume the build graph keeps a ref
         const name = std.fmt.allocPrint(b.allocator, "custom_rules_{d}", .{i}) catch @panic("OOM");
-        const custom_rule_mod = b.createModule(.{
+        const rule_mod = b.createModule(.{
             .root_source_file = p,
             .target = l.target,
             .optimize = l.optimize,
         });
-        custom_rule_mod.addImport("zlint", exe_mod);
-        custom_rules_mod.addImport(name, custom_rule_mod);
-        custom_rules_bytes.writer.print(
+        rule_mod.addImport("zlint", exe_mod);
+        all_rules_mod.addImport(name, rule_mod);
+        all_rules_bytes.writer.print(
             \\  pub const {0s} = @import("{0s}");
+            \\
         , .{name}) catch @panic("OOM");
     }
 
-    custom_rules_bytes.writer.writeAll(custom_rules_footer) catch @panic("OOM");
+    inline for (&.{
+        "./src/linter/rules/allocator_first_param.zig",
+        "./src/linter/rules/avoid_as.zig",
+        "./src/linter/rules/case_convention.zig",
+        "./src/linter/rules/empty_file.zig",
+        "./src/linter/rules/homeless_try.zig",
+        "./src/linter/rules/line_length.zig",
+        "./src/linter/rules/must_return_ref.zig",
+        "./src/linter/rules/no_catch_return.zig",
+        "./src/linter/rules/no_print.zig",
+        "./src/linter/rules/no_return_try.zig",
+        "./src/linter/rules/no_unresolved.zig",
+        "./src/linter/rules/returned_stack_reference.zig",
+        "./src/linter/rules/suppressed_errors.zig",
+        "./src/linter/rules/unsafe_undefined.zig",
+        "./src/linter/rules/unused_decls.zig",
+        "./src/linter/rules/useless_error_return.zig",
+        "./src/linter/rules/duplicate_case.zig",
+    }) |path_str| {
+        const p = b.path(path_str);
+        const name = std.Io.Dir.path.stem(path_str);
+        const rule_mod = b.createModule(.{
+            .root_source_file = p,
+            .target = l.target,
+            .optimize = l.optimize,
+        });
+        rule_mod.addImport("zlint", exe_mod);
+        all_rules_mod.addImport(name, rule_mod);
+        all_rules_bytes.writer.print(
+            \\  pub const {0s} = @import("{0s}");
+            \\
+        , .{name}) catch @panic("OOM");
+    }
+
+    all_rules_bytes.writer.writeAll(all_rules_footer) catch @panic("OOM");
 
     const custom_rules_files = b.addWriteFiles();
-    const custom_rules_mod_file = custom_rules_files.add("custom_rules.zig", custom_rules_bytes.written());
-    custom_rules_mod.root_source_file = custom_rules_mod_file;
-    exe_mod.addImport("custom_rules", custom_rules_mod);
+    const custom_rules_mod_file = custom_rules_files.add("custom_rules.zig", all_rules_bytes.written());
+    all_rules_mod.root_source_file = custom_rules_mod_file;
+    exe_mod.addImport("custom_rules", all_rules_mod);
 
     const exe = b.addExecutable(.{
         .name = "zlint",
