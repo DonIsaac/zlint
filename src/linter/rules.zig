@@ -1,3 +1,5 @@
+const custom_rules = @import("custom_rules").custom_rules;
+//const builtin_rules = struct {
 pub const AllocatorFirstParam = @import("./rules/allocator_first_param.zig");
 pub const AvoidAs = @import("./rules/avoid_as.zig");
 pub const CaseConvention = @import("./rules/case_convention.zig");
@@ -15,3 +17,6 @@ pub const UnsafeUndefined = @import("./rules/unsafe_undefined.zig");
 pub const UnusedDecls = @import("./rules/unused_decls.zig");
 pub const UselessErrorReturn = @import("./rules/useless_error_return.zig");
 pub const DuplicateCase = @import("./rules/duplicate_case.zig");
+//};
+
+//pub const all_rule_count = @typeInfo(custom_rules).@"struct".decls.len + @typeInfo(custom_rules).@"struct".builtin_rules.len;
