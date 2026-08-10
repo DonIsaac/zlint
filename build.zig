@@ -134,7 +134,7 @@ pub fn build(b: *std.Build) void {
     custom_rules_mod.root_source_file = custom_rules_mod_file;
     zlint.addImport("custom_rules", custom_rules_mod);
 
-    // zig build docs
+    // zig build docs, zig build config
     var ct = codegen.CodegenTasks{
         .b = b,
         .optimize = l.optimize,
@@ -143,6 +143,8 @@ pub fn build(b: *std.Build) void {
     };
 
     {
+        _ = ct.config();
+
         const docs_step = ct.docs();
         b.getInstallStep().dependOn(docs_step);
 

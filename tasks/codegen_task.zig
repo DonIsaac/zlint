@@ -31,6 +31,25 @@ pub const CodegenTasks = struct {
         return docs_step;
     }
 
+    /// `zig build config`
+    ///
+    /// Writes `zlint.schema.json`, which is checked in. Rule configs themselves
+    /// are built at comptime (see `src/linter/config/rules_config_rules.zig`),
+    /// so this only needs re-running when a rule's options change.
+    pub fn config(self: *CodegenTasks) *Step {
+        const b = self.b;
+        const confgen_run = b.addRunArtifact(self.confgen());
+        // confgen writes to paths relative to its cwd. Pin it to this repo so
+        // the schema doesn't land in a dependent package's directory.
+        confgen_run.setCwd(b.path("."));
+        confgen_run.has_side_effects = true;
+
+        const config_step = b.step("config", "Generate zlint.schema.json");
+        config_step.dependOn(&confgen_run.step);
+
+        return config_step;
+    }
+
     pub fn docgen(self: *CodegenTasks) *Step.Compile {
         if (self._docgen_exe) |exe| return exe;
         const b = self.b;

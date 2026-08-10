@@ -1,8 +1,4 @@
 //! Rule configuration struct, built at comptime from `all_rules.zig`.
-//!
-//! This used to be a `Rules.zig` file emitted by `zig build codegen`, which
-//! baked the set of rules into the repo and left no room for custom rules
-//! registered by a consumer.
 
 const std = @import("std");
 const all_rules = @import("../all_rules.zig");
