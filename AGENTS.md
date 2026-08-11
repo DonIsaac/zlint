@@ -42,11 +42,10 @@ independent from the Zig compiler.
 │   │   └── tester.zig            RuleTester (pass/fail/fix + snapshots)
 │   ├── cli/, reporter/, printer/, visit/, util/
 ├── tasks/
-│   ├── docgen.zig                Generates docs/rules/*.md from doc-comments
+│   ├── docgen.zig                Generates apps/site/docs/rules/*.mdx from doc-comments
 │   ├── confgen.zig               Generates zlint.schema.json
 │   └── new-rule.ts               Bun script that scaffolds a new rule
 ├── test/                         E2E binary, fixtures, snapshots, repos.json
-├── docs/rules/                   Auto-generated per-rule docs
 └── apps/{site, vscode-extension} Docs site (Docusaurus) + VS Code extension
 ```
 
@@ -143,7 +142,7 @@ rules, prefer the higher-level helpers:
 After changing any rule, run `just codegen`. CI verifies the working tree is
 clean afterward. Never hand-edit generated files:
 
-- `docs/rules/*.md` (from `tasks/docgen.zig`)
+- `apps/site/docs/rules/*.mdx` (from `tasks/docgen.zig`)
 - `zlint.schema.json` (from `tasks/confgen.zig`)
 - Any `*.snap` file (its a test snapshot file)
 
