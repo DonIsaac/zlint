@@ -1,5 +1,6 @@
 ---
-sidebar_position: 4
+id: custom-rules
+title: Custom Rules
 ---
 
 # Custom rules
@@ -24,7 +25,7 @@ zlint supports user-provided rules written in zig.
    lint_step.dependOn(&run_lint.step);
    ```
 
-## Using Custom Rules
+## Using custom rules
 
 Custom rules are specified as a zig build option, `-Dcustom_rules`, so you need to
 list the local paths to each rule in your `build.zig` when defining the
@@ -54,7 +55,7 @@ common `b.addTest`.
 This will run tests for custom rules, just as described in
 the builtin rule [creation guide](../contributing/creating-rules.md#testing).
 
-## Custom Rule API
+## Custom rule API
 
 Custom rules are compiled as their own module, so they can't reach zlint's
 internals by relative path the way builtin rules do. Everything a rule needs is
@@ -122,5 +123,5 @@ suppressible per-file with a `// zlint-disable no-unreachable` comment.
 
 ## Limitations
 
-Custom rules do not yet support custom dependencies.
-If you need this, please [raise an issue](https://github.com/DonIsaac/zlint/issues/new/choose).
+Custom rules do not yet support full dependencies.
+If you need that, please [raise an issue](https://github.com/DonIsaac/zlint/issues/new/choose).

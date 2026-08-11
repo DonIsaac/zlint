@@ -21,7 +21,7 @@ pub fn build(b: *std.Build) void {
     const custom_rule_paths = b.option(
         []const Build.LazyPath,
         "custom_rules",
-        "comma separated list of custom rule files. See DOC LINK TODO",
+        "comma separated list of custom rule files. See https://donisaac.github.io/zlint/docs/configuration/custom-rules",
     ) orelse &.{};
 
     var l = Linker.init(b);
