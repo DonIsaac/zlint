@@ -51,3 +51,71 @@ addCustomLintRulesTest returns `*Build.Step.Compile` just like `b.addTest`.
 
 ## Custom Rule API
 
+Custom rules are compiled as their own module, so they can't reach zlint's
+internals by relative path the way builtin rules do. Everything a rule needs is
+re-exported from `@import("zlint").linter` instead:
+
+| Import                      | Contents                                               |
+| --------------------------- | ------------------------------------------------------ |
+| `zlint.linter.rule`         | `Rule`, `Rule.Meta`, `Rule.Category`, `NodeWrapper`    |
+| `zlint.linter.lint_context` | `LinterContext`, the `ctx` passed to every rule method |
+| `zlint.linter.span`         | `Span`, `LabeledSpan`                                  |
+| `zlint.linter.Error`        | Diagnostic type returned by `ctx.diagnostic`           |
+| `zlint.linter.ast_utils`    | AST helpers, e.g. `isInTest`, `getRightmostIdentifier` |
+| `zlint.linter.tester`       | `RuleTester` for unit-testing a rule                   |
+| `zlint.Semantic`            | `Ast`, `Symbol`, scopes, symbols, and references       |
+
+Aside from these imports, a custom rule is written exactly like a builtin one.
+For how to inspect nodes and report problems, see
+[Using the AST](../contributing/creating-rules.md#using-the-ast) and
+[Reporting Violations](../contributing/creating-rules.md#reporting-violations)
+in the Creating New Rules guide — substituting the imports above for the
+relative ones it uses.
+
+### Example
+
+A complete rule that reports every `unreachable`:
+
+```zig
+//! ## What This Rule Does
+//! Disallows `unreachable`.
+
+const zlint = @import("zlint");
+const Rule = zlint.linter.rule.Rule;
+const NodeWrapper = zlint.linter.rule.NodeWrapper;
+const LinterContext = zlint.linter.lint_context;
+
+pub const meta: Rule.Meta = .{
+    .name = "no-unreachable",
+    .category = .restriction,
+    .default = .warning,
+};
+
+const NoUnreachable = @This();
+
+/// Configurable from `zlint.json`: `["warn", { "allow_tests": false }]`
+allow_tests: bool = true,
+
+pub fn runOnNode(self: *const NoUnreachable, wrapper: NodeWrapper, ctx: *LinterContext) void {
+    if (wrapper.node.tag != .unreachable_literal) return;
+    if (self.allow_tests and zlint.linter.ast_utils.isInTest(ctx, wrapper.idx)) return;
+
+    ctx.report(ctx.diagnostic(
+        "`unreachable` is not allowed.",
+        .{ctx.spanT(wrapper.node.main_token)},
+    ));
+}
+
+pub fn rule(self: *NoUnreachable) Rule {
+    return Rule.init(self);
+}
+```
+
+Point `-Dcustom_rules` at that file and it behaves like any builtin rule: on by
+default at `warning`, configurable in `zlint.json` under `"no-unreachable"`, and
+suppressible per-file with a `// zlint-disable no-unreachable` comment.
+
+## Limitations
+
+Custom rules do not yet support custom dependencies.
+If you need this, please [raise an issue](https://github.com/DonIsaac/zlint/issues/new/choose).
