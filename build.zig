@@ -398,3 +398,9 @@ pub fn addRunLint(b: *std.Build, zlint_dep: *std.Build.Dependency) *ZLintStep {
     }
     return @ptrCast(run);
 }
+
+pub fn addCustomLintRulesTest(b: *std.Build, zlint_dep: *std.Build.Dependency) *Build.Step.Compile {
+    _ = b;
+    const test_lib = zlint_dep.artifact("test");
+    return @ptrCast(test_lib);
+}

@@ -36,7 +36,8 @@ You can add a "custom lint rules test" build step with:
 
 ```zig
 const zlint = @import("zlint");
-const test_lint_step = b.step("test-linter", "run tests for my custom rules");
+// or just reuse your top level test step
+const test_lint_step = b.step("test-lint-rules", "run tests for my custom rules");
 const zlint_dep = b.dependency("zlint", .{
     .custom_rules = &[_]std.Build.LazyPath{
         b.path("./src/your_custom_rule.zig"),
@@ -47,7 +48,11 @@ const run_lint_tests = b.addRunArtifact(custom_lint_tests);
 test_lint_step.dependOn(&run_lint_tests.step);
 ```
 
-addCustomLintRulesTest returns `*Build.Step.Compile` just like `b.addTest`.
+`addCustomLintRulesTest` returns a `*Build.Step.Compile` just like zig's
+common `b.addTest`.
+
+This will run tests for custom rules, just as described in
+the builtin rule [creation guide](../contributing/creating-rules.md#testing).
 
 ## Custom Rule API
 
