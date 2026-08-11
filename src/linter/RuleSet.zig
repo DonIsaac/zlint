@@ -8,7 +8,7 @@ const ALL_RULE_IMPLS_SIZE: usize = Rule.MAX_SIZE * RULES_COUNT;
 const ALL_RULES_SIZE: usize = @sizeOf(Rule.WithSeverity) * RULES_COUNT;
 
 pub fn ensureTotalCapacityForAllRules(self: *RuleSet, arena: Allocator) Allocator.Error!void {
-    try self.rules.ensureTotalCapacityPrecise(arena.allocator(), ALL_RULE_IMPLS_SIZE);
+    try self.rules.ensureTotalCapacityPrecise(arena.allocator(), RULES_COUNT);
 }
 
 pub fn loadRulesFromConfig(self: *RuleSet, arena: Allocator, config: *const RulesConfig) !void {
