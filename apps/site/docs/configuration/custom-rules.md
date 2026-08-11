@@ -44,13 +44,13 @@ const zlint_dep = b.dependency("zlint", .{
         b.path("./src/your_custom_rule.zig"),
     },
 });
-const custom_lint_tests = zlint.addCustomLintRulesTest(b, zlint_dep);
-const run_lint_tests = b.addRunArtifact(custom_lint_tests);
-test_lint_step.dependOn(&run_lint_tests.step);
+test_lint_step.dependOn(zlint.addRunCustomLintRulesTest(b, zlint_dep));
 ```
 
-`addCustomLintRulesTest` returns a `*Build.Step.Compile` just like zig's
-common `b.addTest`.
+`addRunCustomLintRulesTest` returns a `*Build.Step` to depend on, rather than a
+single `*Build.Step.Compile`. Zig only collects `test` declarations from the
+root module of a compilation, and each custom rule is compiled as its own
+module, so there is one test binary per rule.
 
 This will run tests for custom rules, just as described in
 the builtin rule [creation guide](../contributing/creating-rules.md#testing).

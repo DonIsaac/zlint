@@ -420,7 +420,7 @@ pub fn addRunLint(b: *std.Build, zlint_dep: *std.Build.Dependency) *ZLintStep {
 }
 
 /// Step that runs the `test` blocks in each registered custom rule.
-pub fn addCustomLintRulesTest(b: *std.Build, zlint_dep: *std.Build.Dependency) *Build.Step {
+pub fn addRunCustomLintRulesTest(b: *std.Build, zlint_dep: *std.Build.Dependency) *Build.Step {
     _ = b;
     const tls = zlint_dep.builder.top_level_steps.get("test-custom-rules") orelse
         @panic("zlint dependency is missing the 'test-custom-rules' step");
