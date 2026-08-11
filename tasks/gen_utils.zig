@@ -18,10 +18,8 @@ pub const RuleInfo = struct {
     path: []const u8,
     /// `SomeRule`. Name used by rule struct.
     name_pascale: []const u8,
-    /// Builtin rules only. Custom rules are registered by the consuming build
-    /// and their sources live outside this repo, so there's nothing to
-    /// document or read here.
-    pub const all_rules = blk: {
+
+    pub const builtin_rules = blk: {
         const rule_decls: []const std.builtin.Type.Declaration = @typeInfo(zlint.lint.rules).@"struct".decls;
 
         var rule_infos: [rule_decls.len]RuleInfo = undefined;

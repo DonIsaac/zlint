@@ -32,7 +32,7 @@ fn createJsonSchema(allocator: Allocator, task_io: Io) !void {
     defer arena.deinit();
 
     const root_dir = Io.Dir.cwd();
-    for (gen.RuleInfo.all_rules) |rule| {
+    for (gen.RuleInfo.builtin_rules) |rule| {
         const alloc = source_arena.allocator();
         defer {
             _ = arena.reset(.retain_capacity);
