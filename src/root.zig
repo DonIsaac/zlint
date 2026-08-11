@@ -7,14 +7,22 @@ pub const report = @import("reporter.zig");
 
 pub const lint = @import("lint.zig");
 
-// Surface needed to author a rule out-of-tree. Custom rules are compiled as
-// their own modules, so they can't reach these by relative path.
 pub const Error = @import("Error.zig");
 pub const span = @import("span.zig");
 pub const rule = @import("linter/rule.zig");
 pub const ast_utils = @import("linter/ast_utils.zig");
 pub const lint_context = @import("linter/lint_context.zig");
-pub const tester = @import("linter/tester.zig");
+
+// Surface needed to author a rule out-of-tree. Custom rules are compiled as
+// their own modules, so they can't reach these by relative path.
+pub const linter = struct {
+    pub const Error = @import("Error.zig");
+    pub const span = @import("span.zig");
+    pub const rule = @import("linter/rule.zig");
+    pub const ast_utils = @import("linter/ast_utils.zig");
+    pub const lint_context = @import("linter/lint_context.zig");
+    pub const tester = @import("linter/tester.zig");
+};
 
 /// Internal. Exported for codegen.
 pub const json = @import("json.zig");
