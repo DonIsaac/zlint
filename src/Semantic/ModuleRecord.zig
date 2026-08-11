@@ -1,6 +1,8 @@
 const ModuleRecord = @This();
 
-imports: std.ArrayListUnmanaged(ImportEntry) = .empty,
+imports: std.ArrayList(ImportEntry),
+
+pub const empty: ModuleRecord = .{ .imports = .empty };
 
 pub fn deinit(self: *ModuleRecord, allocator: Allocator) void {
     self.imports.deinit(allocator);

@@ -9,14 +9,12 @@ node: NodeIndex,
 
 /// Uniquely identifies a scope within a source file.
 pub const Id = NominalId(u32);
-pub const MAX_ID = Id.MAX;
 
-const FLAGS_REPR = u16;
 /// Scope flags provide hints about what kind of node is creating the
 /// scope.
 ///
 /// TODO: Should this be an enum?
-pub const Flags = packed struct(FLAGS_REPR) {
+pub const Flags = packed struct(u16) {
     /// Top-level "module" scope
     s_top: bool = false,
     /// Created by a function declaration.
@@ -65,21 +63,23 @@ pub const Flags = packed struct(FLAGS_REPR) {
 /// Stores variable scopes created by a zig program.
 pub const Tree = struct {
     /// Indexed by scope id.
-    scopes: std.MultiArrayList(Scope) = .{},
+    scopes: std.MultiArrayList(Scope),
     /// Mappings from scopes to their descendants.
-    children: std.ArrayListUnmanaged(ScopeIdList) = .empty,
+    children: std.ArrayList(ScopeIdList),
 
-    bindings: std.ArrayListUnmanaged(SymbolIdList) = .empty,
+    bindings: std.ArrayList(SymbolIdList),
 
-    const ScopeIdList = std.ArrayListUnmanaged(Scope.Id);
-    const SymbolIdList = std.ArrayListUnmanaged(Symbol.Id);
+    pub const empty: Tree = .{ .scopes = .empty, .children = .empty, .bindings = .empty };
+
+    const ScopeIdList = std.ArrayList(Scope.Id);
+    const SymbolIdList = std.ArrayList(Symbol.Id);
 
     /// Returns the number of declared scopes in a program.
     ///
     /// Shorthand for `scope_tree.scopes.len`.
     pub inline fn len(self: *const Scope.Tree) u32 {
         @setRuntimeSafety(!util.IS_DEBUG);
-        assert(self.scopes.len < Id.MAX);
+        assert(self.scopes.len < @intFromEnum(Id.max));
 
         return @intCast(self.scopes.len);
     }
@@ -103,7 +103,7 @@ pub const Tree = struct {
         node: NodeIndex,
         flags: Scope.Flags,
     ) !Scope.Id {
-        assert(self.scopes.len < Scope.MAX_ID);
+        assert(self.scopes.len < Scope.Id.max.int());
         const id: Scope.Id = Id.from(self.scopes.len);
 
         // initialize the new scope
@@ -217,7 +217,7 @@ test "Scope.Tree.addScope" {
     const alloc = t.allocator;
     const expectEqual = t.expectEqual;
 
-    var tree = Scope.Tree{};
+    var tree: Scope.Tree = .empty;
     defer tree.deinit(alloc);
 
     const root_id = try tree.addScope(alloc, null, @enumFromInt(0), .{ .s_top = true });

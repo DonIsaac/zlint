@@ -17,15 +17,15 @@ _source_code: ?_source.ArcStr = null,
 _source_path: ?[]const u8 = null,
 
 // states
-_curr_scope_flags: Scope.Flags = .{},
-_curr_symbol_flags: Symbol.Flags = .{},
+_curr_scope_flags: Scope.Flags = .empty,
+_curr_symbol_flags: Symbol.Flags = .empty,
 _curr_reference_flags: Reference.Flags = .{ .read = true },
 /// Flags added to the next block-created scope. Reset immediately after use.
 ///
 /// Nodes whose children may or may not be a block scope must be careful to
 /// reset this themselves. Although `visitBlock` will reset these flags, if a
 /// non-block node is encountered, it will not be reset.
-_next_block_scope_flags: Scope.Flags = .{},
+_next_block_scope_flags: Scope.Flags = .empty,
 
 // stacks
 _scope_stack: std.ArrayList(Semantic.Scope.Id) = .empty,
@@ -39,19 +39,13 @@ _node_stack: std.ArrayList(NodeIndex) = .empty,
 /// in the source.
 ///
 /// We try to resolve these each time a scope is exited.
-_unresolved_references: ReferenceStack = .{},
+_unresolved_references: ReferenceStack = .empty,
 
 _semantic: Semantic,
 /// Errors encountered during parsing and analysis.
 ///
 /// Errors in this list are allocated using this list's allocator.
 _errors: std.ArrayList(Error) = .empty,
-
-/// The root node always has an index of 0. Since it is never referenced by other nodes,
-/// the Zig team uses it to represent `null` without wasting extra memory.
-const NULL_NODE: NodeIndex = .root;
-const ROOT_SCOPE: Semantic.Scope.Id = .from(0);
-// const BUILTIN_SCOPE: Semantic.Scope.Id = Semantic.BUILTIN_SCOPE_ID;
 
 pub const Result = Error.Result(Semantic);
 pub const SemanticError = error{
@@ -124,6 +118,9 @@ pub fn build(builder: *SemanticBuilder, source: [:0]const u8) SemanticError!Resu
     builder._semantic = Semantic{
         .parse = parse,
         .node_links = node_links,
+        .symbols = .empty,
+        .scopes = .empty,
+        .modules = .empty,
         ._arena = builder._arena,
         ._gpa = gpa,
     };
@@ -186,7 +183,7 @@ pub fn deinit(self: *SemanticBuilder) void {
 /// handled by `visitNode`. This lets us inline checks within caller
 /// functions, reducing unnecessary branching and stack pointer pushes.
 fn visit(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
-    if (node_id == NULL_NODE) return;
+    if (node_id == .root) return;
     if (@intFromEnum(node_id) >= self.AST().nodes.len) {
         @branchHint(.cold);
         return;
@@ -214,7 +211,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
     defer self.exitNode();
 
     switch (tag) {
-        // root node is never referenced b/c of NULL_NODE check at function start
+        // root node is never referenced b/c of .root check at function start
         .root => unreachable,
         // containers and container members
         // ```zig
@@ -515,7 +512,7 @@ fn visitRecursiveSlice(self: *SemanticBuilder, node_id: NodeIndex) callconv(util
 // TODO: inline after we're done debugging
 fn visitBlock(self: *SemanticBuilder, statements: []const NodeIndex) !void {
     const NON_COMPTIME_BLOCKS: Scope.Flags = .{ .s_test = true, .s_block = true, .s_function = true };
-    const is_root = self.currentScope() == ROOT_SCOPE;
+    const is_root = self.currentScope() == .root;
     const was_comptime = self._curr_scope_flags.s_comptime;
     const is_comptime = was_comptime or (is_root and !self._curr_scope_flags.intersects(NON_COMPTIME_BLOCKS));
 
@@ -629,7 +626,7 @@ fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.C
         .identifier = identifier,
         .flags = .{
             .s_comptime = field.comptime_token != null,
-            .s_struct = self.currentScope().eql(ROOT_SCOPE),
+            .s_struct = self.currentScope().eql(.root),
         },
     });
     try self.visitOptional(field.ast.align_expr);
@@ -760,7 +757,7 @@ fn visitAssignDestructure(
 /// Non-`var`/`const` destructuring targets: identifiers are writes; `a.b` / `a[i]` / `*p` use
 /// read flags for address operands (same idea as `visitSlice`).
 fn visitAssignmentTarget(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
-    if (node_id == NULL_NODE) return;
+    if (node_id == .root) return;
 
     const ast = self.AST();
     switch (ast.nodeTag(node_id)) {
@@ -881,10 +878,12 @@ fn visitWhile(self: *SemanticBuilder, _: NodeIndex, while_stmt: full.While) call
                 .flags = .{ .s_payload = true, .s_const = true },
             });
         }
-        // TODO: `cont_expr` is visited before `then_expr`, so a pending
-        // `_next_block_scope_flags` (e.g. `s_catch` from `visitCatch`) gets
-        // consumed by the continue block instead of the loop body.
-        try self.visitOptional(ast.cont_expr);
+        {
+            const pending = self._next_block_scope_flags;
+            self._next_block_scope_flags = .{};
+            defer self._next_block_scope_flags = pending;
+            try self.visitOptional(ast.cont_expr);
+        }
         try self.visit(ast.then_expr);
     }
 
@@ -1281,13 +1280,13 @@ fn enterRoot(self: *SemanticBuilder) !void {
     const root_scope_id = try self._semantic.scopes.addScope(
         self._gpa,
         null,
-        Semantic.ROOT_NODE_ID,
+        .root,
         .{ .s_top = true },
     );
     util.assert(
-        root_scope_id == Semantic.ROOT_SCOPE_ID,
+        root_scope_id == .root,
         "Creating root scope returned id {d} which is not the expected root id ({d})",
-        .{ root_scope_id, Semantic.ROOT_SCOPE_ID },
+        .{ root_scope_id, Semantic.Scope.Id.root },
     );
 
     // SemanticBuilder.init() allocates enough space for 8 scopes.
@@ -1297,7 +1296,7 @@ fn enterRoot(self: *SemanticBuilder) !void {
     // push root node onto the stack. It is never popped.
     // Similar to root scope, the root node is pushed differently than
     // other nodes because parent->child node linking is skipped.
-    self._node_stack.appendAssumeCapacity(Semantic.ROOT_NODE_ID);
+    self._node_stack.appendAssumeCapacity(.root);
 
     // Create root symbol and push it onto the stack. It too is never popped.
     // TODO: distinguish between bound name and escaped name.
@@ -1320,10 +1319,10 @@ inline fn assertRoot(self: *const SemanticBuilder) void {
     if (!util.IS_DEBUG) return;
 
     self.assertCtx(self._scope_stack.items.len == 1, "assertRoot: scope stack is not at root", .{});
-    self.assertCtx(self._scope_stack.items[0] == Semantic.ROOT_SCOPE_ID, "assertRoot: scope stack is not at root", .{});
+    self.assertCtx(self._scope_stack.items[0] == .root, "assertRoot: scope stack is not at root", .{});
 
     self.assertCtx(self._node_stack.items.len == 1, "assertRoot: node stack is not at root", .{});
-    self.assertCtx(self._node_stack.items[0] == Semantic.ROOT_NODE_ID, "assertRoot: node stack is not at root", .{});
+    self.assertCtx(self._node_stack.items[0] == .root, "assertRoot: node stack is not at root", .{});
 
     self.assertCtx(self._symbol_stack.items.len == 1, "assertRoot: symbol stack is not at root", .{});
     self.assertCtx(self._symbol_stack.items[0].int() == 0, "assertRoot: symbol stack is not at root", .{}); // TODO: create root symbol id.
@@ -1366,7 +1365,7 @@ const CreateScope = struct {
 };
 
 /// Enter a new scope, pushing it onto the stack.
-fn enterScope(self: *SemanticBuilder, opts: CreateScope) !void {
+fn enterScope(self: *SemanticBuilder, opts: CreateScope) Allocator.Error!void {
     const parent_id = self._scope_stack.getLastOrNull();
     const merged_flags = opts.flags.merge(self._curr_scope_flags);
     const node = opts.node orelse self.currentNode();
@@ -1856,7 +1855,7 @@ fn debugNodeStack(self: *const SemanticBuilder) void {
         const main_token = ast.nodeMainToken(id);
         const token_offset = ast.tokens.get(main_token).start;
 
-        const source = if (id == Semantic.ROOT_NODE_ID) "" else ast.getNodeSource(id);
+        const source = if (id == .root) "" else ast.getNodeSource(id);
         const loc = ast.tokenLocation(token_offset, main_token);
         const snippet =
             if (source.len > 128) mem.concat(
@@ -1977,7 +1976,7 @@ test "Struct/enum fields are bound bound to the struct/enums's member table" {
         // they exist
         try std.testing.expect(bar != null);
         try std.testing.expect(foo != null);
-        try std.testing.expect(bar.?.scope != Semantic.ROOT_SCOPE_ID);
+        try std.testing.expect(bar.?.scope != .root);
         // Foo has exactly 1 member and it is bar
         const foo_members = semantic.symbols.getMembers(foo.?.id);
         try std.testing.expectEqual(1, foo_members.items.len);
@@ -2006,4 +2005,57 @@ test "comptime blocks" {
     const block_scope = scopes.get(1);
     try std.testing.expect(block_scope.flags.s_block);
     try std.testing.expect(block_scope.flags.s_comptime);
+}
+
+test "catch flags apply to a while body instead of its continue expression" {
+    const alloc = std.testing.allocator;
+    const src =
+        \\fn bar() anyerror!u32 {
+        \\    return 1;
+        \\}
+        \\
+        \\fn foo() u32 {
+        \\    var i: u32 = 0;
+        \\    return bar() catch while (i < 10) : ({
+        \\        i += 1;
+        \\    }) {
+        \\        const inner = i;
+        \\        _ = inner;
+        \\    } else 0;
+        \\}
+    ;
+
+    var builder = SemanticBuilder.init(alloc);
+    defer builder.deinit();
+    var result = try builder.build(src);
+    defer result.deinit();
+    try std.testing.expect(!result.hasErrors());
+    var semantic = result.value;
+
+    var body_scope_id: ?Semantic.Scope.Id = null;
+    var symbols = semantic.symbols.iter();
+    while (symbols.next()) |id| {
+        const symbol = semantic.symbols.get(id);
+        if (std.mem.eql(u8, symbol.name, "inner")) {
+            body_scope_id = symbol.scope;
+            break;
+        }
+    }
+
+    const body_scope = semantic.scopes.getScope(body_scope_id orelse return error.TestExpectedEqual);
+    try std.testing.expect(body_scope.flags.s_catch);
+
+    const parent_id = body_scope.parent.unwrap() orelse return error.TestExpectedEqual;
+    const siblings = semantic.scopes.children.items[parent_id.int()].items;
+    var continue_scope_id: ?Semantic.Scope.Id = null;
+    for (siblings) |sibling_id| {
+        if (sibling_id != body_scope.id) {
+            continue_scope_id = sibling_id;
+            break;
+        }
+    }
+
+    const continue_scope = semantic.scopes.getScope(continue_scope_id orelse return error.TestExpectedEqual);
+    try std.testing.expect(continue_scope.flags.s_block);
+    try std.testing.expect(!continue_scope.flags.s_catch);
 }

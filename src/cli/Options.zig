@@ -25,7 +25,7 @@ fix: bool = false,
 /// Like `--fix`, but also enable potentially dangerous fixes.
 fix_dangerously: bool = false,
 /// Positional arguments
-args: std.ArrayListUnmanaged([]const u8) = .empty,
+args: std.ArrayList([]const u8) = .empty,
 
 pub const usage =
     \\Usage: zlint [options] [<dirs>]
@@ -53,7 +53,7 @@ const ParseError = error{
 pub fn parseArgv(alloc: Allocator, io: std.Io, args: std.process.Args, err: ?*Error) ParseError!Options {
     // NOTE: on most platforms this does not actually allocate memory; only
     // Windows and WASI need the allocator to decode the command line.
-    var argv = std.process.Args.Iterator.initAllocator(args, alloc) catch return error.OutOfMemory;
+    var argv = try std.process.Args.Iterator.initAllocator(args, alloc);
     defer argv.deinit();
     return parse(alloc, io, argv, err);
 }

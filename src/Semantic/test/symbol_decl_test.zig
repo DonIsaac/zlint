@@ -1,7 +1,6 @@
 const std = @import("std");
 const test_util = @import("util.zig");
 
-const Semantic = @import("../../Semantic.zig");
 const Symbol = @import("../Symbol.zig");
 
 const t = std.testing;
@@ -579,7 +578,7 @@ test "standalone fn protos bind their name in the enclosing scope" {
 
     const puts = sem.symbols.getSymbolNamed("puts") orelse return error.SymbolNotFound;
     // declared at file scope, not inside its own parameter list...
-    try t.expectEqual(Semantic.ROOT_SCOPE_ID, sem.symbols.symbols.items(.scope)[puts.int()]);
+    try t.expectEqual(.root, sem.symbols.symbols.items(.scope)[puts.int()]);
     // ...so the call in `main` resolves to it.
     try t.expectEqual(1, sem.symbols.getReferences(puts).len);
     try t.expect(sem.symbols.symbols.items(.flags)[puts.int()].s_extern);
