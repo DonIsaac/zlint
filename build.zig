@@ -111,6 +111,9 @@ pub fn build(b: *std.Build) void {
 
     custom_rules_bytes.writer.writeAll(custom_rules_header) catch @panic("OOM");
 
+    var custom_rule_tests = std.ArrayListUnmanaged(*Build.Step.Compile).initCapacity(b.allocator, custom_rule_paths.len) catch @panic("OOM");
+    defer custom_rule_tests.deinit(b.allocator);
+
     for (custom_rule_paths, 0..) |p, i| {
         // NOTE: never freed, we assume the build graph keeps a ref
         const name = std.fmt.allocPrint(b.allocator, "custom_rules_{d}", .{i}) catch @panic("OOM");
@@ -125,6 +128,16 @@ pub fn build(b: *std.Build) void {
             \\    pub const {0s} = @import("{0s}");
             \\
         , .{name}) catch @panic("OOM");
+
+        // Zig only collects `test` decls from a compilation's root module, so
+        // each custom rule needs its own test artifact
+        const custom_rule_test = b.addTest(.{
+            .name = b.fmt("test-{s}", .{name}),
+            .root_module = custom_rule_mod,
+            .use_llvm = use_llvm,
+        });
+        b.installArtifact(custom_rule_test);
+        custom_rule_tests.appendAssumeCapacity(custom_rule_test);
     }
 
     custom_rules_bytes.writer.writeAll(custom_rules_footer) catch @panic("OOM");
@@ -133,6 +146,12 @@ pub fn build(b: *std.Build) void {
     const custom_rules_mod_file = custom_rules_files.add("custom_rules.zig", custom_rules_bytes.written());
     custom_rules_mod.root_source_file = custom_rules_mod_file;
     zlint.addImport("custom_rules", custom_rules_mod);
+
+    // Reached from a consuming package via `addCustomLintRulesTest`.
+    const custom_rules_test_step = b.step("test-custom-rules", "Run tests for custom lint rules");
+    for (custom_rule_tests.items) |custom_rule_test| {
+        custom_rules_test_step.dependOn(&b.addRunArtifact(custom_rule_test).step);
+    }
 
     // zig build docs, zig build config
     var ct = codegen.CodegenTasks{
@@ -390,6 +409,7 @@ pub const ZLintStep = struct {
     step: Build.Step,
 };
 
+/// Add an opaque run step that runs the linter.
 pub fn addRunLint(b: *std.Build, zlint_dep: *std.Build.Dependency) *ZLintStep {
     const exe = zlint_dep.artifact("zlint");
     const run = b.addRunArtifact(exe);
@@ -399,8 +419,10 @@ pub fn addRunLint(b: *std.Build, zlint_dep: *std.Build.Dependency) *ZLintStep {
     return @ptrCast(run);
 }
 
-pub fn addCustomLintRulesTest(b: *std.Build, zlint_dep: *std.Build.Dependency) *Build.Step.Compile {
+/// Step that runs the `test` blocks in each registered custom rule.
+pub fn addCustomLintRulesTest(b: *std.Build, zlint_dep: *std.Build.Dependency) *Build.Step {
     _ = b;
-    const test_lib = zlint_dep.artifact("test");
-    return @ptrCast(test_lib);
+    const tls = zlint_dep.builder.top_level_steps.get("test-custom-rules") orelse
+        @panic("zlint dependency is missing the 'test-custom-rules' step");
+    return &tls.step;
 }
