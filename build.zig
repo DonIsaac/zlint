@@ -144,10 +144,7 @@ pub fn build(b: *std.Build) void {
 
     {
         _ = ct.config();
-
         const docs_step = ct.docs();
-        b.getInstallStep().dependOn(docs_step);
-
         var lib_docs = b.addInstallDirectory(.{
             .source_dir = lib.getEmittedDocs(),
             .install_dir = .prefix,

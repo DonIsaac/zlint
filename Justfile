@@ -42,7 +42,8 @@ ready:
     # git diff --name-only --exit-code
     just fmt
     zig build check --error-style minimal
-    zig build codegen
+    zig build docs
+    zig build config
     zig build install
     zig build test
     zig build test-e2e
@@ -109,7 +110,8 @@ lint:
     fi
 
 codegen:
-    zig build codegen
+    zig build docs
+    zig build config
     cp -r zig-out/docs apps/site/static/lib-docs
 
 # Remove build and test artifacts
