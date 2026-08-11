@@ -56,7 +56,7 @@ Zig 0.15, `just` for tasks, `bun` for package management and running JS apps, `t
 ## Build, Test, Run
 
 Prefer `just` targets over raw `zig build`. `just ready` is the canonical "is my
-branch green?" command — it runs fmt, check, codegen, install, unit tests, and
+branch green?" command — it runs fmt, check, docs, config, install, unit tests, and
 E2E, then `git status`. Failures have clear error messages; success may be
 silent but will exit with code 0. After a clean run, `git diff` must be empty
 (codegen output is checked in). Run it before opening a PR.
