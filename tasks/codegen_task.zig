@@ -33,9 +33,8 @@ pub const CodegenTasks = struct {
 
     /// `zig build config`
     ///
-    /// Writes `zlint.schema.json`, which is checked in. Rule configs themselves
-    /// are built at comptime (see `src/linter/config/rules_config_rules.zig`),
-    /// so this only needs re-running when a rule's options change.
+    /// Writes `zlint.schema.json`, which is checked in, based on each
+    /// rule's config.
     pub fn config(self: *CodegenTasks) *Step {
         const b = self.b;
         const confgen_run = b.addRunArtifact(self.confgen());
