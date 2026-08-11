@@ -42,8 +42,6 @@ async function main(argv: string[]) {
     if (fs.existsSync(rule.path)) {
         throw new Error(`Rule ${ruleName} already exists`)
     }
-    // `RulesConfig` picks the rule up from this re-export at comptime, so
-    // there's no config struct to update.
     const reExport = `pub const ${rule.StructName} = @import("./rules/${rule.filename}");`
     await Promise.all([
         fs.promises.writeFile(rule.path, createRule(rule)),
