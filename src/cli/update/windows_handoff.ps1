@@ -21,7 +21,7 @@ try {
   Wait-Process -Id $ParentId -ErrorAction SilentlyContinue
   for ($i = 0; $i -lt 50; $i++) {
     try {
-      [System.IO.File]::Replace($Source, $Destination, $null, $true)
+      [System.IO.File]::Replace($Source, $Destination, [NullString]::Value, $true)
       $exitCode = 0
       break
     } catch {
@@ -42,7 +42,7 @@ try {
 }
 
 if ($exitCode -ne 0 -and $null -ne $lastError) {
-  [Console]::Error.WriteLine("failed to replace ${Destination}: $lastError")
+  [Console]::Error.WriteLine("failed to replace ${Destination} with ${Source}: $lastError")
 }
 
 exit $exitCode
