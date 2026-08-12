@@ -12,6 +12,27 @@ pub const Digest = [Sha256.digest_length]u8;
 pub const Metadata = struct {
     tag_name: []const u8,
     assets: []const Asset,
+
+    /// Parses only the GitHub fields the updater consumes.
+    pub fn parseFromSlice(alloc: Allocator, json: []const u8) !std.json.Parsed(Metadata) {
+        return std.json.parseFromSlice(Metadata, alloc, json, .{
+            .allocate = .alloc_always,
+            .ignore_unknown_fields = true,
+        });
+    }
+
+    /// Selects an asset and validates its size, URL, and GitHub digest.
+    pub fn selectAsset(metadata: Metadata, name: []const u8) !Asset.Validated {
+        const asset = findAsset(metadata.assets, name) orelse return error.ReleaseAssetNotFound;
+        if (asset.size == 0 or asset.size > maximum_asset_size) return error.ReleaseAssetTooLarge;
+        if (!isHttps(asset.browser_download_url)) return error.InsecureDownloadUrl;
+
+        return .{
+            .download_url = asset.browser_download_url,
+            .size = asset.size,
+            .digest = try parseDigest(asset.digest orelse return error.ReleaseAssetMissingDigest),
+        };
+    }
 };
 
 pub const Asset = struct {
@@ -19,23 +40,14 @@ pub const Asset = struct {
     browser_download_url: []const u8,
     digest: ?[]const u8 = null,
     size: u64,
-};
-
-pub const ValidatedAsset = struct {
-    download_url: []const u8,
-    size: u64,
-    digest: Digest,
+    const Validated = struct {
+        download_url: []const u8,
+        size: u64,
+        digest: Digest,
+    };
 };
 
 // Metadata and version parsing
-
-/// Parses only the GitHub fields the updater consumes.
-pub fn parseMetadata(alloc: Allocator, json: []const u8) !std.json.Parsed(Metadata) {
-    return std.json.parseFromSlice(Metadata, alloc, json, .{
-        .allocate = .alloc_always,
-        .ignore_unknown_fields = true,
-    });
-}
 
 /// Accepts release versions with or without the conventional leading `v`.
 pub fn parseVersion(version: []const u8) !std.SemanticVersion {
@@ -51,19 +63,6 @@ pub fn assetNameForTarget(comptime os: std.Target.Os.Tag, comptime arch: std.Tar
 
     const extension = if (os == .windows) ".exe" else "";
     return "zlint-" ++ @tagName(os) ++ "-" ++ @tagName(arch) ++ extension;
-}
-
-/// Selects an asset and validates its size, URL, and GitHub digest.
-pub fn selectAsset(metadata: Metadata, name: []const u8) !ValidatedAsset {
-    const asset = findAsset(metadata.assets, name) orelse return error.ReleaseAssetNotFound;
-    if (asset.size == 0 or asset.size > maximum_asset_size) return error.ReleaseAssetTooLarge;
-    if (!isHttps(asset.browser_download_url)) return error.InsecureDownloadUrl;
-
-    return .{
-        .download_url = asset.browser_download_url,
-        .size = asset.size,
-        .digest = try parseDigest(asset.digest orelse return error.ReleaseAssetMissingDigest),
-    };
 }
 
 pub fn verifyDigest(actual: Digest, expected: Digest) !void {
@@ -146,16 +145,16 @@ test "metadata parsing ignores fields added by GitHub" {
         \\  }]
         \\}
     ;
-    var parsed = try parseMetadata(t.allocator, json);
+    var parsed = try Metadata.parseFromSlice(t.allocator, json);
     defer parsed.deinit();
 
     try t.expectEqualStrings("v1.2.3", parsed.value.tag_name);
-    const asset = try selectAsset(parsed.value, "zlint-linux-x86_64");
+    const asset = try parsed.value.selectAsset("zlint-linux-x86_64");
     try t.expectEqual(@as(u64, 3), asset.size);
 }
 
 test "malformed metadata is rejected" {
-    try t.expectError(error.UnexpectedEndOfInput, parseMetadata(t.allocator, "{"));
+    try t.expectError(error.UnexpectedEndOfInput, Metadata.parseFromSlice(t.allocator, "{"));
 }
 
 test "asset selection validates release metadata" {
@@ -168,8 +167,8 @@ test "asset selection validates release metadata" {
     };
     const metadata = Metadata{ .tag_name = "v1.0.0", .assets = &.{valid} };
 
-    _ = try selectAsset(metadata, valid.name);
-    try t.expectError(error.ReleaseAssetNotFound, selectAsset(metadata, "zlint-linux-aarch64"));
+    _ = try metadata.selectAsset(valid.name);
+    try t.expectError(error.ReleaseAssetNotFound, metadata.selectAsset("zlint-linux-aarch64"));
 
     var invalid = valid;
     invalid.size = 0;
@@ -210,5 +209,5 @@ test "digest verification rejects mismatches" {
 
 fn expectInvalidAsset(expected_error: anyerror, asset: Asset) !void {
     const metadata = Metadata{ .tag_name = "v1.0.0", .assets = &.{asset} };
-    try t.expectError(expected_error, selectAsset(metadata, asset.name));
+    try t.expectError(expected_error, metadata.selectAsset(asset.name));
 }

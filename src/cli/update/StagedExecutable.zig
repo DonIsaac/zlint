@@ -19,8 +19,8 @@ pub const InstallResult = enum {
 /// Creates a temporary file beside `executable_path` with matching permissions.
 /// The executable path is borrowed for the lifetime of the returned value.
 pub fn new(io: Io, executable_path: []const u8) !Self {
-    const directory_path = std.fs.path.dirname(executable_path) orelse return error.InvalidExecutablePath;
-    const basename = std.fs.path.basename(executable_path);
+    const directory_path = path.dirname(executable_path) orelse return error.InvalidExecutablePath;
+    const basename = path.basename(executable_path);
 
     var directory = try Io.Dir.openDirAbsolute(io, directory_path, .{});
     errdefer directory.close(io);
@@ -82,7 +82,7 @@ fn handoffWindows(self: *Self, alloc: Allocator) !void {
     if (comptime builtin.os.tag != .windows) unreachable;
 
     const staged_basename = std.fmt.hex(self.staged.file_basename_hex);
-    const staged_path = try std.fs.path.join(alloc, &.{ self.directory_path, &staged_basename });
+    const staged_path = try path.join(alloc, &.{ self.directory_path, &staged_basename });
     defer alloc.free(staged_path);
 
     var helper_basename_buffer: [staged_basename.len + ".ps1".len]u8 = undefined;
@@ -95,7 +95,7 @@ fn handoffWindows(self: *Self, alloc: Allocator) !void {
     defer if (helper_file_open) helper_file.close(self.io);
     errdefer self.staged.dir.deleteFile(self.io, helper_basename) catch {};
 
-    const helper_path = try std.fs.path.join(alloc, &.{ self.directory_path, helper_basename });
+    const helper_path = try path.join(alloc, &.{ self.directory_path, helper_basename });
     defer alloc.free(helper_path);
     const parent_pid_arg = try std.fmt.allocPrint(alloc, "{d}", .{std.os.windows.GetCurrentProcessId()});
     defer alloc.free(parent_pid_arg);
@@ -134,6 +134,7 @@ fn handoffWindows(self: *Self, alloc: Allocator) !void {
 const std = @import("std");
 const builtin = @import("builtin");
 
+const path = std.fs.path;
 const Allocator = std.mem.Allocator;
 const Io = std.Io;
 

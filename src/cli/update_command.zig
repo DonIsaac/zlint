@@ -98,24 +98,26 @@ fn performUpdate(
 
     const metadata_json = client.fetchRelease(latest_release_url) catch |err| switch (err) {
         error.StreamTooLong => return error.ReleaseMetadataTooLarge,
+        error.UnknownHostName => return error.CouldNotFetchRelease,
         else => |e| return e,
     };
     defer alloc.free(metadata_json);
 
-    var parsed_release = release.parseMetadata(alloc, metadata_json) catch return error.ReleaseRequestFailed;
+    var parsed_release = release.Metadata.parseFromSlice(alloc, metadata_json) catch return error.ReleaseRequestFailed;
     defer parsed_release.deinit();
+    const metadata = parsed_release.value;
 
-    const latest_version = release.parseVersion(parsed_release.value.tag_name) catch return error.InvalidReleaseVersion;
+    const latest_version = release.parseVersion(metadata.tag_name) catch return error.InvalidReleaseVersion;
     const current_version = release.parseVersion(current_version_text) catch return error.InvalidCurrentVersion;
     const executable_path = try std.process.executablePathAlloc(io, alloc);
     defer alloc.free(executable_path);
 
     if (current_version.order(latest_version) != .lt) {
-        printAlreadyCurrent(io, current_version_text, parsed_release.value.tag_name, executable_path);
+        printAlreadyCurrent(io, current_version_text, metadata.tag_name, executable_path);
         return;
     }
 
-    const asset = try release.selectAsset(parsed_release.value, asset_name);
+    const asset = try metadata.selectAsset(asset_name);
     printStdout(io, "Updating zlint from {s} to {s}...\n", .{
         current_version_text,
         parsed_release.value.tag_name,
@@ -155,32 +157,33 @@ fn printAlreadyCurrent(io: Io, current_version: []const u8, latest_version: []co
 
 fn printUpdateError(io: Io, err: anyerror, current_version: []const u8) void {
     switch (err) {
-        error.UnsupportedTarget => printError(io, "no release binary is available for {s}-{s}", .{
+        error.UnsupportedTarget => printError(io, "no release binary is available for {s}-{s}. Please compile from source or open an issue on GitHub.", .{
             @tagName(builtin.os.tag),
             @tagName(builtin.cpu.arch),
         }),
-        error.InvalidCurrentVersion => printError(io, "the installed version is not a valid semantic version: {s}", .{current_version}),
-        error.InvalidReleaseVersion => printError(io, "GitHub returned an invalid release version", .{}),
-        error.ReleaseMetadataTooLarge => printError(io, "GitHub release metadata exceeded {d} bytes", .{UpdateClient.metadata_limit}),
-        error.ReleaseRequestFailed => printError(io, "GitHub returned invalid release metadata", .{}),
+        error.AccessDenied, error.PermissionDenied, error.ReadOnlyFileSystem => printError(io, "cannot replace the installed binary; rerun with permission to write its directory", .{}),
+        error.ChecksumMismatch => printError(io, "the downloaded binary failed SHA-256 verification; the installed binary was not changed", .{}),
+        error.DownloadSizeMismatch => printError(io, "the downloaded binary size does not match the release metadata", .{}),
         error.HttpBadRequest => printError(io, "GitHub rejected the update request (HTTP 400 Bad Request)", .{}),
-        error.HttpUnauthorized => printError(io, "GitHub rejected the update request (HTTP 401 Unauthorized)", .{}),
+        error.HttpClientError => printError(io, "GitHub rejected the update request (HTTP 4xx)", .{}),
         error.HttpForbidden => printError(io, "GitHub refused the update request (HTTP 403 Forbidden); the API rate limit may be exhausted", .{}),
         error.HttpNotFound => printError(io, "the requested GitHub release resource was not found (HTTP 404 Not Found)", .{}),
-        error.HttpRequestTimeout => printError(io, "the update request timed out (HTTP 408 Request Timeout)", .{}),
         error.HttpRateLimited => printError(io, "GitHub rate-limited the update request (HTTP 429 Too Many Requests); try again later", .{}),
-        error.HttpClientError => printError(io, "GitHub rejected the update request (HTTP 4xx)", .{}),
+        error.HttpRequestTimeout => printError(io, "the update request timed out (HTTP 408 Request Timeout)", .{}),
         error.HttpServerError => printError(io, "GitHub is temporarily unavailable (HTTP 5xx); try again later", .{}),
+        error.HttpUnauthorized => printError(io, "GitHub rejected the update request (HTTP 401 Unauthorized)", .{}),
         error.HttpUnexpectedStatus => printError(io, "GitHub returned an unexpected HTTP response", .{}),
+        error.InsecureDownloadUrl => printError(io, "GitHub returned a non-HTTPS download URL", .{}),
+        error.InvalidCurrentVersion => printError(io, "the installed version is not a valid semantic version: {s}", .{current_version}),
+        error.InvalidDigest => printError(io, "GitHub returned an invalid SHA-256 digest", .{}),
+        error.InvalidReleaseVersion => printError(io, "GitHub returned an invalid release version", .{}),
+        error.ReleaseAssetMissingDigest => printError(io, "the release asset does not have a SHA-256 digest", .{}),
         error.ReleaseAssetNotFound => printError(io, "the latest release does not contain a binary for this target", .{}),
         error.ReleaseAssetTooLarge => printError(io, "the release binary is unexpectedly large", .{}),
-        error.ReleaseAssetMissingDigest => printError(io, "the release asset does not have a SHA-256 digest", .{}),
-        error.InvalidDigest => printError(io, "GitHub returned an invalid SHA-256 digest", .{}),
-        error.InsecureDownloadUrl => printError(io, "GitHub returned a non-HTTPS download URL", .{}),
-        error.DownloadSizeMismatch => printError(io, "the downloaded binary size does not match the release metadata", .{}),
-        error.ChecksumMismatch => printError(io, "the downloaded binary failed SHA-256 verification; the installed binary was not changed", .{}),
-        error.AccessDenied, error.PermissionDenied, error.ReadOnlyFileSystem => printError(io, "cannot replace the installed binary; rerun with permission to write its directory", .{}),
+        error.ReleaseMetadataTooLarge => printError(io, "GitHub release metadata exceeded {d} bytes", .{UpdateClient.metadata_limit}),
+        error.ReleaseRequestFailed => printError(io, "GitHub returned invalid release metadata", .{}),
         error.WindowsHandoffFailed => printError(io, "could not start the Windows update handoff", .{}),
+        error.CouldNotFetchRelease => printError(io, "could not download binary from GitHub. Please check your internet connection.", .{}),
         else => printError(io, "update failed: {s}", .{@errorName(err)}),
     }
 }
