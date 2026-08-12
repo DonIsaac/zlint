@@ -18,8 +18,8 @@ const asset_headers = [_]std.http.Header{
 pub const metadata_limit = 1024 * 1024;
 
 const max_redirect_url_len = 2048;
+const release_redirect_hosts = [_][]const u8{"api.github.com"};
 
-/// Initializes TLS and proxy configuration from the process environment.
 pub fn init(alloc: Allocator, io: Io, environ: std.process.Environ) !Self {
     var env_map = try environ.createMap(alloc);
     defer env_map.deinit();
@@ -45,15 +45,12 @@ pub fn deinit(self: *Self) void {
     self.* = undefined;
 }
 
-// Release metadata
-
-/// Fetches a release response into bounded, caller-owned storage.
 pub fn fetchRelease(self: *Self, url: []const u8) ![]u8 {
     var head_buffer: [8 * 1024]u8 = undefined;
     var url_buffer: [max_redirect_url_len]u8 = undefined;
     // SAFETY: assigned by `openHttps` before it returns successfully.
     var request: std.http.Client.Request = undefined;
-    var response = try self.openHttps(&request, &url_buffer, &head_buffer, url, 3, &release_headers);
+    var response = try self.openHttps(&request, &url_buffer, &head_buffer, url, 3, &release_headers, &release_redirect_hosts);
     defer request.deinit();
     try requireOk(response.head.status);
 
@@ -62,16 +59,26 @@ pub fn fetchRelease(self: *Self, url: []const u8) ![]u8 {
     return reader.allocRemaining(self.allocator, .limited(metadata_limit));
 }
 
-// Binary download
-
-/// Streams exactly `expected_size` bytes to `destination` while hashing them.
-/// The caller remains responsible for syncing and closing the destination.
-pub fn downloadAsset(self: *Self, url: []const u8, expected_size: u64, destination: *Io.File) !release.Digest {
+/// The caller syncs and closes `destination`.
+pub fn downloadAsset(
+    self: *Self,
+    url: []const u8,
+    expected_size: u64,
+    destination: *Io.File,
+) !release.Digest {
     var head_buffer: [8 * 1024]u8 = undefined;
     var url_buffer: [max_redirect_url_len]u8 = undefined;
     // SAFETY: assigned by `openHttps` before it returns successfully.
     var request: std.http.Client.Request = undefined;
-    var response = try self.openHttps(&request, &url_buffer, &head_buffer, url, 5, &asset_headers);
+    var response = try self.openHttps(
+        &request,
+        &url_buffer,
+        &head_buffer,
+        url,
+        5,
+        &asset_headers,
+        null,
+    );
     defer request.deinit();
     try requireOk(response.head.status);
     if (response.head.content_length) |content_length| {
@@ -83,12 +90,14 @@ pub fn downloadAsset(self: *Self, url: []const u8, expected_size: u64, destinati
     var transfer_buffer: [64]u8 = undefined;
     const response_reader = response.reader(&transfer_buffer);
 
-    const digest = try copyExactAndHash(response_reader, &file_writer.interface, expected_size);
+    const digest = try copyExactAndHash(
+        response_reader,
+        &file_writer.interface,
+        expected_size,
+    );
     try file_writer.interface.flush();
     return digest;
 }
-
-// Shared HTTP and streaming primitives
 
 /// `std.http.Client` derives each hop's protocol from the redirect URI's
 /// scheme, so its built-in redirect handling silently downgrades to plaintext.
@@ -103,6 +112,8 @@ fn openHttps(
     url: []const u8,
     max_redirects: u8,
     extra_headers: []const std.http.Header,
+    /// `Location` reidrect allowlist
+    allowed_hosts: ?[]const []const u8,
 ) !std.http.Client.Response {
     var current = url;
     var remaining = max_redirects;
@@ -119,20 +130,40 @@ fn openHttps(
 
         const location = response.head.location orelse return error.HttpRedirectLocationMissing;
         // Copy before deinit; `location` points into the response head.
-        current = try copyHttpsLocation(url_buffer, location);
+        current = try copyHttpsLocation(url_buffer, location, allowed_hosts);
         request_out.deinit();
     }
 }
 
 /// Relative locations are rejected rather than resolved; GitHub always sends
 /// absolute URLs, so failing closed beats reimplementing URI resolution.
-fn copyHttpsLocation(buffer: *[max_redirect_url_len]u8, location: []const u8) ![]const u8 {
+fn copyHttpsLocation(
+    buffer: *[max_redirect_url_len]u8,
+    location: []const u8,
+    allowed_hosts: ?[]const []const u8,
+) ![]const u8 {
     const uri = std.Uri.parse(location) catch return error.InsecureRedirect;
     if (!std.ascii.eqlIgnoreCase(uri.scheme, "https")) return error.InsecureRedirect;
+    if (allowed_hosts) |hosts| {
+        if (!isAllowedHost(uri.host, hosts)) return error.RedirectHostNotAllowed;
+    }
     if (location.len > buffer.len) return error.RedirectLocationTooLong;
 
     @memcpy(buffer[0..location.len], location);
     return buffer[0..location.len];
+}
+
+fn isAllowedHost(
+    host: ?std.Uri.Component,
+    allowed_hosts: []const []const u8,
+) bool {
+    const name = switch (host orelse return false) {
+        .raw, .percent_encoded => |text| text,
+    };
+    for (allowed_hosts) |allowed| {
+        if (std.ascii.eqlIgnoreCase(name, allowed)) return true;
+    }
+    return false;
 }
 
 fn get(
@@ -235,16 +266,30 @@ test "redirects may not leave HTTPS" {
     var buffer: [max_redirect_url_len]u8 = undefined;
 
     const absolute = "https://objects.githubusercontent.com/zlint-linux-x86_64";
-    try t.expectEqualStrings(absolute, try copyHttpsLocation(&buffer, absolute));
-    try t.expectEqualStrings("HTTPS://EXAMPLE.COM/x", try copyHttpsLocation(&buffer, "HTTPS://EXAMPLE.COM/x"));
+    try t.expectEqualStrings(absolute, try copyHttpsLocation(&buffer, absolute, null));
+    try t.expectEqualStrings("HTTPS://EXAMPLE.COM/x", try copyHttpsLocation(&buffer, "HTTPS://EXAMPLE.COM/x", null));
 
-    try t.expectError(error.InsecureRedirect, copyHttpsLocation(&buffer, "http://evil.example/zlint"));
-    try t.expectError(error.InsecureRedirect, copyHttpsLocation(&buffer, "/next"));
-    try t.expectError(error.InsecureRedirect, copyHttpsLocation(&buffer, "evil.example/zlint"));
-    try t.expectError(error.InsecureRedirect, copyHttpsLocation(&buffer, "ftp://example.com/zlint"));
+    try t.expectError(error.InsecureRedirect, copyHttpsLocation(&buffer, "http://evil.example/zlint", null));
+    try t.expectError(error.InsecureRedirect, copyHttpsLocation(&buffer, "/next", null));
+    try t.expectError(error.InsecureRedirect, copyHttpsLocation(&buffer, "evil.example/zlint", null));
+    try t.expectError(error.InsecureRedirect, copyHttpsLocation(&buffer, "ftp://example.com/zlint", null));
 
     const too_long = "https://example.com/" ++ ("a" ** max_redirect_url_len);
-    try t.expectError(error.RedirectLocationTooLong, copyHttpsLocation(&buffer, too_long));
+    try t.expectError(error.RedirectLocationTooLong, copyHttpsLocation(&buffer, too_long, null));
+}
+
+test "release metadata redirects may not leave GitHub" {
+    var buffer: [max_redirect_url_len]u8 = undefined;
+    const hosts: []const []const u8 = &release_redirect_hosts;
+
+    const same_host = "https://api.github.com/repos/DonIsaac/zlint/releases/29";
+    try t.expectEqualStrings(same_host, try copyHttpsLocation(&buffer, same_host, hosts));
+    try t.expectEqualStrings("https://API.GITHUB.COM/x", try copyHttpsLocation(&buffer, "https://API.GITHUB.COM/x", hosts));
+
+    try t.expectError(error.RedirectHostNotAllowed, copyHttpsLocation(&buffer, "https://evil.example/releases", hosts));
+    try t.expectError(error.RedirectHostNotAllowed, copyHttpsLocation(&buffer, "https://api.github.com.evil.example/x", hosts));
+    try t.expectError(error.RedirectHostNotAllowed, copyHttpsLocation(&buffer, "https://api.github.com@evil.example/x", hosts));
+    try t.expectError(error.RedirectHostNotAllowed, copyHttpsLocation(&buffer, "https:///x", hosts));
 }
 
 test "HTTP response statuses have actionable error categories" {

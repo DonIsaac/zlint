@@ -14,10 +14,7 @@ pub const InstallResult = enum {
     deferred,
 };
 
-// Staging lifecycle
-
-/// Creates a temporary file beside `executable_path` with matching permissions.
-/// The executable path is borrowed for the lifetime of the returned value.
+/// `executable_path` is borrowed for the lifetime of the returned value.
 pub fn new(io: Io, executable_path: []const u8) !Self {
     const directory_path = path.dirname(executable_path) orelse return error.InvalidExecutablePath;
     const basename = path.basename(executable_path);
@@ -51,21 +48,16 @@ pub fn deinit(self: *Self) void {
     self.* = undefined;
 }
 
-/// Returns the temporary file used as the download destination.
 pub fn file(self: *Self) *Io.File {
     return &self.staged.file;
 }
 
-/// Makes all downloaded bytes durable and closes the temporary file.
 pub fn finishWriting(self: *Self) !void {
     try self.staged.file.sync(self.io);
     self.staged.file.close(self.io);
     self.staged.file_open = false;
 }
 
-// Installation
-
-/// Installs a file finalized by `finishWriting` or starts the Windows handoff.
 pub fn install(self: *Self, alloc: Allocator) !InstallResult {
     if (comptime builtin.os.tag == .windows) {
         try self.handoffWindows(alloc);
@@ -75,8 +67,6 @@ pub fn install(self: *Self, alloc: Allocator) !InstallResult {
     try self.staged.replace(self.io);
     return .replaced;
 }
-
-// Windows deferred replacement
 
 fn handoffWindows(self: *Self, alloc: Allocator) !void {
     if (comptime builtin.os.tag != .windows) unreachable;
@@ -210,9 +200,8 @@ test "Windows handoff replaces a file after its parent exits" {
     const script_path = try tmp.dir.realPathFileAlloc(t.io, "handoff.ps1", t.allocator);
     defer t.allocator.free(script_path);
 
-    // Spawn the script exactly as `handoffWindows` does -- `-File` with absolute
-    // paths -- so its exit code is the process exit code and nothing depends on
-    // the working directory.
+    // Invoke the script the same way `handoffWindows` does; `-File` is what
+    // makes the script's exit code the process exit code.
     const command = try std.fmt.allocPrint(t.allocator,
         \\$parent = Start-Process powershell.exe -ArgumentList @('-NoProfile', '-NonInteractive', '-Command', 'Start-Sleep -Milliseconds 100') -WindowStyle Hidden -PassThru;
         \\& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '{s}' $parent.Id '{s}' '{s}' '{s}';

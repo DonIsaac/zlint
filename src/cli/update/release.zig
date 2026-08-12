@@ -21,7 +21,8 @@ pub const Metadata = struct {
         });
     }
 
-    /// Selects an asset and validates its size, URL, and GitHub digest.
+
+    /// Selects an asset and validates its size, URL, and digest.
     pub fn selectAsset(metadata: Metadata, name: []const u8) !Asset.Validated {
         const asset = findAsset(metadata.assets, name) orelse return error.ReleaseAssetNotFound;
         if (asset.size == 0 or asset.size > maximum_asset_size) return error.ReleaseAssetTooLarge;
@@ -47,17 +48,12 @@ pub const Asset = struct {
     };
 };
 
-// Metadata and version parsing
-
 /// Accepts release versions with or without the conventional leading `v`.
 pub fn parseVersion(version: []const u8) !std.SemanticVersion {
     const normalized = if (std.mem.startsWith(u8, version, "v")) version[1..] else version;
     return std.SemanticVersion.parse(normalized);
 }
 
-// Target and asset selection
-
-/// Maps a compilation target to the corresponding published release asset.
 pub fn assetNameForTarget(comptime os: std.Target.Os.Tag, comptime arch: std.Target.Cpu.Arch) ?[]const u8 {
     if (!isPublishedTarget(os, arch)) return null;
 

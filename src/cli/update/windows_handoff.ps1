@@ -10,9 +10,6 @@ function Resolve-FullPath([string]$Path) {
   return (Join-Path -Path $PWD.ProviderPath -ChildPath $Path)
 }
 
-# [System.IO.File] resolves relative paths against the process working
-# directory, which PowerShell does not keep in sync with its own location.
-# Anchor every path so both APIs agree.
 $Source = Resolve-FullPath $Source
 $Destination = Resolve-FullPath $Destination
 $ScriptPath = Resolve-FullPath $ScriptPath

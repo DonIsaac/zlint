@@ -61,8 +61,6 @@ pub fn run(
     return 0;
 }
 
-// Command-line parsing
-
 const Command = enum { update, help };
 
 fn parseArgs(alloc: Allocator, args: std.process.Args) !Command {
@@ -94,8 +92,6 @@ fn parseIterator(args_iter: anytype) !Command {
     }
     return parsed;
 }
-
-// Update workflow
 
 fn performUpdate(
     alloc: Allocator,
@@ -167,8 +163,6 @@ fn performUpdate(
     }
 }
 
-// User-facing output
-
 fn printAlreadyCurrent(io: Io, current_version: []const u8, latest_version: []const u8, path: []const u8) void {
     printStdout(io, "zlint {s} is already up to date (latest: {s}) at {s}\n", .{
         current_version,
@@ -198,6 +192,7 @@ fn printUpdateError(io: Io, err: anyerror, current_version: []const u8) void {
         error.HttpRedirectLocationMissing => printError(io, "GitHub sent a redirect without a location", .{}),
         error.TooManyHttpRedirects => printError(io, "GitHub redirected the update request too many times", .{}),
         error.InsecureRedirect => printError(io, "the update request was redirected to a non-HTTPS URL; refusing to continue", .{}),
+        error.RedirectHostNotAllowed => printError(io, "the release metadata request was redirected away from GitHub; refusing to continue", .{}),
         error.RedirectLocationTooLong => printError(io, "GitHub redirected the update request to an excessively long URL", .{}),
         error.InsecureDownloadUrl => printError(io, "GitHub returned a non-HTTPS download URL", .{}),
         error.InvalidCurrentVersion => printError(io, "the installed version is not a valid semantic version: {s}", .{current_version}),
