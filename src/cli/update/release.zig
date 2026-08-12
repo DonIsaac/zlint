@@ -21,7 +21,6 @@ pub const Metadata = struct {
         });
     }
 
-
     /// Selects an asset and validates its size, URL, and digest.
     pub fn selectAsset(metadata: Metadata, name: []const u8) !Asset.Validated {
         const asset = findAsset(metadata.assets, name) orelse return error.ReleaseAssetNotFound;
