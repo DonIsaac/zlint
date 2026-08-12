@@ -203,11 +203,23 @@ test "Windows handoff replaces a file after its parent exits" {
     try tmp.dir.writeFile(t.io, .{ .sub_path = "staged.exe", .data = "new binary" });
     try tmp.dir.writeFile(t.io, .{ .sub_path = "handoff.ps1", .data = windows_handoff_script });
 
-    const command =
-        "$parent = Start-Process powershell.exe " ++
-        "-ArgumentList @('-NoProfile', '-NonInteractive', '-Command', 'Start-Sleep -Milliseconds 100') " ++
-        "-WindowStyle Hidden -PassThru; " ++
-        "& '.\\handoff.ps1' $parent.Id 'staged.exe' 'installed.exe' 'handoff.ps1'";
+    const installed_path = try tmp.dir.realPathFileAlloc(t.io, "installed.exe", t.allocator);
+    defer t.allocator.free(installed_path);
+    const staged_path = try tmp.dir.realPathFileAlloc(t.io, "staged.exe", t.allocator);
+    defer t.allocator.free(staged_path);
+    const script_path = try tmp.dir.realPathFileAlloc(t.io, "handoff.ps1", t.allocator);
+    defer t.allocator.free(script_path);
+
+    // Spawn the script exactly as `handoffWindows` does -- `-File` with absolute
+    // paths -- so its exit code is the process exit code and nothing depends on
+    // the working directory.
+    const command = try std.fmt.allocPrint(t.allocator,
+        \\$parent = Start-Process powershell.exe -ArgumentList @('-NoProfile', '-NonInteractive', '-Command', 'Start-Sleep -Milliseconds 100') -WindowStyle Hidden -PassThru;
+        \\& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '{s}' $parent.Id '{s}' '{s}' '{s}';
+        \\exit $LASTEXITCODE
+    , .{ script_path, staged_path, installed_path, script_path });
+    defer t.allocator.free(command);
+
     const result = try std.process.run(t.allocator, t.io, .{
         .argv = &.{
             "powershell.exe",
@@ -218,7 +230,6 @@ test "Windows handoff replaces a file after its parent exits" {
             "-Command",
             command,
         },
-        .cwd = .{ .dir = tmp.dir },
         .stderr_limit = .limited(4096),
         .stdout_limit = .limited(4096),
     });
@@ -226,7 +237,10 @@ test "Windows handoff replaces a file after its parent exits" {
     defer t.allocator.free(result.stderr);
 
     switch (result.term) {
-        .exited => |code| try t.expectEqual(@as(u8, 0), code),
+        .exited => |code| if (code != 0) {
+            std.debug.print("handoff failed ({d}): {s}\n", .{ code, result.stderr });
+            return error.TestUnexpectedResult;
+        },
         else => return error.TestUnexpectedResult,
     }
 

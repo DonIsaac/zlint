@@ -5,7 +5,20 @@ param(
   [string]$ScriptPath
 )
 
+function Resolve-FullPath([string]$Path) {
+  if ([System.IO.Path]::IsPathRooted($Path)) { return $Path }
+  return (Join-Path -Path $PWD.ProviderPath -ChildPath $Path)
+}
+
+# [System.IO.File] resolves relative paths against the process working
+# directory, which PowerShell does not keep in sync with its own location.
+# Anchor every path so both APIs agree.
+$Source = Resolve-FullPath $Source
+$Destination = Resolve-FullPath $Destination
+$ScriptPath = Resolve-FullPath $ScriptPath
+
 $exitCode = 1
+$lastError = $null
 
 try {
   Wait-Process -Id $ParentId -ErrorAction SilentlyContinue
@@ -15,6 +28,7 @@ try {
       $exitCode = 0
       break
     } catch {
+      $lastError = $_
       Start-Sleep -Milliseconds 100
     }
   }
@@ -28,6 +42,10 @@ try {
     Remove-Item -LiteralPath $Source -Force -ErrorAction SilentlyContinue
   }
   Remove-Item -LiteralPath $ScriptPath -Force -ErrorAction SilentlyContinue
+}
+
+if ($exitCode -ne 0 -and $null -ne $lastError) {
+  [Console]::Error.WriteLine("failed to replace ${Destination}: $lastError")
 }
 
 exit $exitCode
