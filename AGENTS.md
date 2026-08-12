@@ -1,9 +1,6 @@
 # AGENTS.md
 
-Instructions for AI coding agents working in the ZLint repository. ZLint is an
-opinionated linter for the Zig programming language, written in Zig. It has its
-own semantic analyzer (inspired by [oxc](https://github.com/oxc-project/oxc))
-independent from the Zig compiler.
+ZLint is anopinionated linter for the Zig programming language, written in Zig.
 
 ## Output Principles
 - All code must be correct and memory safe. No undefined behavior or sloppy work.
