@@ -29,8 +29,13 @@ args: std.ArrayList([]const u8) = .empty,
 
 pub const usage =
     \\Usage: zlint [options] [<dirs>]
+    \\       zlint update
 ;
 const help =
+    \\Commands:
+    \\  update             Download and install the latest stable release
+    \\
+    \\Options:
     \\--print-ast <file>  Parse a file and print its AST as JSON
     \\-f, --format <fmt>  Choose an output format (default, graphical, json, github, gh)
     \\--no-summary        Do not print a summary after linting
