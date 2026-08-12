@@ -17,6 +17,8 @@ const asset_headers = [_]std.http.Header{
 
 pub const metadata_limit = 1024 * 1024;
 
+const max_redirect_url_len = 2048;
+
 /// Initializes TLS and proxy configuration from the process environment.
 pub fn init(alloc: Allocator, io: Io, environ: std.process.Environ) !Self {
     var env_map = try environ.createMap(alloc);
@@ -47,12 +49,12 @@ pub fn deinit(self: *Self) void {
 
 /// Fetches a release response into bounded, caller-owned storage.
 pub fn fetchRelease(self: *Self, url: []const u8) ![]u8 {
-    var redirect_buffer: [8 * 1024]u8 = undefined;
-    var request = try self.get(url, 3, &release_headers);
+    var head_buffer: [8 * 1024]u8 = undefined;
+    var url_buffer: [max_redirect_url_len]u8 = undefined;
+    // SAFETY: assigned by `openHttps` before it returns successfully.
+    var request: std.http.Client.Request = undefined;
+    var response = try self.openHttps(&request, &url_buffer, &head_buffer, url, 3, &release_headers);
     defer request.deinit();
-
-    try request.sendBodiless();
-    var response = try request.receiveHead(&redirect_buffer);
     try requireOk(response.head.status);
 
     var transfer_buffer: [64]u8 = undefined;
@@ -65,12 +67,12 @@ pub fn fetchRelease(self: *Self, url: []const u8) ![]u8 {
 /// Streams exactly `expected_size` bytes to `destination` while hashing them.
 /// The caller remains responsible for syncing and closing the destination.
 pub fn downloadAsset(self: *Self, url: []const u8, expected_size: u64, destination: *Io.File) !release.Digest {
-    var redirect_buffer: [8 * 1024]u8 = undefined;
-    var request = try self.get(url, 5, &asset_headers);
+    var head_buffer: [8 * 1024]u8 = undefined;
+    var url_buffer: [max_redirect_url_len]u8 = undefined;
+    // SAFETY: assigned by `openHttps` before it returns successfully.
+    var request: std.http.Client.Request = undefined;
+    var response = try self.openHttps(&request, &url_buffer, &head_buffer, url, 5, &asset_headers);
     defer request.deinit();
-
-    try request.sendBodiless();
-    var response = try request.receiveHead(&redirect_buffer);
     try requireOk(response.head.status);
     if (response.head.content_length) |content_length| {
         if (content_length != expected_size) return error.DownloadSizeMismatch;
@@ -88,14 +90,58 @@ pub fn downloadAsset(self: *Self, url: []const u8, expected_size: u64, destinati
 
 // Shared HTTP and streaming primitives
 
+/// `std.http.Client` derives each hop's protocol from the redirect URI's
+/// scheme, so its built-in redirect handling silently downgrades to plaintext.
+///
+/// `request_out` is caller-owned; the returned response borrows it, and the
+/// caller must `deinit` it on success.
+fn openHttps(
+    self: *Self,
+    request_out: *std.http.Client.Request,
+    url_buffer: *[max_redirect_url_len]u8,
+    head_buffer: []u8,
+    url: []const u8,
+    max_redirects: u8,
+    extra_headers: []const std.http.Header,
+) !std.http.Client.Response {
+    var current = url;
+    var remaining = max_redirects;
+    while (true) {
+        request_out.* = try self.get(current, extra_headers);
+        errdefer request_out.deinit();
+
+        try request_out.sendBodiless();
+        var response = try request_out.receiveHead(head_buffer);
+        if (response.head.status.class() != .redirect) return response;
+
+        if (remaining == 0) return error.TooManyHttpRedirects;
+        remaining -= 1;
+
+        const location = response.head.location orelse return error.HttpRedirectLocationMissing;
+        // Copy before deinit; `location` points into the response head.
+        current = try copyHttpsLocation(url_buffer, location);
+        request_out.deinit();
+    }
+}
+
+/// Relative locations are rejected rather than resolved; GitHub always sends
+/// absolute URLs, so failing closed beats reimplementing URI resolution.
+fn copyHttpsLocation(buffer: *[max_redirect_url_len]u8, location: []const u8) ![]const u8 {
+    const uri = std.Uri.parse(location) catch return error.InsecureRedirect;
+    if (!std.ascii.eqlIgnoreCase(uri.scheme, "https")) return error.InsecureRedirect;
+    if (location.len > buffer.len) return error.RedirectLocationTooLong;
+
+    @memcpy(buffer[0..location.len], location);
+    return buffer[0..location.len];
+}
+
 fn get(
     self: *Self,
     url: []const u8,
-    comptime redirect_count: u8,
     extra_headers: []const std.http.Header,
 ) !std.http.Client.Request {
     return self.http.request(.GET, try std.Uri.parse(url), .{
-        .redirect_behavior = @enumFromInt(redirect_count),
+        .redirect_behavior = .unhandled,
         .headers = .{
             .user_agent = .{ .override = request_user_agent },
             .accept_encoding = .omit,
@@ -183,6 +229,22 @@ test "exact download rejects truncated and oversized bodies" {
     var long_output: Io.Writer.Allocating = .init(t.allocator);
     defer long_output.deinit();
     try t.expectError(error.StreamTooLong, copyExactAndHash(&long_reader, &long_output.writer, 3));
+}
+
+test "redirects may not leave HTTPS" {
+    var buffer: [max_redirect_url_len]u8 = undefined;
+
+    const absolute = "https://objects.githubusercontent.com/zlint-linux-x86_64";
+    try t.expectEqualStrings(absolute, try copyHttpsLocation(&buffer, absolute));
+    try t.expectEqualStrings("HTTPS://EXAMPLE.COM/x", try copyHttpsLocation(&buffer, "HTTPS://EXAMPLE.COM/x"));
+
+    try t.expectError(error.InsecureRedirect, copyHttpsLocation(&buffer, "http://evil.example/zlint"));
+    try t.expectError(error.InsecureRedirect, copyHttpsLocation(&buffer, "/next"));
+    try t.expectError(error.InsecureRedirect, copyHttpsLocation(&buffer, "evil.example/zlint"));
+    try t.expectError(error.InsecureRedirect, copyHttpsLocation(&buffer, "ftp://example.com/zlint"));
+
+    const too_long = "https://example.com/" ++ ("a" ** max_redirect_url_len);
+    try t.expectError(error.RedirectLocationTooLong, copyHttpsLocation(&buffer, too_long));
 }
 
 test "HTTP response statuses have actionable error categories" {

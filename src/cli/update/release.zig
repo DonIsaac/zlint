@@ -94,6 +94,8 @@ fn parseDigest(digest: []const u8) !Digest {
     const encoded = digest[prefix.len..];
     if (encoded.len != Sha256.digest_length * 2) return error.InvalidDigest;
 
+    // SAFETY: `encoded` is exactly twice the digest length, so a successful
+    // `hexToBytes` writes every byte.
     var result: Digest = undefined;
     _ = std.fmt.hexToBytes(&result, encoded) catch return error.InvalidDigest;
     return result;

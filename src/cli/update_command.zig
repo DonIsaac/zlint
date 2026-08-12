@@ -16,8 +16,20 @@ const usage =
     \\
     \\Download, verify, and install the latest stable version of zlint.
     \\
+    \\Aliases: upgrade, up
+    \\
     \\-h, --help  Show this help message
 ;
+
+/// Names that select the updater when used as the first argument.
+const command_names = [_][]const u8{ "update", "upgrade", "up" };
+
+fn isUpdateCommand(arg: []const u8) bool {
+    for (command_names) |name| {
+        if (std.mem.eql(u8, arg, name)) return true;
+    }
+    return false;
+}
 
 pub fn isCommand(alloc: Allocator, args: std.process.Args) !bool {
     var argv = try std.process.Args.Iterator.initAllocator(args, alloc);
@@ -34,6 +46,7 @@ pub fn run(
 ) u8 {
     const command = parseArgs(alloc, args) catch |err| {
         printError(io, "invalid update command: {s}", .{@errorName(err)});
+        printStderr(io, "{s}\n", .{usage});
         return 1;
     };
     if (command == .help) {
@@ -62,14 +75,14 @@ fn isCommandIterator(args_iter: anytype) bool {
     var argv = args_iter.*;
     _ = argv.next() orelse return false;
     const command = argv.next() orelse return false;
-    return std.mem.eql(u8, command, "update");
+    return isUpdateCommand(command);
 }
 
 fn parseIterator(args_iter: anytype) !Command {
     var argv = args_iter.*;
     _ = argv.next() orelse return error.MissingCommand;
     const command = argv.next() orelse return error.MissingCommand;
-    if (!std.mem.eql(u8, command, "update")) return error.InvalidCommand;
+    if (!isUpdateCommand(command)) return error.InvalidCommand;
 
     var parsed: Command = .update;
     while (argv.next()) |arg| {
@@ -98,12 +111,21 @@ fn performUpdate(
 
     const metadata_json = client.fetchRelease(latest_release_url) catch |err| switch (err) {
         error.StreamTooLong => return error.ReleaseMetadataTooLarge,
-        error.UnknownHostName => return error.CouldNotFetchRelease,
+        error.UnknownHostName,
+        error.NameServerFailure,
+        error.ConnectionRefused,
+        error.ConnectionResetByPeer,
+        error.NetworkUnreachable,
+        => return error.CouldNotFetchRelease,
         else => |e| return e,
     };
     defer alloc.free(metadata_json);
 
-    var parsed_release = release.Metadata.parseFromSlice(alloc, metadata_json) catch return error.ReleaseRequestFailed;
+    var parsed_release = release.Metadata.parseFromSlice(alloc, metadata_json) catch |err| switch (err) {
+        // A local allocation failure is not GitHub sending us bad metadata.
+        error.OutOfMemory => |e| return e,
+        else => return error.ReleaseRequestFailed,
+    };
     defer parsed_release.deinit();
     const metadata = parsed_release.value;
 
@@ -173,6 +195,10 @@ fn printUpdateError(io: Io, err: anyerror, current_version: []const u8) void {
         error.HttpServerError => printError(io, "GitHub is temporarily unavailable (HTTP 5xx); try again later", .{}),
         error.HttpUnauthorized => printError(io, "GitHub rejected the update request (HTTP 401 Unauthorized)", .{}),
         error.HttpUnexpectedStatus => printError(io, "GitHub returned an unexpected HTTP response", .{}),
+        error.HttpRedirectLocationMissing => printError(io, "GitHub sent a redirect without a location", .{}),
+        error.TooManyHttpRedirects => printError(io, "GitHub redirected the update request too many times", .{}),
+        error.InsecureRedirect => printError(io, "the update request was redirected to a non-HTTPS URL; refusing to continue", .{}),
+        error.RedirectLocationTooLong => printError(io, "GitHub redirected the update request to an excessively long URL", .{}),
         error.InsecureDownloadUrl => printError(io, "GitHub returned a non-HTTPS download URL", .{}),
         error.InvalidCurrentVersion => printError(io, "the installed version is not a valid semantic version: {s}", .{current_version}),
         error.InvalidDigest => printError(io, "GitHub returned an invalid SHA-256 digest", .{}),
@@ -195,6 +221,13 @@ fn printStdout(io: Io, comptime format: []const u8, args: anytype) void {
     writer.interface.flush() catch return;
 }
 
+fn printStderr(io: Io, comptime format: []const u8, args: anytype) void {
+    var buffer: [1024]u8 = undefined;
+    var writer = Io.File.stderr().writer(io, &buffer);
+    writer.interface.print(format, args) catch return;
+    writer.interface.flush() catch return;
+}
+
 fn printError(io: Io, comptime format: []const u8, args: anytype) void {
     var buffer: [1024]u8 = undefined;
     var writer = Io.File.stderr().writer(io, &buffer);
@@ -207,22 +240,32 @@ fn printError(io: Io, comptime format: []const u8, args: anytype) void {
 const t = std.testing;
 
 test "update is recognized only as the first argument" {
-    var command = std.mem.splitScalar(u8, "zlint update", ' ');
-    try t.expect(isCommandIterator(&command));
+    inline for (.{ "zlint update", "zlint upgrade", "zlint up" }) |argv| {
+        var command = std.mem.splitScalar(u8, argv, ' ');
+        try t.expect(isCommandIterator(&command));
+    }
 
-    var escaped = std.mem.splitScalar(u8, "zlint -- update", ' ');
-    try t.expect(!isCommandIterator(&escaped));
+    inline for (.{ "zlint -- update", "zlint -- up" }) |argv| {
+        var escaped = std.mem.splitScalar(u8, argv, ' ');
+        try t.expect(!isCommandIterator(&escaped));
+    }
 
-    var path = std.mem.splitScalar(u8, "zlint src/update", ' ');
-    try t.expect(!isCommandIterator(&path));
+    inline for (.{ "zlint src/update", "zlint src/up", "zlint updated" }) |argv| {
+        var path = std.mem.splitScalar(u8, argv, ' ');
+        try t.expect(!isCommandIterator(&path));
+    }
 }
 
 test "update accepts only help flags" {
-    var update_args = std.mem.splitScalar(u8, "zlint update", ' ');
-    try t.expectEqual(.update, try parseIterator(&update_args));
+    inline for (.{ "zlint update", "zlint upgrade", "zlint up" }) |argv| {
+        var update_args = std.mem.splitScalar(u8, argv, ' ');
+        try t.expectEqual(.update, try parseIterator(&update_args));
+    }
 
-    var short_help = std.mem.splitScalar(u8, "zlint update -h", ' ');
-    try t.expectEqual(.help, try parseIterator(&short_help));
+    inline for (.{ "zlint update -h", "zlint upgrade -h", "zlint up --help" }) |argv| {
+        var help_args = std.mem.splitScalar(u8, argv, ' ');
+        try t.expectEqual(.help, try parseIterator(&help_args));
+    }
 
     var long_help = std.mem.splitScalar(u8, "zlint update --help", ' ');
     try t.expectEqual(.help, try parseIterator(&long_help));
@@ -232,4 +275,7 @@ test "update accepts only help flags" {
 
     var help_with_arg = std.mem.splitScalar(u8, "zlint update --help extra", ' ');
     try t.expectError(error.UnexpectedArgument, parseIterator(&help_with_arg));
+
+    var not_a_command = std.mem.splitScalar(u8, "zlint lint", ' ');
+    try t.expectError(error.InvalidCommand, parseIterator(&not_a_command));
 }

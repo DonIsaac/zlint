@@ -5,14 +5,13 @@ param(
   [string]$ScriptPath
 )
 
-$backup = "$Source.bak"
 $exitCode = 1
 
 try {
   Wait-Process -Id $ParentId -ErrorAction SilentlyContinue
   for ($i = 0; $i -lt 50; $i++) {
     try {
-      [System.IO.File]::Replace($Source, $Destination, $backup, $true)
+      [System.IO.File]::Replace($Source, $Destination, $null, $true)
       $exitCode = 0
       break
     } catch {
@@ -20,12 +19,12 @@ try {
     }
   }
 } finally {
-  if ($exitCode -eq 0) {
-    Remove-Item -LiteralPath $backup -Force -ErrorAction SilentlyContinue
-  } else {
-    if ((-not (Test-Path -LiteralPath $Destination)) -and (Test-Path -LiteralPath $backup)) {
-      Move-Item -LiteralPath $backup -Destination $Destination -Force
-    }
+  # ReplaceFile can fail with the destination already unlinked, leaving the
+  # verified download at $Source. Installing it beats leaving nothing.
+  if (-not (Test-Path -LiteralPath $Destination)) {
+    Move-Item -LiteralPath $Source -Destination $Destination -Force -ErrorAction SilentlyContinue
+  }
+  if (Test-Path -LiteralPath $Destination) {
     Remove-Item -LiteralPath $Source -Force -ErrorAction SilentlyContinue
   }
   Remove-Item -LiteralPath $ScriptPath -Force -ErrorAction SilentlyContinue
