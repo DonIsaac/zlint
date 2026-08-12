@@ -23,7 +23,7 @@ This will do the following:
 1. Create a new rule, `NoUndefined`, in `src/linter/rules/no_undefined.zig` with
    method and test stubs.
 2. Register `NoUndefined` to the list of all lint rules by re-exporting it in
-   `src/linter/rules.zig`.
+   `src/linter/builtin_rules.zig`.
 
 Open `no_undefined.zig`. It will look something like this.
 

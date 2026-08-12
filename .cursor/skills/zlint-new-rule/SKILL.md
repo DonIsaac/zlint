@@ -35,7 +35,7 @@ Skipping either is the #1 cause of rework.
 
 Minimum confirmation before scaffolding:
 
-- **Rule name** (kebab-case). Check `src/linter/rules.zig` for collisions. If
+- **Rule name** (kebab-case). Check `src/linter/builtin_rules.zig` for collisions. If
   there's an established linter convention (ESLint, Clippy, oxc), adopt it
   unless the user wants divergence.
 - **At least 2 incorrect + 2 correct code examples.** Real Zig, not
@@ -95,17 +95,19 @@ derives the filename (`returned_stack_reference.zig`), struct name
 just new-rule returned-stack-reference
 ```
 
-This does three things — do not redo them by hand:
+This does two things — do not redo them by hand:
 
 1. Creates `src/linter/rules/<name>.zig` from a template.
-2. Appends a re-export to `src/linter/rules.zig`.
-3. Inserts a `RuleConfig` field into `src/linter/config/rules_config.zig`.
+2. Appends a re-export to `src/linter/builtin_rules.zig`.
+
+The rule's `RuleConfig` field is derived from that re-export at comptime, so
+there is no config struct to update.
 
 It also runs `just codegen` and formats `src/linter` once. If you later change
 `meta.name` or `meta.category`, rerun `just codegen` manually.
 
-**Do not hand-edit** `src/linter/config/rules_config_rules.zig`,
-`zlint.schema.json`, `docs/rules/*.md`, or `*.snap` files — all generated.
+**Do not hand-edit** `zlint.schema.json`, `docs/rules/*.md`, or `*.snap`
+files — all generated.
 
 ## Step 5: Fill in `Rule.Meta` and the doc-comment
 
@@ -321,7 +323,7 @@ output to `.expected` verbatim.
 ## Step 9: Regenerate and verify
 
 ```sh
-just codegen    # docs/rules/*.md, zlint.schema.json, rules_config_rules.zig
+just codegen    # docs/rules/*.md, zlint.schema.json
 just fmt        # zig fmt + typos
 just ready      # full pre-PR sweep (check + codegen + build + test + e2e)
 ```

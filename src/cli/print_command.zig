@@ -12,12 +12,12 @@ const io = std.Io;
 const Allocator = std.mem.Allocator;
 
 const Options = @import("../cli/Options.zig");
-const Source = @import("../source.zig").Source;
-const Semantic = @import("../Semantic.zig");
+const Source = @import("zlint").Source;
+const Semantic = @import("zlint").Semantic;
 
-const Printer = @import("../printer/Printer.zig");
-const AstPrinter = @import("../printer/AstPrinter.zig");
-const SemanticPrinter = @import("../printer/SemanticPrinter.zig");
+const Printer = @import("zlint").printer.Printer;
+const AstPrinter = @import("zlint").printer.AstPrinter;
+const SemanticPrinter = @import("zlint").printer.SemanticPrinter;
 
 /// Borrows source.
 pub fn parseAndPrint(alloc: Allocator, io_: io, opts: Options, source: Source, writer_: ?*io.Writer) !void {

@@ -15,7 +15,7 @@ const ParseError = json.ParseError(json.Scanner);
 /// The bulk of this strict is auto-generated from all registered rules via
 /// `tasks/confgen.zig`.
 pub const RulesConfig = struct {
-    pub const Rules = @import("rules_config_rules.zig");
+    pub const Rules = @import("Rules.zig").Rules;
 
     rules: Rules = .{},
     /// See: `std.json.parseFromTokenSource()`

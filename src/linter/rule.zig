@@ -1,14 +1,14 @@
 const std = @import("std");
 const util = @import("util");
 const Semantic = @import("../Semantic.zig");
-const AllRules = @import("./rules.zig");
-
 const Ast = Semantic.Ast;
 const Symbol = Semantic.Symbol;
 const Severity = @import("../Error.zig").Severity;
 const Fix = @import("./fix.zig").Fix;
 
 const LinterContext = @import("lint_context.zig");
+
+const all_rules = @import("./all_rules.zig");
 
 pub const NodeWrapper = struct {
     node: *const Ast.Node,
@@ -157,17 +157,10 @@ pub const Rule = struct {
 
 const IdMap = std.StaticStringMap(Rule.Id);
 const rule_ids: IdMap = ids: {
-    const Type = std.builtin.Type;
-    const RuleDecls: []const Type.Declaration = @typeInfo(AllRules).@"struct".decls;
-    var ids: [RuleDecls.len]struct { []const u8, Rule.Id } = undefined;
-    for (RuleDecls, 0..) |decl, i| {
-        const RuleImpl = @field(AllRules, decl.name);
-        if (!@hasDecl(RuleImpl, "meta")) {
-            @compileError("Rule '" ++ decl.name ++ "' is missing a meta: Rule.Meta property.");
-        }
-        const name: []const u8 = @field(AllRules, decl.name).meta.name;
-        const id = Rule.Id.new(i);
-        ids[i] = .{ name, id };
+    var ids: [all_rules.all.len]struct { []const u8, Rule.Id } = undefined;
+    for (all_rules.all, 0..) |RuleImpl, i| {
+        const name: []const u8 = RuleImpl.meta.name;
+        ids[i] = .{ name, Rule.Id.new(i) };
     }
     break :ids IdMap.initComptime(ids);
 };
@@ -175,10 +168,7 @@ const rule_ids: IdMap = ids: {
 test rule_ids {
     const t = std.testing;
     comptime {
-        try t.expectEqual(
-            @typeInfo(AllRules).@"struct".decls.len,
-            rule_ids.kvs.len,
-        );
+        try t.expectEqual(all_rules.all.len, rule_ids.kvs.len);
         try t.expect(rule_ids.get("unsafe-undefined") != null);
     }
 }

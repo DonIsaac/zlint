@@ -1,8 +1,8 @@
 const std = @import("std");
 const util = @import("util");
-const Source = @import("source.zig").Source;
+const Source = @import("zlint").Source;
 const config = @import("config");
-const Error = @import("Error.zig");
+const Error = @import("zlint").Error;
 
 const Io = std.Io;
 const print = std.debug.print;
@@ -76,4 +76,15 @@ pub fn main(init: std.process.Init) !u8 {
     }
 
     return lint_cmd.lint(alloc, io, init.minimal.environ, opts);
+}
+
+test {
+    // `src/cli/` and `src/walk/` aren't part of the library surface, so their
+    // tests are compiled and run from here.
+    std.testing.refAllDecls(Options);
+    std.testing.refAllDecls(lint_cmd);
+    std.testing.refAllDecls(print_cmd);
+    std.testing.refAllDecls(@import("cli/lint_config.zig"));
+    std.testing.refAllDecls(@import("walk/Walker.zig"));
+    std.testing.refAllDecls(@import("walk/glob.zig"));
 }

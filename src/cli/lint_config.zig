@@ -7,10 +7,10 @@ const Allocator = mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Io = std.Io;
 const Dir = Io.Dir;
-const lint = @import("../lint.zig");
+const lint = @import("zlint").lint;
 const Cow = util.Cow(false);
-const Error = @import("../Error.zig");
-const Span = @import("../span.zig").Span;
+const Error = @import("zlint").Error;
+const Span = @import("zlint").span.Span;
 
 /// Resolve the lint configuration, walking up the directory tree from `cwd`
 /// looking for `config_filename`.
@@ -328,7 +328,7 @@ test resolveLintConfig {
 // zlint.json produced a label span past the end of the (empty) source, which
 // caused a `u32` underflow panic when the graphical formatter rendered it.
 test "resolveLintConfig with an empty zlint.json does not crash the formatter" {
-    const GraphicalFormatter = @import("../reporter.zig").formatter.Graphical;
+    const GraphicalFormatter = @import("zlint").report.formatter.Graphical;
 
     const cwd = Dir.cwd();
     const fixtures_dir = try cwd.realPathFileAlloc(t.io, "test/fixtures/config-empty", t.allocator);

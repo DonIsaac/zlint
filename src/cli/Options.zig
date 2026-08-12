@@ -142,8 +142,8 @@ const Options = @This();
 const std = @import("std");
 const util = @import("util");
 const Allocator = std.mem.Allocator;
-const formatter = @import("../reporter.zig").formatter;
-const Error = @import("../Error.zig");
+const formatter = @import("zlint").report.formatter;
+const Error = @import("zlint").Error;
 
 const t = std.testing;
 
