@@ -1,9 +1,6 @@
 # AGENTS.md
 
-Instructions for AI coding agents working in the ZLint repository. ZLint is an
-opinionated linter for the Zig programming language, written in Zig. It has its
-own semantic analyzer (inspired by [oxc](https://github.com/oxc-project/oxc))
-independent from the Zig compiler.
+ZLint is anopinionated linter for the Zig programming language, written in Zig.
 
 ## Output Principles
 - All code must be correct and memory safe. No undefined behavior or sloppy work.
@@ -42,11 +39,10 @@ independent from the Zig compiler.
 │   │   └── tester.zig            RuleTester (pass/fail/fix + snapshots)
 │   ├── cli/, reporter/, printer/, visit/, util/
 ├── tasks/
-│   ├── docgen.zig                Generates docs/rules/*.md from doc-comments
+│   ├── docgen.zig                Generates apps/site/docs/rules/*.mdx from doc-comments
 │   ├── confgen.zig               Generates zlint.schema.json
 │   └── new-rule.ts               Bun script that scaffolds a new rule
 ├── test/                         E2E binary, fixtures, snapshots, repos.json
-├── docs/rules/                   Auto-generated per-rule docs
 └── apps/{site, vscode-extension} Docs site (Docusaurus) + VS Code extension
 ```
 
@@ -143,7 +139,7 @@ rules, prefer the higher-level helpers:
 After changing any rule, run `just codegen`. CI verifies the working tree is
 clean afterward. Never hand-edit generated files:
 
-- `docs/rules/*.md` (from `tasks/docgen.zig`)
+- `apps/site/docs/rules/*.mdx` (from `tasks/docgen.zig`)
 - `zlint.schema.json` (from `tasks/confgen.zig`)
 - Any `*.snap` file (its a test snapshot file)
 

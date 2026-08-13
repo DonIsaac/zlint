@@ -80,7 +80,7 @@ config field." That gives the user a chance to redirect.
 Write `//! ## What This Rule Does` as prose, using the confirmed examples.
 **Show this to the user and get approval before writing Zig.** The doc-comment
 pins down semantics; implementation then follows mechanically. It also becomes
-`docs/rules/<name>.md` via codegen, so it's user-facing. Users will correct
+`apps/site/docs/rules/<name>.mdx` via codegen, so it's user-facing. Users will correct
 prose faster than Zig.
 
 Format in Step 5.
@@ -106,8 +106,8 @@ there is no config struct to update.
 It also runs `just codegen` and formats `src/linter` once. If you later change
 `meta.name` or `meta.category`, rerun `just codegen` manually.
 
-**Do not hand-edit** `zlint.schema.json`, `docs/rules/*.md`, or `*.snap`
-files — all generated.
+**Do not hand-edit** `zlint.schema.json`, `apps/site/docs/rules/*.mdx`, or
+`*.snap` files — all generated.
 
 ## Step 5: Fill in `Rule.Meta` and the doc-comment
 
@@ -144,7 +144,7 @@ pub const meta: Rule.Meta = .{
 };
 ```
 
-**Doc-comment structure** (codegens to `docs/rules/<name>.md` — the headings
+**Doc-comment structure** (codegens to `apps/site/docs/rules/<name>.mdx` — the headings
 are load-bearing):
 
 ```zig
@@ -323,7 +323,7 @@ output to `.expected` verbatim.
 ## Step 9: Regenerate and verify
 
 ```sh
-just codegen    # docs/rules/*.md, zlint.schema.json
+just codegen    # apps/site/docs/rules/*.mdx, zlint.schema.json
 just fmt        # zig fmt + typos
 just ready      # full pre-PR sweep (check + codegen + build + test + e2e)
 ```
@@ -354,7 +354,7 @@ from assumptions routinely needs 2-3.
   underscores.
 - **Forgetting `just codegen`.** CI's `Docs + JSON Schema` job fails on
   `git diff --exit-code`.
-- **Editing `docs/rules/<name>.md` by hand.** It gets overwritten.
+- **Editing `apps/site/docs/rules/<name>.mdx` by hand.** It gets overwritten.
 - **Leaving `@panic("TODO:")` stubs.** Delete hooks you don't use.
 - **Hand-editing `.snap` files.** Delete and regenerate.
 - **`std.debug.print` inside the rule.** `no-print` will flag it. Use

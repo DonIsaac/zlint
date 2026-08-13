@@ -42,3 +42,75 @@
    ╰────
   help: Change the return type to `!if(assume_capacity) void else void`.
 
+  𝙭 homeless-try: `try` cannot be used in functions that do not return errors.
+   ╭─[homeless-try.zig:3:4]
+ 2 │ const Result = void;
+ 3 │ fn foo() Result {
+   ·    ─┬─
+   ·     ╰── function `foo` is declared here.
+ 4 │   _ = try std.heap.page_allocator.alloc(u8, 8);
+   ·       ─┬─
+   ·        ╰── it cannot propagate error unions.
+   ╰────
+  help: Change the return type to `!Result`.
+
+  𝙭 homeless-try: `try` cannot be used in functions that do not return errors.
+   ╭─[homeless-try.zig:3:4]
+ 2 │ const Foo = struct { x: u32 };
+ 3 │ fn foo() Foo {
+   ·    ─┬─
+   ·     ╰── function `foo` is declared here.
+ 4 │   _ = try std.heap.page_allocator.alloc(u8, 8);
+   ·       ─┬─
+   ·        ╰── it cannot propagate error unions.
+   ╰────
+  help: Change the return type to `!Foo`.
+
+  𝙭 homeless-try: `try` cannot be used in functions that do not return errors.
+   ╭─[homeless-try.zig:3:4]
+ 2 │ const Str = []const u8;
+ 3 │ fn foo() Str {
+   ·    ─┬─
+   ·     ╰── function `foo` is declared here.
+ 4 │   _ = try std.heap.page_allocator.alloc(u8, 8);
+   ·       ─┬─
+   ·        ╰── it cannot propagate error unions.
+   ╰────
+  help: Change the return type to `!Str`.
+
+  𝙭 homeless-try: `try` cannot be used in functions that do not return errors.
+   ╭─[homeless-try.zig:4:10]
+ 3 │   const Self = @This();
+ 4 │   pub fn foo() Self {
+   ·          ─┬─
+   ·           ╰── function `foo` is declared here.
+ 5 │     _ = try std.heap.page_allocator.alloc(u8, 8);
+   ·         ─┬─
+   ·          ╰── it cannot propagate error unions.
+   ╰────
+  help: Change the return type to `!Self`.
+
+  𝙭 homeless-try: `try` cannot be used in functions that do not return errors.
+   ╭─[homeless-try.zig:3:4]
+ 2 │ fn bar() !void {}
+ 3 │ fn foo() mod.Result {
+   ·    ─┬─
+   ·     ╰── function `foo` is declared here.
+ 4 │   try bar();
+   ·   ─┬─
+   ·    ╰── it cannot propagate error unions.
+   ╰────
+  help: Change the return type to `!mod.Result`.
+
+  𝙭 homeless-try: `try` cannot be used in functions that do not return errors.
+   ╭─[homeless-try.zig:2:4]
+ 1 │ const std = @import("std");
+ 2 │ fn foo() std.array_list.Managed(u8) {
+   ·    ─┬─
+   ·     ╰── function `foo` is declared here.
+ 3 │   _ = try std.heap.page_allocator.alloc(u8, 8);
+   ·       ─┬─
+   ·        ╰── it cannot propagate error unions.
+   ╰────
+  help: Change the return type to `!std.array_list.Managed(u8)`.
+

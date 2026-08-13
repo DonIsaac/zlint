@@ -59,10 +59,25 @@
 //!   return 1;
 //! }
 //! ```
+//!
+//! Named aliases for error unions are resolved through the semantic model, so
+//! functions returning them are not flagged.
+//! ```zig
+//! const Error = error{Oops};
+//! const Result = Error!void;
+//! fn foo() Result {
+//!   try bar();
+//! }
+//! ```
+//!
+//! Return types that this rule cannot statically resolve (imported types,
+//! generic instantiations, etc.) are never flagged, since doing so risks a
+//! false positive.
 
 const std = @import("std");
 const util = @import("util");
 const Semantic = @import("../../Semantic.zig");
+const builtins = @import("../../Semantic/builtins.zig");
 const _rule = @import("../rule.zig");
 const a = @import("../ast_utils.zig");
 
@@ -121,6 +136,100 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
     ctx.report(notInFnDiagnostic(ctx, wrapper.idx));
 }
 
+/// Max const/var alias hops to follow. Bounds recursion, so alias cycles
+/// (`const A = B; const B = A;`) terminate as `null` (unknown) instead of
+/// blowing the stack. No visited-set needed.
+const MAX_ALIAS_DEPTH: u8 = 8;
+
+/// Whether `node` is a type expression that can never be an error union.
+///
+/// Only sound because callers check `hasErrorUnion` first: that handles the
+/// `!T` prefix, so e.g. a `.ptr_type` node reaching here is known not to be
+/// the payload of an error union.
+fn isNeverErrorUnion(ctx: *LinterContext, node: Node.Index) bool {
+    const ast = ctx.ast();
+    return switch (ast.nodeTag(node)) {
+        // struct/enum/union/opaque declarations
+        .container_decl,
+        .container_decl_trailing,
+        .container_decl_two,
+        .container_decl_two_trailing,
+        .container_decl_arg,
+        .container_decl_arg_trailing,
+        .tagged_union,
+        .tagged_union_trailing,
+        .tagged_union_two,
+        .tagged_union_two_trailing,
+        .tagged_union_enum_tag,
+        .tagged_union_enum_tag_trailing,
+        // pointers, slices, arrays, optionals, fn pointers, frames
+        .ptr_type,
+        .ptr_type_aligned,
+        .ptr_type_sentinel,
+        .ptr_type_bit_range,
+        .array_type,
+        .array_type_sentinel,
+        .optional_type,
+        .anyframe_type,
+        .fn_proto,
+        .fn_proto_simple,
+        .fn_proto_multi,
+        .fn_proto_one,
+        => true,
+        // `const Self = @This();`. Other builtins (`@Type`, `@FieldType`, ...)
+        // can evaluate to anything, so they stay unclassifiable.
+        .builtin_call_two, .builtin_call_two_comma => std.mem.eql(
+            u8,
+            ctx.semantic.tokenSlice(ast.nodeMainToken(node)),
+            "@This",
+        ),
+        else => false,
+    };
+}
+
+/// Classify a type node as an error union, following named `const`/`var`
+/// aliases through the semantic model.
+///
+/// - `true`  — is, or resolves through aliases to, an error union
+/// - `false` — definitively not an error union (a primitive, a fully resolved
+///             concrete type, or — at depth 0 only — a return type that is
+///             syntactically not an error union)
+/// - `null`  — not statically classifiable (unresolved identifier, or an alias
+///             chain we failed to follow to the end). Callers must treat this
+///             like `true` and stay silent.
+fn resolveAliasErrorUnion(ctx: *LinterContext, node: Node.Index, depth: u8) ?bool {
+    const ast = ctx.ast();
+
+    if (a.hasErrorUnion(ast, node)) return true;
+    if (a.getRightmostIdentifier(ctx, node)) |ident| {
+        if (std.mem.endsWith(u8, ident, "Error")) return true;
+    }
+    // Structural type expressions that definitively cannot be an error union.
+    // Without this, aliases like `const Self = @This();` or
+    // `const Str = []const u8;` would fall into the conservative bail below
+    // and silently lose real violations.
+    if (isNeverErrorUnion(ctx, node)) return false;
+
+    // Field access (`mod.Result`), generic instantiation (`std.ArrayList(u8)`),
+    // conditional return types, other builtin calls. We don't evaluate types,
+    // so we can't rule out an error union.
+    //
+    // At depth 0 this is the return type as written: it is syntactically not an
+    // error union, so report it — that is what the rule has always done. Past
+    // depth 0 we're inside an alias chain we failed to follow, so bail rather
+    // than risk a false positive on a `.compiler` rule.
+    if (ast.nodeTag(node) != .identifier) return if (depth == 0) false else null;
+
+    // Primitives are never in the symbol table (see the TODO in
+    // `Semantic/Builder.zig`), so they're a terminal "definitely not fallible".
+    const name = ctx.semantic.tokenSlice(ast.nodeMainToken(node));
+    if (builtins.isPrimitiveType(name)) return false;
+
+    if (depth >= MAX_ALIAS_DEPTH) return null;
+    const init_node = a.resolveConstAlias(ctx, node) orelse return null;
+    return resolveAliasErrorUnion(ctx, init_node, depth + 1);
+}
+
 fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void {
     const ast = ctx.ast();
     const decl_node: Node.Index = ctx.scopes().scopes.items(.node)[scope.int()];
@@ -137,10 +246,11 @@ fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void 
     const proto: Ast.full.FnProto = ast.fullFnProto(&buf, decl_node) orelse @panic(".fn_decl nodes always have a full fn proto available.");
     const return_type: Node.Index = proto.ast.return_type.unwrap() orelse return;
 
-    if (a.hasErrorUnion(ast, return_type)) return;
-    if (a.getRightmostIdentifier(ctx, return_type)) |ident| {
-        if (std.mem.endsWith(u8, ident, "Error")) return;
-    }
+    // https://github.com/DonIsaac/zlint/issues/365
+    //
+    // `null` (unclassifiable) is deliberately treated as fallible; a false
+    // negative is preferable to a build-failing false positive.
+    if (resolveAliasErrorUnion(ctx, return_type, 0) orelse true) return;
 
     var e = ctx.diagnostic(
         "`try` cannot be used in functions that do not return errors.",
@@ -313,6 +423,78 @@ test HomelessTry {
         \\        else => unreachable
         \\    }
         \\}
+        ,
+        // https://github.com/DonIsaac/zlint/issues/365
+        // named alias for an error union
+        \\const E = error{A};
+        \\const Result = E!void;
+        \\fn bar() E!void { return error.A; }
+        \\pub fn foo() Result {
+        \\  try bar();
+        \\}
+        ,
+        // chain of aliases
+        \\const E = error{A};
+        \\const Inner = E!void;
+        \\const Result = Inner;
+        \\fn bar() E!void { return error.A; }
+        \\pub fn foo() Result {
+        \\  try bar();
+        \\}
+        ,
+        // aliases declared after the function that uses them
+        \\pub fn foo() Result {
+        \\  try bar();
+        \\}
+        \\fn bar() E!void { return error.A; }
+        \\const E = error{A};
+        \\const Result = E!void;
+        ,
+        // aliases we cannot resolve stay silent rather than risk a false
+        // positive
+        \\const mod = struct { pub const Result = error{A}!void; };
+        \\const Result = mod.Result;
+        \\fn bar() mod.Result { return error.A; }
+        \\pub fn foo() Result {
+        \\  try bar();
+        \\}
+        ,
+        // an alias to a bare error set. matches how the inline form
+        // (`fn foo() error{A}`) has always behaved.
+        \\const E = error{A};
+        \\fn bar() E!void { return error.A; }
+        \\pub fn foo() E {
+        \\  try bar();
+        \\}
+        ,
+        // aliases resolve from the scope of the reference, so the inner
+        // `Result` shadows the outer one
+        \\const E = error{A};
+        \\fn bar() E!void { return error.A; }
+        \\const Result = void;
+        \\const Inner = struct {
+        \\  const Result = E!void;
+        \\  pub fn foo() Result {
+        \\    try bar();
+        \\  }
+        \\};
+        ,
+        // a return type with no binding at all is unclassifiable, so it stays
+        // silent
+        \\fn bar() error{A}!void { return error.A; }
+        \\pub fn foo() Undeclared {
+        \\  try bar();
+        \\}
+        ,
+        // `var` aliases resolve the same way `const` ones do. not valid Zig
+        // (a `type` binding must be `const`), but the resolver does not care
+        // and neither should this rule.
+        \\const E = error{A};
+        \\var Result = E!void;
+        \\fn bar() E!void { return error.A; }
+        \\pub fn foo() Result {
+        \\  try bar();
+        \\}
     };
 
     const fail = &[_][:0]const u8{
@@ -339,6 +521,47 @@ test HomelessTry {
         \\  } else {
         \\    try list.append(x);
         \\  }
+        \\}
+        ,
+        // alias resolves to a primitive, so it is definitively not fallible
+        \\const std = @import("std");
+        \\const Result = void;
+        \\fn foo() Result {
+        \\  _ = try std.heap.page_allocator.alloc(u8, 8);
+        \\}
+        ,
+        // aliases to structural types are still definitively not fallible
+        \\const std = @import("std");
+        \\const Foo = struct { x: u32 };
+        \\fn foo() Foo {
+        \\  _ = try std.heap.page_allocator.alloc(u8, 8);
+        \\}
+        ,
+        \\const std = @import("std");
+        \\const Str = []const u8;
+        \\fn foo() Str {
+        \\  _ = try std.heap.page_allocator.alloc(u8, 8);
+        \\}
+        ,
+        \\const std = @import("std");
+        \\const Foo = struct {
+        \\  const Self = @This();
+        \\  pub fn foo() Self {
+        \\    _ = try std.heap.page_allocator.alloc(u8, 8);
+        \\  }
+        \\};
+        ,
+        // field-access return types are unresolvable, but still reported
+        \\const mod = struct { pub const Result = void; };
+        \\fn bar() !void {}
+        \\fn foo() mod.Result {
+        \\  try bar();
+        \\}
+        ,
+        // generic instantiation, likewise
+        \\const std = @import("std");
+        \\fn foo() std.array_list.Managed(u8) {
+        \\  _ = try std.heap.page_allocator.alloc(u8, 8);
         \\}
     };
 

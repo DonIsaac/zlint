@@ -2,6 +2,7 @@ const Context = @import("./lint_context.zig");
 const Semantic = @import("../Semantic.zig");
 const Ast = Semantic.Ast;
 const Node = Ast.Node;
+const Scope = Semantic.Scope;
 const Token = Semantic.Token;
 
 /// Get the right-most identifier in a field access chain.
@@ -184,6 +185,37 @@ pub fn getInnerType(ast: *const Ast, node: Node.Index) Node.Index {
         }
     }
     return curr;
+}
+
+/// Follow a bare `.identifier` one hop to the initializer of the `const`/`var`
+/// declaration it is bound to.
+///
+/// ```zig
+/// const Result = E!void;
+/// //             ^^^^^^ returned for a reference to `Result`
+/// ```
+///
+/// Returns `null` when `node` isn't an identifier, doesn't resolve to a
+/// symbol, resolves to something that isn't a variable declaration (a `fn`,
+/// a parameter, a container field, ...), or the declaration has no
+/// initializer.
+pub fn resolveConstAlias(ctx: *Context, node: Node.Index) ?Node.Index {
+    const ast = ctx.ast();
+    if (ast.nodeTag(node) != .identifier) return null;
+
+    // NOTE: use direct indexing, not `links().getScope()`. `getScope` maps the
+    // file's root scope to `null`, which would make container-level aliases
+    // unresolvable. `homeless_try.runOnNode` indexes directly for the same
+    // reason.
+    const scope: Scope.Id = ctx.links().scopes.items[@intFromEnum(node)];
+    const name = ctx.semantic.tokenSlice(ast.nodeMainToken(node));
+    // `.decls` excludes container fields (`Symbol.Flags.s_member`).
+    const symbol_id = ctx.semantic.resolveBinding(scope, name, .decls) orelse return null;
+
+    const decl_node: Node.Index = ctx.symbols().symbols.items(.decl)[symbol_id.int()];
+    // `fullVarDecl` returns null for fn decls, params, container fields, etc.
+    const var_decl = ast.fullVarDecl(decl_node) orelse return null;
+    return var_decl.ast.init_node.unwrap();
 }
 
 /// Returns `null` if `node` is the null node. Identity function otherwise.

@@ -73,6 +73,21 @@ fn bar() u32 {
 }
 ```
 
+Named aliases for error unions are resolved through the semantic model, so
+functions returning them are not flagged.
+
+```zig
+const Error = error{Oops};
+const Result = Error!void;
+fn foo() Result {
+  try bar();
+}
+```
+
+Return types that this rule cannot statically resolve (imported types,
+generic instantiations, etc.) are never flagged, since doing so risks a
+false positive.
+
 ## Configuration
 
 This rule has no configuration.
