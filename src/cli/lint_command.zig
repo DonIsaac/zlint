@@ -36,7 +36,22 @@ pub fn lint(alloc: Allocator, options: Options) !u8 {
 
     var config = resolve_config: {
         var errors: [1]Error = undefined;
-        const c = lint_config.resolveLintConfig(&arena, fs.cwd(), "zlint.json", alloc, &errors[0]) catch {
+        // `--config` overrides where the search for a zlint.json starts.
+        var config_dir = fs.cwd();
+        if (options.config_path) |config_path| {
+            config_dir = config_dir.openDir(config_dir, config_path, .{}) catch |e| {
+                var reported: [1]Error = .{
+                    Error.fmt(alloc, "Failed to open config directory {s}: {s}", .{ config_path, @errorName(e) }) catch
+                        Error.newStatic("Failed to open config directory."),
+                };
+                reported[0].code = "invalid-config";
+                try reporter.reportErrorSlice(alloc, &reported);
+                return 1;
+            };
+        }
+        // `--config` override requires closing the override directory.
+        defer if (options.config_path != null) config_dir.close();
+        const c = lint_config.resolveLintConfig(&arena, config_dir, "zlint.json", alloc, &errors[0]) catch {
             reporter.reportErrorSlice(alloc, errors[0..1]);
             return 1;
         };

@@ -24,6 +24,10 @@ stdin: bool = false,
 fix: bool = false,
 /// Like `--fix`, but also enable potentially dangerous fixes.
 fix_dangerously: bool = false,
+/// Directory to start searching for a `zlint.json` in, instead of the cwd. The
+/// walk up the directory tree is unchanged, so a `zlint.json` in a parent of
+/// this directory is still picked up.
+config_path: ?[]const u8 = null,
 /// Positional arguments
 args: std.ArrayListUnmanaged([]const u8) = .{},
 
@@ -32,6 +36,7 @@ pub const usage =
 ;
 const help =
     \\--print-ast <file>  Parse a file and print its AST as JSON
+    \\-c, --config <dir>  Search for zlint.json in this directory instead of the cwd
     \\-f, --format <fmt>  Choose an output format (default, graphical, json, github, gh)
     \\--no-summary        Do not print a summary after linting
     \\-S, --stdin         Lint filepaths received from stdin (newline separated)
@@ -84,6 +89,19 @@ fn parse(alloc: Allocator, args_iter: anytype, err: ?*Error) ParseError!Options 
             opts.deny_warnings = true;
         } else if (eq(arg, "-S") or eq(arg, "--stdin")) {
             opts.stdin = true;
+        } else if (eq(arg, "-c") or eq(arg, "--config")) {
+            opts.config_path = argv.next() orelse {
+                if (err) |e| {
+                    e.* = Error.fmt(alloc, "Missing path after {s}.", .{arg}) catch @panic("OOM");
+                }
+                return error.InvalidArg;
+            };
+            if (opts.config_path.?.len == 0) {
+                if (err) |e| {
+                    e.* = Error.fmt(alloc, "Missing path after {s}.", .{arg}) catch @panic("OOM");
+                }
+                return error.InvalidArgValue;
+            }
         } else if (eq(arg, "-f") or eq(arg, "--format")) {
             // TODO: comptime string concat on format names
             const fmt = argv.next() orelse {
@@ -188,6 +206,46 @@ test parse {
             );
         }
     }
+}
+
+test "--config" {
+    const Case = struct { []const u8, ?[]const u8 };
+    const test_cases = [_]Case{
+        .{ "zlint", null },
+        .{ "zlint -c .", "." },
+        .{ "zlint --config .", "." },
+        .{ "zlint --config ../shared src", "../shared" },
+        .{ "zlint -c /etc/zlint -V", "/etc/zlint" },
+    };
+
+    for (test_cases) |test_case| {
+        const argv = std.mem.splitScalar(u8, test_case[0], ' ');
+        var opts = try parse(t.allocator, t.io, argv, null);
+        defer opts.deinit(t.allocator);
+
+        if (test_case[1]) |expected| {
+            try t.expectEqualStrings(expected, opts.config_path orelse return error.TestExpectedConfigPath);
+        } else {
+            try t.expectEqual(null, opts.config_path);
+        }
+    }
+
+    // the path must not be swallowed as a positional argument
+    {
+        const argv = std.mem.splitScalar(u8, "zlint --config config-dir src", ' ');
+        var opts = try parse(t.allocator, t.io, argv, null);
+        defer opts.deinit(t.allocator);
+        try t.expectEqual(1, opts.args.items.len);
+        try t.expectEqualStrings("src", opts.args.items[0]);
+    }
+}
+
+test "--config without a path" {
+    var err: Error = undefined;
+    const argv = std.mem.splitScalar(u8, "zlint --config", ' ');
+    defer err.deinit(t.allocator);
+    try t.expectError(error.InvalidArg, parse(t.allocator, t.io, argv, &err));
+    try t.expect(std.mem.indexOf(u8, err.message.borrow(), "Missing path after --config") != null);
 }
 
 test "invalid --format" {
