@@ -1,0 +1,4 @@
+{
+  "$schema": "../../../../zlint.schema.json",
+  "ignore": ["foo/"]
+}

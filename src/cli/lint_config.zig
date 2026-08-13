@@ -8,6 +8,7 @@ const ArenaAllocator = std.heap.ArenaAllocator;
 const Io = std.Io;
 const Dir = Io.Dir;
 const lint = @import("zlint").lint;
+const glob = @import("../walk/glob.zig");
 const Cow = util.Cow(false);
 const Error = @import("zlint").Error;
 const Span = @import("zlint").span.Span;
@@ -68,6 +69,7 @@ pub fn resolveLintConfig(
         };
         var managed = config.intoManaged(arena, null);
         managed.path = try managed.arena.allocator().dupe(u8, maybe_path_to_config);
+        try normalizeIgnorePatterns(&managed);
         return managed;
     }
 
@@ -253,30 +255,115 @@ pub fn readGitignore(config: *lint.Config.Managed, io: Io, root: Dir) !void {
     const gitignore = try readToEndAlloc(gitignore_file, io, allocator, std.math.maxInt(u32));
     var it = mem.splitScalar(u8, gitignore, '\n');
 
-    // count lines to pre-allocate enough memory
-    var lines: u32 = 0;
-    while (it.next()) |line_| {
-        // const line = mem.trim(u8, line_, &std.ascii.whitespace);
-        const line = util.trimWhitespace(line_);
-        if (line.len == 0 or line[0] == '#') continue;
-        lines += 1;
-    }
-
-    if (lines == 0) return;
-    it.reset();
-
     // merge existing + new ignores
-    var ignores = try std.ArrayListUnmanaged([]const u8).initCapacity(allocator, config.config.ignore.len + lines);
+    var ignores = try std.ArrayListUnmanaged(glob.Pattern).initCapacity(allocator, config.config.ignore.len);
     ignores.appendSliceAssumeCapacity(config.config.ignore);
-    while (it.next()) |line_| {
-        const line = mem.trim(u8, line_, &std.ascii.whitespace);
-        if (line.len == 0 or line[0] == '#') continue;
-        ignores.appendAssumeCapacity(line);
+    while (it.next()) |line| {
+        try translateGitignoreLine(allocator, line, &ignores);
     }
     config.config.ignore = ignores.items;
 }
 
+/// Strip trailing separators from `config`'s ignore patterns.
+///
+/// `ignore` entries are commonly written as `foo/`, but walked paths never
+/// carry a trailing separator, so the slash makes such an entry match nothing.
+fn normalizeIgnorePatterns(config: *lint.Config.Managed) Allocator.Error!void {
+    const patterns = config.config.ignore;
+    const normalized = try config.allocator().alloc(glob.Pattern, patterns.len);
+    for (patterns, normalized) |pattern, *slot| {
+        slot.* = mem.trimEnd(u8, pattern, "/");
+    }
+    config.config.ignore = normalized;
+}
+
+/// Translate one `.gitignore` line into zero or more glob patterns, appending
+/// them to `out`. Gitignore syntax and `glob.match`'s dialect disagree, so
+/// lines must never be used verbatim.
+fn translateGitignoreLine(
+    allocator: Allocator,
+    line_: []const u8,
+    out: *std.ArrayListUnmanaged(glob.Pattern),
+) Allocator.Error!void {
+    var line = util.trimWhitespace(line_);
+    if (line.len == 0 or line[0] == '#') return;
+    // A gitignore `!` re-includes a path, but `glob.match` reads a leading `!`
+    // as "match everything else". Dropping the line only ever over-ignores.
+    if (line[0] == '!') return;
+
+    // Directory-only entries (`build/`). Walked paths never have a trailing
+    // separator, so the `/` can only fail to match.
+    if (line[line.len - 1] == '/') line = line[0 .. line.len - 1];
+    if (line.len == 0) return;
+
+    if (line[0] == '/') {
+        // Anchored to the gitignore's directory, which is already the default.
+        line = line[1..];
+        if (line.len == 0) return;
+    } else if (mem.indexOfScalar(u8, line, '/') == null) {
+        // Entries without a separator match at any depth.
+        line = try std.fmt.allocPrint(allocator, "**/{s}", .{line});
+    }
+
+    try out.append(allocator, line);
+    try out.append(allocator, try std.fmt.allocPrint(allocator, "{s}/**", .{line}));
+}
+
 const t = std.testing;
+
+test translateGitignoreLine {
+    var arena = ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+    const alloc = arena.allocator();
+
+    const TestCase = struct { []const u8, []const []const u8 };
+    const cases = [_]TestCase{
+        .{ "", &.{} },
+        .{ "   ", &.{} },
+        .{ "# a comment", &.{} },
+        // Regression test for https://github.com/DonIsaac/zlint/issues/364: a
+        // re-include line used as a glob matches every path, silently
+        // excluding every file in the project.
+        .{ "!keep.zig", &.{} },
+        .{ "!assets/.gitkeep", &.{} },
+        // no separator, so it matches at any depth, same as git
+        .{ "build/", &.{ "**/build", "**/build/**" } },
+        .{ "/zig-out", &.{ "zig-out", "zig-out/**" } },
+        .{ "/zig-out/", &.{ "zig-out", "zig-out/**" } },
+        .{ "node_modules", &.{ "**/node_modules", "**/node_modules/**" } },
+        .{ "*.tmp", &.{ "**/*.tmp", "**/*.tmp/**" } },
+        .{ "src/generated", &.{ "src/generated", "src/generated/**" } },
+    };
+
+    for (cases) |case| {
+        const line, const expected = case;
+        var patterns: std.ArrayListUnmanaged(glob.Pattern) = .empty;
+        try translateGitignoreLine(alloc, line, &patterns);
+        t.expectEqual(expected.len, patterns.items.len) catch |e| {
+            std.debug.print("line: '{s}'\n", .{line});
+            for (patterns.items) |pattern| std.debug.print("  got: '{s}'\n", .{pattern});
+            return e;
+        };
+        for (expected, patterns.items) |want, got| {
+            try t.expectEqualStrings(want, got);
+        }
+    }
+}
+
+test "translated gitignore patterns never match every path" {
+    var arena = ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+
+    var patterns: std.ArrayListUnmanaged(glob.Pattern) = .empty;
+    for ([_][]const u8{ "assets/*", "!assets/.gitkeep", "zig-out/" }) |line| {
+        try translateGitignoreLine(arena.allocator(), line, &patterns);
+    }
+
+    for (patterns.items) |pattern| {
+        try t.expect(!glob.match(pattern, "src/root.zig"));
+    }
+}
+
 test ParentIterator {
     if (util.IS_WINDOWS) {
         var it = try ParentIterator(4096).init("C:\\foo\\bar\\baz", "zlint.json");

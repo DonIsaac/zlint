@@ -47,7 +47,7 @@ pub fn jsonSchema(ctx: *Schema.Context) !Schema {
     });
     var c = ignore.common();
     c.default = .{ .array = default };
-    c.description = "Files and folders to skip. Uses `startsWith` to check if files are ignored.\n\n`zig-out` and `vendor` are always ignored, as well as hidden folders.";
+    c.description = "Files and folders to skip. Entries may be path prefixes or glob patterns.\n\n`zig-out` and `vendor` are always ignored, as well as hidden folders. Files named directly on the command line are linted even when a pattern covers them.";
 
     return schema;
 }

@@ -1,0 +1,7 @@
+{
+  "$schema": "../../../../zlint.schema.json",
+  "ignore": ["generated.zig", "ignored-dir"],
+  "rules": {
+    "unsafe-undefined": "warn"
+  }
+}

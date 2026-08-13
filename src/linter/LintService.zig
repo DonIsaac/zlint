@@ -12,11 +12,14 @@ config: Config.Managed,
 reporter: *reporters.Reporter,
 group: Io.Group = .init,
 io: Io,
+/// Directory that linted file paths are resolved against.
+cwd: Io.Dir,
 allocator: Allocator,
 
 pub fn init(
     allocator: Allocator,
     io: Io,
+    cwd: Io.Dir,
     reporter: *reporters.Reporter,
     config: Config.Managed,
     options: Options,
@@ -31,6 +34,7 @@ pub fn init(
         .config = config,
         .reporter = reporter,
         .io = io,
+        .cwd = cwd,
         .allocator = allocator,
     };
 }
@@ -54,14 +58,17 @@ pub fn lintFileParallel(self: *LintService, filepath: []u8) void {
 /// `filepath` must be an owned allocation on the heap, and gets moved into the
 /// visitor. This is for thread safety reasons.
 pub fn lintFile(self: *LintService, filepath: []u8) void {
-    self.tryLintFile(filepath) catch |e| switch (e) {
-        error.OutOfMemory => @panic("Out of memory"),
-        else => {},
+    self.tryLintFile(filepath) catch |e| {
+        self.reporter.stats.recordFailure();
+        switch (e) {
+            error.OutOfMemory => @panic("Out of memory"),
+            else => {},
+        }
     };
 }
 
 fn tryLintFile(self: *LintService, filepath: []u8) !void {
-    const file = Io.Dir.cwd().openFile(self.io, filepath, .{}) catch |e| {
+    const file = self.cwd.openFile(self.io, filepath, .{}) catch |e| {
         self.allocator.free(filepath);
         return e;
     };
@@ -148,7 +155,7 @@ fn applyFixes(self: *const LintService, diagnostics: *Linter.Diagnostic.List, so
         const pathname = source.pathname.?;
         // create instead of open to truncate contents
         // TODO: handle errors here instead of panicking
-        var file = Io.Dir.cwd().createFile(self.io, pathname, .{}) catch |e| {
+        var file = self.cwd.createFile(self.io, pathname, .{}) catch |e| {
             std.debug.panic("Failed to apply fixes to '{s}': {}", .{ pathname, e });
         };
         defer file.close(self.io);

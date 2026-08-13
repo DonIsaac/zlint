@@ -90,8 +90,24 @@ pub fn main(init: std.process.Init) !u8 {
         return 0;
     }
 
-    return lint_cmd.lint(alloc, io, init.minimal.environ, opts);
+    // writer cannot live on the stack.
+    // this gets moved into Reporter, which runs on a different thread.
+    const writer = try alloc.create(Io.File.Writer);
+    defer alloc.destroy(writer);
+    writer.* = Io.File.stdout().writer(io, &stdout_buf);
+
+    const result = try lint_cmd.lint(
+        alloc,
+        io,
+        init.minimal.environ,
+        opts,
+        Io.Dir.cwd(),
+        &writer.interface,
+    );
+    return result.exit_code;
 }
+
+var stdout_buf: [4096]u8 = undefined;
 
 test {
     // `src/cli/` and `src/walk/` aren't part of the library surface, so their
