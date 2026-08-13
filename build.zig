@@ -17,6 +17,12 @@ pub fn build(b: *std.Build) void {
     // the LLVM backend for coverage builds so kcov produces real reports.
     const coverage = b.option(bool, "coverage", "Build test binaries with the LLVM backend for kcov coverage") orelse false;
     const use_llvm: ?bool = if (coverage) true else null;
+    // these are relative to the caller, so if we are a dependency, it will be relative to the depender
+    const custom_rule_paths = b.option(
+        []const Build.LazyPath,
+        "custom_rules",
+        "comma separated list of custom rule files. See https://donisaac.github.io/zlint/docs/configuration/custom-rules",
+    ) orelse &.{};
 
     var l = Linker.init(b);
     defer l.deinit();
@@ -77,6 +83,94 @@ pub fn build(b: *std.Build) void {
         .strip = if (debug_release) false else null,
     });
     l.link(exe_mod, false, .{});
+    // The CLI consumes the library as a module rather than re-including its
+    // sources, so a custom rule's `@import("zlint")` refers to the same module
+    // the exe was built from.
+    exe_mod.addImport("zlint", zlint);
+    zlint.addImport("zlint", zlint);
+
+    const custom_rules_mod = b.createModule(.{
+        // root_source_file set below
+        .target = l.target,
+        .optimize = l.optimize,
+    });
+
+    const custom_rules_header =
+        \\pub const custom_rules = struct {
+        \\
+    ;
+    const custom_rules_footer =
+        \\};
+        \\
+    ;
+    var custom_rules_bytes = std.Io.Writer.Allocating.initCapacity(
+        b.allocator,
+        custom_rules_header.len + custom_rules_footer.len + 1,
+    ) catch @panic("OOM");
+    defer custom_rules_bytes.deinit();
+
+    custom_rules_bytes.writer.writeAll(custom_rules_header) catch @panic("OOM");
+
+    var custom_rule_tests = std.ArrayListUnmanaged(*Build.Step.Compile).initCapacity(b.allocator, custom_rule_paths.len) catch @panic("OOM");
+    defer custom_rule_tests.deinit(b.allocator);
+
+    for (custom_rule_paths, 0..) |p, i| {
+        // NOTE: never freed, we assume the build graph keeps a ref
+        const name = std.fmt.allocPrint(b.allocator, "custom_rules_{d}", .{i}) catch @panic("OOM");
+        const custom_rule_mod = b.createModule(.{
+            .root_source_file = p,
+            .target = l.target,
+            .optimize = l.optimize,
+        });
+        custom_rule_mod.addImport("zlint", zlint);
+        custom_rules_mod.addImport(name, custom_rule_mod);
+        custom_rules_bytes.writer.print(
+            \\    pub const {0s} = @import("{0s}");
+            \\
+        , .{name}) catch @panic("OOM");
+
+        // Zig only collects `test` decls from a compilation's root module, so
+        // each custom rule needs its own test artifact
+        const custom_rule_test = b.addTest(.{
+            .name = b.fmt("test-{s}", .{name}),
+            .root_module = custom_rule_mod,
+            .use_llvm = use_llvm,
+        });
+        b.installArtifact(custom_rule_test);
+        custom_rule_tests.appendAssumeCapacity(custom_rule_test);
+    }
+
+    custom_rules_bytes.writer.writeAll(custom_rules_footer) catch @panic("OOM");
+
+    const custom_rules_files = b.addWriteFiles();
+    const custom_rules_mod_file = custom_rules_files.add("custom_rules.zig", custom_rules_bytes.written());
+    custom_rules_mod.root_source_file = custom_rules_mod_file;
+    zlint.addImport("custom_rules", custom_rules_mod);
+
+    // Reached from a consuming package via `addCustomLintRulesTest`.
+    const custom_rules_test_step = b.step("test-custom-rules", "Run tests for custom lint rules");
+    for (custom_rule_tests.items) |custom_rule_test| {
+        custom_rules_test_step.dependOn(&b.addRunArtifact(custom_rule_test).step);
+    }
+
+    // zig build docs, zig build config
+    var ct = codegen.CodegenTasks{
+        .b = b,
+        .optimize = l.optimize,
+        .target = l.target,
+        .zlint = zlint,
+    };
+
+    {
+        _ = ct.config();
+        const docs_step = ct.docs();
+        var lib_docs = b.addInstallDirectory(.{
+            .source_dir = lib.getEmittedDocs(),
+            .install_dir = .prefix,
+            .install_subdir = "docs",
+        });
+        docs_step.dependOn(&lib_docs.step);
+    }
 
     const exe = b.addExecutable(.{
         .name = "zlint",
@@ -125,6 +219,15 @@ pub fn build(b: *std.Build) void {
     }
     b.installArtifact(test_lib);
 
+    // `src/cli/` and `src/walk/` live in the exe's module, so their tests need
+    // their own artifact.
+    const test_cli = b.addTest(.{
+        .name = "test-cli",
+        .root_module = exe_mod,
+        .use_llvm = use_llvm,
+    });
+    b.installArtifact(test_cli);
+
     const test_utils_mod = b.createModule(.{
         .root_source_file = b.path("src/util.zig"),
         .single_threaded = single_threaded,
@@ -153,9 +256,11 @@ pub fn build(b: *std.Build) void {
     // zig build test
     {
         const run_lib_tests = b.addRunArtifact(test_lib);
+        const run_cli_tests = b.addRunArtifact(test_cli);
         const run_utils_tests = b.addRunArtifact(test_utils);
         const unit_step = b.step("test", "Run unit tests");
         unit_step.dependOn(&run_lib_tests.step);
+        unit_step.dependOn(&run_cli_tests.step);
         unit_step.dependOn(&run_utils_tests.step);
 
         const run_e2e = b.addRunArtifact(e2e);
@@ -165,29 +270,6 @@ pub fn build(b: *std.Build) void {
         const test_all_step = b.step("test-all", "Run all tests");
         test_all_step.dependOn(unit_step);
         test_all_step.dependOn(e2e_step);
-    }
-
-    // zig build (docs, confgen, codegen
-    var ct = codegen.CodegenTasks{
-        .b = b,
-        .optimize = l.optimize,
-        .target = l.target,
-        .zlint = zlint,
-    };
-    {
-        const config_step = ct.config();
-        const docs_step = ct.docs();
-
-        var lib_docs = b.addInstallDirectory(.{
-            .source_dir = lib.getEmittedDocs(),
-            .install_dir = .prefix,
-            .install_subdir = "docs",
-        });
-        docs_step.dependOn(&lib_docs.step);
-
-        const codegen_step = b.step("codegen", "Generate all codegen artifacts");
-        codegen_step.dependOn(config_step);
-        codegen_step.dependOn(docs_step);
     }
 
     // // check is down here because it's weird. We create mocks of each artifacts
@@ -322,3 +404,25 @@ const Linker = struct {
         self.modules.deinit(self.b.allocator);
     }
 };
+
+pub const ZLintStep = struct {
+    step: Build.Step,
+};
+
+/// Add an opaque run step that runs the linter.
+pub fn addRunLint(b: *std.Build, zlint_dep: *std.Build.Dependency) *ZLintStep {
+    const exe = zlint_dep.artifact("zlint");
+    const run = b.addRunArtifact(exe);
+    if (b.args) |args| {
+        run.addArgs(args);
+    }
+    return @ptrCast(run);
+}
+
+/// Step that runs the `test` blocks in each registered custom rule.
+pub fn addRunCustomLintRulesTest(b: *std.Build, zlint_dep: *std.Build.Dependency) *Build.Step {
+    _ = b;
+    const tls = zlint_dep.builder.top_level_steps.get("test-custom-rules") orelse
+        @panic("zlint dependency is missing the 'test-custom-rules' step");
+    return &tls.step;
+}

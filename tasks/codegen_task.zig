@@ -18,35 +18,33 @@ pub const CodegenTasks = struct {
     pub fn docs(self: *CodegenTasks) *Step {
         const b = self.b;
         const docgen_exe = self.docgen();
-        const fmt_docs = bun(
-            self.b,
-            "run",
-            &[_][]const u8{ "fmt:some", c.@"docs/rules" },
-        );
+
+        const bun_fmt_docs = b.addSystemCommand(&.{ "bun", "run", "fmt:some", c.@"docs/rules" });
 
         const docgen_run = b.addRunArtifact(docgen_exe);
-        fmt_docs.step.dependOn(&docgen_run.step);
+        bun_fmt_docs.step.dependOn(&docgen_run.step);
 
         const docs_step = b.step("docs", "Generate lint rule docs + zlint library docs");
         docs_step.dependOn(&docgen_run.step);
-        docs_step.dependOn(&fmt_docs.step);
+        docs_step.dependOn(&bun_fmt_docs.step);
 
         return docs_step;
     }
 
     /// `zig build config`
+    ///
+    /// Writes `zlint.schema.json`, which is checked in, based on each
+    /// rule's config.
     pub fn config(self: *CodegenTasks) *Step {
         const b = self.b;
-        const confgen_exe = self.confgen();
-        const confgen_run = b.addRunArtifact(confgen_exe);
+        const confgen_run = b.addRunArtifact(self.confgen());
+        // confgen writes to paths relative to its cwd. Pin it to this repo so
+        // the schema doesn't land in a dependent package's directory.
+        confgen_run.setCwd(b.path("."));
+        confgen_run.has_side_effects = true;
 
-        const fmt_rule_docs = b.addSystemCommand(
-            &[_][]const u8{ "zig", "fmt", c.@"Rules.zig" },
-        );
-
-        const config_step = b.step("config", "Generate rules config");
+        const config_step = b.step("config", "Generate zlint.schema.json");
         config_step.dependOn(&confgen_run.step);
-        config_step.dependOn(&fmt_rule_docs.step);
 
         return config_step;
     }
@@ -87,21 +85,3 @@ pub const CodegenTasks = struct {
         return self._confgen_exe.?;
     }
 };
-
-pub fn bun(b: *Build, comptime cmd: []const u8, comptime args: []const []const u8) *Step.Run {
-    return runBun(b, false, cmd, args);
-}
-
-pub fn bunx(b: *Build, comptime cmd: []const u8, comptime args: []const []const u8) *Step.Run {
-    return runBun(b, true, cmd, args);
-}
-
-fn runBun(
-    b: *Build,
-    comptime is_bunx: bool,
-    comptime cmd: []const u8,
-    comptime args: []const []const u8,
-) *Step.Run {
-    const bun_exe = if (is_bunx) "bunx" else "bun";
-    return b.addSystemCommand(.{ bun_exe, cmd } ++ args);
-}

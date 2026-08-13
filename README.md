@@ -33,6 +33,14 @@ curl -fsSL https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/task
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/tasks/install.ps1" | Invoke-Expression
 ```
 
+### Updating
+
+Direct binary installations can be updated in place:
+
+```sh
+zlint update
+```
+
 ### 🔨 Building from Source
 
 Clone this repo and compile the project with Zig.

@@ -4,8 +4,7 @@ import path from 'path'
 import fs from 'fs'
 
 const RULES_DIR = 'src/linter/rules'
-const RULES_MODULE = 'src/linter/rules.zig'
-const CONFIG_PATH = 'src/linter/config/rules_config_rules.zig'
+const RULES_MODULE = 'src/linter/builtin_rules.zig'
 const p = (...segs: string[]) => path.join(__dirname, '..', ...segs)
 
 class RuleData {
@@ -47,26 +46,7 @@ async function main(argv: string[]) {
     await Promise.all([
         fs.promises.writeFile(rule.path, createRule(rule)),
         fs.promises.appendFile(p(RULES_MODULE), reExport),
-        updateConfig(rule),
     ])
-}
-
-
-/**
- * Insert a `RuleConfig` field into `RulesConfig` for the new rule.
- * 
- * ```zig
- *    // ...
- *    rule_name: RuleConfig(rules.RuleName) = .{},
- *    // ...
- * ```
- */
-const updateConfig = async (rule: RuleData) => {
-    await fs.promises.appendFile(
-        p(CONFIG_PATH),
-        `${rule.underscored}: RuleConfig(rules.${rule.StructName}) = .{},`,
-        { flush: true }
-    )
 }
 
 const createRule = ({ name, StructName, underscored, camelCaseName }: RuleData) => {

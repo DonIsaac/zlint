@@ -1,8 +1,8 @@
 const std = @import("std");
 const util = @import("util");
-const Source = @import("source.zig").Source;
+const Source = @import("zlint").Source;
 const config = @import("config");
-const Error = @import("Error.zig");
+const Error = @import("zlint").Error;
 
 const Io = std.Io;
 const print = std.debug.print;
@@ -10,6 +10,7 @@ const print = std.debug.print;
 const Options = @import("cli/Options.zig");
 const print_cmd = @import("cli/print_command.zig");
 const lint_cmd = @import("cli/lint_command.zig");
+const update_cmd = @import("cli/update_command.zig");
 
 // in debug builds, include more information for debugging memory leaks,
 // double-frees, etc.
@@ -30,6 +31,20 @@ pub fn main(init: std.process.Init) !u8 {
     };
     var stack = std.heap.stackFallback(16, alloc);
     const stack_alloc = stack.get();
+
+    const is_update = update_cmd.isCommand(stack_alloc, init.minimal.args) catch {
+        std.debug.print("error: ran out of memory while parsing command-line arguments\n", .{});
+        return 1;
+    };
+    if (is_update) {
+        return update_cmd.run(
+            alloc,
+            io,
+            init.minimal.args,
+            init.minimal.environ,
+            config.version,
+        );
+    }
 
     var err: Error = undefined;
     var opts = Options.parseArgv(stack_alloc, io, init.minimal.args, &err) catch |e| switch (e) {
@@ -93,3 +108,15 @@ pub fn main(init: std.process.Init) !u8 {
 }
 
 var stdout_buf: [4096]u8 = undefined;
+
+test {
+    // `src/cli/` and `src/walk/` aren't part of the library surface, so their
+    // tests are compiled and run from here.
+    std.testing.refAllDecls(Options);
+    std.testing.refAllDecls(lint_cmd);
+    std.testing.refAllDecls(print_cmd);
+    std.testing.refAllDecls(update_cmd);
+    std.testing.refAllDecls(@import("cli/lint_config.zig"));
+    std.testing.refAllDecls(@import("walk/Walker.zig"));
+    std.testing.refAllDecls(@import("walk/glob.zig"));
+}

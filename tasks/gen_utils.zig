@@ -18,11 +18,12 @@ pub const RuleInfo = struct {
     path: []const u8,
     /// `SomeRule`. Name used by rule struct.
     name_pascale: []const u8,
-    pub const all_rules = blk: {
+
+    pub const builtin_rules = blk: {
         const rule_decls: []const std.builtin.Type.Declaration = @typeInfo(zlint.lint.rules).@"struct".decls;
+
         var rule_infos: [rule_decls.len]RuleInfo = undefined;
-        var i = 0;
-        for (rule_decls) |rule_decl| {
+        for (rule_decls, 0..) |rule_decl, i| {
             const rule = @field(zlint.lint.rules, rule_decl.name);
             const rule_meta: Rule.Meta = rule.meta;
             var snake_case_name: [rule_meta.name.len]u8 = undefined;
@@ -33,7 +34,6 @@ pub const RuleInfo = struct {
                 .path = c.@"linter/rules" ++ "/" ++ snake_case_name ++ ".zig",
                 .name_pascale = rule_decl.name,
             };
-            i += 1;
         }
         break :blk rule_infos;
     };

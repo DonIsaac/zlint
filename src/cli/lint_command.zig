@@ -2,8 +2,8 @@ const std = @import("std");
 const util = @import("util");
 const walk = @import("../walk/Walker.zig");
 const glob = @import("../walk/glob.zig");
-const _lint = @import("../lint.zig");
-const reporters = @import("../reporter.zig");
+const _lint = @import("zlint").lint;
+const reporters = @import("zlint").report;
 const lint_config = @import("lint_config.zig");
 
 const mem = std.mem;
@@ -13,7 +13,7 @@ const Allocator = std.mem.Allocator;
 const Io = std.Io;
 
 const WalkState = walk.WalkState;
-const Error = @import("../Error.zig");
+const Error = @import("zlint").Error;
 
 const LintService = _lint.LintService;
 const Fix = _lint.Fix;

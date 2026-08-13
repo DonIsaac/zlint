@@ -20,10 +20,12 @@ pub fn build(
     errdefer {
         // NOTE: free'd in reverse order they're allocated
         token_bundle.comments.deinit(allocator);
+        token_bundle.ast_tokens.deinit(allocator);
         token_bundle.tokens.deinit(allocator);
     }
 
-    const ast = try Ast.parse(allocator, source, .zig);
+    // takes ownership of `ast_tokens` on success
+    const ast = try Ast.parseTokens(allocator, source, token_bundle.ast_tokens, .zig);
     return .{
         Parse{
             .ast = ast,

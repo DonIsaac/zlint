@@ -1,3 +1,5 @@
+//! Lint rules shipped with ZLint. Custom rules registered by a consuming build
+//! live in the `custom_rules` generated module; `all_rules.zig` joins the two.
 pub const AllocatorFirstParam = @import("./rules/allocator_first_param.zig");
 pub const AvoidAs = @import("./rules/avoid_as.zig");
 pub const CaseConvention = @import("./rules/case_convention.zig");

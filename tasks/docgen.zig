@@ -68,7 +68,7 @@ pub fn main(init: std.process.Init) !void {
 
     try root.createDirPath(task_io, OUT_DIR);
 
-    for (gen.RuleInfo.all_rules) |rule| {
+    for (gen.RuleInfo.builtin_rules) |rule| {
         log.info("Rule: {s}", .{rule.meta.name});
         const source = try gen.readSourceFile(alloc, task_io, root, rule.path);
         defer alloc.free(source);

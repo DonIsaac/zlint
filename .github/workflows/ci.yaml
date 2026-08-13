@@ -129,6 +129,7 @@ jobs:
         with:
           version: ${{ env.ZIG_VERSION }}
       - run: bun install --frozen-lockfile
-      - run: zig build codegen --summary all
+      - run: zig build docs --summary all
+      - run: zig build config --summary all
       - name: Check for changes
         run: git diff --exit-code

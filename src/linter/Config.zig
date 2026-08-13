@@ -29,16 +29,8 @@ pub const DEFAULT: Config = .{
 const DEFAULT_RULES_CONFIG: RulesConfig = blk: {
     var config: RulesConfig = .{};
 
-    for (all_rule_decls) |decl| {
-        const RuleImpl = @field(all_rules, decl.name);
-
-        // rule names are in kebab-case. RuleConfig has a snake_case field for
-        // each rule.
-        var config_field_name: [RuleImpl.meta.name.len]u8 = undefined;
-        @memcpy(&config_field_name, RuleImpl.meta.name);
-        std.mem.replaceScalar(u8, &config_field_name, '-', '_');
-
-        @field(config.rules, &config_field_name) = .{ .severity = RuleImpl.meta.default };
+    for (@typeInfo(RulesConfig.Rules).@"struct".fields) |field| {
+        @field(config.rules, field.name) = .{ .severity = field.type.meta.default };
     }
 
     break :blk config;
@@ -60,9 +52,6 @@ pub fn jsonSchema(ctx: *Schema.Context) !Schema {
     return schema;
 }
 
-const all_rules = @import("rules.zig");
-const all_rule_decls = @typeInfo(all_rules).@"struct".decls;
-
 const std = @import("std");
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Allocator = std.mem.Allocator;
@@ -78,6 +67,7 @@ test {
 }
 
 const t = std.testing;
+const builtin_rules = @import("builtin_rules.zig");
 const print = std.debug.print;
 const json = std.json;
 const Severity = @import("../Error.zig").Severity;
@@ -146,7 +136,7 @@ test "RulesConfig.jsonParse" {
     ,
         RulesConfig{ .rules = .{ .unsafe_undefined = .{ .severity = Severity.err } } },
     );
-    var cfg = all_rules.UnsafeUndefined{ .allow_arrays = false };
+    var cfg = builtin_rules.UnsafeUndefined{ .allow_arrays = false };
     try testConfig(
         \\{ "unsafe-undefined": ["error", { "allow_arrays": false }] }
     ,
