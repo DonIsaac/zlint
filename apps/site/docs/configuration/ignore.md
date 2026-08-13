@@ -20,6 +20,21 @@ field of your `zlint.json` file.
 }
 ```
 
+### Ignores and Path Arguments
+
+Ignore patterns apply to files ZLint finds by walking a directory. A file you
+name directly on the command line is always linted, even when a pattern covers
+it:
+
+```sh
+zlint                     # skips ignored files
+zlint src                 # same, for everything under `src/`
+zlint src/generated.zig   # lints it, ignored or not
+```
+
+`zlint src`, `zlint src/`, and `zlint 'src/**'` are all the same request, and
+`zlint .` lints exactly what passing no arguments does.
+
 ## Disabling Rules
 You can globally disable rules by setting their level to `off` in your
 configuration file.

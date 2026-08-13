@@ -151,12 +151,10 @@ pub const Reporter = struct {
             break :blk .{ yellow, yd };
         };
 
-        const errors = self.stats.numErrorsSync();
-        const warnings = self.stats.numWarningsSync();
-        const files = self.stats.numFilesSync();
+        const stats = self.stats.snapshot();
         self.writer.print(
             "\tFound " ++ yd ++ " errors and " ++ yd ++ " warnings across " ++ yd ++ " files in " ++ yellow.open ++ "{d}ms" ++ yellow.close ++ ".\n",
-            .{ errors, warnings, files, duration },
+            .{ stats.errors, stats.warnings, stats.filesLinted(), duration },
         ) catch {};
     }
 
@@ -191,10 +189,31 @@ const PanicFormatter = struct {
     }
 };
 
-const Stats = struct {
-    num_files: AtomicUsize = .init(0),
+pub const Stats = struct {
+    num_files_passed: AtomicUsize = .init(0),
+    num_files_errored: AtomicUsize = .init(0),
+    num_files_skipped: AtomicUsize = .init(0),
     num_errors: AtomicUsize = .init(0),
     num_warnings: AtomicUsize = .init(0),
+
+    /// A copy of a `Stats` taken after all files have been processed.
+    pub const Snapshot = struct {
+        /// Files linted without any diagnostics.
+        files_passed: usize = 0,
+        /// Files that reported at least one diagnostic, or that could not be
+        /// read, parsed, or analyzed.
+        files_errored: usize = 0,
+        /// Zig files the walker found but did not lint because they were
+        /// filtered out by positional arguments or `ignore` patterns.
+        files_skipped: usize = 0,
+        errors: usize = 0,
+        warnings: usize = 0,
+
+        /// Number of files zlint tried to lint.
+        pub fn filesLinted(self: Snapshot) usize {
+            return self.files_passed + self.files_errored;
+        }
+    };
 
     pub fn recordErrors(self: *Stats, errors: []const Error) void {
         var num_warnings: usize = 0;
@@ -206,31 +225,35 @@ const Stats = struct {
                 else => {},
             }
         }
-        _ = self.num_files.fetchAdd(1, .acquire);
         _ = self.num_errors.fetchAdd(num_errors, .acquire);
         _ = self.num_warnings.fetchAdd(num_warnings, .acquire);
     }
 
     pub fn recordSuccess(self: *Stats) void {
-        _ = self.num_files.fetchAdd(1, .acquire);
+        _ = self.num_files_passed.fetchAdd(1, .acquire);
     }
 
-    /// Get the number of linted files. Only call this after all files have been
-    /// processed.
-    pub fn numFilesSync(self: *const Stats) usize {
-        return self.num_files.raw;
+    /// Record a file that could not be linted, either because it has
+    /// diagnostics or because reading/analyzing it failed.
+    pub fn recordFailure(self: *Stats) void {
+        _ = self.num_files_errored.fetchAdd(1, .acquire);
     }
 
-    /// Get the number of lint errors. Only call this after all files have been
-    /// processed.
-    pub fn numErrorsSync(self: *const Stats) usize {
-        return self.num_errors.raw;
+    /// Record a Zig file that was found by the walker but filtered out before
+    /// being linted.
+    pub fn recordSkipped(self: *Stats) void {
+        _ = self.num_files_skipped.fetchAdd(1, .acquire);
     }
 
-    /// Get the number of lint warnings. Only call this after all files have been
-    /// processed.
-    pub fn numWarningsSync(self: *const Stats) usize {
-        return self.num_warnings.raw;
+    /// Copy these stats. Only call this after all files have been processed.
+    pub fn snapshot(self: *const Stats) Snapshot {
+        return .{
+            .files_passed = self.num_files_passed.raw,
+            .files_errored = self.num_files_errored.raw,
+            .files_skipped = self.num_files_skipped.raw,
+            .errors = self.num_errors.raw,
+            .warnings = self.num_warnings.raw,
+        };
     }
 };
 

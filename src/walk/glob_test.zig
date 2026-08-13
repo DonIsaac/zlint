@@ -2,6 +2,18 @@ const std = @import("std");
 const expect = std.testing.expect;
 const match = @import("glob.zig").match;
 
+// A leading `**/` must also match at depth 0. `.gitignore` entries without a
+// separator are translated into this form (see `lint_config.translateGitignoreLine`).
+test "leading globstar matches at any depth" {
+    try expect(match("**/foo", "foo"));
+    try expect(match("**/foo", "a/foo"));
+    try expect(match("**/foo", "a/b/foo"));
+    try expect(!match("**/foo", "foobar"));
+    try expect(match("**/foo/**", "foo/bar.zig"));
+    try expect(match("**/foo/**", "a/foo/b/bar.zig"));
+    try expect(!match("**/foo/**", "foo"));
+}
+
 test "basic" {
     try expect(match("abc", "abc"));
     try expect(match("*", "abc"));
