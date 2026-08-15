@@ -603,6 +603,18 @@ test contextFor {
     }
 }
 
+test "ascii formatter uses ascii glyphs" {
+    var ascii_formatter = GraphicalFormatter.ascii(t.allocator, false);
+    var writer = std.Io.Writer.Allocating.init(t.allocator);
+    defer writer.deinit();
+
+    try ascii_formatter.format(&writer.writer, Error.newStatic("Something happened"));
+    try t.expectEqualStrings("  x Something happened\n\n", writer.writer.buffered());
+    for (writer.writer.buffered()) |byte| {
+        try t.expect(byte < 0x80);
+    }
+}
+
 // TODO: get a windows machine and debug/fix these tests
 // test "contextFor with CRLF newlines on windows" {
 //     if (!util.IS_WINDOWS) return;

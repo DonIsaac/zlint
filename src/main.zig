@@ -94,13 +94,13 @@ pub fn main(init: std.process.Init) !u8 {
 }
 
 test {
-    // `src/cli/` and `src/walk/` aren't part of the library surface, so their
+    // `src/cli/` and `src/io/` aren't part of the library surface, so their
     // tests are compiled and run from here.
     std.testing.refAllDecls(Options);
     std.testing.refAllDecls(lint_cmd);
     std.testing.refAllDecls(print_cmd);
     std.testing.refAllDecls(update_cmd);
     std.testing.refAllDecls(@import("cli/lint_config.zig"));
-    std.testing.refAllDecls(@import("walk/Walker.zig"));
-    std.testing.refAllDecls(@import("walk/glob.zig"));
+    std.testing.refAllDecls(@import("io/Walker.zig"));
+    std.testing.refAllDecls(@import("io/glob.zig"));
 }

@@ -37,7 +37,7 @@ const help =
     \\
     \\Options:
     \\--print-ast <file>  Parse a file and print its AST as JSON
-    \\-f, --format <fmt>  Choose an output format (default, graphical, json, github, gh)
+    \\-f, --format <fmt>  Choose an output format (default, graphical, ascii, json, github, gh)
     \\--no-summary        Do not print a summary after linting
     \\-S, --stdin         Lint filepaths received from stdin (newline separated)
     \\--fix               Apply automatic fixes where possible
@@ -141,7 +141,7 @@ inline fn eq(arg: anytype, name: @TypeOf(arg)) bool {
     return std.mem.eql(u8, arg, name);
 }
 // TODO: comptime string concat on format names
-const FORMAT_NAMES: []const u8 = "default, graphical, github, gh";
+const FORMAT_NAMES: []const u8 = "default, graphical, ascii, json, github, gh";
 
 const Options = @This();
 const std = @import("std");
@@ -210,4 +210,11 @@ test "invalid --format" {
         parse(t.allocator, t.io, argv, &err),
     );
     try t.expect(std.mem.indexOf(u8, err.message.borrow(), "Invalid format name") != null);
+}
+
+test "ascii format" {
+    const argv = std.mem.splitScalar(u8, "zlint --format ascii", ' ');
+    var opts = try parse(t.allocator, t.io, argv, null);
+    defer opts.deinit(t.allocator);
+    try t.expectEqual(formatter.Kind.ascii, opts.format);
 }

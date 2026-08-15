@@ -9,6 +9,7 @@ pub const Meta = struct {
 };
 
 pub const Kind = enum {
+    ascii,
     graphical,
     github,
     json,
@@ -18,6 +19,7 @@ pub const Kind = enum {
         std.static_string_map.eqlAsciiIgnoreCase,
     );
     const formats = FormatMap.initComptime(&[_]struct { []const u8, Kind }{
+        .{ "ascii", .ascii },
         .{ "github", .github },
         .{ "gh", .github },
         .{ "json", .json },
@@ -36,3 +38,13 @@ pub const FormatError = io.Writer.Error || Allocator.Error;
 const std = @import("std");
 const io = std.Io;
 const Allocator = std.mem.Allocator;
+
+test "Kind.fromString" {
+    try std.testing.expectEqual(Kind.ascii, Kind.fromString("ASCII"));
+    try std.testing.expectEqual(Kind.graphical, Kind.fromString("default"));
+    try std.testing.expectEqual(Kind.graphical, Kind.fromString("graphical"));
+    try std.testing.expectEqual(Kind.github, Kind.fromString("gh"));
+    try std.testing.expectEqual(Kind.github, Kind.fromString("github"));
+    try std.testing.expectEqual(Kind.json, Kind.fromString("json"));
+    try std.testing.expectEqual(null, Kind.fromString("unknown"));
+}
