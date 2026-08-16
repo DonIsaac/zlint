@@ -51,7 +51,8 @@ pub fn deinit(self: *Draft, allocator: Allocator) void {
 
 pub const NewBlock = struct {
     /// May forward-reference a container that has not been added yet (i.e.
-    /// `Container.Id.from(cfg.containers.items.len)`). Validated by `finalize`.
+    /// `Container.Id.from(cfg.containers.items.len)`). Never validated; the
+    /// caller must add that container before `finalize` runs.
     container: Container.Id,
     node: Node.Index = .root,
     flags: BasicBlock.Flags = .empty,
@@ -221,6 +222,10 @@ pub fn addContainer(
 
 /// Links dead ends to their container exit, builds `predecessors`, and marks
 /// `b_unreachable`. Called once, at end of build.
+///
+/// Moves all draft storage into the returned `Cfg`; the caller must `Cfg.deinit`
+/// it. `self` is dead afterwards and must not be used or deinitialized. On
+/// error, the draft keeps ownership and must still be deinitialized.
 pub fn finalize(self: *Draft, alloc: Allocator) Allocator.Error!Cfg {
     try self.linkUnreachable(alloc);
 
@@ -261,6 +266,7 @@ pub fn finalize(self: *Draft, alloc: Allocator) Allocator.Error!Cfg {
         .containers = self.containers.slice(),
     };
 
+    // SAFETY: memory has moved, using this draft post-finalized is illegal behavior.
     self.* = undefined;
     return cfg;
 }

@@ -68,16 +68,19 @@ pub fn render(
     try writer.print("{d} blocks in {d} containers\";\n", .{ cfg.len(), cfg.containers.len });
 
     const block_containers: []const Container.Id = cfg.blocks.items(.container);
+    var grouped: BlocksByContainer = try .init(alloc, block_containers, cfg.containers.len);
+    defer grouped.deinit(alloc);
+
     for (0..cfg.containers.len) |i| {
         if (!opts.decls and container_flags[i].c_decl) continue;
+        const blocks = grouped.blocksIn(i);
         try writer.print("  subgraph cluster_{d} {{\n", .{i});
         try writer.print("    style=rounded; color=\"{s}\";\n", .{clusterColor(container_flags[i])});
         try writer.writeAll("    label=\"");
-        try writeContainerLabel(ctx, cfg.getContainer(.from(i)), blockCount(cfg, .from(i)), writer);
+        try writeContainerLabel(ctx, cfg.getContainer(.from(i)), @intCast(blocks.len), writer);
         try writer.writeAll("\";\n");
-        for (block_containers, 0..) |container, b| {
-            if (container.int() != i) continue;
-            try renderBlock(ctx, .from(b), writer);
+        for (blocks) |b| {
+            try renderBlock(ctx, b, writer);
         }
         try writer.writeAll("  }\n");
     }
@@ -131,13 +134,51 @@ const LineIndex = struct {
     }
 };
 
-fn blockCount(cfg: *const Cfg, container: Container.Id) u32 {
-    var count: u32 = 0;
-    for (cfg.blocks.items(.container)) |owner| {
-        if (owner == container) count += 1;
+/// Blocks bucketed by owning container, counting-sorted so rendering a cluster
+/// costs its own blocks instead of a scan over every block in the file.
+const BlocksByContainer = struct {
+    ids: []BasicBlock.Id,
+    offsets: []u32,
+
+    fn init(
+        alloc: Allocator,
+        block_containers: []const Container.Id,
+        container_count: usize,
+    ) Allocator.Error!BlocksByContainer {
+        const offsets = try alloc.alloc(u32, container_count + 1);
+        errdefer alloc.free(offsets);
+        const ids = try alloc.alloc(BasicBlock.Id, block_containers.len);
+        errdefer alloc.free(ids);
+
+        @memset(offsets, 0);
+        for (block_containers) |container| offsets[container.int()] += 1;
+        var total: u32 = 0;
+        for (offsets) |*offset| {
+            const count = offset.*;
+            offset.* = total;
+            total += count;
+        }
+
+        for (block_containers, 0..) |container, b| {
+            const i = container.int();
+            ids[offsets[i]] = .from(b);
+            offsets[i] += 1;
+        }
+        std.mem.copyBackwards(u32, offsets[1..], offsets[0 .. offsets.len - 1]);
+        offsets[0] = 0;
+
+        return .{ .ids = ids, .offsets = offsets };
     }
-    return count;
-}
+
+    fn deinit(self: *BlocksByContainer, alloc: Allocator) void {
+        alloc.free(self.ids);
+        alloc.free(self.offsets);
+    }
+
+    fn blocksIn(self: *const BlocksByContainer, container: usize) []const BasicBlock.Id {
+        return self.ids[self.offsets[container]..self.offsets[container + 1]];
+    }
+};
 
 fn clusterColor(flags: Container.Flags) []const u8 {
     if (flags.c_fn) return ink.branch;
@@ -461,6 +502,25 @@ test writeText {
     try case("a\\\\x00b", "a\x00b", null);
     try case("\\\\xFF", "\xff", null);
     try case("\\\\xC3", "\xc3", null);
+}
+
+test BlocksByContainer {
+    const c: [7]Container.Id = .{ .from(2), .from(0), .from(2), .from(0), .from(3), .from(0), .from(2) };
+    var grouped: BlocksByContainer = try .init(t.allocator, &c, 4);
+    defer grouped.deinit(t.allocator);
+
+    try t.expectEqualSlices(BasicBlock.Id, &.{ .from(1), .from(3), .from(5) }, grouped.blocksIn(0));
+    try t.expectEqualSlices(BasicBlock.Id, &.{}, grouped.blocksIn(1));
+    try t.expectEqualSlices(BasicBlock.Id, &.{ .from(0), .from(2), .from(6) }, grouped.blocksIn(2));
+    try t.expectEqualSlices(BasicBlock.Id, &.{.from(4)}, grouped.blocksIn(3));
+
+    try t.expectEqual(c.len, grouped.ids.len);
+    try t.expectEqual(0, grouped.offsets[0]);
+    try t.expectEqual(c.len, grouped.offsets[grouped.offsets.len - 1]);
+
+    var empty: BlocksByContainer = try .init(t.allocator, &.{}, 0);
+    defer empty.deinit(t.allocator);
+    try t.expectEqual(0, empty.ids.len);
 }
 
 test LineIndex {
