@@ -111,8 +111,11 @@ fn verifyInvariants(cfg: *const zlint.Semantic.Cfg) !void {
     const entries = cfg.containers.items(.entry);
     const exits = cfg.containers.items(.exit);
     const block_containers = cfg.blocks.items(.container);
+    const block_flags = cfg.blocks.items(.flags);
     for (0..cfg.containers.len) |i| {
         if (entries[i] == exits[i]) return error.ContainerEntryBlockIsExit;
+        if (entries[i].int() >= block_count) return error.ContainerEntryBlockOutOfBounds;
+        if (exits[i].int() >= block_count) return error.ContainerExitBlockOutOfBounds;
 
         // entry/exit block relationships are reciprocal
         const entry_block = block_containers[entries[i].into(usize)];
@@ -120,8 +123,19 @@ fn verifyInvariants(cfg: *const zlint.Semantic.Cfg) !void {
         if (entry_block.int() != i) return error.ContainerEntryBlockOrphan;
         if (exit_block.int() != i) return error.ContainerExitBlockOrphan;
     }
-    // TODO:
-    // - 1 exit and 1 entry per container subgraph
+
+    // Each container has exactly one flagged entry and exit: its designated
+    // entry and exit blocks.
+    for (block_containers, block_flags, 0..) |container, flags, i| {
+        const container_index = container.into(usize);
+        if (container_index >= cfg.containers.len) return error.BlockContainerOutOfBounds;
+        if (flags.b_entry != (entries[container_index].int() == i)) {
+            return error.ContainerEntryFlagMismatch;
+        }
+        if (flags.b_exit != (exits[container_index].int() == i)) {
+            return error.ContainerExitFlagMismatch;
+        }
+    }
 }
 
 pub fn run(alloc: Allocator) !void {
