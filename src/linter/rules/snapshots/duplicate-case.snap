@@ -103,3 +103,48 @@
  11 │     else => 0
     ╰────
 
+  𝙭 duplicate-case: Switch statement has duplicate cases
+   ╭─[duplicate-case.zig:3:5]
+ 2 │   return switch (key) {
+ 3 │     1 => !(first < second),
+   ·     ──────────────────────
+ 4 │     2 => !(first < second),
+   ·     ──────────────────────
+   ╰────
+
+  𝙭 duplicate-case: Switch statement has duplicate cases
+   ╭─[duplicate-case.zig:3:5]
+ 2 │   return switch (key) {
+ 3 │     1 => identity(value),
+   ·     ────────────────────
+ 4 │     2 => identity(value,),
+   ·     ─────────────────────
+   ╰────
+
+  𝙭 duplicate-case: Switch statement has duplicate cases
+   ╭─[duplicate-case.zig:3:5]
+ 2 │   return switch (key) {
+ 3 │     1 => @max(value, 1),
+   ·     ───────────────────
+ 4 │     2 => @max(value, 1,),
+   ·     ────────────────────
+   ╰────
+
+  𝙭 duplicate-case: Switch statement has duplicate cases
+   ╭─[duplicate-case.zig:3:5]
+ 2 │   return switch (key) {
+ 3 │     1 => [_]u8{ 1, 2 },
+   ·     ──────────────────
+ 4 │     2 => [_]u8{ 1, 2, },
+   ·     ───────────────────
+   ╰────
+
+  𝙭 duplicate-case: Switch statement has duplicate cases
+   ╭─[duplicate-case.zig:3:5]
+ 2 │   return switch (key) {
+ 3 │     1 => values[1..],
+   ·     ────────────────
+ 4 │     2 => values[1..],
+   ·     ────────────────
+   ╰────
+

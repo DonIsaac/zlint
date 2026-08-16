@@ -83,6 +83,15 @@ pub fn runOnNode(_: *const DuplicateCase, wrapper: NodeWrapper, ctx: *LinterCont
             const other = cases[j];
             const a = ast.fullSwitchCase(case) orelse unreachable;
             const b = ast.fullSwitchCase(other) orelse unreachable;
+
+            // Combining captured prongs can change the capture's peer-resolved
+            // type. Without type information, assume captured prongs differ.
+            if (a.payload_token != null or b.payload_token != null) continue;
+
+            // An inline prong can observe values at comptime, so combining it
+            // with a non-inline prong is not necessarily behavior preserving.
+            if ((a.inline_token == null) != (b.inline_token == null)) continue;
+
             if (AstComparator.eql(ast, a.ast.target_expr, b.ast.target_expr)) {
                 ctx.report(duplicateCaseDiagnostic(ctx, case, other));
             }
@@ -153,6 +162,74 @@ test DuplicateCase {
         \\    else => 0
         \\  };
         \\  return x;
+        \\}
+        ,
+        // Pointer captures with different bindings are not equivalent.
+        \\fn foo(key: u8, optional: ?u32) void {
+        \\  const x: u32 = 1;
+        \\  _ = switch (key) {
+        \\    1 => if (optional) |*x| x else null,
+        \\    2 => if (optional) |*y| x else null,
+        \\    else => null,
+        \\  };
+        \\}
+        ,
+        // Variable mutability is part of structural equality.
+        \\fn foo(key: u8) void {
+        \\  _ = switch (key) {
+        \\    1 => { var value: u8 = 1; _ = &value; },
+        \\    2 => { const value: u8 = 1; _ = &value; },
+        \\    else => {},
+        \\  };
+        \\}
+        ,
+        \\fn foo(key: u8, value: u8) u8 {
+        \\  return switch (key) {
+        \\    1 => @max(value, 1),
+        \\    2 => @min(value, 1),
+        \\    else => 0,
+        \\  };
+        \\}
+        ,
+        \\fn foo(key: u8, values: []const u8) []const u8 {
+        \\  return switch (key) {
+        \\    1 => values[1..],
+        \\    2 => values[2..],
+        \\    else => values,
+        \\  };
+        \\}
+        ,
+        \\fn foo(key: u8) anyerror {
+        \\  return switch (key) {
+        \\    1 => error.Foo,
+        \\    2 => error.Bar,
+        \\    else => error.Baz,
+        \\  };
+        \\}
+        ,
+        // Captured payloads with identical target syntax can have different
+        // peer-resolved types when their prongs are combined.
+        \\const Value = union(enum) {
+        \\  small: u8,
+        \\  large: u64,
+        \\};
+        \\fn width(value: anytype) usize {
+        \\  return @sizeOf(@TypeOf(value));
+        \\}
+        \\fn foo(value: Value) usize {
+        \\  return switch (value) {
+        \\    .small => |payload| width(payload),
+        \\    .large => |payload| width(payload),
+        \\  };
+        \\}
+        ,
+        // Inline and non-inline prongs are not safely interchangeable.
+        \\fn foo(value: u8) u8 {
+        \\  return switch (value) {
+        \\    inline 1 => 1,
+        \\    2 => 1,
+        \\    else => 0,
+        \\  };
         \\}
         ,
     };
@@ -255,6 +332,49 @@ test DuplicateCase {
         \\    else => 0
         \\  };
         \\  return x;
+        \\}
+        ,
+        // Ordered and unary expression families.
+        \\fn foo(key: u8, first: u8, second: u8) bool {
+        \\  return switch (key) {
+        \\    1 => !(first < second),
+        \\    2 => !(first < second),
+        \\    else => false,
+        \\  };
+        \\}
+        ,
+        // Trailing commas do not change calls or builtin calls.
+        \\fn foo(key: u8, value: u8) u8 {
+        \\  return switch (key) {
+        \\    1 => identity(value),
+        \\    2 => identity(value,),
+        \\    else => 0,
+        \\  };
+        \\}
+        ,
+        \\fn foo(key: u8, value: u8) u8 {
+        \\  return switch (key) {
+        \\    1 => @max(value, 1),
+        \\    2 => @max(value, 1,),
+        \\    else => 0,
+        \\  };
+        \\}
+        ,
+        // Array initializers and slices use normalized full-node data.
+        \\fn foo(key: u8) [2]u8 {
+        \\  return switch (key) {
+        \\    1 => [_]u8{ 1, 2 },
+        \\    2 => [_]u8{ 1, 2, },
+        \\    else => .{ 0, 0 },
+        \\  };
+        \\}
+        ,
+        \\fn foo(key: u8, values: []const u8) []const u8 {
+        \\  return switch (key) {
+        \\    1 => values[1..],
+        \\    2 => values[1..],
+        \\    else => values,
+        \\  };
         \\}
         ,
     };
