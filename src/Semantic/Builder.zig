@@ -41,7 +41,12 @@ _node_stack: std.ArrayList(NodeIndex) = .empty,
 /// We try to resolve these each time a scope is exited.
 _unresolved_references: ReferenceStack = .empty,
 
+/// NOTE: does not contain `Cfg` util post-construction.
 _semantic: Semantic,
+/// Present iff `withCfg` enabled control flow analysis. Lowers into
+/// `_cfg_draft`, which `build` finalizes into `Semantic.cfg`.
+_cfg: ?Cfg.Builder = null,
+_cfg_draft: Cfg.Draft = .empty,
 /// Errors encountered during parsing and analysis.
 ///
 /// Errors in this list are allocated using this list's allocator.
@@ -70,6 +75,12 @@ pub fn withSource(self: *SemanticBuilder, source: *const _source.Source) void {
     if (self._source_code) |*s| s.deinit();
     self._source_code = source.contents.clone();
     self._source_path = source.pathname;
+}
+
+/// Enable control flow analysis
+pub fn withCfg(self: *SemanticBuilder, enable: bool) void {
+    assert(self._cfg == null);
+    if (enable) self._cfg = .{ .draft = &self._cfg_draft };
 }
 
 /// Parse and analyze a Zig source file.
@@ -121,10 +132,18 @@ pub fn build(builder: *SemanticBuilder, source: [:0]const u8) SemanticError!Resu
         .symbols = .empty,
         .scopes = .empty,
         .modules = .empty,
+        .cfg = .empty,
         ._arena = builder._arena,
         ._gpa = gpa,
     };
     errdefer builder._semantic.deinit();
+
+    if (builder._cfg) |*c| {
+        // Re-anchor in case the builder struct was moved since `withCfg`.
+        c.draft = &builder._cfg_draft;
+        try builder._semantic.node_links.blocks.ensureTotalCapacityPrecise(gpa, node_count);
+        builder._semantic.node_links.blocks.appendNTimesAssumeCapacity(.none, node_count);
+    }
 
     // TODO: collect data and approximate #symbols declared vs. #identifiers encountered
     // TODO: benchmark analysis with and without this
@@ -160,12 +179,24 @@ pub fn build(builder: *SemanticBuilder, source: [:0]const u8) SemanticError!Resu
         else => std.debug.panic("Expected 0 or 1 frame, got {d}", .{unresolved_frame_count}),
     }
 
+    if (builder._cfg) |*c| {
+        try builder.resolvePendingCalls(c);
+        builder._semantic.cfg = try builder._cfg_draft.finalize(gpa);
+        c.deinit(gpa);
+        builder._cfg = null;
+    }
+
     return Result.new(builder._gpa, builder._semantic, builder._errors);
 }
 
 /// Deinitialize build-specific resources. Errors and the constructed
 /// `Semantic` instance are left untouched.
 pub fn deinit(self: *SemanticBuilder) void {
+    if (self._cfg) |*c| {
+        c.deinit(self._gpa);
+        self._cfg_draft.deinit(self._gpa);
+        self._cfg = null;
+    }
     self._scope_stack.deinit(self._gpa);
     self._symbol_stack.deinit(self._gpa);
     self._node_stack.deinit(self._gpa);
@@ -376,8 +407,17 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             defer self.restoreScopeFlag(.s_comptime, prev);
             self._next_block_scope_flags = .{ .s_test = true, .s_block = true };
             defer self._next_block_scope_flags = .{};
+            const body = ast.nodeData(node_id).opt_token_and_node[1];
             // TODO: record .s_test symbol references when test name is an `.identifier`
-            return self.visit(ast.nodeData(node_id).opt_token_and_node[1]);
+            if (self.cfg()) |c| {
+                const frame = try c.enterContainer(self._gpa, .{
+                    .node = node_id,
+                    .flags = .{ .c_test = true },
+                });
+                defer c.exitContainer(self._gpa, frame);
+                return self.visit(body);
+            }
+            return self.visit(body);
         },
 
         // pointers
@@ -395,10 +435,14 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             return self.visitPtrType(ptr);
         },
 
+        .unreachable_literal => {
+            if (self.cfg()) |c| c.terminate(.@"unreachable", node_id);
+            return;
+        },
+
         // no child nodes
         .char_literal,
         .number_literal,
-        .unreachable_literal,
         .string_literal,
         .anyframe_literal,
         .error_value,
@@ -416,17 +460,73 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             const prev_comptime = self.setScopeFlag(.s_comptime, true);
             defer self.restoreScopeFlag(.s_comptime, prev_comptime);
 
-            return self.visit(ast.nodeData(node_id).node);
+            const child = ast.nodeData(node_id).node;
+            if (self.cfg()) |c| {
+                // A container-level `comptime` block is its own control-flow
+                // container; inside a function it is a comptime region of the
+                // enclosing one.
+                if (c.container == .none) {
+                    const frame = try c.enterContainer(self._gpa, .{
+                        .node = node_id,
+                        .flags = .{ .c_comptime = true },
+                        .is_comptime = true,
+                    });
+                    defer c.exitContainer(self._gpa, frame);
+                    return self.visit(child);
+                }
+                const was_comptime = c.curr_flags.b_comptime;
+                c.curr_flags.b_comptime = true;
+                defer c.curr_flags.b_comptime = was_comptime;
+                return self.visit(child);
+            }
+            return self.visit(child);
         },
 
         .grouped_expression,
         .unwrap_optional,
         => return self.visit(ast.nodeData(node_id).node_and_token[0]),
-        .@"break" => return self.visitOptional(ast.nodeData(node_id).opt_token_and_opt_node[1]),
-        .@"return" => return self.visitOptional(ast.nodeData(node_id).opt_node),
+        .@"break" => {
+            const label_token, const value = ast.nodeData(node_id).opt_token_and_opt_node;
+            try self.visitOptional(value);
+            if (self.cfg()) |c| {
+                if (self.resolveCfgLabel(c, label_token.unwrap())) |index| {
+                    try c.onBreak(self._gpa, index, node_id);
+                } else {
+                    c.terminate(.@"unreachable", node_id);
+                }
+            }
+            return;
+        },
+        .@"return" => {
+            const value = ast.nodeData(node_id).opt_node;
+            try self.visitOptional(value);
+            if (self.cfg()) |c| {
+                const is_error = if (value.unwrap()) |v| ast.nodeTag(v) == .error_value else false;
+                try c.onReturn(self._gpa, node_id, is_error);
+            }
+            return;
+        },
+        .@"try" => {
+            const operand = ast.nodeData(node_id).node;
+            try self.visit(operand);
+            if (self.cfg()) |c| {
+                try c.emit(self._gpa, operand, .condition);
+                try c.onTry(self._gpa, node_id);
+            }
+            return;
+        },
+        .@"defer" => {
+            const body = ast.nodeData(node_id).node;
+            if (self.cfg()) |c| {
+                try c.pushCleanup(self._gpa, body, false);
+                const prev = c.enterOrphan();
+                defer c.exitOrphan(prev);
+                return self.visit(body);
+            }
+            return self.visit(body);
+        },
         .@"nosuspend",
         .@"suspend",
-        .@"try",
         .@"resume",
         .address_of,
         .bit_not,
@@ -435,9 +535,19 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         .negation_wrap,
         .negation,
         .optional_type,
-        .@"defer",
         => return self.visit(ast.nodeData(node_id).node),
-        .@"continue" => return self.visitOptional(ast.nodeData(node_id).opt_token_and_opt_node[1]),
+        .@"continue" => {
+            const label_token, const value = ast.nodeData(node_id).opt_token_and_opt_node;
+            try self.visitOptional(value);
+            if (self.cfg()) |c| {
+                if (self.resolveCfgLabel(c, label_token.unwrap())) |index| {
+                    try c.onContinue(self._gpa, index, node_id);
+                } else {
+                    c.terminate(.@"unreachable", node_id);
+                }
+            }
+            return;
+        },
         .@"errdefer" => return self.visitErrdefer(node_id),
 
         // binary ops — .node_and_node
@@ -467,7 +577,6 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         .bit_and,
         .bit_xor,
         .bit_or,
-        .@"orelse",
         .bool_and,
         .bool_or,
         .array_type,
@@ -478,6 +587,23 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             const left, const right = ast.nodeData(node_id).node_and_node;
             try self.visit(left);
             return self.visit(right);
+        },
+
+        .@"orelse" => {
+            const lhs, const rhs = ast.nodeData(node_id).node_and_node;
+            try self.visit(lhs);
+            var branch: Cfg.Builder.Branch = .{};
+            if (self.cfg()) |c| {
+                try c.emit(self._gpa, lhs, .condition);
+                branch = try c.beginBranch(self._gpa, .{
+                    .node = node_id,
+                    .then_kind = .false_branch,
+                    .alt_kind = .true_branch,
+                });
+            }
+            try self.visit(rhs);
+            if (self.cfg()) |c| c.endBranch(self._gpa, branch);
+            return;
         },
 
         // .node_and_opt_node
@@ -512,6 +638,7 @@ fn visitRecursiveSlice(self: *SemanticBuilder, node_id: NodeIndex) callconv(util
 // TODO: inline after we're done debugging
 fn visitBlock(self: *SemanticBuilder, statements: []const NodeIndex) !void {
     const NON_COMPTIME_BLOCKS: Scope.Flags = .{ .s_test = true, .s_block = true, .s_function = true };
+    const ast = self.AST();
     const is_root = self.currentScope() == .root;
     const was_comptime = self._curr_scope_flags.s_comptime;
     const is_comptime = was_comptime or (is_root and !self._curr_scope_flags.intersects(NON_COMPTIME_BLOCKS));
@@ -522,12 +649,30 @@ fn visitBlock(self: *SemanticBuilder, statements: []const NodeIndex) !void {
     const flags = self._next_block_scope_flags.merge(.{ .s_block = true });
     self._next_block_scope_flags = .{};
 
-    try self.enterScope(.{ .flags = flags });
-    defer self.exitScope();
-
-    for (statements) |stmt| {
-        try self.visit(stmt);
+    var join: Cfg.BasicBlock.Id.Optional = .none;
+    if (self.cfg()) |c| {
+        const node = self.currentNode();
+        const lbrace = ast.nodeMainToken(node);
+        const label: MaybeTokenId = if (ast.isTokenPrecededByTags(lbrace, &.{ .identifier, .colon }))
+            .new(lbrace - 2)
+        else
+            .none;
+        join = try c.beginLabeledBlock(self._gpa, node, label);
     }
+    {
+        try self.enterScope(.{ .flags = flags });
+        defer self.exitScope();
+
+        for (statements) |stmt| {
+            if (self.cfg()) |c| switch (ast.nodeTag(stmt)) {
+                // `defer` bodies run at scope exits, never where they are declared.
+                .@"defer", .@"errdefer" => {},
+                else => try c.emit(self._gpa, stmt, .statement),
+            };
+            try self.visit(stmt);
+        }
+    }
+    if (self.cfg()) |c| c.endLabeledBlock(self._gpa, join);
 }
 
 fn visitContainer(self: *SemanticBuilder, container: full.ContainerDecl) !void {
@@ -691,7 +836,22 @@ fn visitVarDecl(self: *SemanticBuilder, node_id: NodeIndex, var_decl: full.VarDe
     defer self.exitContainerSymbol();
     try self.visitOptionalType(var_decl.ast.type_node);
 
-    try self.visitOptional(var_decl.ast.init_node);
+    const init_node = var_decl.ast.init_node.unwrap() orelse return;
+    if (self.cfg()) |c| {
+        // Container-level initializers get their own control-flow container;
+        // initializers inside a function flow through the enclosing one.
+        if (c.container == .none) {
+            const frame = try c.enterContainer(self._gpa, .{
+                .node = node_id,
+                .symbol = symbol_id.into(Symbol.Id.Optional),
+                .flags = .{ .c_decl = true },
+                .is_comptime = true,
+            });
+            defer c.exitContainer(self._gpa, frame);
+            return self.visit(init_node);
+        }
+    }
+    try self.visit(init_node);
 }
 
 // ================================ ASSIGNMENT =================================
@@ -862,9 +1022,21 @@ fn visitStructInit(self: *SemanticBuilder, _: NodeIndex, @"struct": full.StructI
 }
 // ============================== STATEMENTS ===============================
 
-fn visitWhile(self: *SemanticBuilder, _: NodeIndex, while_stmt: full.While) callconv(util.@"inline") !void {
+fn visitWhile(self: *SemanticBuilder, node_id: NodeIndex, while_stmt: full.While) callconv(util.@"inline") !void {
     const ast = while_stmt.ast;
+
+    var loop: Cfg.Builder.Loop = .{};
+    if (self.cfg()) |c| loop = try c.beginLoop(self._gpa, node_id, while_stmt.inline_token != null);
     try self.visit(ast.cond_expr);
+    if (self.cfg()) |c| {
+        try c.emit(self._gpa, ast.cond_expr, .condition);
+        try c.loopBody(self._gpa, &loop, .{
+            .node = node_id,
+            .label = .new(while_stmt.label_token),
+            .has_else = ast.else_expr.unwrap() != null,
+            .else_kind = if (while_stmt.error_token != null) .@"error" else .false_branch,
+        });
+    }
     {
         const tags = self.AST().tokens.items(.tag);
         try self.enterScope(.{});
@@ -878,15 +1050,26 @@ fn visitWhile(self: *SemanticBuilder, _: NodeIndex, while_stmt: full.While) call
                 .flags = .{ .s_payload = true, .s_const = true },
             });
         }
+        if (self.cfg()) |c| c.enterCont(&loop);
         {
+            // `cont_expr` is visited before `then_expr`, so stash any pending
+            // `_next_block_scope_flags` (e.g. `s_catch` from `visitCatch`) so
+            // the continue block doesn't consume them instead of the loop body.
             const pending = self._next_block_scope_flags;
             self._next_block_scope_flags = .{};
             defer self._next_block_scope_flags = pending;
             try self.visitOptional(ast.cont_expr);
         }
+        if (self.cfg()) |c| {
+            if (ast.cont_expr.unwrap()) |cont| try c.emit(self._gpa, cont, .continue_expr);
+            c.exitCont(self._gpa, &loop);
+            c.enterLoopBody(&loop);
+        }
         try self.visit(ast.then_expr);
+        if (self.cfg()) |c| c.exitLoopBody(self._gpa, &loop);
     }
 
+    if (self.cfg()) |c| c.enterLoopElse(&loop);
     // `while (it.next()) |x| { ... } else |err| { ... }`
     //                                        ^^^ scoped to the else branch
     if (while_stmt.error_token) |error_token| {
@@ -899,9 +1082,11 @@ fn visitWhile(self: *SemanticBuilder, _: NodeIndex, while_stmt: full.While) call
             .identifier = try self.assertToken(error_token, .identifier),
             .flags = .{ .s_payload = true, .s_const = true },
         });
-        return self.visit(else_expr);
+        try self.visit(else_expr);
+    } else {
+        try self.visitOptional(ast.else_expr);
     }
-    try self.visitOptional(ast.else_expr);
+    if (self.cfg()) |c| c.endLoop(self._gpa, &loop);
 }
 
 fn visitFor(self: *SemanticBuilder, node: NodeIndex, for_stmt: full.For) callconv(util.@"inline") !void {
@@ -909,6 +1094,15 @@ fn visitFor(self: *SemanticBuilder, node: NodeIndex, for_stmt: full.For) callcon
         try self.visit(input);
     }
 
+    var loop: Cfg.Builder.Loop = .{};
+    if (self.cfg()) |c| {
+        loop = try c.beginLoop(self._gpa, node, for_stmt.inline_token != null);
+        try c.loopBody(self._gpa, &loop, .{
+            .node = node,
+            .label = .new(for_stmt.label_token),
+            .has_else = for_stmt.ast.else_expr.unwrap() != null,
+        });
+    }
     {
         const tags = self.AST().tokens.items(.tag);
         try self.enterScope(.{});
@@ -933,16 +1127,35 @@ fn visitFor(self: *SemanticBuilder, node: NodeIndex, for_stmt: full.For) callcon
                 else => return error.MissingIdentifier,
             }
         }
+        if (self.cfg()) |c| {
+            c.enterCont(&loop);
+            c.exitCont(self._gpa, &loop);
+            c.enterLoopBody(&loop);
+        }
         try self.visit(for_stmt.ast.then_expr);
+        if (self.cfg()) |c| c.exitLoopBody(self._gpa, &loop);
     }
+    if (self.cfg()) |c| c.enterLoopElse(&loop);
     try self.visitOptional(for_stmt.ast.else_expr);
+    if (self.cfg()) |c| c.endLoop(self._gpa, &loop);
 }
 
-fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) callconv(util.@"inline") !void {
+fn visitIf(self: *SemanticBuilder, node_id: NodeIndex, if_stmt: full.If) callconv(util.@"inline") !void {
     const ast = self.AST();
     const tags = ast.tokens.items(.tag);
+    const is_error = if_stmt.error_token != null;
 
     try self.visit(if_stmt.ast.cond_expr);
+    var branch: Cfg.Builder.Branch = .{};
+    if (self.cfg()) |c| {
+        try c.emit(self._gpa, if_stmt.ast.cond_expr, .condition);
+        branch = try c.beginBranch(self._gpa, .{
+            .node = node_id,
+            .has_alt = if_stmt.ast.else_expr.unwrap() != null,
+            .alt_kind = if (is_error) .@"error" else .false_branch,
+            .alt_flags = .{ .b_error = is_error },
+        });
+    }
 
     {
         try self.enterScope(.{});
@@ -963,6 +1176,7 @@ fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) callconv(util
 
         try self.visit(if_stmt.ast.then_expr);
     }
+    if (self.cfg()) |c| c.nextArm(self._gpa, branch);
     {
         try self.enterScope(.{});
         defer self.exitScope();
@@ -985,23 +1199,33 @@ fn visitIf(self: *SemanticBuilder, _: NodeIndex, if_stmt: full.If) callconv(util
 
         try self.visitOptional(if_stmt.ast.else_expr);
     }
+    if (self.cfg()) |c| c.endBranch(self._gpa, branch);
 }
 
-fn visitSwitch(self: *SemanticBuilder, _: NodeIndex, @"switch": full.Switch) !void {
+fn visitSwitch(self: *SemanticBuilder, node_id: NodeIndex, @"switch": full.Switch) !void {
     const ast = @"switch".ast;
     const tree = self.AST();
 
     try self.visitNode(ast.condition);
+    var sw: Cfg.Builder.Switch = .{};
+    if (self.cfg()) |c| {
+        sw = try c.beginSwitch(self._gpa, node_id, ast.condition, .new(@"switch".label_token));
+    }
     try self.enterScope(.{});
     defer self.exitScope();
 
+    var has_else = false;
     for (ast.cases) |case_id| {
         const case = tree.fullSwitchCase(case_id) orelse unreachable;
+        has_else = has_else or case.ast.values.len == 0;
         try self.enterNode(case_id);
         defer self.exitNode();
         defer self._next_block_scope_flags = .{};
+        if (self.cfg()) |c| try c.switchProng(self._gpa, &sw, case_id, case.inline_token != null);
         try self.visitSwitchCase(case_id, case);
+        if (self.cfg()) |c| c.endSwitchProng(self._gpa, &sw);
     }
+    if (self.cfg()) |c| c.endSwitch(self._gpa, &sw, has_else);
 }
 
 fn visitSwitchCase(self: *SemanticBuilder, node: NodeIndex, case: full.SwitchCase) !void {
@@ -1042,29 +1266,42 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
 
     try self.visit(pair[0]);
 
-    const fallback_first = ast.firstToken(pair[1]);
-    const main_token = ast.nodeMainToken(node_id);
-
-    try self.enterScope(.{ .flags = .{ .s_catch = true } });
-    defer self.exitScope();
-
-    if (token_tags[fallback_first - 1] == .pipe) {
-        const identifier: TokenIndex = try self.assertToken(main_token + 2, .identifier);
-        _ = try self.declareSymbol(.{
-            .identifier = identifier,
-            .visibility = .private,
-            .flags = .{
-                .s_payload = true,
-                .s_const = true,
-                .s_catch_param = true,
-            },
+    var branch: Cfg.Builder.Branch = .{};
+    if (self.cfg()) |c| {
+        try c.emit(self._gpa, pair[0], .condition);
+        branch = try c.beginBranch(self._gpa, .{
+            .node = node_id,
+            .then_kind = .@"error",
+            .alt_kind = .normal,
+            .then_flags = .{ .b_error = true },
         });
-    } else {
-        assert(token_tags[fallback_first - 1] == .keyword_catch);
     }
-    self._next_block_scope_flags.s_catch = true;
-    defer self._next_block_scope_flags = .{};
-    return self.visit(pair[1]);
+    {
+        const fallback_first = ast.firstToken(pair[1]);
+        const main_token = ast.nodeMainToken(node_id);
+
+        try self.enterScope(.{ .flags = .{ .s_catch = true } });
+        defer self.exitScope();
+
+        if (token_tags[fallback_first - 1] == .pipe) {
+            const identifier: TokenIndex = try self.assertToken(main_token + 2, .identifier);
+            _ = try self.declareSymbol(.{
+                .identifier = identifier,
+                .visibility = .private,
+                .flags = .{
+                    .s_payload = true,
+                    .s_const = true,
+                    .s_catch_param = true,
+                },
+            });
+        } else {
+            assert(token_tags[fallback_first - 1] == .keyword_catch);
+        }
+        self._next_block_scope_flags.s_catch = true;
+        defer self._next_block_scope_flags = .{};
+        try self.visit(pair[1]);
+    }
+    if (self.cfg()) |c| c.endBranch(self._gpa, branch);
 }
 
 /// `errdefer expr`, `errdefer |payload| expr`.
@@ -1075,6 +1312,14 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
 /// possible.
 fn visitErrdefer(self: *SemanticBuilder, node_id: NodeIndex) !void {
     const payload, const expr = self.getNodeData(node_id).opt_token_and_node;
+
+    var orphan: Cfg.BasicBlock.Id.Optional = .none;
+    if (self.cfg()) |c| {
+        try c.pushCleanup(self._gpa, expr, true);
+        orphan = c.enterOrphan();
+    }
+    defer if (self.cfg()) |c| c.exitOrphan(orphan);
+
     const identifier = payload.unwrap() orelse return self.visit(expr);
 
     try self.enterScope(.{});
@@ -1178,7 +1423,7 @@ fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) callconv(util.@"inlin
 
     const flags = self.fnProtoFlags(proto);
     // TODO: bind methods as members
-    _ = try self.bindSymbol(.{
+    const symbol_id = try self.bindSymbol(.{
         .identifier = proto.name_token,
         .debug_name = debug_name,
         .visibility = visibility,
@@ -1218,7 +1463,17 @@ fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) callconv(util.@"inlin
     }
 
     self._next_block_scope_flags.s_function = true;
-    try self.visit(fn_data[1]);
+    if (self.cfg()) |c| {
+        const frame = try c.enterContainer(self._gpa, .{
+            .node = node_id,
+            .symbol = symbol_id.into(Symbol.Id.Optional),
+            .flags = .{ .c_fn = true },
+        });
+        defer c.exitContainer(self._gpa, frame);
+        try self.visit(fn_data[1]);
+    } else {
+        try self.visit(fn_data[1]);
+    }
     util.assert(
         self._next_block_scope_flags.eql(.{}),
         "Function body scope flags were not reset. This means the body was not a block node.",
@@ -1227,7 +1482,7 @@ fn visitFnDecl(self: *SemanticBuilder, node_id: NodeIndex) callconv(util.@"inlin
 }
 
 /// Visit a function call. Does not visit calls to builtins
-fn visitCall(self: *SemanticBuilder, _: NodeIndex, call: full.Call) !void {
+fn visitCall(self: *SemanticBuilder, node_id: NodeIndex, call: full.Call) !void {
     // TODO: record reference
     const prev = self._curr_reference_flags;
     // visit callee
@@ -1248,6 +1503,7 @@ fn visitCall(self: *SemanticBuilder, _: NodeIndex, call: full.Call) !void {
             try self.visit(arg);
         }
     }
+    if (self.cfg()) |c| try self.recordCfgCall(c, node_id, call.ast.fn_expr);
 }
 
 fn visitBuiltinCall(self: *SemanticBuilder, node: NodeIndex, comptime is_slice: bool) !void {
@@ -1258,11 +1514,17 @@ fn visitBuiltinCall(self: *SemanticBuilder, node: NodeIndex, comptime is_slice: 
     }
 
     if (is_slice) {
-        return self.visitRecursiveSlice(node);
+        try self.visitRecursiveSlice(node);
     } else {
         const pair = self.getNodeData(node).opt_node_and_opt_node;
         try self.visitOptional(pair[0]);
         try self.visitOptional(pair[1]);
+    }
+
+    if (self.cfg()) |c| {
+        if (mem.eql(u8, builtin_name, "@panic") or mem.eql(u8, builtin_name, "@trap")) {
+            c.terminate(.@"unreachable", node);
+        }
     }
 }
 
@@ -1379,11 +1641,13 @@ fn enterScope(self: *SemanticBuilder, opts: CreateScope) Allocator.Error!void {
 
     try self._scope_stack.append(self._gpa, scope);
     try self._unresolved_references.enter(self._gpa);
+    if (self.cfg()) |c| try c.enterScope(self._gpa);
 }
 
 /// Exit the current scope. It is a bug to pop the root scope.
 inline fn exitScope(self: *SemanticBuilder) void {
     self.assertCtx(self._scope_stack.items.len > 1, "Invariant violation: cannot pop the root scope", .{});
+    if (self.cfg()) |c| c.exitScope(self._gpa);
     self.resolveReferencesInCurrentScope(.decls) catch @panic("OOM");
     _ = self._scope_stack.pop();
 }
@@ -1407,6 +1671,7 @@ fn enterNode(self: *SemanticBuilder, node_id: NodeIndex) !void {
     const curr_scope = self.currentScope();
     self.links().setParent(node_id, curr_node);
     self.links().setScope(node_id, curr_scope);
+    if (self.cfg()) |c| self.links().blocks.items[@intFromEnum(node_id)] = c.curr;
     try self._node_stack.append(self._gpa, node_id);
 }
 
@@ -1730,6 +1995,76 @@ inline fn links(self: *SemanticBuilder) *NodeLinks {
     return &self._semantic.node_links;
 }
 
+inline fn cfg(self: *SemanticBuilder) ?*Cfg.Builder {
+    return if (self._cfg) |*c| c else null;
+}
+
+/// Find the label frame a `break`/`continue` jumps out of. Labeled jumps
+/// resolve by name; unlabeled ones bind to the innermost active loop.
+fn resolveCfgLabel(self: *const SemanticBuilder, c: *const Cfg.Builder, label_token: ?TokenIndex) ?usize {
+    const tok = label_token orelse return c.innermostLoop();
+    const name = self.tokenSlice(tok);
+    var i = c.labels.items.len;
+    while (i > c.label_base) {
+        i -= 1;
+        const label = c.labels.items[i].label.unwrap() orelse continue;
+        if (mem.eql(u8, name, self.tokenSlice(label.int()))) return i;
+    }
+    return null;
+}
+
+/// Terminate the current block when `callee` resolves to a same-file
+/// `noreturn` function. Unresolved callees are deferred to `resolvePendingCalls`.
+fn recordCfgCall(self: *SemanticBuilder, c: *Cfg.Builder, node: NodeIndex, callee: NodeIndex) Allocator.Error!void {
+    const ast = self.AST();
+    if (ast.nodeTag(callee) != .identifier) return;
+    const token = ast.nodeMainToken(callee);
+    const name = self.tokenSlice(token);
+
+    if (self._semantic.resolveBinding(self.currentScope(), name, .decls)) |symbol| {
+        if (self.isNoreturnFn(symbol)) c.terminate(.@"unreachable", node);
+    } else if (c.curr.unwrap()) |block| {
+        try c.pending_calls.append(self._gpa, .{
+            .block = block,
+            .node = node,
+            .token = token,
+            .scope = self.currentScope(),
+            .split = @intCast(c.draft.instructions.len),
+        });
+    }
+}
+
+/// Calls lowered before their callee was bound. Container decls are order
+/// independent, so re-resolve them after the walk.
+fn resolvePendingCalls(self: *SemanticBuilder, c: *Cfg.Builder) Allocator.Error!void {
+    for (c.pending_calls.items) |pc| {
+        const name = self.tokenSlice(pc.token);
+        const symbol = self._semantic.resolveBinding(pc.scope, name, .decls) orelse continue;
+        if (!self.isNoreturnFn(symbol)) continue;
+        if (c.draft.blockMut(pc.block).terminator.kind != .goto) continue;
+
+        // Everything after the call is dead. Move it, and the block's outgoing
+        // edges, into a block nothing branches to.
+        _ = try c.draft.splitBlock(self._gpa, pc.block, .from(pc.split));
+        c.draft.successors.items[pc.block.int()].clearAndFree(self._gpa);
+        c.draft.blockMut(pc.block).terminator.* = .{ .kind = .@"unreachable", .node = pc.node };
+    }
+}
+
+/// Whether a symbol is a function whose return type is syntactically `noreturn`.
+fn isNoreturnFn(self: *SemanticBuilder, symbol_id: Symbol.Id) bool {
+    const symbols = self.symbolTable().symbols;
+    if (!symbols.items(.flags)[symbol_id.int()].s_fn) return false;
+    const decl = symbols.items(.decl)[symbol_id.int()];
+
+    const ast = self.AST();
+    if (ast.nodeTag(decl) != .fn_decl) return false;
+    var buf: [1]NodeIndex = undefined;
+    const proto = ast.fullFnProto(&buf, decl) orelse return false;
+    const return_type = proto.ast.return_type.unwrap() orelse return false;
+    return mem.eql(u8, ast.getNodeSource(return_type), "noreturn");
+}
+
 fn tokenSlice(self: *const SemanticBuilder, token: TokenIndex) []const u8 {
     return self._semantic.tokenSlice(token);
 }
@@ -1907,6 +2242,7 @@ const NodeLinks = Semantic.NodeLinks;
 const Reference = Semantic.Reference;
 const ReferenceStack = @import("ReferenceStack.zig");
 const ModuleRecord = Semantic.ModuleRecord;
+const Cfg = @import("Cfg.zig");
 
 const std = @import("std");
 const mem = std.mem;
@@ -1924,6 +2260,7 @@ const full = Ast.full;
 const Node = _ast.Node;
 const NodeIndex = _ast.NodeIndex;
 const TokenIndex = _ast.TokenIndex;
+const MaybeTokenId = _ast.MaybeTokenId;
 
 const Error = @import("../Error.zig");
 const _source = @import("../source.zig");

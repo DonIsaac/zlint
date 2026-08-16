@@ -88,6 +88,19 @@ pub fn main(init: std.process.Init) !u8 {
         defer source.deinit();
         try print_cmd.parseAndPrint(alloc, io, opts, source, null);
         return 0;
+    } else if (opts.print_cfg) {
+        if (opts.args.items.len == 0) {
+            print("No files to print\nUsage: zlint --print-cfg [filename]", .{});
+            std.process.exit(1);
+        }
+
+        const relative_path = opts.args.items[0];
+        const file = try Io.Dir.cwd().openFile(io, relative_path, .{});
+        errdefer file.close(io);
+        var source = try Source.init(alloc, io, file, null);
+        defer source.deinit();
+        try print_cmd.printCfg(alloc, io, opts, source, null);
+        return 0;
     }
 
     return lint_cmd.lint(alloc, io, init.minimal.environ, opts);

@@ -38,6 +38,7 @@ pub fn globalTeardown(_: Allocator) void {
 fn testSemantic(alloc: Allocator, source: *const Source) !void {
     var builder = zlint.Semantic.Builder.init(alloc);
     defer builder.deinit();
+    builder.withCfg(true);
     var res = try builder.build(source.text());
     defer res.deinit();
     if (res.hasErrors()) return error.AnalysisFailed;

@@ -13,6 +13,13 @@ quiet: bool = false,
 ///
 /// This is primarily for debugging purposes.
 print_ast: bool = false,
+/// Instead of linting a file, print its control flow graph as Graphviz DOT
+/// to stdout.
+///
+/// This is primarily for debugging purposes.
+print_cfg: bool = false,
+/// Include top-level decl initializer containers in `--print-cfg` output.
+cfg_decls: bool = false,
 /// How diagnostics are formatted.
 format: formatter.Kind = .graphical,
 /// Print a summary about # of warnings and errors. Only applies for some formats.
@@ -37,6 +44,8 @@ const help =
     \\
     \\Options:
     \\--print-ast <file>  Parse a file and print its AST as JSON
+    \\--print-cfg <file>  Analyze a file and print its control flow graph as Graphviz DOT
+    \\--cfg-decls         Include top-level decl initializers in --print-cfg output
     \\-f, --format <fmt>  Choose an output format (default, graphical, ascii, json, github, gh)
     \\--no-summary        Do not print a summary after linting
     \\-S, --stdin         Lint filepaths received from stdin (newline separated)
@@ -109,6 +118,10 @@ fn parse(alloc: Allocator, io: std.Io, args_iter: anytype, err: ?*Error) ParseEr
             opts.summary = false;
         } else if (eq(arg, "--print-ast")) {
             opts.print_ast = true;
+        } else if (eq(arg, "--print-cfg")) {
+            opts.print_cfg = true;
+        } else if (eq(arg, "--cfg-decls")) {
+            opts.cfg_decls = true;
         } else if (eq(arg, "-h") or eq(arg, "--help") or eq(arg, "--hlep") or eq(arg, "-help")) {
             var buf: [512]u8 = undefined;
             var writer = std.Io.File.stdout().writer(io, &buf);
@@ -170,6 +183,10 @@ test parse {
         .{ "zlint", .{} },
         .{ "zlint --", .{} },
         .{ "zlint --print-ast", .{ .print_ast = true } },
+        .{ "zlint --print-cfg", .{ .print_cfg = true } },
+        .{ "zlint --cfg-decls", .{ .cfg_decls = true } },
+        .{ "zlint --print-cfg --cfg-decls", .{ .print_cfg = true, .cfg_decls = true } },
+        .{ "zlint --print-cfg src", .{ .print_cfg = true, .args = src_list } },
         .{ "zlint --fix", .{ .fix = true } },
         .{ "zlint --no-summary", .{ .summary = false } },
         .{ "zlint --verbose", .{ .verbose = true } },
@@ -189,8 +206,15 @@ test parse {
         var opts = try parse(t.allocator, t.io, argv, null);
         defer opts.deinit(t.allocator);
 
-        try t.expectEqual(expected.verbose, opts.verbose);
-        try t.expectEqual(expected.print_ast, opts.print_ast);
+        // Reflective so a newly added option is covered the moment it exists.
+        inline for (@typeInfo(Options).@"struct".fields) |field| {
+            if (comptime std.mem.eql(u8, field.name, "args")) continue;
+            t.expectEqual(@field(expected, field.name), @field(opts, field.name)) catch |e| {
+                std.debug.print("^ field '{s}' of `{s}`\n", .{ field.name, test_case[0] });
+                return e;
+            };
+        }
+
         try t.expectEqual(expected.args.items.len, opts.args.items.len);
         for (0..expected.args.items.len) |i| {
             try t.expectEqualStrings(

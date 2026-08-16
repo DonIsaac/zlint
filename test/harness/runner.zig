@@ -66,6 +66,8 @@ pub const TestRunner = struct {
     tests: std.ArrayListUnmanaged(TestFile) = .empty,
     alloc: Allocator,
     config: Config,
+    /// Used for `PATH` when spawning subprocesses.
+    environ: std.process.Environ = .empty,
 
     pub inline fn new(alloc: Allocator) TestRunner {
         return TestRunner{ .alloc = alloc, .config = .{} };
@@ -84,6 +86,11 @@ pub const TestRunner = struct {
         return self;
     }
 
+    pub inline fn setEnviron(self: *TestRunner, environ: std.process.Environ) *TestRunner {
+        self.environ = environ;
+        return self;
+    }
+
     pub inline fn addTest(self: *TestRunner, test_file: TestFile) *TestRunner {
         self.tests.append(self.alloc, test_file) catch |e| panic("Failed to add test {s}: {any}\n", .{ test_file.name, e });
         return self;
@@ -91,7 +98,7 @@ pub const TestRunner = struct {
 
     pub inline fn runAll(self: *TestRunner) !void {
         if (!io_initialized) {
-            io_threaded = .init(self.alloc, .{});
+            io_threaded = .init(self.alloc, .{ .environ = self.environ });
             io_initialized = true;
         }
         try utils.TestFolders.globalInit(io());
