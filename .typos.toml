@@ -4,7 +4,7 @@ datas = "datas"
 
 [files]
 extend-exclude = [
-    "src/walk/glob_test.zig",
+    "src/io/glob_test.zig",
     "src/zig/0.14.1/tokenizer.zig",
     "build.zig.zon",
 ]

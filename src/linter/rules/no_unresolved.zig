@@ -133,7 +133,7 @@ test NoUnresolved {
     const fail = &[_][:0]const u8{
         \\const x = @import("does-not-exist.zig");
         ,
-        \\const x = @import("./walk");
+        \\const x = @import("./io");
         // TODO: currently caught by semantic analysis. Right now sema failures
         // make the linter panic. uncomment when sema failures are handled
         // "const p = \"foo.zig\"\nconst x = @import(foo);",

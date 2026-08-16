@@ -35,10 +35,13 @@ pub const printer = struct {
 
 pub const walk = @import("visit/walk.zig");
 
+const tty = @import("io/tty.zig");
+
 test {
     std.testing.refAllDecls(@import("util"));
     std.testing.refAllDecls(printer);
     std.testing.refAllDecls(json);
     std.testing.refAllDecls(lint);
     std.testing.refAllDecls(walk);
+    std.testing.refAllDecls(tty);
 }

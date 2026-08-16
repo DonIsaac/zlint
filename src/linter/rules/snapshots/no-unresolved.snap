@@ -5,10 +5,10 @@
    ·                             ╰── file 'does-not-exist.zig' does not exist
    ╰────
 
-  𝙭 no-unresolved: Unresolved import to directory './walk'
+  𝙭 no-unresolved: Unresolved import to directory './io'
    ╭─[src/no-unresolved.zig:1:19]
- 1 │ const x = @import("./walk");
-   ·                   ────┬────
-   ·                       ╰── './walk' is a folder
+ 1 │ const x = @import("./io");
+   ·                   ───┬───
+   ·                      ╰── './io' is a folder
    ╰────
 

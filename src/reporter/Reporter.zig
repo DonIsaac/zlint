@@ -34,22 +34,30 @@ pub const Reporter = struct {
         return init(formatters.Graphical, formatter, io_, writer, allocator);
     }
 
-    pub fn initKind(kind: formatters.Kind, io_: std.Io, environ: std.process.Environ, writer: *io.Writer, allocator: Allocator) Allocator.Error!Reporter {
+    /// Create a reporter for `kind` using a file-backed writer.
+    pub fn initKind(kind: formatters.Kind, io_: std.Io, environ: std.process.Environ, writer: *io.File.Writer, allocator: Allocator) Allocator.Error!Reporter {
         switch (kind) {
+            .ascii => {
+                const color = !util.env.checkEnvFlag(environ, "NO_COLOR", .enabled);
+                const f = formatters.Graphical.ascii(allocator, color);
+                return init(formatters.Graphical, f, io_, &writer.interface, allocator);
+            },
             .graphical => {
-                // TODO: check terminal support for unicode characters
                 // TODO: any non-falsy value should turn off colors
                 const color = !util.env.checkEnvFlag(environ, "NO_COLOR", .enabled);
-                const f = formatters.Graphical.unicode(allocator, color);
-                return init(formatters.Graphical, f, io_, writer, allocator);
+                const f = if (tty.supportsUnicode(io_, writer.file, environ))
+                    formatters.Graphical.unicode(allocator, color)
+                else
+                    formatters.Graphical.ascii(allocator, color);
+                return init(formatters.Graphical, f, io_, &writer.interface, allocator);
             },
             .github => {
                 const f = formatters.Github{};
-                return init(formatters.Github, f, io_, writer, allocator);
+                return init(formatters.Github, f, io_, &writer.interface, allocator);
             },
             .json => {
                 const f = formatters.JSON{};
-                return init(formatters.JSON, f, io_, writer, allocator);
+                return init(formatters.JSON, f, io_, &writer.interface, allocator);
             },
         }
     }
@@ -237,6 +245,7 @@ const Stats = struct {
 const std = @import("std");
 const io = std.Io;
 const util = @import("util");
+const tty = @import("../io/tty.zig");
 const formatters = @import("./formatter.zig");
 const Chameleon = @import("chameleon");
 const Error = @import("../Error.zig");
@@ -248,4 +257,43 @@ const Mutex = std.Io.Mutex;
 
 test {
     std.testing.refAllDecls(@This());
+}
+
+test "graphical format checks the output destination for unicode support" {
+    const MockIo = struct {
+        fn fileIsTty(_: ?*anyopaque, file: io.File) io.Cancelable!bool {
+            return std.meta.eql(file, io.File.stderr());
+        }
+    };
+
+    var vtable = std.testing.io.vtable.*;
+    vtable.fileIsTty = MockIo.fileIsTty;
+    const test_io: io = .{ .userdata = null, .vtable = &vtable };
+
+    var stderr_writer = io.File.stderr().writer(test_io, &.{});
+
+    var stderr_reporter = try Reporter.initKind(
+        .graphical,
+        test_io,
+        .empty,
+        &stderr_writer,
+        std.testing.allocator,
+    );
+    defer stderr_reporter.deinit();
+
+    const stderr_formatter: *formatters.Graphical = @ptrCast(@alignCast(stderr_reporter.ptr));
+    try std.testing.expectEqualStrings("|", stderr_formatter.theme.characters.vbar);
+
+    var stdout_writer = io.File.stdout().writer(test_io, &.{});
+    var stdout_reporter = try Reporter.initKind(
+        .graphical,
+        test_io,
+        .empty,
+        &stdout_writer,
+        std.testing.allocator,
+    );
+    defer stdout_reporter.deinit();
+
+    const stdout_formatter: *formatters.Graphical = @ptrCast(@alignCast(stdout_reporter.ptr));
+    try std.testing.expectEqualStrings("│", stdout_formatter.theme.characters.vbar);
 }

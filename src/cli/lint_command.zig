@@ -1,7 +1,7 @@
 const std = @import("std");
 const util = @import("util");
-const walk = @import("../walk/Walker.zig");
-const glob = @import("../walk/glob.zig");
+const walk = @import("../io/Walker.zig");
+const glob = @import("../io/glob.zig");
 const _lint = @import("zlint").lint;
 const reporters = @import("zlint").report;
 const lint_config = @import("lint_config.zig");
@@ -37,7 +37,7 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
     var arena = std.heap.ArenaAllocator.init(alloc);
     defer arena.deinit();
 
-    var reporter = try reporters.Reporter.initKind(options.format, io, environ, &writer.interface, alloc);
+    var reporter = try reporters.Reporter.initKind(options.format, io, environ, writer, alloc);
     defer reporter.deinit();
     reporter.opts.quiet = options.quiet;
     reporter.opts.report_stats = reporter.opts.report_stats and options.summary;

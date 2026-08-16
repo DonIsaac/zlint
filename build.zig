@@ -219,7 +219,7 @@ pub fn build(b: *std.Build) void {
     }
     b.installArtifact(test_lib);
 
-    // `src/cli/` and `src/walk/` live in the exe's module, so their tests need
+    // `src/cli/` and `src/io/` live in the exe's module, so their tests need
     // their own artifact.
     const test_cli = b.addTest(.{
         .name = "test-cli",
