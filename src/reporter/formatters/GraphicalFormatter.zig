@@ -266,7 +266,6 @@ fn renderLabelsOnLine(
     }
 }
 
-
 const Gutter = struct {
     kind: Kind,
     loc: ?ContextInfo,
@@ -304,7 +303,6 @@ const Gutter = struct {
         }
         return flyby;
     }
-
 };
 
 fn renderSourceLine(
