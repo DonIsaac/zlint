@@ -103,8 +103,6 @@ pub fn rule(self: *DuplicateCase) Rule {
     return Rule.init(self);
 }
 
-const Linter = @import("../linter.zig").Linter;
-const Source = @import("../../source.zig").Source;
 const RuleTester = @import("../tester.zig");
 test DuplicateCase {
     const t = std.testing;
