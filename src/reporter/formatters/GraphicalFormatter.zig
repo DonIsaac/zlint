@@ -88,7 +88,7 @@ fn renderContext(self: *GraphicalFormatter, w: *io.Writer, e: *Error) FormatErro
     for (e.labels.items) |l| {
         const loc = ContextInfo.fromSpan(src, l);
         locations.append(loc) catch @panic("OOM");
-        largest_line_num = @max(largest_line_num, loc.line() + self.context_lines);
+        largest_line_num = @max(largest_line_num, loc.endLine() + self.context_lines);
     }
     const lineum_width = std.math.log10(largest_line_num);
 
@@ -108,7 +108,7 @@ fn renderContext(self: *GraphicalFormatter, w: *io.Writer, e: *Error) FormatErro
     for (locations.items) |loc| {
         if (loc.rendered) continue;
         try self.renderContextLines(w, src, lineum_width, locations.items, loc, last_rendered_line);
-        last_rendered_line = loc.line() + self.context_lines;
+        last_rendered_line = loc.endLine() + self.context_lines;
     }
     try self.renderContextFinisher(w, lineum_width);
 }
@@ -159,6 +159,11 @@ fn renderContextLines(
     // last rendered line of the previous location
     last_rendered_line: u32,
 ) !void {
+    if (loc.isMultiline()) {
+        try self.renderMultilineContext(w, src, lineum_width, locations, loc, last_rendered_line);
+        return;
+    }
+
     var LINEBUF: [MAX_CONTEXT_LINES * 2 + 1]Line = undefined;
     var linebuf = LINEBUF[0..(self.context_lines * 2 + 1)];
 
@@ -183,19 +188,183 @@ fn renderContextLines(
         // avoid double-rendering lines when two spans have their context lines
         // overlap.
         if (line.num <= last_rendered_line) continue;
-        try self.renderCodeLinePrefix(w, line.num, lineum_width);
-        try w.writeAll(util.trimWhitespaceRight(line.contents));
-        if (util.IS_WINDOWS) {
-            try w.writeAll("\r\n");
-        } else {
-            try w.writeByte('\n');
+        try self.renderSourceLine(w, line, lineum_width, gutterForLine(line.num, locations));
+        try self.renderLabelsOnLine(w, lineum_width, locations, line.num);
+    }
+}
+
+/// Multiline spans this long or shorter render every line.
+const MULTILINE_COLLAPSE_AFTER: u32 = 8;
+/// How many lines to keep at each end of a collapsed multiline span.
+const MULTILINE_KEEP_LINES: u32 = 2;
+
+fn renderMultilineContext(
+    self: *GraphicalFormatter,
+    w: *io.Writer,
+    src: []const u8,
+    lineum_width: u32,
+    locations: []ContextInfo,
+    loc: ContextInfo,
+    last_rendered_line: u32,
+) !void {
+    const src_lines = countLines(src);
+    const span_start = loc.line();
+    const span_end = loc.endLine();
+    const span_len = span_end - span_start + 1;
+    const collapse = span_len > MULTILINE_COLLAPSE_AFTER;
+
+    const window_start: u32 = if (span_start > self.context_lines) span_start - self.context_lines else 1;
+    const window_end: u32 = @min(src_lines, span_end + self.context_lines);
+
+    var line_num = window_start;
+    while (line_num <= window_end) : (line_num += 1) {
+        if (line_num <= last_rendered_line) continue;
+
+        if (collapse and line_num == span_start + MULTILINE_KEEP_LINES) {
+            try self.renderElidedLine(w, lineum_width);
+            line_num = span_end - MULTILINE_KEEP_LINES;
+            continue;
         }
-        for (locations) |*l| {
-            if (l.line() == line.num) {
-                try self.renderLabel(w, lineum_width, l.*);
+
+        const line = nthLine(src, line_num);
+        if (line.num == 0) continue;
+        if ((line_num < span_start or line_num > span_end) and util.trimWhitespace(line.contents).len == 0) {
+            continue;
+        }
+
+        try self.renderSourceLine(w, line, lineum_width, gutterForLine(line_num, locations));
+        try self.renderLabelsOnLine(w, lineum_width, locations, line_num);
+    }
+}
+
+fn renderLabelsOnLine(
+    self: *GraphicalFormatter,
+    w: *io.Writer,
+    lineum_width: u32,
+    locations: []ContextInfo,
+    line_num: u32,
+) FormatError!void {
+    for (locations) |*l| {
+        if (l.isMultiline()) {
+            if (l.endLine() == line_num) {
+                if (l.label()) |label_text| {
+                    try self.renderMultilineLabel(w, lineum_width, l.*, label_text);
+                }
                 l.rendered = true;
             }
+            continue;
         }
+        if (l.line() == line_num) {
+            try self.renderLabel(w, lineum_width, l.*);
+            l.rendered = true;
+        }
+    }
+}
+
+const Gutter = enum { none, start, flyby, end, end_labeled };
+
+fn gutterForLine(line_num: u32, locations: []const ContextInfo) Gutter {
+    var flyby: Gutter = .none;
+    for (locations) |loc| {
+        if (!loc.isMultiline()) continue;
+        if (line_num == loc.line()) return .start;
+        if (line_num == loc.endLine()) {
+            return if (loc.label() != null) .end_labeled else .end;
+        }
+        if (line_num > loc.line() and line_num < loc.endLine()) {
+            flyby = .flyby;
+        }
+    }
+    return flyby;
+}
+
+fn renderSourceLine(
+    self: *GraphicalFormatter,
+    w: *io.Writer,
+    line: Line,
+    lineum_width: u32,
+    gutter: Gutter,
+) FormatError!void {
+    try self.renderCodeLinePrefix(w, line.num, lineum_width);
+    try self.renderGutter(w, gutter);
+    try w.writeAll(util.trimWhitespaceRight(line.contents));
+    if (util.IS_WINDOWS) {
+        try w.writeAll("\r\n");
+    } else {
+        try w.writeByte('\n');
+    }
+}
+
+fn renderGutter(self: *GraphicalFormatter, w: *io.Writer, gutter: Gutter) FormatError!void {
+    const chars = self.theme.characters;
+    const color = self.theme.styles.highlights[0];
+    switch (gutter) {
+        .none => {},
+        .start => {
+            try w.writeAll(color.open);
+            try w.writeAll(chars.ltop);
+            try w.writeAll(chars.hbar);
+            try w.writeAll(chars.rarrow);
+            try w.writeAll(color.close);
+            try w.writeByte(' ');
+        },
+        .flyby => {
+            try w.writeAll(color.open);
+            try w.writeAll(chars.vbar);
+            try w.writeAll(color.close);
+            try w.writeAll("   ");
+        },
+        .end, .end_labeled => {
+            try w.writeAll(color.open);
+            try w.writeAll(if (gutter == .end_labeled) chars.lcross else chars.lbot);
+            try w.writeAll(chars.hbar);
+            try w.writeAll(chars.rarrow);
+            try w.writeAll(color.close);
+            try w.writeByte(' ');
+        },
+    }
+}
+
+fn renderElidedLine(self: *GraphicalFormatter, w: *io.Writer, lineum_width: u32) FormatError!void {
+    const chars = self.theme.characters;
+    const color = self.theme.styles.highlights[0];
+    try writeByteNTimes(w, ' ', lineum_width + 3);
+    try w.writeAll(chars.vbar_break);
+    try w.writeByte(' ');
+    try w.writeAll(color.open);
+    try w.writeAll(chars.elided);
+    try w.writeAll(color.close);
+    if (util.IS_WINDOWS) {
+        try w.writeAll("\r\n");
+    } else {
+        try w.writeByte('\n');
+    }
+}
+
+fn renderMultilineLabel(
+    self: *GraphicalFormatter,
+    w: *io.Writer,
+    lineum_width: u32,
+    loc: ContextInfo,
+    label: []const u8,
+) FormatError!void {
+    const chars = self.theme.characters;
+    const h = self.theme.styles.highlights;
+    const idx: usize = @min(@intFromBool(!loc.span.primary), h.len - 1);
+    const color = h[idx];
+
+    try self.renderLabelPrefix(w, lineum_width);
+    try w.writeByte(' ');
+    try w.writeAll(color.open);
+    try w.writeAll(chars.lbot);
+    try writeBytesNTimes(w, chars.hbar, 4);
+    try w.writeByte(' ');
+    try w.writeAll(label);
+    try w.writeAll(color.close);
+    if (util.IS_WINDOWS) {
+        try w.writeAll("\r\n");
+    } else {
+        try w.writeByte('\n');
     }
 }
 
@@ -427,6 +596,7 @@ const Line = struct {
 const ContextInfo = struct {
     span: LabeledSpan,
     location: Location,
+    end_location: Location,
     rendered: bool = false,
 
     pub fn fromSpan(contents: []const u8, span: anytype) ContextInfo {
@@ -442,7 +612,12 @@ const ContextInfo = struct {
                 else => @panic("`span` must be a Span or LabeledSpan"),
             }
         };
-        return .{ .span = labeled_span, .location = loc };
+        const last_byte = if (labeled_span.span.end > labeled_span.span.start)
+            labeled_span.span.end - 1
+        else
+            labeled_span.span.start;
+        const end_loc = Location.fromSpan(contents, Span.new(last_byte, labeled_span.span.end));
+        return .{ .span = labeled_span, .location = loc, .end_location = end_loc };
     }
 
     pub inline fn len(self: ContextInfo) u32 {
@@ -456,6 +631,12 @@ const ContextInfo = struct {
     }
     pub inline fn line(self: ContextInfo) u32 {
         return self.location.line;
+    }
+    pub inline fn endLine(self: ContextInfo) u32 {
+        return self.end_location.line;
+    }
+    pub inline fn isMultiline(self: ContextInfo) bool {
+        return self.line() != self.endLine();
     }
     pub inline fn column(self: ContextInfo) u32 {
         return self.location.column;
@@ -471,6 +652,41 @@ const ContextInfo = struct {
         return null;
     }
 };
+
+fn countLines(src: []const u8) u32 {
+    var n: u32 = 1;
+    for (src) |c| {
+        if (c == '\n') n += 1;
+    }
+    return n;
+}
+
+fn nthLine(src: []const u8, line_num: u32) Line {
+    var current: u32 = 1;
+    var start: usize = 0;
+    var i: usize = 0;
+    while (i < src.len) : (i += 1) {
+        if (src[i] == '\n') {
+            if (current == line_num) {
+                return .{
+                    .num = line_num,
+                    .offset = @intCast(start),
+                    .contents = util.trimWhitespaceRight(src[start..i]),
+                };
+            }
+            current += 1;
+            start = i + 1;
+        }
+    }
+    if (current == line_num) {
+        return .{
+            .num = line_num,
+            .offset = @intCast(start),
+            .contents = util.trimWhitespaceRight(src[start..]),
+        };
+    }
+    return .empty;
+}
 
 fn writeByteNTimes(w: *io.Writer, byte: u8, n: usize) FormatError!void {
     for (0..n) |_| {
@@ -613,6 +829,200 @@ test "ascii formatter uses ascii glyphs" {
     for (writer.writer.buffered()) |byte| {
         try t.expect(byte < 0x80);
     }
+}
+
+fn spanOf(src: []const u8, needle: []const u8) Span {
+    const start = std.mem.indexOf(u8, src, needle) orelse @panic("needle not found");
+    return Span.new(@intCast(start), @intCast(start + needle.len));
+}
+
+fn formatSpan(src_text: [:0]const u8, span: Span, comptime label: ?[]const u8) ![]u8 {
+    var src = try Error.ArcStr.init(t.allocator, try t.allocator.dupeZ(u8, src_text));
+    defer src.deinit();
+
+    var err = Error.newStatic("Switch statement has duplicate cases");
+    err.source_name = "test.zig";
+    err.source = src;
+    try err.labels.append(t.allocator, .{
+        .span = span,
+        .primary = true,
+        .label = if (label) |text| .static(text) else null,
+    });
+    defer err.labels.deinit(t.allocator);
+
+    var graphical = GraphicalFormatter.unicode(t.allocator, false);
+    var writer = std.Io.Writer.Allocating.init(t.allocator);
+    defer writer.deinit();
+    try graphical.format(&writer.writer, err);
+    return t.allocator.dupe(u8, writer.writer.buffered());
+}
+
+test "single-line spans still use underlines" {
+    const src = "const x = 1;\n";
+    const out = try formatSpan(src, spanOf(src, "x"), null);
+    defer t.allocator.free(out);
+    try t.expectEqualStrings(
+        \\  𝙭 Switch statement has duplicate cases
+        \\   ╭─[test.zig:1:7]
+        \\ 1 │ const x = 1;
+        \\   ·       ─
+        \\   ╰────
+        \\
+    , out);
+}
+
+test "multiline span uses left-hand arrows" {
+    const src =
+        \\fn foo() void {
+        \\    const x = switch (1) {
+        \\        1 => {
+        \\            return;
+        \\        },
+        \\        else => {},
+        \\    };
+        \\}
+    ;
+    const body =
+        \\{
+        \\            return;
+        \\        }
+    ;
+    const out = try formatSpan(src, spanOf(src, body), null);
+    defer t.allocator.free(out);
+    try t.expectEqualStrings(
+        \\  𝙭 Switch statement has duplicate cases
+        \\   ╭─[test.zig:3:14]
+        \\ 2 │     const x = switch (1) {
+        \\ 3 │ ╭─▶         1 => {
+        \\ 4 │ │               return;
+        \\ 5 │ ╰─▶         },
+        \\ 6 │         else => {},
+        \\   ╰────
+        \\
+    , out);
+}
+
+test "eight-line span does not omit middle lines" {
+    const src =
+        \\fn foo() void {
+        \\    const x = switch (1) {
+        \\        1 => {
+        \\            if (true) {
+        \\                const y = 1;
+        \\                _ = y;
+        \\                const z = 2;
+        \\            }
+        \\            return;
+        \\        },
+        \\        else => {},
+        \\    };
+        \\}
+    ;
+    const body =
+        \\{
+        \\            if (true) {
+        \\                const y = 1;
+        \\                _ = y;
+        \\                const z = 2;
+        \\            }
+        \\            return;
+        \\        }
+    ;
+    const out = try formatSpan(src, spanOf(src, body), null);
+    defer t.allocator.free(out);
+    try t.expectEqualStrings(
+        \\  𝙭 Switch statement has duplicate cases
+        \\    ╭─[test.zig:3:14]
+        \\ 2  │     const x = switch (1) {
+        \\ 3  │ ╭─▶         1 => {
+        \\ 4  │ │               if (true) {
+        \\ 5  │ │                   const y = 1;
+        \\ 6  │ │                   _ = y;
+        \\ 7  │ │                   const z = 2;
+        \\ 8  │ │               }
+        \\ 9  │ │               return;
+        \\ 10 │ ╰─▶         },
+        \\ 11 │         else => {},
+        \\    ╰────
+        \\
+    , out);
+}
+
+test "large multiline span omits middle lines" {
+    const src =
+        \\fn foo() void {
+        \\    const x = switch (1) {
+        \\        1 => {
+        \\            if (true) {
+        \\                const y = 1;
+        \\                _ = y;
+        \\                const z = 2;
+        \\                _ = z;
+        \\            }
+        \\            return;
+        \\        },
+        \\        else => {},
+        \\    };
+        \\}
+    ;
+    const body =
+        \\{
+        \\            if (true) {
+        \\                const y = 1;
+        \\                _ = y;
+        \\                const z = 2;
+        \\                _ = z;
+        \\            }
+        \\            return;
+        \\        }
+    ;
+    const out = try formatSpan(src, spanOf(src, body), null);
+    defer t.allocator.free(out);
+    try t.expectEqualStrings(
+        \\  𝙭 Switch statement has duplicate cases
+        \\    ╭─[test.zig:3:14]
+        \\ 2  │     const x = switch (1) {
+        \\ 3  │ ╭─▶         1 => {
+        \\ 4  │ │               if (true) {
+        \\    · ┆
+        \\ 10 │ │               return;
+        \\ 11 │ ╰─▶         },
+        \\ 12 │         else => {},
+        \\    ╰────
+        \\
+    , out);
+}
+
+test "labeled multiline span uses lcross and label" {
+    const src =
+        \\fn foo() void {
+        \\    const x = switch (1) {
+        \\        1 => {
+        \\            return;
+        \\        },
+        \\        else => {},
+        \\    };
+        \\}
+    ;
+    const body =
+        \\{
+        \\            return;
+        \\        }
+    ;
+    const out = try formatSpan(src, spanOf(src, body), "this case");
+    defer t.allocator.free(out);
+    try t.expectEqualStrings(
+        \\  𝙭 Switch statement has duplicate cases
+        \\   ╭─[test.zig:3:14]
+        \\ 2 │     const x = switch (1) {
+        \\ 3 │ ╭─▶         1 => {
+        \\ 4 │ │               return;
+        \\ 5 │ ├─▶         },
+        \\   · ╰──── this case
+        \\ 6 │         else => {},
+        \\   ╰────
+        \\
+    , out);
 }
 
 // TODO: get a windows machine and debug/fix these tests

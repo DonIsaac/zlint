@@ -148,6 +148,8 @@ pub const ThemeCharacters = struct {
 
     underbar: char,
     underline: char,
+    /// Marker for omitted lines in the middle of a collapsed multiline span.
+    elided: char,
 
     /// must be static
     err: []const u8,
@@ -177,6 +179,7 @@ pub const ThemeCharacters = struct {
             .rcross = "┤",
             .underbar = "┬",
             .underline = "─",
+            .elided = "┆",
             .err = "𝙭",
             .warning = "⚠",
             .advice = "☞",
@@ -204,6 +207,7 @@ pub const ThemeCharacters = struct {
             .rcross = "┤",
             .underbar = "┬",
             .underline = "─",
+            .elided = "┆",
             .err = "💥",
             .warning = "⚠️",
             .advice = "💡",
@@ -231,6 +235,7 @@ pub const ThemeCharacters = struct {
             .rcross = "|",
             .underbar = "|",
             .underline = "^",
+            .elided = ":",
             .err = "x",
             .warning = "!",
             .advice = ">",
