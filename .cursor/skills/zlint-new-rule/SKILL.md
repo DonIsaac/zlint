@@ -35,7 +35,7 @@ Skipping either is the #1 cause of rework.
 
 Minimum confirmation before scaffolding:
 
-- **Rule name** (kebab-case). Check `src/linter/rules.zig` for collisions. If
+- **Rule name** (kebab-case). Check `src/linter/builtin_rules.zig` for collisions. If
   there's an established linter convention (ESLint, Clippy, oxc), adopt it
   unless the user wants divergence.
 - **At least 2 incorrect + 2 correct code examples.** Real Zig, not
@@ -80,7 +80,7 @@ config field." That gives the user a chance to redirect.
 Write `//! ## What This Rule Does` as prose, using the confirmed examples.
 **Show this to the user and get approval before writing Zig.** The doc-comment
 pins down semantics; implementation then follows mechanically. It also becomes
-`docs/rules/<name>.md` via codegen, so it's user-facing. Users will correct
+`apps/site/docs/rules/<name>.mdx` via codegen, so it's user-facing. Users will correct
 prose faster than Zig.
 
 Format in Step 5.
@@ -95,17 +95,19 @@ derives the filename (`returned_stack_reference.zig`), struct name
 just new-rule returned-stack-reference
 ```
 
-This does three things — do not redo them by hand:
+This does two things — do not redo them by hand:
 
 1. Creates `src/linter/rules/<name>.zig` from a template.
-2. Appends a re-export to `src/linter/rules.zig`.
-3. Inserts a `RuleConfig` field into `src/linter/config/rules_config.zig`.
+2. Appends a re-export to `src/linter/builtin_rules.zig`.
+
+The rule's `RuleConfig` field is derived from that re-export at comptime, so
+there is no config struct to update.
 
 It also runs `just codegen` and formats `src/linter` once. If you later change
 `meta.name` or `meta.category`, rerun `just codegen` manually.
 
-**Do not hand-edit** `src/linter/config/rules_config_rules.zig`,
-`zlint.schema.json`, `docs/rules/*.md`, or `*.snap` files — all generated.
+**Do not hand-edit** `zlint.schema.json`, `apps/site/docs/rules/*.mdx`, or
+`*.snap` files — all generated.
 
 ## Step 5: Fill in `Rule.Meta` and the doc-comment
 
@@ -142,7 +144,7 @@ pub const meta: Rule.Meta = .{
 };
 ```
 
-**Doc-comment structure** (codegens to `docs/rules/<name>.md` — the headings
+**Doc-comment structure** (codegens to `apps/site/docs/rules/<name>.mdx` — the headings
 are load-bearing):
 
 ```zig
@@ -321,7 +323,7 @@ output to `.expected` verbatim.
 ## Step 9: Regenerate and verify
 
 ```sh
-just codegen    # docs/rules/*.md, zlint.schema.json, rules_config_rules.zig
+just codegen    # apps/site/docs/rules/*.mdx, zlint.schema.json
 just fmt        # zig fmt + typos
 just ready      # full pre-PR sweep (check + codegen + build + test + e2e)
 ```
@@ -352,7 +354,7 @@ from assumptions routinely needs 2-3.
   underscores.
 - **Forgetting `just codegen`.** CI's `Docs + JSON Schema` job fails on
   `git diff --exit-code`.
-- **Editing `docs/rules/<name>.md` by hand.** It gets overwritten.
+- **Editing `apps/site/docs/rules/<name>.mdx` by hand.** It gets overwritten.
 - **Leaving `@panic("TODO:")` stubs.** Delete hooks you don't use.
 - **Hand-editing `.snap` files.** Delete and regenerate.
 - **`std.debug.print` inside the rule.** `no-print` will flag it. Use

@@ -2,13 +2,13 @@ rules: std.ArrayListUnmanaged(Rule.WithSeverity) = .empty,
 
 const RuleSet = @This();
 
-/// Total number of all lint rules.
-pub const RULES_COUNT: usize = @typeInfo(all_rules).@"struct".decls.len;
-const ALL_RULE_IMPLS_SIZE: usize = Rule.MAX_SIZE * @typeInfo(all_rules).@"struct".decls.len;
-const ALL_RULES_SIZE: usize = @sizeOf(Rule.WithSeverity) * @typeInfo(all_rules).@"struct".decls.len;
+/// Total number of all lint rules, builtin and custom.
+pub const RULES_COUNT: usize = @typeInfo(RulesConfig.Rules).@"struct".fields.len;
+const ALL_RULE_IMPLS_SIZE: usize = Rule.MAX_SIZE * RULES_COUNT;
+const ALL_RULES_SIZE: usize = @sizeOf(Rule.WithSeverity) * RULES_COUNT;
 
 pub fn ensureTotalCapacityForAllRules(self: *RuleSet, arena: Allocator) Allocator.Error!void {
-    try self.rules.ensureTotalCapacityPrecise(arena.allocator(), ALL_RULE_IMPLS_SIZE);
+    try self.rules.ensureTotalCapacityPrecise(arena.allocator(), RULES_COUNT);
 }
 
 pub fn loadRulesFromConfig(self: *RuleSet, arena: Allocator, config: *const RulesConfig) !void {
@@ -34,5 +34,4 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Rule = @import("rule.zig").Rule;
 const RulesConfig = @import("config/rules_config.zig").RulesConfig;
-const all_rules = @import("rules.zig");
 const Severity = @import("../Error.zig").Severity;

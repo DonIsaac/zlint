@@ -1050,11 +1050,16 @@ fn visitWhile(self: *SemanticBuilder, node_id: NodeIndex, while_stmt: full.While
                 .flags = .{ .s_payload = true, .s_const = true },
             });
         }
-        // TODO: `cont_expr` is visited before `then_expr`, so a pending
-        // `_next_block_scope_flags` (e.g. `s_catch` from `visitCatch`) gets
-        // consumed by the continue block instead of the loop body.
         if (self.cfg()) |c| c.enterCont(&loop);
-        try self.visitOptional(ast.cont_expr);
+        {
+            // `cont_expr` is visited before `then_expr`, so stash any pending
+            // `_next_block_scope_flags` (e.g. `s_catch` from `visitCatch`) so
+            // the continue block doesn't consume them instead of the loop body.
+            const pending = self._next_block_scope_flags;
+            self._next_block_scope_flags = .{};
+            defer self._next_block_scope_flags = pending;
+            try self.visitOptional(ast.cont_expr);
+        }
         if (self.cfg()) |c| {
             if (ast.cont_expr.unwrap()) |cont| try c.emit(self._gpa, cont, .continue_expr);
             c.exitCont(self._gpa, &loop);
@@ -2337,4 +2342,57 @@ test "comptime blocks" {
     const block_scope = scopes.get(1);
     try std.testing.expect(block_scope.flags.s_block);
     try std.testing.expect(block_scope.flags.s_comptime);
+}
+
+test "catch flags apply to a while body instead of its continue expression" {
+    const alloc = std.testing.allocator;
+    const src =
+        \\fn bar() anyerror!u32 {
+        \\    return 1;
+        \\}
+        \\
+        \\fn foo() u32 {
+        \\    var i: u32 = 0;
+        \\    return bar() catch while (i < 10) : ({
+        \\        i += 1;
+        \\    }) {
+        \\        const inner = i;
+        \\        _ = inner;
+        \\    } else 0;
+        \\}
+    ;
+
+    var builder = SemanticBuilder.init(alloc);
+    defer builder.deinit();
+    var result = try builder.build(src);
+    defer result.deinit();
+    try std.testing.expect(!result.hasErrors());
+    var semantic = result.value;
+
+    var body_scope_id: ?Semantic.Scope.Id = null;
+    var symbols = semantic.symbols.iter();
+    while (symbols.next()) |id| {
+        const symbol = semantic.symbols.get(id);
+        if (std.mem.eql(u8, symbol.name, "inner")) {
+            body_scope_id = symbol.scope;
+            break;
+        }
+    }
+
+    const body_scope = semantic.scopes.getScope(body_scope_id orelse return error.TestExpectedEqual);
+    try std.testing.expect(body_scope.flags.s_catch);
+
+    const parent_id = body_scope.parent.unwrap() orelse return error.TestExpectedEqual;
+    const siblings = semantic.scopes.children.items[parent_id.int()].items;
+    var continue_scope_id: ?Semantic.Scope.Id = null;
+    for (siblings) |sibling_id| {
+        if (sibling_id != body_scope.id) {
+            continue_scope_id = sibling_id;
+            break;
+        }
+    }
+
+    const continue_scope = semantic.scopes.getScope(continue_scope_id orelse return error.TestExpectedEqual);
+    try std.testing.expect(continue_scope.flags.s_block);
+    try std.testing.expect(!continue_scope.flags.s_catch);
 }

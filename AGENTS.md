@@ -1,9 +1,6 @@
 # AGENTS.md
 
-Instructions for AI coding agents working in the ZLint repository. ZLint is an
-opinionated linter for the Zig programming language, written in Zig. It has its
-own semantic analyzer (inspired by [oxc](https://github.com/oxc-project/oxc))
-independent from the Zig compiler.
+ZLint is anopinionated linter for the Zig programming language, written in Zig.
 
 ## Output Principles
 - All code must be correct and memory safe. No undefined behavior or sloppy work.
@@ -31,22 +28,21 @@ independent from the Zig compiler.
 ├── Justfile                      Task runner. `just --list` to see everything
 ├── src/
 │   ├── main.zig                  CLI entrypoint
-│   ├── root.zig                  Library entrypoint (used by e2e tests + codegen)
+│   ├── root.zig                  Library entrypoint (used by the CLI, e2e tests, codegen)
 │   ├── Semantic.zig, Semantic/   Parser, scopes, symbols, references, modules
 │   ├── linter/
 │   │   ├── linter.zig            Orchestrates rule execution
 │   │   ├── rule.zig              Rule vtable + Meta/Category definitions
 │   │   ├── rules/                One file per rule (snake_case) + snapshots/
-│   │   ├── config/               Rule config structs (partly codegen)
+│   │   ├── config/               Rule config structs (built at comptime from rules)
 │   │   ├── fix.zig               Autofix data types + Fixer
 │   │   └── tester.zig            RuleTester (pass/fail/fix + snapshots)
 │   ├── cli/, reporter/, printer/, visit/, util/
 ├── tasks/
-│   ├── docgen.zig                Generates docs/rules/*.md from doc-comments
-│   ├── confgen.zig               Generates rules_config.zig + zlint.schema.json
+│   ├── docgen.zig                Generates apps/site/docs/rules/*.mdx from doc-comments
+│   ├── confgen.zig               Generates zlint.schema.json
 │   └── new-rule.ts               Bun script that scaffolds a new rule
 ├── test/                         E2E binary, fixtures, snapshots, repos.json
-├── docs/rules/                   Auto-generated per-rule docs
 └── apps/{site, vscode-extension} Docs site (Docusaurus) + VS Code extension
 ```
 
@@ -56,7 +52,7 @@ Zig 0.15, `just` for tasks, `bun` for package management and running JS apps, `t
 ## Build, Test, Run
 
 Prefer `just` targets over raw `zig build`. `just ready` is the canonical "is my
-branch green?" command — it runs fmt, check, codegen, install, unit tests, and
+branch green?" command — it runs fmt, check, docs, config, install, unit tests, and
 E2E, then `git status`. Failures have clear error messages; success may be
 silent but will exit with code 0. After a clean run, `git diff` must be empty
 (codegen output is checked in). Run it before opening a PR.
@@ -143,9 +139,8 @@ rules, prefer the higher-level helpers:
 After changing any rule, run `just codegen`. CI verifies the working tree is
 clean afterward. Never hand-edit generated files:
 
-- `docs/rules/*.md` (from `tasks/docgen.zig`)
-- `zlint.schema.json` and `src/linter/config/rules_config_rules.zig`
-  (from `tasks/confgen.zig`)
+- `apps/site/docs/rules/*.mdx` (from `tasks/docgen.zig`)
+- `zlint.schema.json` (from `tasks/confgen.zig`)
 - Any `*.snap` file (its a test snapshot file)
 
 ## Formatting
@@ -158,8 +153,8 @@ clean afterward. Never hand-edit generated files:
 ## CI Expectations
 
 PRs must pass `check`, unit `test` (ubuntu/macos/windows), `e2e` (ReleaseSafe
-and ReleaseFast), and `codegen` with a clean `git diff`. Running `just ready`
-locally covers all of these (minus the OS matrix).
+and ReleaseFast), and `docs`, and `config` with a clean `git diff`.
+Running `just ready` locally covers all of these (minus the OS matrix).
 
 ## Quick Reference
 

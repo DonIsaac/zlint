@@ -4,6 +4,7 @@ const span = @import("../span.zig");
 const zig = std.zig;
 
 const Allocator = std.mem.Allocator;
+const Ast = zig.Ast;
 const Span = span.Span;
 
 pub const Token = zig.Token;
@@ -12,6 +13,9 @@ pub const CommentList = std.MultiArrayList(Span);
 
 pub const TokenBundle = struct {
     tokens: TokenList.Slice,
+    /// Tokens in the shape `Ast` wants them. Hand these to `Ast.parseTokens` to
+    /// avoid re-tokenizing the source.
+    ast_tokens: Ast.TokenList.Slice,
     /// Doc and "normal" comments found in the tokenized source.
     ///
     /// Comments are always sorted by their position within the source. That is,
@@ -42,16 +46,20 @@ pub fn tokenize(
     source: [:0]const u8,
 ) Allocator.Error!TokenBundle {
     var tokens = TokenList{};
+    var ast_tokens = Ast.TokenList{};
     var comments = CommentList{};
     var stats: TokenBundle.Stats = .{};
     errdefer {
         tokens.deinit(allocator);
+        ast_tokens.deinit(allocator);
         comments.deinit(allocator);
     }
 
-    // Empirically, the zig std lib has an 8:1 ratio of source bytes to token count.
-    const estimated_token_count = source.len / 8;
+    // `Ast.parse` uses len / 8, but further testing reveals ~5.8 characters
+    // per token. We overshoot memory size to avoid realloc + O(n) copies on grow
+    const estimated_token_count = source.len / 5;
     try tokens.ensureTotalCapacity(allocator, estimated_token_count);
+    try ast_tokens.ensureTotalCapacity(allocator, estimated_token_count);
     // TODO: collect data and find the best starting capacity
     try comments.ensureTotalCapacity(allocator, 16);
 
@@ -62,8 +70,9 @@ pub fn tokenize(
         @setRuntimeSafety(true);
         const token = tokenizer.next();
         try scanForComments(allocator, source[prev_end..token.loc.start], prev_end, &comments);
-        try tokens.append(allocator, token);
         util.assert(token.loc.end < std.math.maxInt(u32), "token exceeds u32 limit", .{});
+        try tokens.append(allocator, token);
+        try ast_tokens.append(allocator, .{ .tag = token.tag, .start = @truncate(token.loc.start) });
         prev_end = @truncate(token.loc.end);
         switch (token.tag) {
             .identifier => stats.identifiers += 1,
@@ -74,6 +83,7 @@ pub fn tokenize(
 
     return .{
         .tokens = tokens.slice(),
+        .ast_tokens = ast_tokens.slice(),
         .comments = comments.slice(),
         .stats = stats,
     };

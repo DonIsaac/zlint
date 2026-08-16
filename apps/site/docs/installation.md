@@ -16,6 +16,14 @@ curl -fsSL https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/task
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/tasks/install.ps1" | Invoke-Expression
 ```
 
+## Updating
+
+Update a direct binary installation to the latest stable release with:
+
+```sh
+zlint update
+```
+
 ## Manual Installation
 
 Each release is available on the [releases page](https://github.com/DonIsaac/zlint/releases/latest).
