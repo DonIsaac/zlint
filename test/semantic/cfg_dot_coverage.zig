@@ -29,7 +29,7 @@ pub fn globalSetup(alloc: Allocator) !void {
         // disable this whole suite.
         error.FileNotFound => {
             if (isCi(alloc)) {
-                print("`nop` (graphviz) not found. CI must install it; see the `e2e` job in .github/workflows/ci.yaml.\n", .{});
+                print("`nop` (graphviz) not found. Refusing to skip DOT validation on CI.\n", .{});
                 return error.GraphvizNotFound;
             }
             print("`nop` (graphviz) not found, skipping DOT validation suite.\n", .{});
