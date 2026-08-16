@@ -183,6 +183,10 @@ test parse {
         .{ "zlint", .{} },
         .{ "zlint --", .{} },
         .{ "zlint --print-ast", .{ .print_ast = true } },
+        .{ "zlint --print-cfg", .{ .print_cfg = true } },
+        .{ "zlint --cfg-decls", .{ .cfg_decls = true } },
+        .{ "zlint --print-cfg --cfg-decls", .{ .print_cfg = true, .cfg_decls = true } },
+        .{ "zlint --print-cfg src", .{ .print_cfg = true, .args = src_list } },
         .{ "zlint --fix", .{ .fix = true } },
         .{ "zlint --no-summary", .{ .summary = false } },
         .{ "zlint --verbose", .{ .verbose = true } },
@@ -202,8 +206,15 @@ test parse {
         var opts = try parse(t.allocator, t.io, argv, null);
         defer opts.deinit(t.allocator);
 
-        try t.expectEqual(expected.verbose, opts.verbose);
-        try t.expectEqual(expected.print_ast, opts.print_ast);
+        // Reflective so a newly added option is covered the moment it exists.
+        inline for (@typeInfo(Options).@"struct".fields) |field| {
+            if (comptime std.mem.eql(u8, field.name, "args")) continue;
+            t.expectEqual(@field(expected, field.name), @field(opts, field.name)) catch |e| {
+                std.debug.print("^ field '{s}' of `{s}`\n", .{ field.name, test_case[0] });
+                return e;
+            };
+        }
+
         try t.expectEqual(expected.args.items.len, opts.args.items.len);
         for (0..expected.args.items.len) |i| {
             try t.expectEqualStrings(

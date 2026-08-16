@@ -423,34 +423,50 @@ test {
     t.refAllDecls(dot);
 }
 
-// test "Cfg.dfs stays within its container" {
-//     const alloc = t.allocator;
+test dfs {
+    const alloc = t.allocator;
 
-//     var cfg: Cfg = .{};
-//     defer cfg.deinit(alloc);
+    var draft: Draft = .empty;
+    errdefer draft.deinit(alloc);
 
-//     const a: Container.Id = .from(0);
-//     const a_entry = try cfg.addBlock(alloc, .{ .container = a, .flags = .{ .b_entry = true } });
-//     const a_body = try cfg.addBlock(alloc, .{ .container = a });
-//     const a_exit = try cfg.addBlock(alloc, .{ .container = a, .flags = .{ .b_exit = true } });
-//     _ = try cfg.addContainer(alloc, .{ .node = .root, .entry = a_entry, .exit = a_exit, .flags = .{ .c_fn = true } });
+    // Blocks may forward-reference a container that has not been added yet.
+    const a: Container.Id = .from(0);
+    const a_entry = try draft.addBlock(alloc, .{ .container = a, .flags = .{ .b_entry = true } });
+    const a_body = try draft.addBlock(alloc, .{ .container = a });
+    const a_exit = try draft.addBlock(alloc, .{ .container = a, .flags = .{ .b_exit = true } });
 
-//     const b: Container.Id = .from(1);
-//     const b_entry = try cfg.addBlock(alloc, .{ .container = b, .flags = .{ .b_entry = true } });
-//     const b_exit = try cfg.addBlock(alloc, .{ .container = b, .flags = .{ .b_exit = true } });
-//     _ = try cfg.addContainer(alloc, .{ .node = .root, .entry = b_entry, .exit = b_exit, .flags = .{ .c_test = true } });
+    const b: Container.Id = .from(1);
+    const b_entry = try draft.addBlock(alloc, .{ .container = b, .flags = .{ .b_entry = true } });
+    const b_exit = try draft.addBlock(alloc, .{ .container = b, .flags = .{ .b_exit = true } });
 
-//     try cfg.addEdge(alloc, a_entry, .{ .dest = a_body, .kind = .normal });
-//     try cfg.addEdge(alloc, a_body, .{ .dest = a_exit, .kind = .normal });
-//     try cfg.addEdge(alloc, b_entry, .{ .dest = b_exit, .kind = .normal });
-//     try cfg.finalize(alloc);
+    _ = try draft.addContainer(alloc, .{
+        .node = .root,
+        .entry = a_entry,
+        .exit = a_exit,
+        .flags = .{ .c_fn = true },
+    });
+    _ = try draft.addContainer(alloc, .{
+        .node = .root,
+        .entry = b_entry,
+        .exit = b_exit,
+        .flags = .{ .c_test = true },
+    });
 
-//     var it = try cfg.dfs(alloc, a_entry);
-//     defer it.deinit();
+    try draft.addEdge(alloc, a_entry, .{ .dest = a_body, .kind = .normal });
+    try draft.addEdge(alloc, a_body, .{ .dest = a_exit, .kind = .normal });
+    try draft.addEdge(alloc, b_entry, .{ .dest = b_exit, .kind = .normal });
+    // an edge leaving `a` must not pull `b`'s blocks into the walk
+    try draft.addEdge(alloc, a_body, .{ .dest = b_entry, .kind = .normal });
 
-//     var seen: std.ArrayList(BasicBlock.Id) = .empty;
-//     defer seen.deinit(alloc);
-//     while (try it.next()) |id| try seen.append(alloc, id);
+    var cfg = try draft.finalize(alloc);
+    defer cfg.deinit(alloc);
 
-//     try t.expectEqualSlices(BasicBlock.Id, &.{ a_entry, a_body, a_exit }, seen.items);
-// }
+    var it = try cfg.dfs(alloc, a_entry);
+    defer it.deinit();
+
+    var seen: BlockIdList = .empty;
+    defer seen.deinit(alloc);
+    while (try it.next()) |id| try seen.append(alloc, id);
+
+    try t.expectEqualSlices(BasicBlock.Id, &.{ a_entry, a_body, a_exit }, seen.items);
+}

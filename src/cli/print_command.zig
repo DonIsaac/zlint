@@ -90,4 +90,5 @@ pub fn printCfg(alloc: Allocator, io_: io, opts: Options, source: Source, writer
 
 test {
     _ = @import("test/print_ast_test.zig");
+    _ = @import("test/print_cfg_test.zig");
 }

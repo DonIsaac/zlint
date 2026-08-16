@@ -25,7 +25,13 @@ pub fn globalSetup(alloc: Allocator) !void {
     const io = test_runner.io();
     // `nop` with no file arguments reads stdin, which `run` leaves empty.
     const res = std.process.run(alloc, io, .{ .argv = &.{"nop"} }) catch |e| switch (e) {
+        // Skipping is a convenience for local dev; on CI it would silently
+        // disable this whole suite.
         error.FileNotFound => {
+            if (isCi(alloc)) {
+                print("`nop` (graphviz) not found. CI must install it; see the `e2e` job in .github/workflows/ci.yaml.\n", .{});
+                return error.GraphvizNotFound;
+            }
             print("`nop` (graphviz) not found, skipping DOT validation suite.\n", .{});
             return;
         },
@@ -34,6 +40,13 @@ pub fn globalSetup(alloc: Allocator) !void {
     alloc.free(res.stdout);
     alloc.free(res.stderr);
     nop_available = true;
+}
+
+/// GitHub Actions and most other CI providers set `CI` to a non-empty value.
+fn isCi(alloc: Allocator) bool {
+    const value = test_runner.getRunner().environ.getAlloc(alloc, "CI") catch return false;
+    defer alloc.free(value);
+    return value.len > 0;
 }
 
 fn testCfgDot(alloc: Allocator, source: *const Source) !void {

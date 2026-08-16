@@ -305,12 +305,26 @@ fn writeFull(writer: *Writer, text: []const u8) Writer.Error!void {
     return writeText(writer, text, null);
 }
 
+/// Length of the UTF-8 sequence starting at `text[i]`, or 1 if it isn't one.
+fn seqLenAt(text: []const u8, i: usize) usize {
+    const n = std.unicode.utf8ByteSequenceLength(text[i]) catch return 1;
+    if (i + n > text.len) return 1;
+    _ = std.unicode.utf8Decode(text[i..][0..n]) catch return 1;
+    return n;
+}
+
+/// Advances a codepoint at a time, so `limit` can never cut a multi-byte
+/// sequence in half and leave invalid UTF-8 in the label.
 fn writeText(writer: *Writer, text: []const u8, limit: ?usize) Writer.Error!void {
     var count: usize = 0;
     var last_was_space = true;
-    for (text) |ch| {
+    var i: usize = 0;
+    while (i < text.len) {
         if (limit != null and count >= limit.?) return writer.writeAll("...");
+
+        const ch = text[i];
         if (std.ascii.isWhitespace(ch)) {
+            i += 1;
             if (!last_was_space) {
                 try writer.writeByte(' ');
                 count += 1;
@@ -319,11 +333,18 @@ fn writeText(writer: *Writer, text: []const u8, limit: ?usize) Writer.Error!void
             continue;
         }
         last_was_space = false;
-        switch (ch) {
+
+        const seq_len = seqLenAt(text, i);
+        if (seq_len > 1) {
+            try writer.writeAll(text[i..][0..seq_len]);
+        } else switch (ch) {
             '"' => try writer.writeAll("\\\""),
             '\\' => try writer.writeAll("\\\\"),
+            // a raw control byte or a stray non-UTF-8 one; whitespace is handled above
+            0x00...0x1f, 0x7f...0xff => try writer.print("\\\\x{X:0>2}", .{ch}),
             else => try writer.writeByte(ch),
         }
+        i += seq_len;
         count += 1;
     }
 }
@@ -395,6 +416,51 @@ test render {
     try t.expect(std.mem.indexOf(u8, full.written(), "decl x") != null);
     try t.expect(std.mem.indexOf(u8, full.written(), "break :blk 1") != null);
     try t.expect(std.mem.indexOf(u8, full.written(), "cluster_legend") == null);
+}
+
+test seqLenAt {
+    // well-formed sequences report their full length
+    try t.expectEqual(1, seqLenAt("a", 0));
+    try t.expectEqual(2, seqLenAt("æ", 0));
+    try t.expectEqual(3, seqLenAt("日", 0));
+    try t.expectEqual(4, seqLenAt("😀", 0));
+    try t.expectEqual(3, seqLenAt("a日b", 1));
+
+    // anything malformed falls back to one byte, so callers always advance
+    try t.expectEqual(1, seqLenAt("æ", 1)); // continuation byte, not a start byte
+    try t.expectEqual(1, seqLenAt("\xff", 0)); // never a start byte
+    try t.expectEqual(1, seqLenAt("\xc3", 0)); // sequence runs past the end
+    try t.expectEqual(1, seqLenAt("\xc3A", 0)); // missing continuation byte
+    try t.expectEqual(1, seqLenAt("\xc0\x80", 0)); // overlong encoding of U+0000
+    try t.expectEqual(1, seqLenAt("\xed\xa0\x80", 0)); // surrogate half U+D800
+    try t.expectEqual(1, seqLenAt("\xf7\xbf\xbf\xbf", 0)); // codepoint above U+10FFFF
+}
+
+test writeText {
+    const case = struct {
+        fn check(expected: []const u8, text: []const u8, limit: ?usize) !void {
+            var out: Writer.Allocating = .init(t.allocator);
+            defer out.deinit();
+            try writeText(&out.writer, text, limit);
+            try t.expectEqualStrings(expected, out.written());
+        }
+    }.check;
+
+    // whitespace collapses, quotes and backslashes are escaped
+    try case("a b c", "a  b\n\tc", null);
+    try case("say \\\"hi\\\" \\\\n", "say \"hi\" \\n", null);
+
+    // `limit` counts codepoints, not bytes, and never splits one. "æ" is 2
+    // bytes, so a byte-wise limit of 2 would emit a lone 0xC3.
+    try case("aæb", "aæb", null);
+    try case("aæ...", "aæb", 2);
+    try case("æææ...", "ææææ", 3);
+
+    // control bytes and stray non-UTF-8 bytes are escaped, not passed through.
+    // A lone 0xC3 is a lead byte with no continuation: don't run off the end.
+    try case("a\\\\x00b", "a\x00b", null);
+    try case("\\\\xFF", "\xff", null);
+    try case("\\\\xC3", "\xc3", null);
 }
 
 test LineIndex {
