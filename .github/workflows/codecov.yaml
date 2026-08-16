@@ -23,10 +23,10 @@ jobs:
       # Ubuntu's apt kcov (v38) is too old to parse the DWARF5 debug info in
       # Zig 0.16 binaries: it instruments nothing and emits an empty report,
       # which Codecov rejects as "unusable". Build a modern kcov from source.
-      - name: Install kcov
+      - name: Install kcov and graphviz
         run: |
           sudo apt-get update
-          sudo apt-get install -y binutils-dev libcurl4-openssl-dev libdw-dev libelf-dev zlib1g-dev cmake g++ pkg-config
+          sudo apt-get install -y binutils-dev libcurl4-openssl-dev libdw-dev libelf-dev zlib1g-dev cmake g++ pkg-config graphviz
           git clone --depth 1 --branch v43 https://github.com/SimonKagstrom/kcov.git /tmp/kcov
           cmake -S /tmp/kcov -B /tmp/kcov/build -DCMAKE_BUILD_TYPE=Release
           cmake --build /tmp/kcov/build --parallel

@@ -20,6 +20,7 @@ symbols: Symbol.Table,
 scopes: Scope.Tree,
 modules: ModuleRecord,
 node_links: NodeLinks,
+cfg: Cfg,
 _gpa: Allocator,
 /// Used to allocate AST nodes
 _arena: ArenaAllocator,
@@ -110,6 +111,7 @@ pub fn deinit(self: *Semantic) void {
     // NOTE: ast and tokens are arena allocated, so no need to deinit it.
     // freeing the arena is sufficient.
     self._arena.deinit();
+    self.cfg.deinit(self._gpa);
     self.node_links.deinit(self._gpa);
     self.symbols.deinit(self._gpa);
     self.scopes.deinit(self._gpa);
@@ -132,6 +134,7 @@ const TokenIndex = _ast.TokenIndex;
 const zig = std.zig;
 pub const Ast = zig.Ast;
 pub const Builder = @import("Semantic/Builder.zig");
+pub const Cfg = @import("Semantic/Cfg.zig");
 pub const CommentList = _tokenizer.CommentList;
 pub const ModuleRecord = @import("Semantic/ModuleRecord.zig");
 pub const NodeLinks = @import("Semantic/NodeLinks.zig");
@@ -144,6 +147,7 @@ pub const TokenList = _tokenizer.TokenList;
 
 test {
     std.testing.refAllDecls(Builder);
+    std.testing.refAllDecls(Cfg);
 }
 
 test Semantic {

@@ -105,6 +105,10 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
+      - name: Install graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz
       - name: Clear cache
         run: |
           rm -rf ~/.cache/zig
