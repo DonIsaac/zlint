@@ -706,6 +706,46 @@ fn nthLine(src: []const u8, line_num: u32) Line {
     return .empty;
 }
 
+test nthLine {
+    const expectLine = std.testing.expectEqualDeep;
+
+    try expectLine(Line.empty, nthLine("", 0));
+    try expectLine(Line.empty, nthLine("", 10));
+
+    // lines are 1-indexed, so line 0 never matches
+    try expectLine(Line.empty, nthLine("foo", 0));
+    try expectLine(Line.empty, nthLine("foo\nbar", 0));
+
+    // past the last line
+    try expectLine(Line.empty, nthLine("foo", 2));
+    try expectLine(Line.empty, nthLine("foo\nbar", 3));
+
+    // empty sources still have one (empty) line
+    try expectLine(Line{ .num = 1, .offset = 0, .contents = "" }, nthLine("", 1));
+
+    try expectLine(Line{ .num = 1, .offset = 0, .contents = "foo" }, nthLine("foo", 1));
+    try expectLine(Line{ .num = 1, .offset = 0, .contents = "foo" }, nthLine("foo\nbar", 1));
+    try expectLine(Line{ .num = 2, .offset = 4, .contents = "bar" }, nthLine("foo\nbar", 2));
+
+    // a trailing newline creates an empty last line
+    try expectLine(Line{ .num = 1, .offset = 0, .contents = "foo" }, nthLine("foo\n", 1));
+    try expectLine(Line{ .num = 2, .offset = 4, .contents = "" }, nthLine("foo\n", 2));
+
+    // empty lines in the middle are preserved
+    try expectLine(Line{ .num = 1, .offset = 0, .contents = "a" }, nthLine("a\n\nb", 1));
+    try expectLine(Line{ .num = 2, .offset = 2, .contents = "" }, nthLine("a\n\nb", 2));
+    try expectLine(Line{ .num = 3, .offset = 3, .contents = "b" }, nthLine("a\n\nb", 3));
+
+    // trailing whitespace is trimmed, leading whitespace is not
+    try expectLine(Line{ .num = 1, .offset = 0, .contents = "foo" }, nthLine("foo   \n\tbar\t\t", 1));
+    try expectLine(Line{ .num = 2, .offset = 7, .contents = "\tbar" }, nthLine("foo   \n\tbar\t\t", 2));
+
+    // CRLF endings
+    try expectLine(Line{ .num = 1, .offset = 0, .contents = "a" }, nthLine("a\r\nb\r\n", 1));
+    try expectLine(Line{ .num = 2, .offset = 3, .contents = "b" }, nthLine("a\r\nb\r\n", 2));
+    try expectLine(Line{ .num = 3, .offset = 6, .contents = "" }, nthLine("a\r\nb\r\n", 3));
+}
+
 fn writeByteNTimes(w: *io.Writer, byte: u8, n: usize) FormatError!void {
     for (0..n) |_| {
         try w.writeByte(byte);
