@@ -93,7 +93,7 @@ pub fn runOnNode(_: *const DuplicateCase, wrapper: NodeWrapper, ctx: *LinterCont
             if ((a.inline_token == null) != (b.inline_token == null)) continue;
 
             if (AstComparator.eql(ast, a.ast.target_expr, b.ast.target_expr)) {
-                ctx.report(duplicateCaseDiagnostic(ctx, case, other));
+                ctx.report(duplicateCaseDiagnostic(ctx, a.ast.target_expr, b.ast.target_expr));
             }
         }
     }
@@ -374,6 +374,32 @@ test DuplicateCase {
         \\    1 => values[1..],
         \\    2 => values[1..],
         \\    else => values,
+        \\  };
+        \\}
+        ,
+        // Multi-item prongs must highlight only the shared body, not every tag.
+        \\fn foo(tag: u8) u8 {
+        \\  return switch (tag) {
+        \\    1, 2, 3, 4, 5,
+        \\    6, 7, 8, 9, 10 => 0,
+        \\    11 => 0,
+        \\    else => 1,
+        \\  };
+        \\}
+        ,
+        // Same, but the shared body is a multi-line block.
+        \\fn foo(tag: u8) u8 {
+        \\  return switch (tag) {
+        \\    1, 2, 3,
+        \\    4, 5, 6 => {
+        \\      const value = tag + 1;
+        \\      return value;
+        \\    },
+        \\    7 => {
+        \\      const value = tag + 1;
+        \\      return value;
+        \\    },
+        \\    else => 0,
         \\  };
         \\}
         ,
