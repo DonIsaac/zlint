@@ -28,30 +28,27 @@ pub const TestFolders = struct {
         return Io.Dir.cwd().openDir(io, fixture_dir, .{});
     }
 
+    /// Build the repo-relative path to a snapshot file:
+    /// `test/snapshots/<subpath>/<name>.snap`. The `.snap` extension is
+    /// appended if `name` does not already end with it. Caller owns the
+    /// returned slice. Performs no disk I/O.
+    pub fn snapshotRelPath(alloc: Allocator, subpath: string, name: string) Allocator.Error![]u8 {
+        if (std.mem.endsWith(u8, name, SNAP_EXT)) {
+            return path.join(alloc, &[_]string{ SNAPSHOTS_DIR, subpath, name });
+        }
+        const filename = try std.mem.concat(alloc, u8, &[_]string{ name, SNAP_EXT });
+        defer alloc.free(filename);
+        return path.join(alloc, &[_]string{ SNAPSHOTS_DIR, subpath, filename });
+    }
+
     pub fn openSnapshotFile(alloc: Allocator, io: Io, subpath: string, name: string) !Io.File {
-        var snapshot_filename: string = "";
-        var filename_needs_dealloc = false;
-
-        if (!std.mem.endsWith(u8, name, SNAP_EXT)) {
-            const with_ext = try std.mem.concat(alloc, u8, &[_]string{ name, SNAP_EXT });
-            filename_needs_dealloc = true;
-            snapshot_filename = with_ext;
-        } else {
-            snapshot_filename = name;
-        }
-
-        // create suite subfolder if it doesn't exist yet
-        const cwd = Io.Dir.cwd();
-        {
-            const snapshot_dir = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, subpath });
-            defer alloc.free(snapshot_dir);
-            try cwd.createDirPath(io, snapshot_dir);
-        }
-
-        const relative_path = try path.join(alloc, &[_]string{ SNAPSHOTS_DIR, subpath, snapshot_filename });
+        const relative_path = try snapshotRelPath(alloc, subpath, name);
         defer alloc.free(relative_path);
-        if (filename_needs_dealloc) {
-            alloc.free(snapshot_filename);
+
+        const cwd = Io.Dir.cwd();
+        // create suite subfolder if it doesn't exist yet
+        if (path.dirname(relative_path)) |snapshot_dir| {
+            try cwd.createDirPath(io, snapshot_dir);
         }
 
         return cwd.createFile(io, relative_path, .{});
