@@ -441,7 +441,10 @@ test "getLintConfig with an explicit path loads that file" {
     const config = try getLintConfig(&arena, t.io, config_path, t.allocator, &err);
     try t.expect(err == null);
     try t.expect(path.isAbsolute(config.path.?));
-    try t.expect(mem.endsWith(u8, config.path.?, config_path));
+
+    const expected_suffix = try path.join(t.allocator, &.{ "test", "fixtures", "config", "zlint.json" });
+    defer t.allocator.free(expected_suffix);
+    try t.expect(mem.endsWith(u8, config.path.?, expected_suffix));
     try t.expectEqual(.warning, config.config.rules.rules.unsafe_undefined.severity);
 }
 
@@ -457,7 +460,10 @@ test "getLintConfig with an explicit path does not walk the directory tree" {
     const config_path = "test/fixtures/config/custom.json";
     var config = try getLintConfig(&arena, t.io, config_path, t.allocator, &err);
     try t.expect(err == null);
-    try t.expect(mem.endsWith(u8, config.path.?, config_path));
+
+    const expected_suffix = try path.join(t.allocator, &.{ "test", "fixtures", "config", "custom.json" });
+    defer t.allocator.free(expected_suffix);
+    try t.expect(mem.endsWith(u8, config.path.?, expected_suffix));
 
     // An explicit config says nothing about where the project is, so ignores
     // come from the nearest .gitignore at or above cwd (here, the repo root's)
@@ -552,5 +558,8 @@ test "getLintConfig reports parse errors in an explicit config file" {
     var err = maybe_err.?;
     defer err.deinit(t.allocator);
     try t.expectEqualStrings("invalid-config", err.code);
-    try t.expect(mem.endsWith(u8, err.source_name.?, "config-empty/zlint.json"));
+
+    const expected_suffix = try path.join(t.allocator, &.{ "config-empty", "zlint.json" });
+    defer t.allocator.free(expected_suffix);
+    try t.expect(mem.endsWith(u8, err.source_name.?, expected_suffix));
 }
