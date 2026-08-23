@@ -67,7 +67,6 @@ fn tryLintFile(self: *LintService, filepath: []u8) !void {
         return e;
     };
 
-    errdefer self.allocator.free(filepath);
     var source = Source.init(self.allocator, self.io, file, filepath) catch |e| {
         self.reporter.stats.recordFailure();
         return e;
