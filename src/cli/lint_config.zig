@@ -12,6 +12,36 @@ const Cow = util.Cow(false);
 const Error = @import("zlint").Error;
 const Span = @import("zlint").span.Span;
 
+/// Load the lint configuration. When `config_path` is given, that file is used
+/// directly and no directory walking happens. Otherwise, `zlint.json` is
+/// resolved by walking up the directory tree from `cwd`.
+pub fn getLintConfig(
+    arena: *ArenaAllocator,
+    io: Io,
+    config_path: ?[]const u8,
+    err_alloc: Allocator,
+    err: *?Error,
+) !lint.Config.Managed {
+    const cwd = Io.Dir.cwd();
+    if (config_path) |config| {
+        const config_file = cwd.openFile(io, config, .{ .mode = .read_only }) catch |e| {
+            err.* = ioDiagnostic(err_alloc, "Failed to open {s}: {s}", config, e);
+            return e;
+        };
+        defer config_file.close(io);
+
+        // Downstream consumers (e.g. `readGitignore`) expect an absolute path.
+        const abs_path = cwd.realPathFileAlloc(io, config, arena.allocator()) catch |e| {
+            err.* = ioDiagnostic(err_alloc, "Failed to resolve {s}: {s}", config, e);
+            return e;
+        };
+
+        return parseConfigFile(arena, io, err_alloc, abs_path, config_file, err);
+    }
+
+    return resolveLintConfig(arena, io, cwd, "zlint.json", err_alloc, err);
+}
+
 /// Resolve the lint configuration, walking up the directory tree from `cwd`
 /// looking for `config_filename`.
 ///
@@ -20,7 +50,7 @@ const Span = @import("zlint").span.Span;
 /// could be constructed (e.g. because allocating the diagnostic itself failed).
 /// Callers must therefore initialize `err` to `null` and tolerate it staying
 /// `null` on the error path.
-pub fn resolveLintConfig(
+fn resolveLintConfig(
     arena: *ArenaAllocator,
     io: Io,
     cwd: Dir,
@@ -28,8 +58,6 @@ pub fn resolveLintConfig(
     err_alloc: Allocator,
     err: *?Error,
 ) !lint.Config.Managed {
-    const arena_alloc = arena.allocator();
-
     var it = ParentIterator(4096).fromDir(io, cwd, config_filename) catch |e| {
         err.* = ioDiagnostic(err_alloc, "Failed to search for config file {s}: {s}", config_filename, e);
         return e;
@@ -45,33 +73,46 @@ pub fn resolveLintConfig(
             }
         };
         defer file.close(io);
-        const source = readToEndAlloc(file, io, arena_alloc, std.math.maxInt(u32)) catch |e| {
-            err.* = ioDiagnostic(err_alloc, "Failed to read {s}: {s}", maybe_path_to_config, e);
-            return e;
-        };
-        errdefer arena_alloc.free(source);
 
-        var diagnostics: json.Diagnostics = .{};
-        var scanner = json.Scanner.initCompleteInput(arena_alloc, source);
-        defer scanner.deinit();
-        scanner.enableDiagnostics(&diagnostics);
-        // FIXME: i hate all these allocations, but they're needed b/c of how
-        // errors work. That needs refactoring.
-        const config = json.parseFromTokenSourceLeaky(
-            lint.Config,
-            arena_alloc,
-            &scanner,
-            .{ .ignore_unknown_fields = true },
-        ) catch |e| {
-            err.* = getReportForParseError(err_alloc, e, source, &diagnostics, maybe_path_to_config);
-            return e;
-        };
-        var managed = config.intoManaged(arena, null);
-        managed.path = try managed.arena.allocator().dupe(u8, maybe_path_to_config);
-        return managed;
+        return parseConfigFile(arena, io, err_alloc, maybe_path_to_config, file, err);
     }
 
     return lint.Config.DEFAULT.intoManaged(arena, null);
+}
+
+/// Parse a zlint.json's contents into a config. All passed data are borrowed.
+fn parseConfigFile(
+    arena: *ArenaAllocator,
+    io: Io,
+    err_alloc: Allocator,
+    config_path: []const u8,
+    config_file: std.Io.File,
+    err: *?Error,
+) !lint.Config.Managed {
+    const arena_alloc = arena.allocator();
+
+    const source = readToEndAlloc(config_file, io, arena_alloc, std.math.maxInt(u32)) catch |e| {
+        err.* = ioDiagnostic(err_alloc, "Failed to read {s}: {s}", config_path, e);
+        return e;
+    };
+    errdefer arena_alloc.free(source);
+
+    var diagnostics: json.Diagnostics = .{};
+    var scanner = json.Scanner.initCompleteInput(arena_alloc, source);
+    defer scanner.deinit();
+    scanner.enableDiagnostics(&diagnostics);
+    // FIXME: i hate all these allocations, but they're needed b/c of how
+    // errors work. That needs refactoring.
+    const config = json.parseFromTokenSourceLeaky(
+        lint.Config,
+        arena_alloc,
+        &scanner,
+        .{ .ignore_unknown_fields = true },
+    ) catch |e| {
+        err.* = getReportForParseError(err_alloc, e, source, &diagnostics, config_path);
+        return e;
+    };
+    return config.intoManaged(arena, try arena_alloc.dupe(u8, config_path));
 }
 
 /// Build an actionable diagnostic for a config IO failure, e.g.
@@ -226,18 +267,29 @@ const customRuleMessages = std.StaticStringMap([]const u8).initComptime([_]struc
     .{ "\"no-undefined\"", "`no-undefined` has been renamed to `unsafe-undefined`." },
 });
 
+pub const GitignoreSearch = enum {
+    /// Beside the config file, which marks the project root.
+    beside_config,
+    /// Nearest `.gitignore` at or above `root`.
+    nearest_from_root,
+};
+
 /// Try to read the contents of a `.gitignore` and add its entries to `config`'s
-/// ignore list. if `config` doesn't have a path, looks for `.gitignore` within
-/// `root`.
-pub fn readGitignore(config: *lint.Config.Managed, io: Io, root: Dir) !void {
+/// ignore list.
+///
+/// A config discovered by walking up from `root` marks the project root, so
+/// `.beside_config` applies. An explicit `--config` path carries no such
+/// meaning, so callers pass `.nearest_from_root`.
+pub fn readGitignore(config: *lint.Config.Managed, io: Io, root: Dir, search: GitignoreSearch) !void {
     const allocator = config.allocator();
-    const dirname_: ?[]const u8 = if (config.path) |p| blk: {
-        if (comptime util.IS_DEBUG) {
-            std.debug.assert(mem.endsWith(u8, p, "zlint.json"));
-            std.debug.assert(path.isAbsolute(p));
-        }
-        break :blk path.dirname(p);
-    } else null;
+    const dirname_: ?[]const u8 = switch (search) {
+        .nearest_from_root => null,
+        .beside_config => if (config.path) |p| blk: {
+            // NOTE: the filename is arbitrary; `--config` accepts any path.
+            if (comptime util.IS_DEBUG) std.debug.assert(path.isAbsolute(p));
+            break :blk path.dirname(p);
+        } else null,
+    };
 
     var gitignore_file = if (dirname_) |dirname| blk: {
         var stackfb = std.heap.stackFallback(512, allocator);
@@ -246,7 +298,11 @@ pub fn readGitignore(config: *lint.Config.Managed, io: Io, root: Dir) !void {
         defer stackalloc.free(gitignore_path);
         break :blk Dir.openFileAbsolute(io, gitignore_path, .{ .mode = .read_only }) catch return;
     } else root: {
-        break :root root.openFile(io, ".gitignore", .{ .mode = .read_only }) catch return;
+        var it = ParentIterator(4096).fromDir(io, root, ".gitignore") catch return;
+        while (it.next()) |candidate| {
+            break :root Dir.openFileAbsolute(io, candidate, .{ .mode = .read_only }) catch continue;
+        }
+        return;
     };
     defer gitignore_file.close(io);
 
@@ -372,4 +428,138 @@ test "config IO failures produce actionable diagnostics" {
     defer open_err.deinit(t.allocator);
     try t.expectEqualStrings("Failed to open /home/user/zlint.json: IsDir", open_err.message.borrow());
     try t.expectEqualStrings("invalid-config", open_err.code);
+}
+
+test "getLintConfig with an explicit path loads that file" {
+    var arena = ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+
+    var err: ?Error = null;
+    defer if (err) |*e| e.deinit(t.allocator);
+
+    const config_path = "test/fixtures/config/zlint.json";
+    const config = try getLintConfig(&arena, t.io, config_path, t.allocator, &err);
+    try t.expect(err == null);
+    try t.expect(path.isAbsolute(config.path.?));
+
+    const expected_suffix = try path.join(t.allocator, &.{ "test", "fixtures", "config", "zlint.json" });
+    defer t.allocator.free(expected_suffix);
+    try t.expect(mem.endsWith(u8, config.path.?, expected_suffix));
+    try t.expectEqual(.warning, config.config.rules.rules.unsafe_undefined.severity);
+}
+
+// An explicit path bypasses directory walking entirely, so the file doesn't
+// need to be named `zlint.json` and doesn't need to be in an ancestor of cwd.
+test "getLintConfig with an explicit path does not walk the directory tree" {
+    var arena = ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+
+    var err: ?Error = null;
+    defer if (err) |*e| e.deinit(t.allocator);
+
+    const config_path = "test/fixtures/config/custom.json";
+    var config = try getLintConfig(&arena, t.io, config_path, t.allocator, &err);
+    try t.expect(err == null);
+
+    const expected_suffix = try path.join(t.allocator, &.{ "test", "fixtures", "config", "custom.json" });
+    defer t.allocator.free(expected_suffix);
+    try t.expect(mem.endsWith(u8, config.path.?, expected_suffix));
+
+    // An explicit config says nothing about where the project is, so ignores
+    // come from the nearest .gitignore at or above cwd (here, the repo root's)
+    // rather than the one beside the config file.
+    try readGitignore(&config, t.io, Dir.cwd(), .nearest_from_root);
+    try expectIgnores(config, "zig-out");
+    try t.expectEqual(.err, config.config.rules.rules.unsafe_undefined.severity);
+    try t.expectEqual(.warning, config.config.rules.rules.homeless_try.severity);
+}
+
+fn expectIgnores(config: lint.Config.Managed, expected: []const u8) !void {
+    for (config.config.ignore) |ignored| {
+        if (mem.eql(u8, ignored, expected)) return;
+    }
+    std.debug.print("expected ignore list to contain '{s}'\n", .{expected});
+    return error.TestExpectedIgnoreEntry;
+}
+
+// A discovered config marks the project root, so its sibling .gitignore is used
+// and cwd's is not consulted. `test/fixtures/config` has no .gitignore, so the
+// ignore list must come back untouched.
+test "readGitignore does not fall back to cwd for a discovered config" {
+    const cwd = Dir.cwd();
+
+    var arena = ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+
+    var err: ?Error = null;
+    defer if (err) |*e| e.deinit(t.allocator);
+
+    var config = try resolveLintConfig(
+        &arena,
+        t.io,
+        try cwd.openDir(t.io, "test/fixtures/config", .{}),
+        "zlint.json",
+        t.allocator,
+        &err,
+    );
+    try t.expect(err == null);
+
+    try readGitignore(&config, t.io, cwd, .beside_config);
+    try t.expectEqual(0, config.config.ignore.len);
+}
+
+test "getLintConfig falls back to resolution when no path is given" {
+    var arena = ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+
+    var err: ?Error = null;
+    defer if (err) |*e| e.deinit(t.allocator);
+
+    const config = try getLintConfig(&arena, t.io, null, t.allocator, &err);
+    try t.expect(err == null);
+    if (config.path) |p| try t.expect(mem.endsWith(u8, p, "zlint.json"));
+}
+
+test "getLintConfig reports a missing explicit config file" {
+    var arena = ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+
+    var maybe_err: ?Error = null;
+    try t.expectError(error.FileNotFound, getLintConfig(
+        &arena,
+        t.io,
+        "test/fixtures/config/does-not-exist.json",
+        t.allocator,
+        &maybe_err,
+    ));
+
+    var err = maybe_err.?;
+    defer err.deinit(t.allocator);
+    try t.expectEqualStrings(
+        "Failed to open test/fixtures/config/does-not-exist.json: FileNotFound",
+        err.message.borrow(),
+    );
+    try t.expectEqualStrings("invalid-config", err.code);
+}
+
+test "getLintConfig reports parse errors in an explicit config file" {
+    var arena = ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+
+    var maybe_err: ?Error = null;
+    try t.expectError(error.UnexpectedEndOfInput, getLintConfig(
+        &arena,
+        t.io,
+        "test/fixtures/config-empty/zlint.json",
+        t.allocator,
+        &maybe_err,
+    ));
+
+    var err = maybe_err.?;
+    defer err.deinit(t.allocator);
+    try t.expectEqualStrings("invalid-config", err.code);
+
+    const expected_suffix = try path.join(t.allocator, &.{ "config-empty", "zlint.json" });
+    defer t.allocator.free(expected_suffix);
+    try t.expect(mem.endsWith(u8, err.source_name.?, expected_suffix));
 }
