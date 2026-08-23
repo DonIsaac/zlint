@@ -31,6 +31,11 @@ stdin: bool = false,
 fix: bool = false,
 /// Like `--fix`, but also enable potentially dangerous fixes.
 fix_dangerously: bool = false,
+/// Path to your ZLint config file.
+///
+/// By default, ZLint walks up your directory tree from your cwd and looks for a
+/// `zlint.json` file.
+config: ?[]const u8 = null,
 /// Positional arguments
 args: std.ArrayList([]const u8) = .empty,
 
@@ -43,6 +48,7 @@ const help =
     \\  update             Download and install the latest stable release
     \\
     \\Options:
+    \\-c, --config <path> ZLint json configuration file. Overrides searching behavior
     \\--print-ast <file>  Parse a file and print its AST as JSON
     \\--print-cfg <file>  Analyze a file and print its control flow graph as Graphviz DOT
     \\--cfg-decls         Include top-level decl initializers in --print-cfg output
@@ -122,6 +128,20 @@ fn parse(alloc: Allocator, io: std.Io, args_iter: anytype, err: ?*Error) ParseEr
             opts.print_cfg = true;
         } else if (eq(arg, "--cfg-decls")) {
             opts.cfg_decls = true;
+        } else if (eq(arg, "-c") or eq(arg, "--config")) {
+            const config: []const u8 = argv.next() orelse {
+                if (err) |e| {
+                    e.* = Error.fmt(alloc, "{s} requires a path to a zlint config file.", .{arg}) catch @panic("OOM");
+                }
+                return error.InvalidArg;
+            };
+            if (config.len == 0 or config[0] == '-') {
+                if (err) |e| {
+                    e.* = Error.fmt(alloc, "{s} requires a path to a zlint config file.", .{arg}) catch @panic("OOM");
+                }
+                return error.InvalidArgValue;
+            }
+            opts.config = config;
         } else if (eq(arg, "-h") or eq(arg, "--help") or eq(arg, "--hlep") or eq(arg, "-help")) {
             var buf: [512]u8 = undefined;
             var writer = std.Io.File.stdout().writer(io, &buf);
@@ -241,4 +261,50 @@ test "ascii format" {
     var opts = try parse(t.allocator, t.io, argv, null);
     defer opts.deinit(t.allocator);
     try t.expectEqual(formatter.Kind.ascii, opts.format);
+}
+
+test "--config" {
+    const cases = [_][]const u8{
+        "zlint --config zlint.json",
+        "zlint -c zlint.json",
+        "zlint -c zlint.json src",
+    };
+    for (cases) |case| {
+        const argv = std.mem.splitScalar(u8, case, ' ');
+        var opts = try parse(t.allocator, t.io, argv, null);
+        defer opts.deinit(t.allocator);
+        t.expectEqualStrings("zlint.json", opts.config orelse "") catch |e| {
+            std.debug.print("^ for `{s}`\n", .{case});
+            return e;
+        };
+    }
+}
+
+test "--config with a nested path" {
+    const argv = std.mem.splitScalar(u8, "zlint --config config/custom.json src", ' ');
+    var opts = try parse(t.allocator, t.io, argv, null);
+    defer opts.deinit(t.allocator);
+    try t.expectEqualStrings("config/custom.json", opts.config.?);
+    try t.expectEqual(1, opts.args.items.len);
+    try t.expectEqualStrings("src", opts.args.items[0]);
+}
+
+test "--config without a value" {
+    const cases = [_]struct { []const u8, anyerror }{
+        .{ "zlint --config", error.InvalidArg },
+        .{ "zlint -c", error.InvalidArg },
+        // a flag-looking value is a missing value, not a path
+        .{ "zlint --config --fix", error.InvalidArgValue },
+        .{ "zlint -c -V", error.InvalidArgValue },
+    };
+    for (cases) |case| {
+        var err: Error = undefined;
+        const argv = std.mem.splitScalar(u8, case[0], ' ');
+        t.expectError(case[1], parse(t.allocator, t.io, argv, &err)) catch |e| {
+            std.debug.print("^ for `{s}`\n", .{case[0]});
+            return e;
+        };
+        defer err.deinit(t.allocator);
+        try t.expect(std.mem.indexOf(u8, err.message.borrow(), "requires a path") != null);
+    }
 }

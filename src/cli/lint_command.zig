@@ -44,7 +44,7 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
 
     var config = resolve_config: {
         var diagnostic: ?Error = null;
-        const c = lint_config.resolveLintConfig(&arena, io, Io.Dir.cwd(), "zlint.json", alloc, &diagnostic) catch {
+        const c = lint_config.getLintConfig(&arena, io, options.config, alloc, &diagnostic) catch {
             var reported: [1]Error = .{
                 diagnostic orelse Error.newStatic("Failed to load zlint configuration."),
             };
@@ -53,7 +53,12 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
         };
         break :resolve_config c;
     };
-    try lint_config.readGitignore(&config, io, Io.Dir.cwd());
+    try lint_config.readGitignore(
+        &config,
+        io,
+        Io.Dir.cwd(),
+        if (options.config != null) .nearest_from_root else .beside_config,
+    );
 
     const start = Io.Timestamp.now(io, .real);
 
