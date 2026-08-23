@@ -74,7 +74,7 @@ fn tryLintFile(self: *LintService, filepath: []u8) !void {
         if (errors) |e| {
             try self.reporter.reportErrors(e);
         } else {
-            _ = self.reporter.stats.num_errors.fetchAdd(1, .acquire);
+            self.reporter.stats.recordFailure();
         }
         return err;
     };

@@ -214,13 +214,18 @@ const Stats = struct {
                 else => {},
             }
         }
-        _ = self.num_files.fetchAdd(1, .acquire);
-        _ = self.num_errors.fetchAdd(num_errors, .acquire);
-        _ = self.num_warnings.fetchAdd(num_warnings, .acquire);
+        _ = self.num_files.fetchAdd(1, .monotonic);
+        _ = self.num_errors.fetchAdd(num_errors, .monotonic);
+        _ = self.num_warnings.fetchAdd(num_warnings, .monotonic);
+    }
+
+    pub fn recordFailure(self: *Stats) void {
+        _ = self.num_files.fetchAdd(1, .monotonic);
+        _ = self.num_errors.fetchAdd(1, .monotonic);
     }
 
     pub fn recordSuccess(self: *Stats) void {
-        _ = self.num_files.fetchAdd(1, .acquire);
+        _ = self.num_files.fetchAdd(1, .monotonic);
     }
 
     /// Get the number of linted files. Only call this after all files have been
