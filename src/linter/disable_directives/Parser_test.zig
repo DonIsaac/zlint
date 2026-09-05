@@ -81,12 +81,14 @@ test "line directives that disable all rules" {
 test "comments" {
     const cases = &[_]TestCase{
         .{ .src = "// zlint-disable -- unsafe-undefined", .expected = global(.empty) },
+        .{ .src = "// zlint-disable --- unsafe-undefined", .expected = global(.empty) },
         .{ .src = "// zlint-disable-next-line -- unsafe-undefined", .expected = line(.empty) },
         .{ .src = "// zlint-disable --", .expected = global(.empty) },
         .{ .src = "// zlint-disable -- foo bar baz", .expected = global(.empty) },
         .{ .src = "// zlint-disable-- foo bar baz", .expected = global(.empty) },
         .{ .src = "// zlint-disable --foo bar baz", .expected = global(.empty) },
         .{ .src = "// zlint-disable     --   foo bar baz", .expected = global(.empty) },
+        .{ .src = "// zlint-disable -- -- -- - unsafe-undefined", .expected = global(.empty) },
         // space omission: rule name directly followed by '--' (no space before comment marker)
         .{
             .src = "// zlint-disable-next-line unsafe-undefined-- now heres a comment",
@@ -145,6 +147,30 @@ test "disabling specific rules" {
                     .new(17, 20),
                     .new(22, 25),
                     .new(27, 30),
+                }),
+            },
+        },
+        .{
+            .src = "// zlint-disable foo, bar, baz,",
+            .expected = .{
+                .kind = .global,
+                .span = .empty,
+                .disabled_rules = @constCast(&[_]Span{
+                    .new(17, 20),
+                    .new(22, 25),
+                    .new(27, 30),
+                }),
+            },
+        },
+        .{
+            .src = "// zlint-disable foo, bar,,,, baz,",
+            .expected = .{
+                .kind = .global,
+                .span = .empty,
+                .disabled_rules = @constCast(&[_]Span{
+                    .new(17, 20),
+                    .new(22, 25),
+                    .new(30, 33),
                 }),
             },
         },

@@ -8,6 +8,8 @@
 //! // zlint-disable-next-line foo bar baz
 //! ```
 
+const DisableDirectiveComment = @This();
+
 /// An empty set means all rules are disabled.
 disabled_rules: []Span = ALL_RULES_DISABLED,
 /// I'm not really sure what this should be the span _of_. The entire comment?
@@ -15,7 +17,6 @@ disabled_rules: []Span = ALL_RULES_DISABLED,
 span: Span,
 kind: Kind,
 
-pub const DisableDirectiveComment = @This();
 const ALL_RULES_DISABLED = &[_]Span{};
 
 pub const Kind = enum {
@@ -29,14 +30,7 @@ pub const Kind = enum {
     line,
 };
 
-/// Returns `true` if this disable directive applies to an entire file.
-pub inline fn isGlobal(self: *const DisableDirectiveComment) bool {
-    return self.kind == .global;
-}
-
 /// Does this directive disable diagnostics for all rules?
-///
-/// _(say that 3 times fast lol)_
 pub inline fn disablesAllRules(self: *const DisableDirectiveComment) bool {
     return self.disabled_rules.len == 0;
 }

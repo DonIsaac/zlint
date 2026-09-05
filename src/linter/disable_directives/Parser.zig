@@ -1,5 +1,7 @@
 //! Parses disable directives from comments.
 
+const DisableDirectivesParser = @This();
+
 /// Full source text
 source: []const u8,
 
@@ -18,9 +20,8 @@ kind: DisableDirectiveComment.Kind,
 /// Stack allocated. Must be copied into newly-allocated directives.
 ///
 /// @internal
-rules: std.ArrayListUnmanaged(Span) = .empty,
+rules: std.ArrayList(Span) = .empty,
 
-const DisableDirectivesParser = @This();
 const MIN_LEN: u32 = "//zlint-disable".len;
 /// Amount of stack space to reserve when parsing.
 const STACK_FALLBACK_SIZE: usize = 2048;
@@ -230,6 +231,11 @@ test parse {
         },
         TestCase{
             "// zlint-disable -- unsafe-undefined",
+            .{ .kind = .global, .span = .new(0, 16) },
+            &[_][]const u8{},
+        },
+        TestCase{
+            "// zlint-disable ------ unsafe-undefined",
             .{ .kind = .global, .span = .new(0, 16) },
             &[_][]const u8{},
         },
