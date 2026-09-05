@@ -234,6 +234,20 @@ fn readUntilDelimiterOrEof(self: *std.Io.Reader, buffer: []u8, delimiter: u8) an
     return buffer[0..bytes_read];
 }
 
+test readUntilDelimiterOrEof {
+    const expectEqualString = std.testing.expectEqualStrings;
+    const expect = std.testing.expect;
+
+    var buffer: [1024]u8 = undefined;
+    const stdin = "line1\nline2\nline3";
+    var reader = std.Io.Reader.fixed(stdin);
+
+    try expectEqualString(try readUntilDelimiterOrEof(&reader, &buffer, '\n') orelse return error.ExpectedLine, "line1");
+    try expectEqualString(try readUntilDelimiterOrEof(&reader, &buffer, '\n') orelse return error.ExpectedLine, "line2");
+    try expectEqualString(try readUntilDelimiterOrEof(&reader, &buffer, '\n') orelse return error.ExpectedLine, "line3");
+    try expect(try readUntilDelimiterOrEof(&reader, &buffer, '\n') == null);
+}
+
 test {
     _ = @import("test/lint_command_test.zig");
 }
