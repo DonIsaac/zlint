@@ -10,7 +10,6 @@
 //! wrapped in `todo()`.
 
 const std = @import("std");
-const builtin = @import("builtin");
 const Fixture = @import("Fixture.zig");
 const walk = @import("../../io/Walker.zig");
 const lint_command = @import("../lint_command.zig");
@@ -22,13 +21,13 @@ const Allocator = std.mem.Allocator;
 
 /// A test scenario that needs fixing. Fails if the test passes.
 fn todo(comptime why: []const u8, result: anyerror!void) !void {
-    result catch return error.SkipZigTest;
+    result catch |e| switch (e) {
+        error.TestExpectedEqual => return error.SkipZigTest,
+        // the fixture or the walk broke; that's a real failure, not a todo
+        else => return e,
+    };
     std.debug.print("\nthis passes now; drop the todo(): {s}\n", .{why});
     return error.TodoIsFixed;
-}
-
-fn skipIfWindows() !void {
-    if (builtin.os.tag == .windows) return error.SkipZigTest;
 }
 
 /// A project on disk, plus how zlint was invoked in it.
@@ -125,9 +124,12 @@ fn collectLintTargets(
     return sink.files.toOwnedSlice(alloc);
 }
 
-/// Compares exactly, including path separators. Only walk order is normalized,
-/// since that's filesystem-dependent.
 fn expectSameFiles(expected: []const []const u8, found: [][]u8) !void {
+    // Walk order is filesystem-dependent, and paths are joined with the native
+    // separator. Neither is a behavior worth pinning: `glob.match` treats `/`
+    // and `\\` alike (see `isSeparator` in io/glob.zig), so patterns written
+    // with `/` work on every platform.
+    for (found) |f| std.mem.replaceScalar(u8, f, std.fs.path.sep, '/');
     std.mem.sort([]u8, found, {}, lessThan([]u8));
 
     const want = try t.allocator.dupe([]const u8, expected);
@@ -214,7 +216,6 @@ test "ignore skips a directory named directly" {
 
 // The example given in apps/site/docs/configuration/ignore.md.
 test "ignore accepts glob patterns" {
-    try skipIfWindows();
     try expectLints(.{
         .files = &.{
             .{ .path = "src/main.zig" },
@@ -226,7 +227,6 @@ test "ignore accepts glob patterns" {
 }
 
 test "ignore matches a file pattern at any depth" {
-    try skipIfWindows();
     try expectLints(.{
         .files = &.{
             .{ .path = "src/main.zig" },
@@ -238,7 +238,6 @@ test "ignore matches a file pattern at any depth" {
 }
 
 test "ignore matches a directory at any depth" {
-    try skipIfWindows();
     try todo(
         "`**/generated` matches nothing: directories are pruned with startsWith, " ++
             "which a glob never matches, and the file pattern stops at the directory name",
@@ -343,7 +342,6 @@ test "respects root-anchored gitignore entries" {
 // =============================================================================
 
 test "lints only the file named on the command line" {
-    try skipIfWindows();
     try expectLints(.{
         .files = &.{ .{ .path = "src/main.zig" }, .{ .path = "src/other.zig" } },
         .args = &.{"src/main.zig"},
