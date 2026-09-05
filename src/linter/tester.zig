@@ -14,6 +14,7 @@ diagnostic: TestDiagnostic = .{},
 fmt: GraphicalFormatter,
 
 alloc: Allocator,
+_enable_cfg: bool,
 
 const RuleTester = @This();
 
@@ -61,6 +62,7 @@ pub fn init(alloc: Allocator, rule: Rule) RuleTester {
         .linter = linter,
         .fmt = fmt,
         .alloc = alloc,
+        ._enable_cfg = rule.meta.needs_cfg,
     };
 }
 
@@ -290,6 +292,7 @@ fn lint(
     var builder = Semantic.Builder.init(self.alloc);
     defer builder.deinit();
     builder.withSource(&source);
+    builder.withCfg(self._enable_cfg);
 
     var semantic_result = builder.build(source.text()) catch |e| {
         try errors.ensureUnusedCapacity(builder._errors.items.len);

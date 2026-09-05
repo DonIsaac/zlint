@@ -109,6 +109,14 @@ lint:
         bunx oxlint@latest -D correctness -D suspicious -D perf
     fi
 
+# Render a file's control flow graph into tmp/
+cfg file image_type='svg': build
+    #!/bin/bash
+    mkdir -p tmp
+    out="tmp/$(echo "{{file}}" | tr '/' '_')"
+    zig-out/bin/zlint --print-cfg "{{file}}" > "$out"
+    dot -T {{image_type}} -O "$out"
+
 codegen:
     zig build docs
     zig build config
