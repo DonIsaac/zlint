@@ -211,3 +211,7 @@ pub fn readUntilDelimiterOrEof(self: *std.Io.Reader, buffer: []u8, delimiter: u8
     self.toss(1); // throw out the delimiter
     return buffer[0..bytes_read];
 }
+
+test {
+    _ = @import("test/lint_command_test.zig");
+}
