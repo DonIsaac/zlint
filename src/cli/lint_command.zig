@@ -79,8 +79,9 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
         defer service.deinit();
 
         if (!options.stdin) {
-            var visitor: LintVisitor = .{
-                .service = &service,
+            var sink = LintSink{ .service = &service };
+            var visitor: FileFilter(LintSink) = .{
+                .sink = &sink,
                 .allocator = alloc,
                 .include = options.args.items,
                 .exclude = config.config.ignore,
@@ -116,75 +117,96 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
     }
 }
 
-const LintWalker = walk.Walker(LintVisitor);
+const LintWalker = walk.Walker(FileFilter(LintSink));
 
-const LintVisitor = struct {
+/// Sink used by `lint`: hands each accepted file to the linter's thread pool.
+const LintSink = struct {
     /// borrowed
     service: *LintService,
-    allocator: Allocator,
-    include: []const glob.Pattern,
-    exclude: []const glob.Pattern,
 
-    pub fn visit(self: *LintVisitor, entry: walk.Entry) ?walk.WalkState {
-        switch (entry.kind) {
-            .directory => {
-                if (entry.basename.len == 0 or entry.basename[0] == '.') {
-                    return WalkState.Skip;
-                } else if (mem.eql(u8, entry.basename, "vendor") or mem.eql(u8, entry.basename, "zig-out")) {
-                    return WalkState.Skip;
-                }
-                for (self.service.config.config.ignore) |ignore| {
-                    if (mem.startsWith(u8, entry.path, ignore)) {
-                        return WalkState.Skip;
-                    }
-                }
-            },
-            .file => {
-                if (!mem.eql(u8, path.extension(entry.path), ".zig") or
-                    !self.isIncluded(&entry))
-                {
-                    return WalkState.Continue;
-                }
-
-                const filepath = self.allocator.dupe(u8, entry.path) catch {
-                    return WalkState.Stop;
-                };
-                self.service.lintFileParallel(filepath);
-            },
-            else => {
-                // todo: warn
-            },
-        }
-        return WalkState.Continue;
-    }
-
-    fn isIncluded(self: *const LintVisitor, entry: *const walk.Entry) bool {
-        util.debugAssert(
-            entry.kind != .directory,
-            "isIncluded should only be passed file-like things, got a dir.",
-            .{},
-        );
-
-        if (self.include.len > 0) matches_include: {
-            for (self.include) |pattern| {
-                if (glob.match(pattern, entry.path)) {
-                    break :matches_include;
-                }
-            }
-            return false;
-        }
-
-        if (self.exclude.len > 0) {
-            for (self.exclude) |pattern| {
-                if (glob.match(pattern, entry.path)) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
+    pub fn accept(self: *LintSink, filepath: []u8) void {
+        self.service.lintFileParallel(filepath);
     }
 };
+
+/// Decides which files in a directory tree get linted, and hands each one to
+/// `sink`, which takes ownership of the path.
+///
+/// `Sink` must expose `fn accept(*Sink, []u8) void`.
+pub fn FileFilter(comptime Sink: type) type {
+    return struct {
+        /// borrowed
+        sink: *Sink,
+        allocator: Allocator,
+        /// Paths and patterns named on the command line. Empty means "lint
+        /// everything under the walk root".
+        include: []const glob.Pattern,
+        /// `ignore` from `zlint.json`, plus whatever `.gitignore` contributed.
+        exclude: []const glob.Pattern,
+
+        const Self = @This();
+
+        pub fn visit(self: *Self, entry: walk.Entry) ?walk.WalkState {
+            switch (entry.kind) {
+                .directory => {
+                    if (entry.basename.len == 0 or entry.basename[0] == '.') {
+                        return WalkState.Skip;
+                    } else if (mem.eql(u8, entry.basename, "vendor") or mem.eql(u8, entry.basename, "zig-out")) {
+                        return WalkState.Skip;
+                    }
+                    for (self.exclude) |ignore| {
+                        if (mem.startsWith(u8, entry.path, ignore)) {
+                            return WalkState.Skip;
+                        }
+                    }
+                },
+                .file => {
+                    if (!mem.eql(u8, path.extension(entry.path), ".zig") or
+                        !self.isIncluded(&entry))
+                    {
+                        return WalkState.Continue;
+                    }
+
+                    const filepath = self.allocator.dupe(u8, entry.path) catch {
+                        return WalkState.Stop;
+                    };
+                    self.sink.accept(filepath);
+                },
+                else => {
+                    // todo: warn
+                },
+            }
+            return WalkState.Continue;
+        }
+
+        fn isIncluded(self: *const Self, entry: *const walk.Entry) bool {
+            util.debugAssert(
+                entry.kind != .directory,
+                "isIncluded should only be passed file-like things, got a dir.",
+                .{},
+            );
+
+            if (self.include.len > 0) matches_include: {
+                for (self.include) |pattern| {
+                    if (glob.match(pattern, entry.path)) {
+                        break :matches_include;
+                    }
+                }
+                return false;
+            }
+
+            if (self.exclude.len > 0) {
+                for (self.exclude) |pattern| {
+                    if (glob.match(pattern, entry.path)) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+    };
+}
 
 /// Modified version of `streamUntilDelimiterOrEof` from zig v0.14.1's stdlib.
 ///
@@ -195,7 +217,7 @@ const LintVisitor = struct {
 /// Returns a slice of the stream data, with ptr equal to `buf.ptr`. The
 /// delimiter byte is written to the output buffer but is not included
 /// in the returned slice.
-pub fn readUntilDelimiterOrEof(self: *std.Io.Reader, buffer: []u8, delimiter: u8) anyerror!?[]u8 {
+fn readUntilDelimiterOrEof(self: *std.Io.Reader, buffer: []u8, delimiter: u8) anyerror!?[]u8 {
     var fbw = std.Io.Writer.fixed(buffer);
     const bytes_read = self.streamDelimiter(&fbw, delimiter) catch |err| switch (err) {
         error.EndOfStream => if (fbw.end == 0) {
