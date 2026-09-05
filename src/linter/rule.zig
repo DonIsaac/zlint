@@ -59,6 +59,10 @@ pub const Rule = struct {
         ///
         /// Used (in part) when generating documentation.
         fix: Fix.Meta = Fix.Meta.disabled,
+        /// Whether or not this rule relies on control flow analysis.
+        ///
+        /// A CFG will not be available to rules unless this flag is enabled.
+        needs_cfg: bool = false,
     };
 
     pub const Category = enum {

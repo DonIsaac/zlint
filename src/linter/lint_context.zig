@@ -12,6 +12,7 @@ curr_rule_name: []const u8 = "",
 curr_severity: Severity = Severity.err,
 // TODO: `void` in release builds
 curr_fix_capabilities: Fix.Meta = Fix.Meta.disabled,
+curr_rule_needs_cfg: bool = false,
 
 /// Are auto fixes enabled?
 // fix: bool = false,
@@ -37,6 +38,7 @@ pub inline fn updateForRule(self: *Context, rule: *const Rule.WithSeverity) void
     self.curr_rule_name = rule.rule.meta.name;
     self.curr_severity = rule.severity;
     self.curr_fix_capabilities = rule.rule.meta.fix;
+    self.curr_rule_needs_cfg = rule.rule.meta.needs_cfg;
 }
 
 pub fn takeDiagnostics(self: *Context) Diagnostic.List {
@@ -65,6 +67,11 @@ pub inline fn symbols(self: *const Context) *const Semantic.Symbol.Table {
 
 pub inline fn links(self: *const Context) *const Semantic.NodeLinks {
     return &self.semantic.node_links;
+}
+
+pub inline fn cfg(self: *const Context) *const Semantic.Cfg {
+    util.debugAssert(self.curr_rule_needs_cfg, "Rules cannot use a CFG unless `needs_cfg` is enabled.", .{});
+    return &self.semantic.cfg;
 }
 
 // ============================ ERROR REPORTING ============================

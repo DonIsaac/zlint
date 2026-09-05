@@ -13,6 +13,7 @@ reporter: *reporters.Reporter,
 group: Io.Group = .init,
 io: Io,
 allocator: Allocator,
+_enable_cfg: bool,
 
 pub fn init(
     allocator: Allocator,
@@ -32,6 +33,7 @@ pub fn init(
         .reporter = reporter,
         .io = io,
         .allocator = allocator,
+        ._enable_cfg = linter.rules.needsCfg(),
     };
 }
 
@@ -99,6 +101,7 @@ pub fn lintSource(
     if (source.text().len == 0) return;
     var builder = Semantic.Builder.init(self.allocator);
     builder.withSource(source);
+    builder.withCfg(self._enable_cfg);
     defer builder.deinit();
 
     var semantic_result = builder.build(source.text()) catch |e| {
