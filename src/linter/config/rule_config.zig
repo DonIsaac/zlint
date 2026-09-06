@@ -10,12 +10,15 @@ const ParseError = json.ParseError(json.Scanner);
 pub fn RuleConfig(RuleImpl: type) type {
     return struct {
         severity: Severity = .off,
-        // FIXME: unsafe const cast
-        rule_impl: *anyopaque = @ptrCast(@constCast(&default)),
+        rule_impl: *anyopaque = @ptrCast(&default),
 
         pub const name = RuleImpl.meta.name;
         pub const meta: Rule.Meta = RuleImpl.meta;
-        pub const default: RuleImpl = .{};
+        /// Shared by every unconfigured `RuleConfig(RuleImpl)`. A `var` rather
+        /// than a `const` so `rule_impl` doesn't have to `@constCast` away a
+        /// pointer to read-only memory. Rules are run concurrently across
+        /// files, so nothing may write through it.
+        pub var default: RuleImpl = .{};
         const Self = @This();
 
         pub fn jsonParse(allocator: Allocator, source: *json.Scanner, options: json.ParseOptions) ParseError!Self {

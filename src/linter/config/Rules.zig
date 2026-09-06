@@ -25,3 +25,25 @@ pub const Rules = blk: {
     const frozen_attrs = attrs;
     break :blk @Struct(.auto, null, &frozen_names, &frozen_types, &frozen_attrs);
 };
+
+/// `Rules`, with every field optional. A config that extends another needs to
+/// tell "not set" apart from "set to the default".
+pub const Optional = blk: {
+    const len = all_rules.all.len;
+    var names: [len][]const u8 = undefined;
+    var types: [len]type = undefined;
+    var attrs: [len]std.builtin.Type.StructField.Attributes = undefined;
+
+    for (all_rules.all, 0..) |RuleImpl, i| {
+        const Config = ?RuleConfig(RuleImpl);
+        const unset: Config = null;
+        names[i] = all_rules.snakeName(RuleImpl);
+        types[i] = Config;
+        attrs[i] = .{ .default_value_ptr = @ptrCast(&unset) };
+    }
+
+    const frozen_names = names;
+    const frozen_types = types;
+    const frozen_attrs = attrs;
+    break :blk @Struct(.auto, null, &frozen_names, &frozen_types, &frozen_attrs);
+};
