@@ -1,7 +1,7 @@
 const std = @import("std");
 const util = @import("util");
 const walk = @import("../io/Walker.zig");
-const glob = @import("../io/glob.zig");
+const glob = @import("zlint").glob;
 const _lint = @import("zlint").lint;
 const reporters = @import("zlint").report;
 const lint_config = @import("lint_config.zig");
@@ -83,7 +83,7 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
             var visitor: FileFilter(LintSink) = .{
                 .sink = &sink,
                 .allocator = alloc,
-                .include = options.args.items,
+                .include = .new(options.args.items),
                 .exclude = config.config.ignore,
             };
             var src = try Io.Dir.cwd().openDir(io, ".", .{ .iterate = true });
@@ -140,9 +140,9 @@ pub fn FileFilter(comptime Sink: type) type {
         allocator: Allocator,
         /// Paths and patterns named on the command line. Empty means "lint
         /// everything under the walk root".
-        include: []const glob.Pattern,
+        include: glob.GlobSet,
         /// `ignore` from `zlint.json`, plus whatever `.gitignore` contributed.
-        exclude: []const glob.Pattern,
+        exclude: glob.GlobSet,
 
         const Self = @This();
 
@@ -151,13 +151,14 @@ pub fn FileFilter(comptime Sink: type) type {
                 .directory => {
                     if (entry.basename.len == 0 or entry.basename[0] == '.') {
                         return WalkState.Skip;
-                    } else if (mem.eql(u8, entry.basename, "vendor") or mem.eql(u8, entry.basename, "zig-out")) {
+                    } else if (mem.eql(u8, entry.basename, "vendor") or
+                        mem.eql(u8, entry.basename, "zig-out") or
+                        mem.eql(u8, entry.basename, "zig-pkg"))
+                    {
                         return WalkState.Skip;
                     }
-                    for (self.exclude) |ignore| {
-                        if (mem.startsWith(u8, entry.path, ignore)) {
-                            return WalkState.Skip;
-                        }
+                    if (self.exclude.matches(entry.path)) {
+                        return WalkState.Skip;
                     }
                 },
                 .file => {
@@ -186,20 +187,16 @@ pub fn FileFilter(comptime Sink: type) type {
                 .{},
             );
 
-            if (self.include.len > 0) matches_include: {
-                for (self.include) |pattern| {
-                    if (glob.match(pattern, entry.path)) {
-                        break :matches_include;
-                    }
+            if (self.include.patterns.len > 0) {
+                if (!self.include.matches(entry.path)) {
+                    return false;
                 }
-                return false;
             }
 
-            if (self.exclude.len > 0) {
-                for (self.exclude) |pattern| {
-                    if (glob.match(pattern, entry.path)) {
-                        return false;
-                    }
+            if (self.exclude.patterns.len > 0) {
+                if (self.exclude.matches(entry.path)) {
+                    @branchHint(.unlikely);
+                    return false;
                 }
             }
 

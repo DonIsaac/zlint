@@ -58,16 +58,23 @@ pub fn Walker(comptime Visitor: type) type {
                     return err;
                 }) |base| {
                     self.name_buffer.shrinkRetainingCapacity(dirname_len);
-                    if (self.name_buffer.items.len != 0) {
-                        try self.name_buffer.append(gpa, std.fs.path.sep);
+                    if (self.name_buffer.items.len != 0 and
+                        !path.isSep(self.name_buffer.items[self.name_buffer.items.len - 1]))
+                    {
+                        try self.name_buffer.append(gpa, path.sep);
                         dirname_len += 1;
                     }
-                    try self.name_buffer.ensureUnusedCapacity(gpa, base.name.len + 1);
+                    const path_suffix_len: usize = if (base.kind == .directory) 2 else 1;
+                    try self.name_buffer.ensureUnusedCapacity(gpa, base.name.len + path_suffix_len);
                     self.name_buffer.appendSliceAssumeCapacity(base.name);
+                    const basename_end = self.name_buffer.items.len;
+                    if (base.kind == .directory) {
+                        self.name_buffer.appendAssumeCapacity(path.sep);
+                    }
                     self.name_buffer.appendAssumeCapacity(0);
                     const ent = Entry{
                         .dir = containing.iter.reader.dir,
-                        .basename = self.name_buffer.items[dirname_len .. self.name_buffer.items.len - 1 :0],
+                        .basename = self.name_buffer.items[dirname_len..basename_end],
                         .path = self.name_buffer.items[0 .. self.name_buffer.items.len - 1 :0],
                         .kind = base.kind,
                     };
@@ -132,7 +139,8 @@ pub const Entry = struct {
     /// rather than `path`, avoiding `error.NameTooLong` for deeply nested paths.
     /// The directory remains open until `next` or `deinit` is called.
     dir: Dir,
-    basename: [:0]const u8,
+    basename: []const u8,
+    /// Directory paths include a trailing separator. File paths do not.
     path: [:0]const u8,
     kind: Io.File.Kind,
 };
@@ -146,4 +154,5 @@ const std = @import("std");
 
 const Allocator = std.mem.Allocator;
 const Io = std.Io;
+const path = std.fs.path;
 const Dir = Io.Dir;

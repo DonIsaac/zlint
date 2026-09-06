@@ -11,14 +11,22 @@ ZLint respects `.gitignore` files by default; no files ignored by git will be
 linted.
 
 To ignore additional files, provide a list of glob patterns in the `ignore`
-field of your `zlint.json` file.
+field of your `zlint.json` file. Patterns follow `.gitignore` conventions:
+
+- a pattern with no `/` matches a file or folder name at any depth, so
+  `generated` skips both `generated/` and `src/generated/`
+- a pattern containing a `/` is anchored to your project root
+- a trailing `/` matches folders only
 
 ```json title="zlint.json"
 {
-  "ignore": ["src/test/**"],
+  "ignore": ["src/test/**", "node_modules", "*.gen.zig"],
   "rules": { /* ... */ }
 }
 ```
+
+Ignoring a folder skips everything inside it, so there is no need to add a
+`/**` suffix.
 
 ## Disabling Rules
 You can globally disable rules by setting their level to `off` in your

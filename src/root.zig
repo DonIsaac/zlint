@@ -35,6 +35,10 @@ pub const printer = struct {
 
 pub const walk = @import("visit/walk.zig");
 
+/// Glob matching. Lives here, not in the CLI, because `Config.ignore` is a
+/// `glob.GlobSet`.
+pub const glob = @import("io/glob.zig");
+
 const tty = @import("io/tty.zig");
 
 test {
@@ -43,5 +47,6 @@ test {
     std.testing.refAllDecls(json);
     std.testing.refAllDecls(lint);
     std.testing.refAllDecls(walk);
+    std.testing.refAllDecls(glob);
     std.testing.refAllDecls(tty);
 }
