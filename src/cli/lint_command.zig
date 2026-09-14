@@ -4,7 +4,7 @@ const walk = @import("../io/Walker.zig");
 const glob = @import("zlint").glob;
 const _lint = @import("zlint").lint;
 const reporters = @import("zlint").report;
-const lint_config = @import("lint_config.zig");
+const lint_config = @import("lint/config.zig");
 
 const mem = std.mem;
 const path = std.fs.path;
