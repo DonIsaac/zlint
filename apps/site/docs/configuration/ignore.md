@@ -11,22 +11,30 @@ ZLint respects `.gitignore` files by default; no files ignored by git will be
 linted.
 
 To ignore additional files, provide a list of glob patterns in the `ignore`
-field of your `zlint.json` file. Patterns follow `.gitignore` conventions:
+field of your `zlint.json` file:
 
-- a pattern with no `/` matches a file or folder name at any depth, so
-  `generated` skips both `generated/` and `src/generated/`
-- a pattern containing a `/` is anchored to your project root
-- a trailing `/` matches folders only
+- patterns are anchored to your project root, so `src/generated` matches only
+  that one folder
+- a `**/` prefix matches at any depth, so `**/generated` also skips
+  `src/generated/`
+- a `/**` suffix matches a folder's contents, so skipping everything in
+  `generated/` takes `**/generated/**`
 
 ```json title="zlint.json"
 {
-  "ignore": ["src/test/**", "node_modules", "*.gen.zig"],
+  "ignore": ["src/test/**", "**/node_modules/**", "**/*.gen.zig"],
   "rules": { /* ... */ }
 }
 ```
 
-Ignoring a folder skips everything inside it, so there is no need to add a
-`/**` suffix.
+:::note
+Naming a folder does not skip what is inside it. `**/generated` matches the
+folder itself; pair it with `**/generated/**` to skip its contents too.
+
+`.gitignore` entries are read with git's rules, not these, and translated to
+equivalent globs - a bare `generated` line in a `.gitignore` still applies at
+any depth.
+:::
 
 ## Disabling Rules
 You can globally disable rules by setting their level to `off` in your
