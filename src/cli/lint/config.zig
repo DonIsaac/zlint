@@ -11,6 +11,9 @@ const lint = @import("zlint").lint;
 const Cow = util.Cow(false);
 const Error = @import("zlint").Error;
 const Span = @import("zlint").span.Span;
+const ParentIterator = @import("../../io/parent_iterator.zig").ParentIterator;
+const fs = @import("../../io/fs.zig");
+const gitignore = @import("gitignore.zig");
 
 /// Load the lint configuration. When `config_path` is given, that file is used
 /// directly and no directory walking happens. Otherwise, `zlint.json` is
@@ -91,7 +94,13 @@ fn parseConfigFile(
 ) !lint.Config.Managed {
     const arena_alloc = arena.allocator();
 
-    const source = readToEndAlloc(config_file, io, arena_alloc, std.math.maxInt(u32)) catch |e| {
+    const source = fs.readToEndAlloc(
+        config_file,
+        io,
+        arena_alloc,
+        std.math.maxInt(u32),
+        128,
+    ) catch |e| {
         err.* = ioDiagnostic(err_alloc, "Failed to read {s}: {s}", config_path, e);
         return e;
     };
@@ -127,88 +136,6 @@ fn ioDiagnostic(
     var err = Error.fmt(alloc, template, .{ subject, @errorName(e) }) catch return null;
     err.code = "invalid-config";
     return err;
-}
-
-/// Read the remaining contents of `file`, up to `max_bytes`. Replaces
-/// `std.fs.File.readToEndAlloc` from Zig <= 0.15.
-fn readToEndAlloc(file: Io.File, io: Io, allocator: Allocator, max_bytes: usize) ![]u8 {
-    var reader = file.reader(io, &.{});
-    return reader.interface.allocRemaining(allocator, .limited(max_bytes)) catch |e| switch (e) {
-        error.ReadFailed => return reader.err orelse error.InputOutput,
-        else => |other| return other,
-    };
-}
-
-const ParentIterError = error{
-    NotAbsolute,
-} || Dir.RealPathFileError;
-fn ParentIterator(comptime N: usize) type {
-    return struct {
-        // SAFETY: initialized during .init()
-        buf: [N]u8 = undefined,
-        filename: []const u8,
-        last_slash: isize,
-        const SLASH = if (util.IS_WINDOWS) '\\' else '/';
-        const SLASH_STR = if (util.IS_WINDOWS) "\\" else "/";
-
-        const Self = @This();
-        pub fn fromDir(io: Io, starting_dir: Dir, filename: []const u8) ParentIterError!Self {
-            var self = Self{
-                .filename = filename,
-                .last_slash = 0,
-            };
-
-            const curr_path_len = try starting_dir.realPathFile(io, ".", self.buf[0..]);
-            try self.prepare(self.buf[0..curr_path_len]);
-
-            return self;
-        }
-
-        pub fn init(starting_dir: []const u8, filename: []const u8) ParentIterError!Self {
-            std.debug.assert(starting_dir.len > 0);
-            var self = Self{
-                .filename = filename,
-                .last_slash = @intCast(starting_dir.len),
-            };
-            @memcpy(self.buf[0..starting_dir.len], starting_dir);
-
-            // strip trailing slash
-            const curr_path = if (starting_dir[starting_dir.len - 1] == SLASH)
-                starting_dir[0 .. starting_dir.len - 1]
-            else
-                starting_dir;
-
-            try self.prepare(curr_path);
-            return self;
-        }
-
-        fn prepare(self: *Self, curr_path: []const u8) ParentIterError!void {
-            // Windows paths start with C:\ or some other drive letter
-            if (comptime !util.IS_WINDOWS) if (curr_path[0] != SLASH) return ParentIterError.NotAbsolute;
-            if (N - curr_path.len < 2 + self.filename.len) return ParentIterError.NameTooLong;
-
-            // "/foo/bar" slice => "/foo/bar/" sentinel
-            self.buf[curr_path.len] = SLASH;
-            self.buf[curr_path.len + 1] = 0;
-            self.last_slash = @intCast(curr_path.len);
-        }
-
-        pub fn next(self: *Self) ?[]const u8 {
-            if (self.last_slash < 0) return null;
-            const slash: usize = @intCast(self.last_slash);
-            const filename_len = self.filename.len;
-
-            defer if (mem.lastIndexOf(u8, self.buf[0..slash], SLASH_STR)) |prev_slash| {
-                self.last_slash = @intCast(prev_slash);
-            } else {
-                self.last_slash = -1;
-            };
-
-            @memcpy(self.buf[slash + 1 ..][0..filename_len], self.filename);
-            const next_path = self.buf[0 .. slash + 1 + filename_len];
-            return next_path;
-        }
-    };
 }
 
 /// Build a diagnostic describing a config parse failure. Returns `null` if any
@@ -267,161 +194,7 @@ const customRuleMessages = std.StaticStringMap([]const u8).initComptime([_]struc
     .{ "\"no-undefined\"", "`no-undefined` has been renamed to `unsafe-undefined`." },
 });
 
-pub const GitignoreSearch = enum {
-    /// Beside the config file, which marks the project root.
-    beside_config,
-    /// Nearest `.gitignore` at or above `root`.
-    nearest_from_root,
-};
-
-/// Try to read the contents of a `.gitignore` and add its entries to `config`'s
-/// ignore list.
-///
-/// A config discovered by walking up from `root` marks the project root, so
-/// `.beside_config` applies. An explicit `--config` path carries no such
-/// meaning, so callers pass `.nearest_from_root`.
-pub fn readGitignore(config: *lint.Config.Managed, io: Io, root: Dir, search: GitignoreSearch) !void {
-    const allocator = config.allocator();
-    const dirname_: ?[]const u8 = switch (search) {
-        .nearest_from_root => null,
-        .beside_config => if (config.path) |p| blk: {
-            // NOTE: the filename is arbitrary; `--config` accepts any path.
-            if (comptime util.IS_DEBUG) std.debug.assert(path.isAbsolute(p));
-            break :blk path.dirname(p);
-        } else null,
-    };
-
-    var gitignore_file = if (dirname_) |dirname| blk: {
-        var stackfb = std.heap.stackFallback(512, allocator);
-        const stackalloc = stackfb.get();
-        const gitignore_path = try path.join(stackalloc, &[_][]const u8{ dirname, ".gitignore" });
-        defer stackalloc.free(gitignore_path);
-        break :blk Dir.openFileAbsolute(io, gitignore_path, .{ .mode = .read_only }) catch return;
-    } else root: {
-        var it = ParentIterator(4096).fromDir(io, root, ".gitignore") catch return;
-        while (it.next()) |candidate| {
-            break :root Dir.openFileAbsolute(io, candidate, .{ .mode = .read_only }) catch continue;
-        }
-        return;
-    };
-    defer gitignore_file.close(io);
-
-    const gitignore = try readToEndAlloc(gitignore_file, io, allocator, std.math.maxInt(u32));
-    errdefer allocator.free(gitignore);
-    var it = mem.splitScalar(u8, gitignore, '\n');
-
-    // count lines to pre-allocate enough memory
-    var lines: u32 = 0;
-    while (it.next()) |line_| {
-        // const line = mem.trim(u8, line_, &std.ascii.whitespace);
-        const line = util.trimWhitespace(line_);
-        if (line.len == 0 or line[0] == '#') continue;
-        lines += 1;
-    }
-
-    if (lines == 0) return;
-    it.reset();
-
-    // merge existing + new ignores. Each line can expand to two globs.
-    var ignores = try std.ArrayListUnmanaged([]const u8).initCapacity(allocator, config.config.ignore.patterns.len + (lines * 2));
-    ignores.appendSliceAssumeCapacity(config.config.ignore.patterns);
-    while (it.next()) |line_| {
-        const line = mem.trim(u8, line_, &std.ascii.whitespace);
-        if (line.len == 0 or line[0] == '#') continue;
-        try gitignoreLineToGlobs(allocator, line, &ignores);
-    }
-    config.config.ignore = .new(ignores.items);
-}
-
-/// Rewrite one `.gitignore` line as the glob patterns that reproduce it, and
-/// append them to `out`.
-///
-/// `ignore` is a plain glob matcher, so the gitignore-specific rules have to be
-/// spelled out in the pattern itself: an unanchored name applies at any depth
-/// (`**/` prefix), and naming a folder excludes what's inside it (a `/**` form
-/// alongside the name). `line` must already be trimmed and non-empty.
-fn gitignoreLineToGlobs(
-    allocator: Allocator,
-    line: []const u8,
-    out: *std.ArrayListUnmanaged([]const u8),
-) !void {
-    var body = line;
-
-    const negated = body[0] == '!';
-    if (negated) body = body[1..];
-
-    // a trailing `/` means the entry only ever names a folder
-    const dirs_only = body.len > 0 and body[body.len - 1] == '/';
-    if (dirs_only) body = mem.trimEnd(u8, body, "/");
-
-    // a leading `/` anchors to the project root; so does an interior `/`
-    const rooted = body.len > 0 and body[0] == '/';
-    if (rooted) body = mem.trimStart(u8, body, "/");
-    const anchored = rooted or mem.indexOfScalar(u8, body, '/') != null;
-
-    // `!`, `/` and `//` carry no pattern
-    if (body.len == 0) return;
-
-    const prefix = if (negated) "!" else "";
-    const depth = if (anchored) "" else "**/";
-
-    if (!dirs_only) {
-        try out.append(allocator, try std.fmt.allocPrint(allocator, "{s}{s}{s}", .{ prefix, depth, body }));
-    }
-    try out.append(allocator, try std.fmt.allocPrint(allocator, "{s}{s}{s}/**", .{ prefix, depth, body }));
-}
-
 const t = std.testing;
-
-test gitignoreLineToGlobs {
-    const cases = [_]struct { line: []const u8, want: []const []const u8 }{
-        .{ .line = "build", .want = &.{ "**/build", "**/build/**" } },
-        .{ .line = "build/", .want = &.{"**/build/**"} },
-        .{ .line = "/dist", .want = &.{ "dist", "dist/**" } },
-        .{ .line = "/dist/", .want = &.{"dist/**"} },
-        .{ .line = "src/test", .want = &.{ "src/test", "src/test/**" } },
-        .{ .line = "*.gen.zig", .want = &.{ "**/*.gen.zig", "**/*.gen.zig/**" } },
-        .{ .line = "!keep.zig", .want = &.{ "!**/keep.zig", "!**/keep.zig/**" } },
-        .{ .line = "!lib/", .want = &.{"!**/lib/**"} },
-        // nothing to match
-        .{ .line = "/", .want = &.{} },
-        .{ .line = "!", .want = &.{} },
-    };
-
-    for (cases) |case| {
-        var out: std.ArrayListUnmanaged([]const u8) = .empty;
-        defer {
-            for (out.items) |g| t.allocator.free(g);
-            out.deinit(t.allocator);
-        }
-        try gitignoreLineToGlobs(t.allocator, case.line, &out);
-
-        t.expectEqual(case.want.len, out.items.len) catch |e| {
-            std.debug.print("`{s}` produced:\n", .{case.line});
-            for (out.items) |g| std.debug.print("  {s}\n", .{g});
-            return e;
-        };
-        for (case.want, out.items) |want, got| try t.expectEqualStrings(want, got);
-    }
-}
-
-test ParentIterator {
-    if (util.IS_WINDOWS) {
-        var it = try ParentIterator(4096).init("C:\\foo\\bar\\baz", "zlint.json");
-        try t.expectEqualStrings("C:\\foo\\bar\\baz\\zlint.json", it.next().?);
-        try t.expectEqualStrings("C:\\foo\\bar\\zlint.json", it.next().?);
-        try t.expectEqualStrings("C:\\foo\\zlint.json", it.next().?);
-        try t.expectEqualStrings("C:\\zlint.json", it.next().?);
-        try t.expectEqual(null, it.next());
-    } else {
-        var it = try ParentIterator(4096).init("/foo/bar/baz", "zlint.json");
-        try t.expectEqualStrings("/foo/bar/baz/zlint.json", it.next().?);
-        try t.expectEqualStrings("/foo/bar/zlint.json", it.next().?);
-        try t.expectEqualStrings("/foo/zlint.json", it.next().?);
-        try t.expectEqualStrings("/zlint.json", it.next().?);
-        try t.expectEqual(null, it.next());
-    }
-}
 
 test resolveLintConfig {
     const cwd = Dir.cwd();
@@ -574,7 +347,7 @@ test "getLintConfig with an explicit path does not walk the directory tree" {
     // An explicit config says nothing about where the project is, so ignores
     // come from the nearest .gitignore at or above cwd (here, the repo root's)
     // rather than the one beside the config file.
-    try readGitignore(&config, t.io, Dir.cwd(), .nearest_from_root);
+    try gitignore.readGitignore(&config, t.io, Dir.cwd(), .nearest_from_root);
     try expectIgnores(config, "**/zig-out");
     try t.expectEqual(.err, config.config.rules.rules.unsafe_undefined.severity);
     try t.expectEqual(.warning, config.config.rules.rules.homeless_try.severity);
@@ -586,32 +359,6 @@ fn expectIgnores(config: lint.Config.Managed, expected: []const u8) !void {
     }
     std.debug.print("expected ignore list to contain '{s}'\n", .{expected});
     return error.TestExpectedIgnoreEntry;
-}
-
-// A discovered config marks the project root, so its sibling .gitignore is used
-// and cwd's is not consulted. `test/fixtures/config` has no .gitignore, so the
-// ignore list must come back untouched.
-test "readGitignore does not fall back to cwd for a discovered config" {
-    const cwd = Dir.cwd();
-
-    var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
-
-    var err: ?Error = null;
-    defer if (err) |*e| e.deinit(t.allocator);
-
-    var config = try resolveLintConfig(
-        &arena,
-        t.io,
-        try cwd.openDir(t.io, "test/fixtures/config", .{}),
-        "zlint.json",
-        t.allocator,
-        &err,
-    );
-    try t.expect(err == null);
-
-    try readGitignore(&config, t.io, cwd, .beside_config);
-    try t.expectEqual(0, config.config.ignore.patterns.len);
 }
 
 test "getLintConfig falls back to resolution when no path is given" {
@@ -668,4 +415,8 @@ test "getLintConfig reports parse errors in an explicit config file" {
     const expected_suffix = try path.join(t.allocator, &.{ "config-empty", "zlint.json" });
     defer t.allocator.free(expected_suffix);
     try t.expect(mem.endsWith(u8, err.source_name.?, expected_suffix));
+}
+
+test {
+    // std.testing.refAllDecls(@import("gitignore.zig"));
 }
