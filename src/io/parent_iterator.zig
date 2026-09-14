@@ -15,9 +15,6 @@ pub const ParentIterError = error{
 /// This iterator yields absolute paths to some possible file starting from within
 /// a target directory.
 ///
-///
-///
-///
 /// `ParentIterator` requires an absolute starting path and does not perform
 /// path normalization. Iteration does not check for directory or file
 /// existence, and all memory is buffer allocated.

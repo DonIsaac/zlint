@@ -6,9 +6,6 @@ const Dir = std.Io.Dir;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const t = std.testing;
 
-// A discovered config marks the project root, so its sibling .gitignore is used
-// and cwd's is not consulted. `test/fixtures/config` has no .gitignore, so the
-// ignore list must come back untouched.
 test "readGitignore does not fall back to cwd for a discovered config" {
     const cwd = Dir.cwd();
 

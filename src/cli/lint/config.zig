@@ -416,7 +416,3 @@ test "getLintConfig reports parse errors in an explicit config file" {
     defer t.allocator.free(expected_suffix);
     try t.expect(mem.endsWith(u8, err.source_name.?, expected_suffix));
 }
-
-test {
-    // std.testing.refAllDecls(@import("gitignore.zig"));
-}
