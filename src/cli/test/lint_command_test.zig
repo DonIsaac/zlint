@@ -55,9 +55,9 @@ fn expectLints(project: Project, expected: []const []const u8) !void {
     var ignore = project.ignore;
     if (hasGitignore(project.files)) {
         var config = Config.DEFAULT.intoManaged(&arena, null);
-        config.config.ignore = project.ignore;
+        config.config.ignore = .new(project.ignore);
         try lint_config.readGitignore(&config, t.io, fixture.root(), .nearest_from_root);
-        ignore = config.config.ignore;
+        ignore = config.config.ignore.patterns;
     }
 
     const found = try collectLintTargets(
@@ -114,8 +114,8 @@ fn collectLintTargets(
     var visitor: Filter = .{
         .sink = &sink,
         .allocator = alloc,
-        .include = include,
-        .exclude = exclude,
+        .include = .new(include),
+        .exclude = .new(exclude),
     };
     var walker = try walk.Walker(Filter).init(alloc, io, root, &visitor);
     defer walker.deinit();
@@ -238,28 +238,21 @@ test "ignore matches a file pattern at any depth" {
 }
 
 test "ignore matches a directory at any depth" {
-    try todo(
-        "`**/generated` matches nothing: directories are pruned with startsWith, " ++
-            "which a glob never matches, and the file pattern stops at the directory name",
-        expectLints(.{
-            .files = &.{
-                .{ .path = "src/main.zig" },
-                .{ .path = "src/generated/proto.zig" },
-                .{ .path = "lib/generated/other.zig" },
-            },
-            .ignore = &.{"**/generated"},
-        }, &.{"src/main.zig"}),
-    );
+    try expectLints(.{
+        .files = &.{
+            .{ .path = "src/main.zig" },
+            .{ .path = "src/generated/proto.zig" },
+            .{ .path = "lib/generated/other.zig" },
+        },
+        .ignore = &.{"**/generated"},
+    }, &.{"src/main.zig"});
 }
 
 test "ignore does not skip sibling directories that share a prefix" {
-    try todo(
-        "directories are pruned with startsWith, so `src` also prunes `srcgen`",
-        expectLints(.{
-            .files = &.{ .{ .path = "src/main.zig" }, .{ .path = "srcgen/tool.zig" } },
-            .ignore = &.{"src"},
-        }, &.{"srcgen/tool.zig"}),
-    );
+    try expectLints(.{
+        .files = &.{ .{ .path = "src/main.zig" }, .{ .path = "srcgen/tool.zig" } },
+        .ignore = &.{"src"},
+    }, &.{"srcgen/tool.zig"});
 }
 
 // =============================================================================
@@ -287,41 +280,29 @@ test "ignores comments and blank lines in gitignore" {
 }
 
 test "respects gitignore directory entries written with a trailing slash" {
-    try todo(
-        "`build/` matches neither the directory prune (startsWith) nor the file " ++
-            "glob, so a trailing slash silently disables the entry",
-        expectLints(.{ .files = &.{
-            .{ .path = ".gitignore", .contents = "build/\n" },
-            .{ .path = "src/main.zig" },
-            .{ .path = "build/gen.zig" },
-        } }, &.{"src/main.zig"}),
-    );
+    try expectLints(.{ .files = &.{
+        .{ .path = ".gitignore", .contents = "build/\n" },
+        .{ .path = "src/main.zig" },
+        .{ .path = "build/gen.zig" },
+    } }, &.{"src/main.zig"});
 }
 
 test "respects gitignore patterns at any depth" {
-    try todo(
-        "git matches a slash-free pattern at any depth, but `*` in a zlint glob " ++
-            "does not cross path separators",
-        expectLints(.{ .files = &.{
-            .{ .path = ".gitignore", .contents = "*.gen.zig\n" },
-            .{ .path = "src/main.zig" },
-            .{ .path = "root.gen.zig" },
-            .{ .path = "src/deep/proto.gen.zig" },
-        } }, &.{"src/main.zig"}),
-    );
+    try expectLints(.{ .files = &.{
+        .{ .path = ".gitignore", .contents = "*.gen.zig\n" },
+        .{ .path = "src/main.zig" },
+        .{ .path = "root.gen.zig" },
+        .{ .path = "src/deep/proto.gen.zig" },
+    } }, &.{"src/main.zig"});
 }
 
 test "respects gitignore entries for a directory nested in the project" {
-    try todo(
-        "git ignores `node_modules` at any depth; startsWith only prunes it at " ++
-            "the project root",
-        expectLints(.{ .files = &.{
-            .{ .path = ".gitignore", .contents = "node_modules\n" },
-            .{ .path = "src/main.zig" },
-            .{ .path = "node_modules/a.zig" },
-            .{ .path = "tools/node_modules/b.zig" },
-        } }, &.{"src/main.zig"}),
-    );
+    try expectLints(.{ .files = &.{
+        .{ .path = ".gitignore", .contents = "node_modules\n" },
+        .{ .path = "src/main.zig" },
+        .{ .path = "node_modules/a.zig" },
+        .{ .path = "tools/node_modules/b.zig" },
+    } }, &.{"src/main.zig"});
 }
 
 test "respects root-anchored gitignore entries" {
