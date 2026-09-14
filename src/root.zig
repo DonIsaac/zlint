@@ -35,8 +35,6 @@ pub const printer = struct {
 
 pub const walk = @import("visit/walk.zig");
 
-/// Glob matching. Lives here, not in the CLI, because `Config.ignore` is a
-/// `glob.GlobSet`.
 pub const glob = @import("io/glob.zig");
 
 const tty = @import("io/tty.zig");

@@ -13,7 +13,7 @@ const std = @import("std");
 const Fixture = @import("Fixture.zig");
 const walk = @import("../../io/Walker.zig");
 const lint_command = @import("../lint_command.zig");
-const lint_config = @import("../lint_config.zig");
+const gitignore = @import("../lint/gitignore.zig");
 const Config = @import("zlint").lint.Config;
 
 const t = std.testing;
@@ -56,7 +56,7 @@ fn expectLints(project: Project, expected: []const []const u8) !void {
     if (hasGitignore(project.files)) {
         var config = Config.DEFAULT.intoManaged(&arena, null);
         config.config.ignore = .new(project.ignore);
-        try lint_config.readGitignore(&config, t.io, fixture.root(), .nearest_from_root);
+        try gitignore.readGitignore(&config, t.io, fixture.root(), .nearest_from_root);
         ignore = config.config.ignore.patterns;
     }
 

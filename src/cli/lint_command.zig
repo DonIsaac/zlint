@@ -1,13 +1,15 @@
 const std = @import("std");
 const util = @import("util");
-const walk = @import("../io/Walker.zig");
 const glob = @import("zlint").glob;
 const _lint = @import("zlint").lint;
 const reporters = @import("zlint").report;
-const lint_config = @import("lint_config.zig");
+const lint_config = @import("lint/config.zig");
+const gitignore = @import("lint/gitignore.zig");
+const fs = @import("../io/fs.zig");
 
 const mem = std.mem;
 const path = std.fs.path;
+const walk = @import("../io/Walker.zig");
 
 const Allocator = std.mem.Allocator;
 const Io = std.Io;
@@ -53,7 +55,7 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
         };
         break :resolve_config c;
     };
-    try lint_config.readGitignore(
+    try gitignore.readGitignore(
         &config,
         io,
         Io.Dir.cwd(),
@@ -97,7 +99,7 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
             var delim_buf: [1024]u8 = undefined;
             var stdin = Io.File.stdin();
             var reader = stdin.readerStreaming(io, &msg_buf);
-            while (try readUntilDelimiterOrEof(&reader.interface, &delim_buf, '\n')) |filepath| {
+            while (try fs.readUntilDelimiterOrEof(&reader.interface, &delim_buf, '\n')) |filepath| {
                 if (!std.mem.endsWith(u8, filepath, ".zig")) continue;
                 const owned = try alloc.dupe(u8, filepath);
                 service.lintFileParallel(owned);
@@ -205,46 +207,8 @@ pub fn FileFilter(comptime Sink: type) type {
     };
 }
 
-/// Modified version of `streamUntilDelimiterOrEof` from zig v0.14.1's stdlib.
-///
-/// Reads from the stream until specified byte is found. If the buffer is not
-/// large enough to hold the entire contents, `error.StreamTooLong` is returned.
-/// If end-of-stream is found, returns the rest of the stream. If this
-/// function is called again after that, returns null.
-/// Returns a slice of the stream data, with ptr equal to `buf.ptr`. The
-/// delimiter byte is written to the output buffer but is not included
-/// in the returned slice.
-fn readUntilDelimiterOrEof(self: *std.Io.Reader, buffer: []u8, delimiter: u8) anyerror!?[]u8 {
-    var fbw = std.Io.Writer.fixed(buffer);
-    const bytes_read = self.streamDelimiter(&fbw, delimiter) catch |err| switch (err) {
-        error.EndOfStream => if (fbw.end == 0) {
-            return null;
-        } else {
-            // Partial data at EOF (e.g. last line without trailing newline)
-            return buffer[0..fbw.end];
-        },
-
-        else => |e| return e,
-    };
-    if (bytes_read == 0) return null;
-    self.toss(1); // throw out the delimiter
-    return buffer[0..bytes_read];
-}
-
-test readUntilDelimiterOrEof {
-    const expectEqualString = std.testing.expectEqualStrings;
-    const expect = std.testing.expect;
-
-    var buffer: [1024]u8 = undefined;
-    const stdin = "line1\nline2\nline3";
-    var reader = std.Io.Reader.fixed(stdin);
-
-    try expectEqualString(try readUntilDelimiterOrEof(&reader, &buffer, '\n') orelse return error.ExpectedLine, "line1");
-    try expectEqualString(try readUntilDelimiterOrEof(&reader, &buffer, '\n') orelse return error.ExpectedLine, "line2");
-    try expectEqualString(try readUntilDelimiterOrEof(&reader, &buffer, '\n') orelse return error.ExpectedLine, "line3");
-    try expect(try readUntilDelimiterOrEof(&reader, &buffer, '\n') == null);
-}
-
 test {
     _ = @import("test/lint_command_test.zig");
+    std.testing.refAllDecls(lint_config);
+    std.testing.refAllDecls(gitignore);
 }
