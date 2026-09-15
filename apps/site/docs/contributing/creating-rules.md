@@ -9,7 +9,6 @@ Make sure you've followed the [setup guide](./index.mdx) first.
 
 :::
 
-
 ## Generating Boilerplate
 
 Start off by running `just new-rule <rule-name>` to generate boilerplate code.
@@ -52,8 +51,8 @@ The `runOn*` methods provide different ways to check for and report violations.
 The only difference between them is how they are called. Neither is better or
 worse than the other: just more or less useful for your specific rule.
 
--   `runOnNode` is called for every node in the AST.
--   `runOnSymbol` is called for every symbol in the symbol table.
+- `runOnNode` is called for every node in the AST.
+- `runOnSymbol` is called for every symbol in the symbol table.
 
 Pick the most convenient method for your rule and delete the other(s). Since
 `NoUndefined` looks for identifiers named `undefined`, we'll use `runOnNode`.
@@ -64,8 +63,8 @@ Pick the most convenient method for your rule and delete the other(s). Since
 > We highly recommend you familiarize yourself with Zig's AST and parser. We'll
 > go over pieces here, but these resources should provide more details.
 >
-> -   [`std.zig.Ast` API docs](https://ziglang.org/documentation/master/std/#std.zig.Ast)
-> -   [This blog post by Mitchell Hashimoto on Zig's parser](https://mitchellh.com/zig/parser#anatomy-of-an-ast-node)
+> - [`std.zig.Ast` API docs](https://ziglang.org/documentation/master/std/#std.zig.Ast)
+> - [This blog post by Mitchell Hashimoto on Zig's parser](https://mitchellh.com/zig/parser#anatomy-of-an-ast-node)
 
 `NodeWrapper` contains the current
 [node](https://ziglang.org/documentation/master/std/#std.zig.Ast.Node) as well
@@ -85,8 +84,8 @@ Identifiers don't store their value directly. Instead, we need to look it up
 from the source code using the identifier's span, which covers the start and end
 byte offsets of the identifier and can be used to create a slice.
 
--   When you have a node (`Ast.Node.Index`), use `ast.getNodeSource(id)`
--   When you have a lexer token (`Ast.TokenIndex`), use `ast.tokenSlice(id)`
+- When you have a node (`Ast.Node.Index`), use `ast.getNodeSource(id)`
+- When you have a lexer token (`Ast.TokenIndex`), use `ast.tokenSlice(id)`
 
 Since an identifier node is only a single token "wide", it doesn't matter which
 we use in this case.
@@ -134,11 +133,11 @@ pub fn runOnNode(_: *const NoUndefined, wrapper: NodeWrapper, ctx: *LinterContex
 
 Important notes:
 
--   `diagnostic` has several other variants depending on how you want to create
-    error messages. For example, to use a format string, use `diagnosticFmt`.
--   `spanT` creates a span from a lexer token, while `spanN` creates one from a
-    node index. You can also create one directly and pass a `LabeledSpan` instance
-    to `diagnostic`.
+- `diagnostic` has several other variants depending on how you want to create
+  error messages. For example, to use a format string, use `diagnosticFmt`.
+- `spanT` creates a span from a lexer token, while `spanN` creates one from a
+  node index. You can also create one directly and pass a `LabeledSpan` instance
+  to `diagnostic`.
 
 ## Testing
 

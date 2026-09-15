@@ -3,11 +3,7 @@
 datas = "datas"
 
 [files]
-extend-exclude = [
-    "src/io/glob_test.zig",
-    "src/zig/0.14.1/tokenizer.zig",
-    "build.zig.zon",
-]
+extend-exclude = ["src/io/glob_test.zig", "src/zig/0.14.1/tokenizer.zig", "build.zig.zon"]
 
 [type.zig]
 extend-glob = ["*.zig", "*.zog"]

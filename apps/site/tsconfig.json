@@ -9,11 +9,11 @@
     "module": "esnext",
     "noEmit": true,
     "paths": {
-      "@site/*": ["./*"],
+      "@site/*": ["./*"]
     },
     "skipLibCheck": true,
     "strict": true,
-    "isolatedModules": true,
+    "isolatedModules": true
   },
   "exclude": [".docusaurus", "build"]
 }

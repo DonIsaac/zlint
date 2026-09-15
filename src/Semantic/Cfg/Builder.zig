@@ -363,7 +363,7 @@ fn finishLoop(self: *CfgBuilder, alloc: Allocator, loop: *const Loop) Allocator.
 ///
 /// A labeled switch's dispatch is a loop header: `continue :lbl v` re-enters
 /// it. It therefore gets a fresh block, the way `beginLoop` does, so that only
-/// the operand — and not whatever preceded the switch — sits inside the loop.
+/// the operand - and not whatever preceded the switch - sits inside the loop.
 /// An unlabeled dispatch is not a jump target, so it reuses the current block.
 pub fn beginSwitch(
     self: *CfgBuilder,
@@ -693,7 +693,7 @@ pub const Label = struct {
     /// Whether an *unlabeled* jump can still see this frame. Cleared while a
     /// loop's `else` clause is lowered: the loop has finished by then, so
     /// `break`/`continue` there bind to the enclosing loop. Resolution by name
-    /// ignores this — `lbl: while (…) {} else { break :lbl; }` is legal Zig.
+    /// ignores this - `lbl: while (…) {} else { break :lbl; }` is legal Zig.
     active: bool = true,
     /// Where `break` lands (loop exit / labeled switch join / labeled block join).
     break_target: BasicBlock.Id,

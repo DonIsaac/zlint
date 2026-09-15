@@ -9,7 +9,6 @@ on:
       - "*.zig"
       - "*.zon"
       - "*.snap"
-      - "*.md"
       - "*.sh"
       - ".vscode/*"
       - ".github/*"
@@ -21,7 +20,6 @@ on:
       - "*.zig"
       - "*.zon"
       - "*.snap"
-      - "*.md"
       - "*.sh"
       - ".vscode/*"
       - ".github/*"
@@ -41,6 +39,11 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile
+
+      - name: Oxfmt
+        run: bun lint --check
+        
       - name: Oxlint
         run: bunx oxlint@latest --format github -D correctness -D suspicious -D perf
 

@@ -3,6 +3,7 @@
 ZLint is anopinionated linter for the Zig programming language, written in Zig.
 
 ## Output Principles
+
 - All code must be correct and memory safe. No undefined behavior or sloppy work.
 - We care heavily about performance. Every cache miss and allocation matters.
 - Test everything extensively. Leave nothing unverified.
@@ -10,11 +11,13 @@ ZLint is anopinionated linter for the Zig programming language, written in Zig.
 - Ask yourself: "Would a staff engineer do this?" If the answer is no, don't do it.
 
 ## Rules
+
 - Do not commit, push, rebase, etc. unless explicitly asked.
 - Do not make false or unfounded assumptions. Collect evidence from the user, source code, etc.
 - Never write quick hacks. Address the root cause of the problem.
 
 ## Guidelines
+
 - Keep changes small and focused.
 - Favor editing existing files over creating new ones.
 - Check for existing solutions before proposing a new one; avoid reinventing the wheel.
@@ -47,12 +50,13 @@ ZLint is anopinionated linter for the Zig programming language, written in Zig.
 ```
 
 ## Tools
+
 Zig 0.16, `just` for tasks, `bun` for package management and running JS apps, `typos` for spell checking.
 
 ## Build, Test, Run
 
 Prefer `just` targets over raw `zig build`. `just ready` is the canonical "is my
-branch green?" command — it runs fmt, check, docs, config, install, unit tests, and
+branch green?" command - it runs fmt, check, docs, config, install, unit tests, and
 E2E, then `git status`. Failures have clear error messages; success may be
 silent but will exit with code 0. After a clean run, `git diff` must be empty
 (codegen output is checked in). Run it before opening a PR.
@@ -88,11 +92,11 @@ module (via `src/root.zig`). Run `just submodules` once to clone the repos in
 
 Two kinds of files:
 
-- **Object files** — the whole file is a single `struct` with fields at the top
+- **Object files** - the whole file is a single `struct` with fields at the top
   level. Use `PascalCase.zig` (e.g. `Semantic.zig`, `LintService.zig`).
   Layout: fields → constants → methods (`init`/`deinit` first, then others) →
   nested types → imports → tests.
-- **Namespace files** — re-export types/functions, no top-level struct. Use
+- **Namespace files** - re-export types/functions, no top-level struct. Use
   `snake_case.zig` (e.g. `lint.zig`, `span.zig`, `rules.zig`). Avoid declaring
   free functions at the top scope; group by domain struct where possible.
   Layout: imports → public types → public functions → private types/functions →
@@ -113,7 +117,7 @@ Two kinds of files:
 - Use `std.log` in library code, never `std.debug.print` (the `no-print` rule
   flags it). Test code is fine.
 - E2E tests (`test/test_e2e.zig`) consume zlint via the `src/root.zig` public
-  surface — don't add cross-file imports that skip it.
+  surface - don't add cross-file imports that skip it.
 
 ## Adding or Changing a Lint Rule
 
@@ -129,10 +133,10 @@ The header comment in `src/Semantic.zig` explains the design. When writing
 rules, prefer the higher-level helpers:
 
 - `ctx.ast()`, `ctx.semantic`, `ctx.source`
-- `ctx.links().getScope(node)` — node → containing scope
-- `semantic.resolveBinding(scope, name, .{ .exclude = ... })` — scope-aware
+- `ctx.links().getScope(node)` - node → containing scope
+- `semantic.resolveBinding(scope, name, .{ .exclude = ... })` - scope-aware
   name lookup
-- `semantic.tokenSpan(token)` / `semantic.nodeSpan(node)` — diagnostic spans
+- `semantic.tokenSpan(token)` / `semantic.nodeSpan(node)` - diagnostic spans
 
 ## Codegen
 
@@ -158,17 +162,17 @@ Running `just ready` locally covers all of these (minus the OS matrix).
 
 ## Quick Reference
 
-| Task                     | Command                             |
-| ------------------------ | ----------------------------------- |
-| List all just tasks      | `just`                              |
-| Build (debug)            | `just build`                        |
-| Run linter on a file     | `just run -- path/to/file.zig`      |
-| Fast semantic check      | `just check`                        |
-| Unit tests               | `just test`                         |
-| E2E tests                | `just submodules && just e2e`       |
-| Full pre-PR sweep        | `just ready`                        |
-| Scaffold a new rule      | `just new-rule rule-name`           |
-| Regenerate docs + schema | `just codegen`                      |
-| Format                   | `just fmt`                          |
-| Lint                     | `just lint`                         |
-| Watch mode               | `just watch [check\|test\|build]`   |
+| Task                     | Command                           |
+| ------------------------ | --------------------------------- |
+| List all just tasks      | `just`                            |
+| Build (debug)            | `just build`                      |
+| Run linter on a file     | `just run -- path/to/file.zig`    |
+| Fast semantic check      | `just check`                      |
+| Unit tests               | `just test`                       |
+| E2E tests                | `just submodules && just e2e`     |
+| Full pre-PR sweep        | `just ready`                      |
+| Scaffold a new rule      | `just new-rule rule-name`         |
+| Regenerate docs + schema | `just codegen`                    |
+| Format                   | `just fmt`                        |
+| Lint                     | `just lint`                       |
+| Watch mode               | `just watch [check\|test\|build]` |

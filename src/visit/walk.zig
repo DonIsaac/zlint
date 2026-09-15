@@ -802,7 +802,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                     .block_semicolon,
                     => .extra_range,
 
-                    // .none — no child nodes
+                    // .none - no child nodes
                     .multiline_string_literal,
                     .error_set_decl,
                     .anyframe_literal,

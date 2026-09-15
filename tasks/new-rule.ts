@@ -8,49 +8,49 @@ const RULES_MODULE = 'src/linter/builtin_rules.zig'
 const p = (...segs: string[]) => path.join(__dirname, '..', ...segs)
 
 class RuleData {
-    /** rule-name */
-    name: string
-    /** rule_name */
-    underscored: string
-    /** RuleName */
-    StructName: string
-    camelCaseName: string
+  /** rule-name */
+  name: string
+  /** rule_name */
+  underscored: string
+  /** RuleName */
+  StructName: string
+  camelCaseName: string
 
-    constructor(name: string) {
-        this.name = name.replaceAll(' ', '-').replaceAll('_', '-').toLowerCase()
-        this.StructName = kebabToPascal(this.name)
-        this.underscored = this.name.replaceAll('-', '_')
-        const [first, ...segs] = this.name.split('-')
-        this.camelCaseName = first + segs.map(seg => seg[0].toUpperCase() + seg.slice(1)).join("")
-    }
+  constructor(name: string) {
+    this.name = name.replaceAll(' ', '-').replaceAll('_', '-').toLowerCase()
+    this.StructName = kebabToPascal(this.name)
+    this.underscored = this.name.replaceAll('-', '_')
+    const [first, ...segs] = this.name.split('-')
+    this.camelCaseName = first + segs.map((seg) => seg[0].toUpperCase() + seg.slice(1)).join('')
+  }
 
-    get path(): string {
-        return p(RULES_DIR, this.filename)
-    }
+  get path(): string {
+    return p(RULES_DIR, this.filename)
+  }
 
-    get filename(): string {
-        return `${this.underscored}.zig`
-    }
+  get filename(): string {
+    return `${this.underscored}.zig`
+  }
 }
 
 async function main(argv: string[]) {
-    let ruleName = argv[2]
-    // lower-kebab-case
-    const rule = new RuleData(ruleName)
+  let ruleName = argv[2]
+  // lower-kebab-case
+  const rule = new RuleData(ruleName)
 
-    // const rulepath = p(RULES_DIR, filename)
-    if (fs.existsSync(rule.path)) {
-        throw new Error(`Rule ${ruleName} already exists`)
-    }
-    const reExport = `pub const ${rule.StructName} = @import("./rules/${rule.filename}");`
-    await Promise.all([
-        fs.promises.writeFile(rule.path, createRule(rule)),
-        fs.promises.appendFile(p(RULES_MODULE), reExport),
-    ])
+  // const rulepath = p(RULES_DIR, filename)
+  if (fs.existsSync(rule.path)) {
+    throw new Error(`Rule ${ruleName} already exists`)
+  }
+  const reExport = `pub const ${rule.StructName} = @import("./rules/${rule.filename}");`
+  await Promise.all([
+    fs.promises.writeFile(rule.path, createRule(rule)),
+    fs.promises.appendFile(p(RULES_MODULE), reExport),
+  ])
 }
 
 const createRule = ({ name, StructName, underscored, camelCaseName }: RuleData) => {
-    return /* zig */ `
+  return /* zig */ `
 //! ## What This Rule Does
 //! Explain what this rule checks for. Also explain why this is a problem.
 //!
@@ -157,10 +157,9 @@ test ${StructName} {
 }`.trim()
 }
 
-const kebabToPascal = (kebab: string) =>
-    kebab.split('-').map(capitalize).join('')
+const kebabToPascal = (kebab: string) => kebab.split('-').map(capitalize).join('')
 const capitalize = (word: string) => word[0].toUpperCase() + word.slice(1)
 
 if (require.main === module) {
-    main(process.argv)
+  main(process.argv)
 }

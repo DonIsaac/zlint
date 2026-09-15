@@ -60,12 +60,14 @@ just e2e -Dsingle-threaded
 ```
 
 ## Contributing New Rules
+
 Check out the [Creating
 Rules](https://github.com/DonIsaac/zlint/wiki/Creating-Rules) guide for how to
 write new lint rules. A list of rules we want to implement can be found on the
 [Rule Ideas board](https://github.com/DonIsaac/zlint/issues/3).
 
 ## Conventions
+
 Please follow these conventions when contributing to ZLint.
 
 ### Constructors and Destructors

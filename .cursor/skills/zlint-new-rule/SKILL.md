@@ -40,7 +40,7 @@ Minimum confirmation before scaffolding:
   unless the user wants divergence.
 - **At least 2 incorrect + 2 correct code examples.** Real Zig, not
   hypotheticals. The correct examples that _look like_ the incorrect ones are
-  where the subtlety lives — ask for those specifically.
+  where the subtlety lives - ask for those specifically.
 - **Default severity:** `.off`, `.warning`, or `.err`. `.off` unless
   high-confidence.
 
@@ -56,16 +56,16 @@ Ask deeper questions only when the rule has real ambiguity:
 
 Mandatory, not optional. Pick a reference by shape:
 
-| Rule shape | Reference |
-| --- | --- |
-| Detect a specific call (identifier or `std.x.y`) | `no_print.zig` |
-| Compare two AST subtrees structurally | `duplicate_case.zig` |
-| Has config options + type/name whitelisting | `unsafe_undefined.zig` |
-| Operates on declared symbols | `unused_decls.zig` |
-| Checks source text, not AST | `line_length.zig` |
-| Flags a `fn` signature pattern | `allocator_first_param.zig`, `must_return_ref.zig` |
-| Provides an autofix | `useless_error_return.zig` |
-| Fires once per file | `empty_file.zig` |
+| Rule shape                                       | Reference                                          |
+| ------------------------------------------------ | -------------------------------------------------- |
+| Detect a specific call (identifier or `std.x.y`) | `no_print.zig`                                     |
+| Compare two AST subtrees structurally            | `duplicate_case.zig`                               |
+| Has config options + type/name whitelisting      | `unsafe_undefined.zig`                             |
+| Operates on declared symbols                     | `unused_decls.zig`                                 |
+| Checks source text, not AST                      | `line_length.zig`                                  |
+| Flags a `fn` signature pattern                   | `allocator_first_param.zig`, `must_return_ref.zig` |
+| Provides an autofix                              | `useless_error_return.zig`                         |
+| Fires once per file                              | `empty_file.zig`                                   |
 
 From each reference, extract: the `Rule.Meta` block, doc-comment structure,
 which hook it uses, which `LinterContext` helpers it calls, and the shape of
@@ -95,7 +95,7 @@ derives the filename (`returned_stack_reference.zig`), struct name
 just new-rule returned-stack-reference
 ```
 
-This does two things — do not redo them by hand:
+This does two things - do not redo them by hand:
 
 1. Creates `src/linter/rules/<name>.zig` from a template.
 2. Appends a re-export to `src/linter/builtin_rules.zig`.
@@ -107,30 +107,30 @@ It also runs `just codegen` and formats `src/linter` once. If you later change
 `meta.name` or `meta.category`, rerun `just codegen` manually.
 
 **Do not hand-edit** `zlint.schema.json`, `apps/site/docs/rules/*.mdx`, or
-`*.snap` files — all generated.
+`*.snap` files - all generated.
 
 ## Step 5: Fill in `Rule.Meta` and the doc-comment
 
 Every rule needs `pub const meta: Rule.Meta`:
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `name` | kebab-case string | Must match the `just new-rule` argument |
-| `category` | `Rule.Category` | See table below |
-| `default` | `Severity` | `.off` (default), `.warning`, or `.err` |
-| `fix` | `Fix.Meta` | Defaults to `Fix.Meta.disabled`. Set only for autofix rules |
+| Field      | Type              | Notes                                                       |
+| ---------- | ----------------- | ----------------------------------------------------------- |
+| `name`     | kebab-case string | Must match the `just new-rule` argument                     |
+| `category` | `Rule.Category`   | See table below                                             |
+| `default`  | `Severity`        | `.off` (default), `.warning`, or `.err`                     |
+| `fix`      | `Fix.Meta`        | Defaults to `Fix.Meta.disabled`. Set only for autofix rules |
 
 Pick the most specific category:
 
-| Category | When |
-| --- | --- |
-| `compiler` | Re-implements a check the Zig compiler already does |
-| `correctness` | Code is almost certainly wrong |
-| `suspicious` | Likely a mistake but has legitimate uses |
-| `restriction` | Stylistic or policy restriction users opt into |
-| `pedantic` | Strict best-practice enforcement |
-| `style` | Formatting / naming |
-| `nursery` | Experimental; not yet stable |
+| Category      | When                                                |
+| ------------- | --------------------------------------------------- |
+| `compiler`    | Re-implements a check the Zig compiler already does |
+| `correctness` | Code is almost certainly wrong                      |
+| `suspicious`  | Likely a mistake but has legitimate uses            |
+| `restriction` | Stylistic or policy restriction users opt into      |
+| `pedantic`    | Strict best-practice enforcement                    |
+| `style`       | Formatting / naming                                 |
+| `nursery`     | Experimental; not yet stable                        |
 
 **Size cap:** `Rule.MAX_SIZE = 32` bytes of rule state. Config fields
 deserialize into the rule struct, so keep them small (`bool`, `u32`, small
@@ -144,10 +144,10 @@ pub const meta: Rule.Meta = .{
 };
 ```
 
-**Doc-comment structure** (codegens to `apps/site/docs/rules/<name>.mdx` — the headings
+**Doc-comment structure** (codegens to `apps/site/docs/rules/<name>.mdx` - the headings
 are load-bearing):
 
-```zig
+````zig
 //! ## What This Rule Does
 //! One paragraph. *What* is checked and *why* it matters.
 //!
@@ -165,20 +165,20 @@ are load-bearing):
 //! ```zig
 //! // does not trigger the rule
 //! ```
-```
+````
 
-Docusaurus-style admonitions (`:::info`, `:::warning`) are supported — see
+Docusaurus-style admonitions (`:::info`, `:::warning`) are supported - see
 `unsafe_undefined.zig`. Document config options with a JSON block:
 
-````markdown
-//! ```json
+```markdown
+//! `json
 //! {
 //!   "rules": {
 //!     "returned-stack-reference": ["warn", { "allow_tests": false }]
 //!   }
 //! }
-//! ```
-````
+//! `
+```
 
 ## Step 6: Implement the hooks
 
@@ -186,14 +186,14 @@ Docusaurus-style admonitions (`:::info`, `:::warning`) are supported — see
 early-exit shape, and the exact `ctx.diagnostic(...)` / `ctx.report` wiring.
 Don't reinvent patterns that exist next door.
 
-Rules are duck-typed. **Delete any hook you don't use** — the scaffolder's
+Rules are duck-typed. **Delete any hook you don't use** - the scaffolder's
 stubs `@panic("TODO:")` at runtime.
 
-| Hook | Signature (as implemented; vtable allows `anyerror!void`) | When |
-| --- | --- | --- |
-| `runOnce` | `fn(*const Self, *LinterContext) void` | File-level checks |
-| `runOnNode` | `fn(*const Self, NodeWrapper, *LinterContext) void` | AST-driven (most common) |
-| `runOnSymbol` | `fn(*const Self, Symbol.Id, *LinterContext) void` | Symbol-table rules |
+| Hook          | Signature (as implemented; vtable allows `anyerror!void`) | When                     |
+| ------------- | --------------------------------------------------------- | ------------------------ |
+| `runOnce`     | `fn(*const Self, *LinterContext) void`                    | File-level checks        |
+| `runOnNode`   | `fn(*const Self, NodeWrapper, *LinterContext) void`       | AST-driven (most common) |
+| `runOnSymbol` | `fn(*const Self, Symbol.Id, *LinterContext) void`         | Symbol-table rules       |
 
 Also required:
 
@@ -206,13 +206,13 @@ pub fn rule(self: *Self) Rule {
 ### Useful `LinterContext` helpers
 
 - `ctx.ast()`, `ctx.semantic`, `ctx.source` (`.text()`, `.pathname`)
-- `ctx.links().getScope(node_idx)` — node → scope
-- `ctx.semantic.resolveBinding(scope, name, .{ .exclude = ... })` — scoped lookup
-- `ctx.semantic.tokenSpan(tok)` / `ctx.semantic.nodeSpan(node)` — spans
+- `ctx.links().getScope(node_idx)` - node → scope
+- `ctx.semantic.resolveBinding(scope, name, .{ .exclude = ... })` - scoped lookup
+- `ctx.semantic.tokenSpan(tok)` / `ctx.semantic.nodeSpan(node)` - spans
 - `ctx.diagnostic(msg, .{labels})` / `ctx.diagnosticf(fmt, args, .{labels})`
-- `ctx.labelN(node, fmt, args)` / `ctx.labelT(tok, fmt, args)` — labeled spans
-- `ctx.spanN(node)` / `ctx.spanT(tok)` — unlabeled
-- `ctx.report(diagnostic)` — emit
+- `ctx.labelN(node, fmt, args)` / `ctx.labelT(tok, fmt, args)` - labeled spans
+- `ctx.spanN(node)` / `ctx.spanT(tok)` - unlabeled
+- `ctx.report(diagnostic)` - emit
 
 ### Typical `runOnNode` shape
 
@@ -241,7 +241,7 @@ In order:
 2. **Check `src/linter/ast_utils.zig`** for shared helpers (`isInTest`,
    `getRightmostIdentifier`, etc.).
 3. **Check `src/Semantic.zig` and `src/Semantic/`** for symbol/scope APIs.
-4. **Then** ask the user — show them the AST construct you're matching and
+4. **Then** ask the user - show them the AST construct you're matching and
    what you tried. Don't reach for `@hasField` / `@hasDecl` / reflection; that
    means you're off the beaten path.
 
@@ -282,16 +282,16 @@ test ReturnedStackReference {
 ```
 
 Run with `just test`. First run writes the `.snap`. **Inspect it and show it
-to the user** — compare against a neighbor like `snapshots/no-print.snap` for
+to the user** - compare against a neighbor like `snapshots/no-print.snap` for
 tone. Ask whether the diagnostic message, help text, and highlighted spans
 match intent. This is the last cheap catch for semantic drift. Commit the
-`.snap` once approved. **Never hand-edit `.snap`** — delete and regenerate.
+`.snap` once approved. **Never hand-edit `.snap`** - delete and regenerate.
 
 Tips:
 
 - Multiline literals (`\\...`) for snippets.
 - Snippets must parse at top level; wrap loose statements in `fn foo() void { ... }`.
-- Keep snippets minimal — the snapshot is part of the test signal.
+- Keep snippets minimal - the snapshot is part of the test signal.
 - Add a `pass` case for every carve-out (e.g. "allowed in tests").
 
 ## Step 8: Autofixes (optional)
@@ -328,7 +328,7 @@ just fmt        # zig fmt + typos
 just ready      # full pre-PR sweep (check + codegen + build + test + e2e)
 ```
 
-`just ready` ends with `git status` — the working tree must be clean. Any
+`just ready` ends with `git status` - the working tree must be clean. Any
 uncommitted generated output means codegen was skipped or stale.
 
 ## Mandatory check-ins
@@ -366,20 +366,20 @@ from assumptions routinely needs 2-3.
 
 ## Quick reference
 
-| Task | Command |
-| --- | --- |
-| Scaffold | `just new-rule <kebab-name>` |
-| Unit tests | `just test` (all tests; no single-rule filter) |
-| Regenerate docs + schema | `just codegen` |
-| Format | `just fmt` |
-| Pre-PR sweep | `just ready` |
-| Simple AST rule | `src/linter/rules/no_print.zig` |
-| AST comparison | `src/linter/rules/duplicate_case.zig` |
-| Rule with config | `src/linter/rules/unsafe_undefined.zig` |
-| Symbol-based | `src/linter/rules/unused_decls.zig` |
-| Source-text check | `src/linter/rules/line_length.zig` |
-| Fn signature check | `src/linter/rules/allocator_first_param.zig` |
-| Autofix | `src/linter/rules/useless_error_return.zig` |
-| File-level | `src/linter/rules/empty_file.zig` |
-| Shared AST helpers | `src/linter/ast_utils.zig` |
-| Symbol / scope APIs | `src/Semantic.zig`, `src/Semantic/` |
+| Task                     | Command                                        |
+| ------------------------ | ---------------------------------------------- |
+| Scaffold                 | `just new-rule <kebab-name>`                   |
+| Unit tests               | `just test` (all tests; no single-rule filter) |
+| Regenerate docs + schema | `just codegen`                                 |
+| Format                   | `just fmt`                                     |
+| Pre-PR sweep             | `just ready`                                   |
+| Simple AST rule          | `src/linter/rules/no_print.zig`                |
+| AST comparison           | `src/linter/rules/duplicate_case.zig`          |
+| Rule with config         | `src/linter/rules/unsafe_undefined.zig`        |
+| Symbol-based             | `src/linter/rules/unused_decls.zig`            |
+| Source-text check        | `src/linter/rules/line_length.zig`             |
+| Fn signature check       | `src/linter/rules/allocator_first_param.zig`   |
+| Autofix                  | `src/linter/rules/useless_error_return.zig`    |
+| File-level               | `src/linter/rules/empty_file.zig`              |
+| Shared AST helpers       | `src/linter/ast_utils.zig`                     |
+| Symbol / scope APIs      | `src/Semantic.zig`, `src/Semantic/`            |

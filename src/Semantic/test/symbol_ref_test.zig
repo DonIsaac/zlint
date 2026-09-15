@@ -630,7 +630,7 @@ test "Reference flags - `x` - arrays, slices, etc" {
             ,
             .{ .type = true },
         },
-        // writing through an index: `x[i] = v` — LHS array-access visits the
+        // writing through an index: `x[i] = v` - LHS array-access visits the
         // receiver under the assignment's write flag, so `x` is recorded as a
         // write (not a read).
         .{
@@ -641,7 +641,7 @@ test "Reference flags - `x` - arrays, slices, etc" {
             ,
             .{ .write = true },
         },
-        // compound-assignment through an index: `x[i] += v` — LHS is both read
+        // compound-assignment through an index: `x[i] += v` - LHS is both read
         // and written.
         .{
             \\fn foo() void {

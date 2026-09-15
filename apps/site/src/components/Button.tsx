@@ -30,7 +30,7 @@ export default function Button({
   className: classNameProp,
   ...props
 }: ButtonProps): JSX.Element {
-  const Component = as ?? href ? Link : 'button'
+  const Component = (as ?? href) ? Link : 'button'
   const className = clsx(
     'button',
     size && `button--${size}`,

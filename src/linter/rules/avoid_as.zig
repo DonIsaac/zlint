@@ -144,7 +144,7 @@ const VarFixer = struct {
     var_decl: Ast.Node.Index,
     /// .opt_node_and_opt_node: [0]=type, [1]=init
     var_decl_data: OptNodePair,
-    /// `@as(lhs, rhs)` — .opt_node_and_opt_node: [0]=type arg, [1]=value arg
+    /// `@as(lhs, rhs)` - .opt_node_and_opt_node: [0]=type arg, [1]=value arg
     as_args: OptNodePair,
 
     fn replaceWithTypeAnnotation(this: VarFixer, builder: Fix.Builder) !Fix {

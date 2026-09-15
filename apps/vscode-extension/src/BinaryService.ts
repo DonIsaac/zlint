@@ -3,12 +3,7 @@ import { strict as assert } from 'node:assert'
 import { promises as fs } from 'node:fs'
 import { type ChildProcess, spawn } from 'node:child_process'
 import type { ConfigService, Event } from './ConfigService'
-import {
-  EventEmitter,
-  workspace,
-  type Disposable,
-  type OutputChannel,
-} from 'vscode'
+import { EventEmitter, workspace, type Disposable, type OutputChannel } from 'vscode'
 import { readableStreamToString } from './util'
 
 const kEmptyArray: string[] = []
@@ -24,7 +19,7 @@ export class BinaryService extends EventEmitter<void> implements Disposable {
 
   constructor(
     private configService: ConfigService,
-    private log: OutputChannel,
+    private log: OutputChannel
   ) {
     super()
 
@@ -48,9 +43,7 @@ export class BinaryService extends EventEmitter<void> implements Disposable {
     }
     if (!root) throw new Error('workspace root path not set')
     this.log.appendLine('cwd: ' + root)
-    this.log.appendLine(
-      'running zlint: ' + this.zlintPath + ' ' + args.join(' '),
-    )
+    this.log.appendLine('running zlint: ' + this.zlintPath + ' ' + args.join(' '))
     return spawn(this.zlintPath, args, {
       shell: true,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -68,9 +61,7 @@ export class BinaryService extends EventEmitter<void> implements Disposable {
   }
   public async findZLintBinary(): Promise<void> {
     this.log.appendLine('looking for zlint binary...')
-    const newPath = await this.getZLintPath(
-      this.configService.config.path,
-    ).catch((e) => this.log.appendLine(String(e)))
+    const newPath = await this.getZLintPath(this.configService.config.path).catch((e) => this.log.appendLine(String(e)))
     if (!newPath || this.zlintPath === newPath) return
     this.log.appendLine('found zlint binary at ' + newPath)
 
@@ -86,24 +77,19 @@ export class BinaryService extends EventEmitter<void> implements Disposable {
    * @throws if `zlint` bin cannot be found
    * @throws if `configuredPath` does not point to a file
    */
-  private async getZLintPath(
-    configuredPath: string | undefined,
-  ): Promise<string> {
+  private async getZLintPath(configuredPath: string | undefined): Promise<string> {
     if (configuredPath) {
       if (HOME) configuredPath = configuredPath.replaceAll('~', HOME)
       const fullPath = path.resolve(configuredPath)
       const stat = await fs.stat(fullPath)
-      if (!stat.isFile())
-        throw new Error(`Path to zlint binary is not a file: ${configuredPath}`)
+      if (!stat.isFile()) throw new Error(`Path to zlint binary is not a file: ${configuredPath}`)
       return fullPath
     }
 
     const existing = await this.findExisting()
     // TODO: download zlint for them
     if (!existing)
-      throw new Error(
-        `Could not find path to zlint binary. Please download it and re-start this extension.`,
-      )
+      throw new Error(`Could not find path to zlint binary. Please download it and re-start this extension.`)
     assert(path.isAbsolute(existing))
     return existing
   }
@@ -117,14 +103,14 @@ export class BinaryService extends EventEmitter<void> implements Disposable {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: process.env,
     })
-      .on('error', error => this.log.appendLine('error finding zlint binary: ' + error))
-      .on('exit', code => this.log.appendLine(`which zlint exited with code ${code}`))
+      .on('error', (error) => this.log.appendLine('error finding zlint binary: ' + error))
+      .on('exit', (code) => this.log.appendLine(`which zlint exited with code ${code}`))
 
     try {
       const [stdout, stderr] = await Promise.all([
         readableStreamToString(child.stdout!),
         readableStreamToString(child.stderr!),
-      ]);
+      ])
       if (child.exitCode) {
         this.log.appendLine('error finding zlint binary: ' + stderr)
         return undefined

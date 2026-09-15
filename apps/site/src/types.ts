@@ -22,5 +22,5 @@ export namespace Rule {
     fix: FixMeta,
     default: Severity,
   })
-  export type Meta = typeof Meta.infer;
+  export type Meta = typeof Meta.infer
 }

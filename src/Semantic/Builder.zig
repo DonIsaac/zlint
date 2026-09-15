@@ -550,7 +550,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         },
         .@"errdefer" => return self.visitErrdefer(node_id),
 
-        // binary ops — .node_and_node
+        // binary ops - .node_and_node
         .equal_equal,
         .bang_equal,
         .less_than,
@@ -613,7 +613,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             return self.visitOptional(right);
         },
 
-        // .node_and_extra — visit the node child only
+        // .node_and_extra - visit the node child only
         .array_type_sentinel => return self.visit(ast.nodeData(node_id).node_and_extra[0]),
     }
 }
@@ -907,7 +907,7 @@ fn visitAssignDestructure(
             });
         } else {
             // Destructuring allows arbitrary lvalue expressions: identifiers (`_`, existing
-            // names), field access, indexing, etc. Match plain `=` — LHS is a write, not a read.
+            // names), field access, indexing, etc. Match plain `=` - LHS is a write, not a read.
             try self.visitAssignmentTarget(var_id);
         }
     }
@@ -1307,7 +1307,7 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
 /// `errdefer expr`, `errdefer |payload| expr`.
 ///
 /// The payload is an error capture scoped to the deferred expression. `Ast`
-/// stores it as `opt_token_and_node[0]`, pointing directly at the identifier —
+/// stores it as `opt_token_and_node[0]`, pointing directly at the identifier -
 /// the grammar is `KEYWORD_errdefer Payload? BlockExprStatement`, so no `*` is
 /// possible.
 fn visitErrdefer(self: *SemanticBuilder, node_id: NodeIndex) !void {
@@ -1355,7 +1355,7 @@ fn visitFnProto(self: *SemanticBuilder, _: NodeIndex, fn_proto: full.FnProto) !v
     defer self._curr_symbol_flags = prev_symbol_flags;
 
     // Bind the fn's name in the *enclosing* scope, before pushing the parameter
-    // scope — otherwise `extern fn puts(...) c_int;` is only visible to its own
+    // scope - otherwise `extern fn puts(...) c_int;` is only visible to its own
     // parameter list. Mirrors `visitFnDecl`.
     if (fn_proto.name_token) |name_token| {
         _ = try self.bindSymbol(.{

@@ -75,7 +75,7 @@ Aside from these imports, a custom rule is written exactly like a builtin one.
 For how to inspect nodes and report problems, see
 [Using the AST](../contributing/creating-rules.md#using-the-ast) and
 [Reporting Violations](../contributing/creating-rules.md#reporting-violations)
-in the Creating New Rules guide — substituting the imports above for the
+in the Creating New Rules guide - substituting the imports above for the
 relative ones it uses.
 
 ### Example

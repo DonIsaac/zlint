@@ -1,11 +1,6 @@
 // oxlint-disable block-scoped-var
 import * as vscode from 'vscode'
-import {
-  Diagnostic,
-  type DiagnosticCollection,
-  DiagnosticSeverity,
-  Range,
-} from 'vscode'
+import { Diagnostic, type DiagnosticCollection, DiagnosticSeverity, Range } from 'vscode'
 import type { Disposable } from 'vscode'
 import type { BinaryService } from './BinaryService'
 import { readableStreamToString } from './util'
@@ -21,7 +16,7 @@ export class DiagnosticsService implements Disposable {
   constructor(
     private config: ConfigService,
     private bin: BinaryService,
-    private log: vscode.OutputChannel,
+    private log: vscode.OutputChannel
   ) {
     this.#diagnostics = vscode.languages.createDiagnosticCollection(name)
     this.collectDiagnostics = this.collectDiagnostics.bind(this)
@@ -31,7 +26,7 @@ export class DiagnosticsService implements Disposable {
           this.log.appendLine('Received disabled event, clearing diagnostics')
           this.#diagnostics.clear()
         }
-      }),
+      })
     )
   }
 
@@ -40,13 +35,11 @@ export class DiagnosticsService implements Disposable {
     log.appendLine('collecting diagnostics...')
     const linter = this.bin.runZlint(['--format', 'json'])
     const newDiagnsotics = new Map<string, Diagnostic[]>()
-    linter.on('exit', (code) =>
-      log.appendLine('zlint exited with code ' + code),
-    )
+    linter.on('exit', (code) => log.appendLine('zlint exited with code ' + code))
 
     // todo: report diagnostics as they come in, instead of all at once
     const raw = await readableStreamToString(linter.stdout!).catch((e) =>
-      log.appendLine('error reading zlint output: ' + e),
+      log.appendLine('error reading zlint output: ' + e)
     )
     log.appendLine('zlint output: ' + raw)
     if (!raw) return
@@ -64,10 +57,7 @@ export class DiagnosticsService implements Disposable {
         continue
       }
       if (json.source_name && vscode.workspace.rootPath)
-        json.source_name = path.resolve(
-          vscode.workspace.rootPath!,
-          json.source_name,
-        )
+        json.source_name = path.resolve(vscode.workspace.rootPath!, json.source_name)
       assert(typeof json === 'object' && !!json)
       if (!json.labels?.length) continue
 
@@ -126,10 +116,8 @@ namespace zlint {
   export namespace Diagnostic {
     export function toDiagnostic(diagnostic: Diagnostic): vscode.Diagnostic {
       const { level, message, labels = [], code } = diagnostic
-      const severity =
-        level === 'warn' ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error
-      const primary: Label | undefined =
-        labels.find((label) => label.primary) ?? labels[0]
+      const severity = level === 'warn' ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error
+      const primary: Label | undefined = labels.find((label) => label.primary) ?? labels[0]
       const range = primary ? Label.toRange(primary) : new Range(0, 0, 0, 0)
       const d = new vscode.Diagnostic(range, message, severity)
       d.source = name

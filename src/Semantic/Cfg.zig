@@ -1,7 +1,7 @@
 //! Control flow graph for a single source file.
 //!
 //! Blocks are flat and globally id'd across the file, like `Scope.Tree`. Each
-//! belongs to exactly one `Container` — a function body, `test` block,
+//! belongs to exactly one `Container` - a function body, `test` block,
 //! `comptime` block, or top-level decl initializer.
 //!
 //! Explicit successor edge lists are the single source of truth. Predecessors
@@ -193,7 +193,7 @@ pub const BasicBlock = struct {
     };
 };
 
-/// Describes why a block ends. Edges — not this — are the source of truth for
+/// Describes why a block ends. Edges - not this - are the source of truth for
 /// successors; this is descriptive metadata for rules.
 pub const Terminator = struct {
     kind: Kind,

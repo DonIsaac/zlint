@@ -123,7 +123,7 @@ const ReturnVisitor = struct {
         const returned = self.ast.nodeData(node).opt_node.unwrap() orelse return .Continue; // fn is missing return type, which is a semantic error
         if (self.ast.nodeTag(returned) != .field_access) return .Continue;
 
-        // e.g. `Type.empty`, `std.ArrayListUnmanaged(u32).empty` — object resolves
+        // e.g. `Type.empty`, `std.ArrayListUnmanaged(u32).empty` - object resolves
         // to a type, so this is a fresh value, not a copied member.
         const object = self.ast.nodeData(returned).node_and_token[0];
         if (a.getRightmostIdentifier(self.ctx, object)) |name| {
