@@ -17,14 +17,28 @@ const ParseError = json.ParseError(json.Scanner);
 pub const RulesConfig = struct {
     pub const Rules = @import("Rules.zig").Rules;
 
-    rules: Rules = .{},
+    rules: Rules,
+
+    /// Config with all rules turned off
+    pub const empty: RulesConfig = .{ .rules = .{} };
+    /// Config with rule respecting default severities
+    pub const default: RulesConfig = blk: {
+        var config: RulesConfig = .empty;
+
+        for (@typeInfo(RulesConfig.Rules).@"struct".fields) |field| {
+            @field(config.rules, field.name) = .{ .severity = field.type.meta.default };
+        }
+
+        break :blk config;
+    };
+
     /// See: `std.json.parseFromTokenSource()`
     pub fn jsonParse(
         allocator: Allocator,
         source: *json.Scanner,
         options: json.ParseOptions,
     ) !RulesConfig {
-        var rules = Rules{};
+        var rules = RulesConfig.default.rules;
 
         // eat '{'
         if (try source.next() != .object_begin) return ParseError.UnexpectedToken;

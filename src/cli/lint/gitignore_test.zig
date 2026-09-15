@@ -13,7 +13,8 @@ test "readGitignore does not fall back to cwd for a discovered config" {
     defer arena.deinit();
 
     const config_path = try cwd.realPathFileAlloc(t.io, "test/fixtures/config/zlint.json", arena.allocator());
-    const base: lint.Config = .{};
+    // start with no patterns so anything present afterwards came from a `.gitignore`
+    const base: lint.Config = .{ .ignore = .empty };
     var config = base.intoManaged(&arena, config_path);
 
     try gitignore.readGitignore(&config, t.io, cwd, .beside_config);

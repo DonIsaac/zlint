@@ -95,7 +95,7 @@ test "When no rules are enabled, no violations are reported" {
     const sema = res.value;
 
     {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = .{} });
+        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = .empty });
 
         defer linter.deinit();
         try linter.runOnSource(std.testing.io, &sema, &src, &errors);
