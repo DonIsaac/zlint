@@ -38,6 +38,7 @@ pub fn isWhitespace(c: u8) bool {
 /// assumed to be true by the compiler, which will lead to strange program
 /// behavior.
 pub inline fn assert(condition: bool, comptime fmt: []const u8, args: anytype) void {
+    @disableInstrumentation();
     if (comptime IS_DEBUG) {
         if (!condition) std.debug.panic(fmt, args);
     } else {
@@ -49,6 +50,7 @@ pub inline fn assert(condition: bool, comptime fmt: []const u8, args: anytype) v
 /// Unlike `assert`, `debugAssert` will not trigger undefined behavior for
 /// `false` conditions in release builds.
 pub inline fn debugAssert(condition: bool, comptime fmt: []const u8, args: anytype) void {
+    @disableInstrumentation();
     if (!condition) {
         @branchHint(.cold); // panic sets .cold, but that's lost in release builds.
         if (comptime IS_DEBUG) std.debug.panic(fmt, args);
@@ -56,12 +58,9 @@ pub inline fn debugAssert(condition: bool, comptime fmt: []const u8, args: anyty
 }
 
 pub inline fn assertUnsafe(condition: bool) void {
-    if (comptime IS_DEBUG) {
-        if (!condition) @panic("assertion failed");
-    } else {
-        @setRuntimeSafety(IS_DEBUG);
-        if (!condition) unreachable;
-    }
+    @setRuntimeSafety(IS_DEBUG);
+    @disableInstrumentation();
+    return std.debug.assert(condition);
 }
 
 test {

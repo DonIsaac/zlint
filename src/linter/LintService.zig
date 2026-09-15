@@ -9,6 +9,8 @@ pub const Options = struct {
 linter: Linter,
 options: Options,
 config: Config.Managed,
+/// Not closed
+cwd: std.Io.Dir,
 reporter: *reporters.Reporter,
 group: Io.Group = .init,
 io: Io,
@@ -18,6 +20,8 @@ _enable_cfg: bool,
 pub fn init(
     allocator: Allocator,
     io: Io,
+    /// Not closed
+    cwd: std.Io.Dir,
     reporter: *reporters.Reporter,
     config: Config.Managed,
     options: Options,
@@ -30,6 +34,7 @@ pub fn init(
         .linter = linter,
         .options = options,
         .config = config,
+        .cwd = cwd,
         .reporter = reporter,
         .io = io,
         .allocator = allocator,
@@ -63,7 +68,7 @@ pub fn lintFile(self: *LintService, filepath: []u8) void {
 }
 
 fn tryLintFile(self: *LintService, filepath: []u8) !void {
-    const file = Io.Dir.cwd().openFile(self.io, filepath, .{}) catch |e| {
+    const file = self.cwd.openFile(self.io, filepath, .{}) catch |e| {
         self.allocator.free(filepath);
         self.reporter.stats.recordFailure();
         return e;
@@ -155,7 +160,7 @@ fn applyFixes(self: *const LintService, diagnostics: *Linter.Diagnostic.List, so
         const pathname = source.pathname.?;
         // create instead of open to truncate contents
         // TODO: handle errors here instead of panicking
-        var file = Io.Dir.cwd().createFile(self.io, pathname, .{}) catch |e| {
+        var file = self.cwd.createFile(self.io, pathname, .{}) catch |e| {
             std.debug.panic("Failed to apply fixes to '{s}': {}", .{ pathname, e });
         };
         defer file.close(self.io);

@@ -1,3 +1,30 @@
+pub const Options = struct {
+    /// Where to start walking from
+    dir: Dir,
+    prefix: ?[]const u8 = null,
+};
+
+pub const WalkState = enum {
+    /// Continue walking the directory tree as normal.
+    Continue,
+    /// Skip this directory, but continue walking the rest of the tree. This
+    /// directory's children will not be visited.
+    Skip,
+    /// Stop directory traversal.
+    Stop,
+};
+
+pub const Entry = struct {
+    /// The containing directory. This can be used to operate directly on `basename`
+    /// rather than `path`, avoiding `error.NameTooLong` for deeply nested paths.
+    /// The directory remains open until `next` or `deinit` is called.
+    dir: Dir,
+    basename: []const u8,
+    /// Directory paths include a trailing separator. File paths do not.
+    path: [:0]const u8,
+    kind: Io.File.Kind,
+};
+
 pub fn Walker(comptime Visitor: type) type {
     comptime {
         const info = @typeInfo(Visitor);
@@ -7,8 +34,8 @@ pub fn Walker(comptime Visitor: type) type {
     }
 
     return struct {
-        stack: std.ArrayListUnmanaged(StackItem),
-        name_buffer: std.ArrayListUnmanaged(u8),
+        stack: std.ArrayList(StackItem),
+        name_buffer: std.ArrayList(u8),
         visitor: *Visitor,
         allocator: Allocator,
         io: Io,
@@ -18,23 +45,34 @@ pub fn Walker(comptime Visitor: type) type {
         const INITIAL_STACK_CAPACITY: usize = 8;
         const INITIAL_NAME_BUFFER_SIZE: usize = INITIAL_STACK_CAPACITY * 32;
 
-        pub fn init(allocator: Allocator, io: Io, dir: Dir, visitor: *Visitor) Allocator.Error!Self {
-            var stack: std.ArrayListUnmanaged(StackItem) = .empty;
-            try stack.ensureTotalCapacity(allocator, INITIAL_STACK_CAPACITY);
-            errdefer stack.deinit(allocator);
+        pub fn initAtDir(allocator: Allocator, io: Io, options: Options, visitor: *Visitor) Allocator.Error!Self {
+            var walker = try init(allocator, io, visitor);
+            errdefer walker.deinit();
 
-            try stack.append(allocator, .{
-                .iter = dir.iterate(),
-                .dirname_len = 0,
+            const dirname_len = if (options.prefix) |p| blk: {
+                try walker.name_buffer.appendSlice(allocator, p);
+                break :blk p.len;
+            } else 0;
+
+            walker.stack.appendAssumeCapacity(.{
+                .iter = options.dir.iterate(),
+                .dirname_len = dirname_len,
             });
 
-            return Self{
-                .stack = stack,
+            return walker;
+        }
+        pub fn init(allocator: Allocator, io: std.Io, visitor: *Visitor) Allocator.Error!Self {
+            var walker = Self{
+                .stack = .empty,
                 .name_buffer = .empty,
                 .visitor = visitor,
                 .allocator = allocator,
                 .io = io,
             };
+
+            try walker.stack.ensureTotalCapacity(allocator, INITIAL_STACK_CAPACITY);
+
+            return walker;
         }
 
         pub fn walk(self: *Self) !void {
@@ -121,29 +159,36 @@ pub fn Walker(comptime Visitor: type) type {
             }
             self.stack.deinit(gpa);
             self.name_buffer.deinit(gpa);
+            self.* = undefined;
+        }
+
+        /// Prepare this walker for iteration over a new root directory.
+        ///
+        /// `dir` must be opened with iteration enabled.  Calling `reset` before
+        /// `init` is checked illegal behavior.
+        pub fn reset(self: *Self, options: Options) Allocator.Error!void {
+            self.name_buffer.clearRetainingCapacity();
+
+            const dirname_len = if (options.prefix) |p| blk: {
+                try self.name_buffer.appendSlice(self.allocator, p);
+                break :blk p.len;
+            } else 0;
+
+            if (self.stack.items.len > 1) {
+                for (self.stack.items[1..]) |*item| {
+                    item.iter.reader.dir.close(self.io);
+                }
+            }
+
+            // `init` pre-allocates capacity, so there's always room.
+            self.stack.clearRetainingCapacity();
+            self.stack.appendAssumeCapacity(.{
+                .dirname_len = dirname_len,
+                .iter = options.dir.iterate(),
+            });
         }
     };
 }
-
-pub const WalkState = enum {
-    /// Continue walking the directory tree as normal.
-    Continue,
-    /// Skip this directory, but continue walking the rest of the tree. This
-    /// directory's children will not be visited.
-    Skip,
-    /// Stop directory traversal.
-    Stop,
-};
-pub const Entry = struct {
-    /// The containing directory. This can be used to operate directly on `basename`
-    /// rather than `path`, avoiding `error.NameTooLong` for deeply nested paths.
-    /// The directory remains open until `next` or `deinit` is called.
-    dir: Dir,
-    basename: []const u8,
-    /// Directory paths include a trailing separator. File paths do not.
-    path: [:0]const u8,
-    kind: Io.File.Kind,
-};
 
 const StackItem = struct {
     iter: Dir.Iterator,

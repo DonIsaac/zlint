@@ -1,33 +1,43 @@
 const std = @import("std");
-const util = @import("util");
-const glob = @import("zlint").glob;
-const _lint = @import("zlint").lint;
-const reporters = @import("zlint").report;
-const lint_config = @import("lint/config.zig");
-const gitignore = @import("lint/gitignore.zig");
+const zlint = @import("zlint");
 const fs = @import("../io/fs.zig");
-
-const mem = std.mem;
-const path = std.fs.path;
 const walk = @import("../io/Walker.zig");
 
+const lint_config = @import("lint/config.zig");
+const gitignore = @import("lint/gitignore.zig");
+const FileFilter = @import("lint/visitor.zig").FileFilter;
+
 const Allocator = std.mem.Allocator;
-const Io = std.Io;
+const Dir = std.Io.Dir;
+const File = std.Io.File;
+const path = std.fs.path;
 
-const WalkState = walk.WalkState;
-const Error = @import("zlint").Error;
+const Error = zlint.Error;
+const reporters = zlint.report;
 
-const LintService = _lint.LintService;
-const Fix = _lint.Fix;
+const LintService = zlint.lint.LintService;
+const Fix = zlint.lint.Fix;
 const Options = @import("../cli/Options.zig");
+
+const LintWalker = walk.Walker(FileFilter(LintSink));
+
+/// Sink used by `lint`: hands each accepted file to the linter's thread pool.
+const LintSink = struct {
+    /// borrowed
+    service: *LintService,
+
+    pub fn accept(self: *LintSink, filepath: []u8) void {
+        self.service.lintFileParallel(filepath);
+    }
+};
 
 var buf: [4096]u8 = undefined;
 
-pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Options) !u8 {
+pub fn lint(alloc: Allocator, io: std.Io, environ: std.process.Environ, options: Options) !u8 {
     // writer cannot live on the stack.
     // this gets moved into Reporter, which runs on a different thread.
-    const writer = try alloc.create(Io.File.Writer);
-    writer.* = Io.File.stdout().writer(io, &buf);
+    const writer = try alloc.create(File.Writer);
+    writer.* = File.stdout().writer(io, &buf);
     defer alloc.destroy(writer);
     var stdout = &writer.interface;
     defer stdout.flush() catch @panic("failed to flush writer");
@@ -58,11 +68,11 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
     try gitignore.readGitignore(
         &config,
         io,
-        Io.Dir.cwd(),
+        Dir.cwd(),
         if (options.config != null) .nearest_from_root else .beside_config,
     );
 
-    const start = Io.Timestamp.now(io, .real);
+    const start = std.Io.Timestamp.now(io, .real);
 
     {
         const fix = if (options.fix or options.fix_dangerously) Fix.Meta{
@@ -70,10 +80,14 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
             .dangerous = options.fix_dangerously,
         } else Fix.Meta.disabled;
 
+        var src = try Dir.cwd().openDir(io, ".", .{ .iterate = true });
+        defer src.close(io);
+
         // TODO: use options to specify number of threads (if provided)
         var service = try LintService.init(
             alloc,
             io,
+            src,
             &reporter,
             config,
             .{ .fix = fix },
@@ -81,23 +95,12 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
         defer service.deinit();
 
         if (!options.stdin) {
-            var sink = LintSink{ .service = &service };
-            var visitor: FileFilter(LintSink) = .{
-                .sink = &sink,
-                .allocator = alloc,
-                .include = .new(options.args.items),
-                .exclude = config.config.ignore,
-            };
-            var src = try Io.Dir.cwd().openDir(io, ".", .{ .iterate = true });
-            defer src.close(io);
-            var walker = try LintWalker.init(alloc, io, src, &visitor);
-            defer walker.deinit();
-            try walker.walk();
+            try lintTargets(alloc, io, &service, options, &config.config);
         } else {
             // SAFETY: initialized by reader
             var msg_buf: [4096]u8 = undefined;
             var delim_buf: [1024]u8 = undefined;
-            var stdin = Io.File.stdin();
+            var stdin = File.stdin();
             var reader = stdin.readerStreaming(io, &msg_buf);
             while (try fs.readUntilDelimiterOrEof(&reader.interface, &delim_buf, '\n')) |filepath| {
                 if (!std.mem.endsWith(u8, filepath, ".zig")) continue;
@@ -107,7 +110,7 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
         }
     }
 
-    const stop = Io.Timestamp.now(io, .real);
+    const stop = std.Io.Timestamp.now(io, .real);
     const duration: i64 = @intCast(@divTrunc(start.durationTo(stop).nanoseconds, std.time.ns_per_ms));
     reporter.printStats(duration);
     if (reporter.stats.numErrorsSync() > 0) {
@@ -119,92 +122,108 @@ pub fn lint(alloc: Allocator, io: Io, environ: std.process.Environ, options: Opt
     }
 }
 
-const LintWalker = walk.Walker(FileFilter(LintSink));
-
-/// Sink used by `lint`: hands each accepted file to the linter's thread pool.
-const LintSink = struct {
-    /// borrowed
+fn lintTargets(
+    allocator: Allocator,
+    io: std.Io,
     service: *LintService,
-
-    pub fn accept(self: *LintSink, filepath: []u8) void {
-        self.service.lintFileParallel(filepath);
-    }
-};
-
-/// Decides which files in a directory tree get linted, and hands each one to
-/// `sink`, which takes ownership of the path.
-///
-/// `Sink` must expose `fn accept(*Sink, []u8) void`.
-pub fn FileFilter(comptime Sink: type) type {
-    return struct {
-        /// borrowed
-        sink: *Sink,
-        allocator: Allocator,
-        /// Paths and patterns named on the command line. Empty means "lint
-        /// everything under the walk root".
-        include: glob.GlobSet,
-        /// `ignore` from `zlint.json`, plus whatever `.gitignore` contributed.
-        exclude: glob.GlobSet,
-
-        const Self = @This();
-
-        pub fn visit(self: *Self, entry: walk.Entry) ?walk.WalkState {
-            switch (entry.kind) {
-                .directory => {
-                    if (entry.basename.len == 0 or entry.basename[0] == '.') {
-                        return WalkState.Skip;
-                    } else if (mem.eql(u8, entry.basename, "vendor") or
-                        mem.eql(u8, entry.basename, "zig-out") or
-                        mem.eql(u8, entry.basename, "zig-pkg"))
-                    {
-                        return WalkState.Skip;
-                    }
-                    if (self.exclude.matchesPrunableDirectory(entry.path)) {
-                        return WalkState.Skip;
-                    }
-                },
-                .file => {
-                    if (!mem.eql(u8, path.extension(entry.path), ".zig") or
-                        !self.isIncluded(&entry))
-                    {
-                        return WalkState.Continue;
-                    }
-
-                    const filepath = self.allocator.dupe(u8, entry.path) catch {
-                        return WalkState.Stop;
-                    };
-                    self.sink.accept(filepath);
-                },
-                else => {
-                    // todo: warn
-                },
-            }
-            return WalkState.Continue;
-        }
-
-        fn isIncluded(self: *const Self, entry: *const walk.Entry) bool {
-            util.debugAssert(
-                entry.kind != .directory,
-                "isIncluded should only be passed file-like things, got a dir.",
-                .{},
-            );
-
-            if (self.include.patterns.len > 0) {
-                if (!self.include.matches(entry.path)) {
-                    return false;
-                }
-            }
-
-            if (self.exclude.patterns.len > 0) {
-                if (self.exclude.matches(entry.path)) {
-                    @branchHint(.unlikely);
-                    return false;
-                }
-            }
-
-            return true;
-        }
+    options: Options,
+    config: *zlint.lint.Config,
+) !void {
+    const targets = options.args.items;
+    var sink = LintSink{ .service = service };
+    var visitor: FileFilter(LintSink) = .{
+        .sink = &sink,
+        .allocator = allocator,
+        .exclude = config.ignore,
     };
+
+    // common-path: short circuit when linting everything
+    if (targets.len == 0 or
+        targets.len == 1 and std.mem.eql(u8, targets[0], "."))
+    {
+        var walker = try LintWalker.initAtDir(
+            allocator,
+            io,
+            .{ .dir = service.cwd },
+            &visitor,
+        );
+        defer walker.deinit();
+        return walker.walk();
+    }
+
+    var walker = try LintWalker.init(allocator, io, &visitor);
+    defer walker.deinit();
+    for (targets) |target| {
+        if (target.len == 0) {
+            @branchHint(.cold);
+            continue;
+        }
+
+        const prefix = normalizeTarget(target);
+
+        // Explicitly specifying a file to lint bypasses ignore checks
+        if (std.mem.endsWith(u8, prefix, ".zig")) {
+            const filename = try allocator.dupe(u8, prefix);
+            service.lintFileParallel(filename);
+            continue;
+        }
+
+        const next_target = service.cwd.openDir(
+            io,
+            target,
+            .{ .iterate = true },
+        ) catch continue;
+        defer next_target.close(io);
+        try walker.reset(.{ .dir = next_target, .prefix = prefix });
+        try walker.walk();
+    }
+}
+
+pub fn normalizeTarget(target: []const u8) []const u8 {
+    var normalized = target;
+    while (normalized.len >= 2 and
+        normalized[0] == '.' and path.isSep(normalized[1]))
+    {
+        normalized = normalized[1..];
+        while (normalized.len > 0 and path.isSep(normalized[0])) {
+            normalized = normalized[1..];
+        }
+    }
+    while (normalized.len > 0 and path.isSep(normalized[normalized.len - 1])) {
+        normalized = normalized[0 .. normalized.len - 1];
+    }
+    return if (std.mem.eql(u8, normalized, ".")) "" else normalized;
+}
+
+test normalizeTarget {
+    const t = std.testing;
+    // already in the shape patterns are written in
+    try t.expectEqualStrings("src", normalizeTarget("src"));
+    try t.expectEqualStrings("src/main.zig", normalizeTarget("src/main.zig"));
+
+    // the whole project, however it is spelled
+    try t.expectEqualStrings("", normalizeTarget("."));
+    try t.expectEqualStrings("", normalizeTarget("./"));
+    try t.expectEqualStrings("", normalizeTarget(".//"));
+
+    // redundant leading and trailing separators
+    try t.expectEqualStrings("src", normalizeTarget("./src"));
+    try t.expectEqualStrings("src", normalizeTarget("src/"));
+    try t.expectEqualStrings("src", normalizeTarget("./src/"));
+    try t.expectEqualStrings("src", normalizeTarget(".//./src//"));
+    try t.expectEqualStrings("src/deep", normalizeTarget("./src/deep/"));
+
+    // not a `./` prefix, so left alone
+    try t.expectEqualStrings("..", normalizeTarget(".."));
+    try t.expectEqualStrings("../sib", normalizeTarget("../sib"));
+    try t.expectEqualStrings(".hidden", normalizeTarget(".hidden"));
+    try t.expectEqualStrings("a/./b", normalizeTarget("a/./b"));
+
+    // absolute paths are out of reach of root-anchored patterns either way
+    try t.expectEqualStrings("/abs/src", normalizeTarget("/abs/src"));
+
+    // degenerate
+    try t.expectEqualStrings("", normalizeTarget(""));
 }
 
 test {
