@@ -1,16 +1,19 @@
-rules: RulesConfig = .{},
-ignore: glob.GlobSet = .empty,
+rules: RulesConfig = .default,
+ignore: glob.GlobSet = default_ignore,
 
 const Config = @This();
 
-pub const DEFAULT: Config = .{
-    .rules = DEFAULT_RULES_CONFIG,
-    .ignore = .new(&[_]glob.Pattern{
-        "**/vendor",  "**/vendor/**",
-        "**/zig-out", "**/zig-out/**",
-        "**/zig-pkg", "**/zig-pkg/**",
-    }),
+const default_ignore: glob.GlobSet = .new(&[_]glob.Pattern{
+    "**/vendor",  "**/vendor/**",
+    "**/zig-out", "**/zig-out/**",
+    "**/zig-pkg", "**/zig-pkg/**",
+});
+
+pub const default: Config = .{
+    .rules = .default,
+    .ignore = default_ignore,
 };
+pub const empty: Config = .{ .rules = .empty, .ignore = default.ignore };
 
 pub const Managed = struct {
     /// should only be set if created from an on-disk config
@@ -30,23 +33,12 @@ pub fn intoManaged(self: Config, arena: *ArenaAllocator, path: ?[]const u8) Mana
     return Managed{ .config = self, .arena = arena, .path = path };
 }
 
-// default rules config lives here b/c RulesConfig is auto-generated
-const DEFAULT_RULES_CONFIG: RulesConfig = blk: {
-    var config: RulesConfig = .{};
-
-    for (@typeInfo(RulesConfig.Rules).@"struct".fields) |field| {
-        @field(config.rules, field.name) = .{ .severity = field.type.meta.default };
-    }
-
-    break :blk config;
-};
-
 pub fn jsonSchema(ctx: *Schema.Context) !Schema {
     var schema = try ctx.genSchemaInner(Config);
     var ignore = schema.object.properties.getPtr("ignore").?;
 
-    var schemaDefault = try ctx.jsonArray(DEFAULT.ignore.patterns.len);
-    for (DEFAULT.ignore.patterns) |pattern| {
+    var schemaDefault = try ctx.jsonArray(default_ignore.patterns.len);
+    for (default_ignore.patterns) |pattern| {
         try schemaDefault.append(.{ .string = pattern });
     }
     var c = ignore.common();
@@ -100,18 +92,29 @@ fn testConfig(source: []const u8, expected: RulesConfig) !void {
         t.expectEqual(expected_rule_config.severity, actual_rule_config.severity) catch |err| {
             print("Mismatched severity for rule '{s}':\n", .{field.name});
             print("Expected:\n\n\t{any}\n\n", .{expected});
-            print("Actual:\n\n\t{any}\n", .{actual});
+            print("Actual:\n\n\t{any}\n", .{actual.value});
             return err;
         };
     }
 }
 
+fn withSeverities(overrides: anytype) RulesConfig {
+    const builtin = @import("builtin");
+    comptime std.debug.assert(builtin.is_test);
+
+    var config: RulesConfig = .default;
+    inline for (@typeInfo(@TypeOf(overrides)).@"struct".fields) |field| {
+        @field(config.rules, field.name).severity = @field(overrides, field.name);
+    }
+    return config;
+}
+
 test "RulesConfig.jsonParse" {
-    try testConfig("{}", RulesConfig{ .rules = .{} });
+    try testConfig("{}", .default);
     try testConfig(
         \\{ "unsafe-undefined": "error" }
     ,
-        RulesConfig{ .rules = .{ .unsafe_undefined = .{ .severity = Severity.err } } },
+        withSeverities(.{ .unsafe_undefined = Severity.err }),
     );
     try testConfig(
         \\{
@@ -119,33 +122,33 @@ test "RulesConfig.jsonParse" {
         \\  "homeless-try": "error"
         \\}
     ,
-        RulesConfig{
-            .rules = .{
-                .unsafe_undefined = .{ .severity = Severity.off },
-                .homeless_try = .{ .severity = Severity.err },
-            },
-        },
+        withSeverities(.{
+            .unsafe_undefined = Severity.off,
+            .homeless_try = Severity.err,
+        }),
     );
     try testConfig(
         \\{ "unsafe-undefined": ["error"] }
     ,
-        RulesConfig{ .rules = .{ .unsafe_undefined = .{ .severity = Severity.err } } },
+        withSeverities(.{ .unsafe_undefined = Severity.err }),
     );
     try testConfig(
         \\{ "unsafe-undefined": ["error", {}] }
     ,
-        RulesConfig{ .rules = .{ .unsafe_undefined = .{ .severity = Severity.err } } },
+        withSeverities(.{ .unsafe_undefined = Severity.err }),
     );
     try testConfig(
         \\{ "unsafe-undefined": ["error", { "allow_arrays": true }] }
     ,
-        RulesConfig{ .rules = .{ .unsafe_undefined = .{ .severity = Severity.err } } },
+        withSeverities(.{ .unsafe_undefined = Severity.err }),
     );
     var cfg = builtin_rules.UnsafeUndefined{ .allow_arrays = false };
+    var expect_with_impl = withSeverities(.{ .unsafe_undefined = Severity.err });
+    expect_with_impl.rules.unsafe_undefined.rule_impl = @ptrCast(&cfg);
     try testConfig(
         \\{ "unsafe-undefined": ["error", { "allow_arrays": false }] }
     ,
-        RulesConfig{ .rules = .{ .unsafe_undefined = .{ .severity = Severity.err, .rule_impl = @ptrCast(&cfg) } } },
+        expect_with_impl,
     );
 
     {
@@ -159,5 +162,34 @@ test "RulesConfig.jsonParse" {
             &scanner,
             .{},
         ));
+    }
+}
+
+test "Config.jsonParse - omitted fields don't default to empty" {
+    inline for ([_][]const u8{
+        "{}",
+        \\{ "ignore": [] }
+        ,
+        \\{ "rules": {} }
+    }) |src| {
+        var actual = try json.parseFromSlice(Config, t.allocator, src, .{});
+        defer actual.deinit();
+        try t.expectEqualDeep(Config.default.rules, actual.value.rules);
+    }
+
+    inline for ([_][]const u8{
+        "{}",
+        \\{ "rules": {} }
+    }) |src| {
+        var actual = try json.parseFromSlice(Config, t.allocator, src, .{});
+        defer actual.deinit();
+        try t.expectEqualDeep(Config.default.ignore.patterns, actual.value.ignore.patterns);
+    }
+    {
+        var actual = try json.parseFromSlice(Config, t.allocator,
+            \\{ "ignore": [] }
+        , .{});
+        defer actual.deinit();
+        try t.expectEqual(@as(usize, 0), actual.value.ignore.patterns.len);
     }
 }

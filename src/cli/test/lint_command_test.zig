@@ -55,7 +55,7 @@ fn expectLints(project: Project, expected: []const []const u8) !void {
     // would silently inherit zlint's.
     var ignore = project.ignore;
     if (hasGitignore(project.files)) {
-        var config = Config.DEFAULT.intoManaged(&arena, null);
+        var config = Config.default.intoManaged(&arena, null);
         config.config.ignore = .new(project.ignore);
         try gitignore.readGitignore(&config, t.io, fixture.root(), .nearest_from_root);
         ignore = config.config.ignore.patterns;

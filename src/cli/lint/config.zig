@@ -80,7 +80,7 @@ fn resolveLintConfig(
         return parseConfigFile(arena, io, err_alloc, maybe_path_to_config, file, err);
     }
 
-    return lint.Config.DEFAULT.intoManaged(arena, null);
+    return lint.Config.default.intoManaged(arena, null);
 }
 
 /// Parse a zlint.json's contents into a config. All passed data are borrowed.
