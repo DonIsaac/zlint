@@ -42,7 +42,7 @@ jobs:
       - run: bun install --frozen-lockfile
 
       - name: Oxfmt
-        run: bun lint --check
+        run: bun fmt --check
         
       - name: Oxlint
         run: bunx oxlint@latest --format github -D correctness -D suspicious -D perf
