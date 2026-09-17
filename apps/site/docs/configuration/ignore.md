@@ -7,6 +7,7 @@ ZLint provides several ways to ignore files and specific rules, each with varyin
 degrees of granularity.
 
 ## Ignoring Whole Files
+
 ZLint respects `.gitignore` files by default; no files ignored by git will be
 linted.
 
@@ -23,7 +24,7 @@ field of your `zlint.json` file:
 ```json title="zlint.json"
 {
   "ignore": ["src/test/**", "**/node_modules/**", "**/*.gen.zig"],
-  "rules": { /* ... */ }
+  "rules": {/* ... */}
 }
 ```
 
@@ -37,6 +38,7 @@ any depth.
 :::
 
 ## Disabling Rules
+
 You can globally disable rules by setting their level to `off` in your
 configuration file.
 

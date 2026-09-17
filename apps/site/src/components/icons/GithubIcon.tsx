@@ -2,7 +2,7 @@ import { createLucideIcon } from 'lucide-react'
 
 /**
  * GitHub's mark. Brand icons were dropped from `lucide-react` in v1, so the
- * path data below is vendored from `lucide-react@0.525.0` (ISC licensed) — the
+ * path data below is vendored from `lucide-react@0.525.0` (ISC licensed) - the
  * version this site used before the upgrade.
  */
 const GithubIcon = createLucideIcon('github', [

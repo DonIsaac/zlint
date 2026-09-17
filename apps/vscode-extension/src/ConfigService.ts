@@ -23,23 +23,16 @@ export class ConfigService extends EventEmitter<Event> implements Disposable {
     this.#config = ConfigService.load()
     this.onConfigChange = this.onConfigChange.bind(this)
     this.emit = this.emit.bind(this)
-    this.#subscriptions.push(
-      workspace.onDidChangeConfiguration(this.onConfigChange, this),
-    )
+    this.#subscriptions.push(workspace.onDidChangeConfiguration(this.onConfigChange, this))
   }
 
-  public set<K extends keyof Config>(
-    key: K,
-    value: Config[K],
-    target?: ConfigurationTarget | boolean | null
-  ): void {
+  public set<K extends keyof Config>(key: K, value: Config[K], target?: ConfigurationTarget | boolean | null): void {
     const config = workspace.getConfiguration(Config.scope)
     config.update(key, value, target)
   }
 
   private onConfigChange(event: ConfigurationChangeEvent): void {
-    if (!(this instanceof ConfigService))
-      throw new TypeError("bad 'this' type; expected ConfigService")
+    if (!(this instanceof ConfigService)) throw new TypeError("bad 'this' type; expected ConfigService")
     const relevant = event.affectsConfiguration(ConfigService.configSection)
 
     this.log.appendLine('config changed. Do we care? ' + relevant)
@@ -49,9 +42,7 @@ export class ConfigService extends EventEmitter<Event> implements Disposable {
 
     if (this.#config.enabled !== enabled) {
       this.#config.enabled = enabled
-      this.emit({ type: enabled ? 'enabled' : 'disabled' } as
-        | EnabledEvent
-        | DisabledEvent)
+      this.emit({ type: enabled ? 'enabled' : 'disabled' } as EnabledEvent | DisabledEvent)
       return
     }
     if (!this.#config.enabled) return
@@ -72,9 +63,7 @@ export class ConfigService extends EventEmitter<Event> implements Disposable {
   }
 
   private static load(): Config {
-    return Config.loadFromWorkspace(
-      workspace.getConfiguration(this.configSection),
-    )
+    return Config.loadFromWorkspace(workspace.getConfiguration(this.configSection))
   }
 
   private emit(event: Event): void {
@@ -110,10 +99,7 @@ namespace Config {
   /**
    * Subscribe to configuration changes
    */
-  export function subscribe(
-    callback: (event: ConfigurationChangeEvent) => void,
-    thisArg?: any,
-  ): Disposable {
+  export function subscribe(callback: (event: ConfigurationChangeEvent) => void, thisArg?: any): Disposable {
     return workspace.onDidChangeConfiguration(function (event) {
       if (event.affectsConfiguration(scope)) {
         callback.call(thisArg, event)

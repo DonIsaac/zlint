@@ -4,8 +4,9 @@ sidebar_position: 3
 
 # Configuration
 
-Create a `zlint.json` file in the same directory as `build.zig`. This disables
-all default rules, only enabling the ones you choose.
+Create a `zlint.json` file in the same directory as `build.zig`. When left
+unconfigured, rules use the default behavior described in the
+[Rules](../rules/index.mdx) section.
 
 :::tip
 `zlint.json` does not yet support comments or trailing commas yet.

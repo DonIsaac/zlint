@@ -15,20 +15,23 @@ An opinionated linter for the Zig programming language.
   elimination.
 - ⚡️ **Fast**. Designed from the ground-up to be highly performant, ZLint
   typically takes a few hundred milliseconds to lint large projects.
-- 💡 **Understandable**. Error messages are pretty, detailed, and easy to understand. 
+- 💡 **Understandable**. Error messages are pretty, detailed, and easy to understand.
   Most rules come with explanations on how to fix them and what _exactly_ is wrong.
   ![diagnostic example](./docs/assets/diagnostic-example.jpg)
 
 ## 📦 Installation
+
 Pre-built binaries for Windows, MacOS, and Linux on x64 and aarch64 are
 available [for each release](https://github.com/DonIsaac/zlint/releases/latest).
 
 ### Linux/macOS
+
 ```sh
 curl -fsSL https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/tasks/install.sh | bash
 ```
 
 ### Windows
+
 ```ps1
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/DonIsaac/zlint/refs/heads/main/tasks/install.ps1" | Invoke-Expression
 ```

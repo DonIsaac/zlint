@@ -1,0 +1,8 @@
+{
+  "trailingComma": "es5",
+  "tabWidth": 2,
+  "semi": false,
+  "singleQuote": true,
+  "printWidth": 120,
+  "ignorePatterns": ["zlint.schema.json", ".zig-cache", "zig-out", "**/.docusaurus", "**/build", ".github"]
+}

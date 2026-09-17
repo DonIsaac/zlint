@@ -1,6 +1,6 @@
 {
-    "ignore": ["foo/**", "bar/*.zig"],
-    "rules": {
-        "unsafe-undefined": "warn"
-    }
+  "ignore": ["foo/**", "bar/*.zig"],
+  "rules": {
+    "unsafe-undefined": "warn"
+  }
 }

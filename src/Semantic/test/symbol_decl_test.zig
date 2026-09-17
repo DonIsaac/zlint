@@ -249,7 +249,7 @@ test "Symbol flags - control flow payloads" {
             ,
             .{ .s_payload = true, .s_const = true },
         },
-        // nested while; inner payload `x` shadows outer — inner (most recently declared) is looked up first
+        // nested while; inner payload `x` shadows outer - inner (most recently declared) is looked up first
         .{
             \\fn foo(a: ?u32, b: ?u32) void {
             \\  while (a) |_| {

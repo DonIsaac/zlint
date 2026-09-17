@@ -1,13 +1,13 @@
 {
-    "zig.zls.buildOnSaveStep": "check",
-    "zls.zigExePath": "./vendor/zig14/zig",
-    "files.exclude": {
-        ".coverage": true,
-        ".zig-cache": true,
-        "zig-out": true,
-    },
-    "search.exclude": {
-        "bun.lock": true
-    },
-    "zig.buildOnSaveProvider": "zls"
+  "zig.zls.buildOnSaveStep": "check",
+  "zls.zigExePath": "./vendor/zig14/zig",
+  "files.exclude": {
+    ".coverage": true,
+    ".zig-cache": true,
+    "zig-out": true
+  },
+  "search.exclude": {
+    "bun.lock": true
+  },
+  "zig.buildOnSaveProvider": "zls"
 }

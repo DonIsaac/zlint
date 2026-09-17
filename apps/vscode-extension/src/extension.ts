@@ -12,9 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
   const bin = new BinaryService(config, logs)
   const diagnostics = new DiagnosticsService(config, bin, logs)
 
-  bin
-    .findZLintBinary()
-    .catch((e) => logs.appendLine('error finding zlint binary: ' + e))
+  bin.findZLintBinary().catch((e) => logs.appendLine('error finding zlint binary: ' + e))
 
   const lintCmd = vscode.commands.registerCommand('zig.zlint.lint', () => {
     if (!bin.ready) {
@@ -37,7 +35,6 @@ export function activate(context: vscode.ExtensionContext) {
   //     vscode.ConfigurationTarget.WorkspaceFolder
   //   ),
   // )
-  
 
   context.subscriptions.push(config, bin, lintCmd)
 }

@@ -20,4 +20,3 @@ test file.
 Several test suites run checks on a set of popular zig codebases. These repos
 are configured in `repos.json`. You must run `just submodules` to clone them
 before running e2e tests.
-

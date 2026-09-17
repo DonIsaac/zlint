@@ -157,7 +157,7 @@ test "non-letter characters in rule list do not cause infinite loop" {
     // valid in rule names. The parser must skip them rather than loop forever
     // on a zero-length token.
     const cases = &[_]TestCase{
-        // pure digit token — skipped entirely, no rules parsed
+        // pure digit token - skipped entirely, no rules parsed
         .{
             .src = "// zlint-disable 123",
             .expected = global(.empty),
@@ -171,7 +171,7 @@ test "non-letter characters in rule list do not cause infinite loop" {
                 .disabled_rules = @constCast(&[_]Span{.new(18, 21)}),
             },
         },
-        // valid rule name preceded by digit garbage — digit skipped, rule captured
+        // valid rule name preceded by digit garbage - digit skipped, rule captured
         .{
             .src = "// zlint-disable 1foo",
             .expected = .{

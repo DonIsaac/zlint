@@ -190,11 +190,11 @@ fn isNeverErrorUnion(ctx: *LinterContext, node: Node.Index) bool {
 /// Classify a type node as an error union, following named `const`/`var`
 /// aliases through the semantic model.
 ///
-/// - `true`  — is, or resolves through aliases to, an error union
-/// - `false` — definitively not an error union (a primitive, a fully resolved
-///             concrete type, or — at depth 0 only — a return type that is
+/// - `true`  - is, or resolves through aliases to, an error union
+/// - `false` - definitively not an error union (a primitive, a fully resolved
+///             concrete type, or - at depth 0 only - a return type that is
 ///             syntactically not an error union)
-/// - `null`  — not statically classifiable (unresolved identifier, or an alias
+/// - `null`  - not statically classifiable (unresolved identifier, or an alias
 ///             chain we failed to follow to the end). Callers must treat this
 ///             like `true` and stay silent.
 fn resolveAliasErrorUnion(ctx: *LinterContext, node: Node.Index, depth: u8) ?bool {
@@ -215,7 +215,7 @@ fn resolveAliasErrorUnion(ctx: *LinterContext, node: Node.Index, depth: u8) ?boo
     // so we can't rule out an error union.
     //
     // At depth 0 this is the return type as written: it is syntactically not an
-    // error union, so report it — that is what the rule has always done. Past
+    // error union, so report it - that is what the rule has always done. Past
     // depth 0 we're inside an alias chain we failed to follow, so bail rather
     // than risk a false positive on a `.compiler` rule.
     if (ast.nodeTag(node) != .identifier) return if (depth == 0) false else null;

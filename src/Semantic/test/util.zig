@@ -12,7 +12,7 @@ const print = std.debug.print;
 var buf: [1024]u8 = undefined;
 
 /// Build a Semantic from source, returning the raw Result so tests can
-/// inspect errors. Unlike `build`, this does not fail on analysis errors —
+/// inspect errors. Unlike `build`, this does not fail on analysis errors -
 /// callers are expected to assert on `result.hasErrors()` themselves.
 pub fn buildWithErrors(src: [:0]const u8) !Semantic.Builder.Result {
     var builder = Semantic.Builder.init(t.allocator);
