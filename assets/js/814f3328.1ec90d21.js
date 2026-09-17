@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkzlint=self.webpackChunkzlint||[]).push([["1833"],{5513(t){t.exports=JSON.parse('{"title":"Recent posts","items":[{"title":"ZLint v0.10.0","permalink":"/zlint/blog/zlint-v0-10-0","unlisted":false,"date":"2026-09-16T00:00:00.000Z"}]}')}}]);

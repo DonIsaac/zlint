@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkzlint=self.webpackChunkzlint||[]).push([["7983"],{28(e){e.exports=JSON.parse('{"tags":[{"label":"Release","permalink":"/zlint/blog/tags/release","description":"ZLint release announcements and changelogs","count":1}]}')}}]);
