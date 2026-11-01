@@ -11,7 +11,7 @@ pub const Rules = blk: {
     const len = all_rules.all.len;
     var names: [len][]const u8 = undefined;
     var types: [len]type = undefined;
-    var attrs: [len]std.builtin.Type.StructField.Attributes = undefined;
+    var attrs: [len]std.lang.Type.Struct.FieldAttributes = undefined;
 
     for (all_rules.all, 0..) |RuleImpl, i| {
         const Config = RuleConfig(RuleImpl);

@@ -171,10 +171,7 @@ pub fn build(builder: *SemanticBuilder, source: [:0]const u8) SemanticError!Resu
         0 => builder._semantic.symbols.unresolved_references = .empty,
         1 => {
             const unresolved = try builder._unresolved_references.curr().toOwnedSlice(builder._gpa);
-            builder._semantic.symbols.unresolved_references = .{
-                .items = unresolved,
-                .capacity = unresolved.len,
-            };
+            builder._semantic.symbols.unresolved_references = .fromOwnedSlice(unresolved);
         },
         else => std.debug.panic("Expected 0 or 1 frame, got {d}", .{unresolved_frame_count}),
     }
@@ -215,7 +212,7 @@ pub fn deinit(self: *SemanticBuilder) void {
 /// functions, reducing unnecessary branching and stack pointer pushes.
 fn visit(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
     if (node_id == .root) return;
-    if (@intFromEnum(node_id) >= self.AST().nodes.len) {
+    if (@backingInt(node_id) >= self.AST().nodes.len) {
         @branchHint(.cold);
         return;
     }
@@ -515,10 +512,10 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             }
             return;
         },
-        .@"defer" => {
+        .@"defer", .@"errdefer" => {
             const body = ast.nodeData(node_id).node;
             if (self.cfg()) |c| {
-                try c.pushCleanup(self._gpa, body, false);
+                try c.pushCleanup(self._gpa, body, tag == .@"errdefer");
                 const prev = c.enterOrphan();
                 defer c.exitOrphan(prev);
                 return self.visit(body);
@@ -548,7 +545,6 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             }
             return;
         },
-        .@"errdefer" => return self.visitErrdefer(node_id),
 
         // binary ops - .node_and_node
         .equal_equal,
@@ -561,7 +557,6 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         .mul,
         .div,
         .mod,
-        .array_mult,
         .mul_wrap,
         .mul_sat,
         .add,
@@ -1304,34 +1299,6 @@ fn visitCatch(self: *SemanticBuilder, node_id: NodeIndex) !void {
     if (self.cfg()) |c| c.endBranch(self._gpa, branch);
 }
 
-/// `errdefer expr`, `errdefer |payload| expr`.
-///
-/// The payload is an error capture scoped to the deferred expression. `Ast`
-/// stores it as `opt_token_and_node[0]`, pointing directly at the identifier -
-/// the grammar is `KEYWORD_errdefer Payload? BlockExprStatement`, so no `*` is
-/// possible.
-fn visitErrdefer(self: *SemanticBuilder, node_id: NodeIndex) !void {
-    const payload, const expr = self.getNodeData(node_id).opt_token_and_node;
-
-    var orphan: Cfg.BasicBlock.Id.Optional = .none;
-    if (self.cfg()) |c| {
-        try c.pushCleanup(self._gpa, expr, true);
-        orphan = c.enterOrphan();
-    }
-    defer if (self.cfg()) |c| c.exitOrphan(orphan);
-
-    const identifier = payload.unwrap() orelse return self.visit(expr);
-
-    try self.enterScope(.{});
-    defer self.exitScope();
-    _ = try self.declareSymbol(.{
-        .declaration_node = node_id,
-        .identifier = try self.assertToken(identifier, .identifier),
-        .flags = .{ .s_payload = true, .s_const = true },
-    });
-    return self.visit(expr);
-}
-
 /// Derive `Symbol.Flags` for a function from its `extern`/`export`/`inline`
 /// modifier. `inline`/`noinline` contribute nothing.
 fn fnProtoFlags(self: *const SemanticBuilder, fn_proto: full.FnProto) Symbol.Flags {
@@ -1671,7 +1638,7 @@ fn enterNode(self: *SemanticBuilder, node_id: NodeIndex) !void {
     const curr_scope = self.currentScope();
     self.links().setParent(node_id, curr_node);
     self.links().setScope(node_id, curr_scope);
-    if (self.cfg()) |c| self.links().blocks.items[@intFromEnum(node_id)] = c.curr;
+    if (self.cfg()) |c| self.links().blocks.items[@backingInt(node_id)] = c.curr;
     try self._node_stack.append(self._gpa, node_id);
 }
 
@@ -1693,7 +1660,7 @@ fn _checkForNodeLoop(self: *SemanticBuilder, node_id: NodeIndex) void {
             break;
         }
     }
-    self.assertCtx(!is_loop, "Invariant violation: Node {d} is already on the stack", .{@intFromEnum(node_id)});
+    self.assertCtx(!is_loop, "Invariant violation: Node {d} is already on the stack", .{@backingInt(node_id)});
 }
 
 inline fn enterContainerSymbol(self: *SemanticBuilder, symbol_id: Symbol.Id) Allocator.Error!void {
@@ -1861,8 +1828,9 @@ fn resolveReferencesInCurrentScope(
     self: *SemanticBuilder,
     query: Semantic.BindingQuery,
 ) Allocator.Error!void {
-    var stacka = std.heap.stackFallback(64, self._gpa);
-    const stack = stacka.get();
+    var stacka_buf: [64]u8 = undefined;
+    var stacka: std.heap.BufferFirstAllocator = .init(&stacka_buf, self._gpa);
+    const stack = stacka.allocator();
     //
     const curr = self._unresolved_references.curr();
     const parent = self._unresolved_references.parent();
@@ -2080,9 +2048,9 @@ inline fn getNodeData(self: *const SemanticBuilder, node_id: NodeIndex) Node.Dat
 /// - If `node_id` is out of bounds.
 inline fn getNode(self: *const SemanticBuilder, node_id: NodeIndex) Node {
     if (node_id == .root) @panic("attempted to access null node");
-    assert(@intFromEnum(node_id) < self.AST().nodes.len);
+    assert(@backingInt(node_id) < self.AST().nodes.len);
 
-    return self.AST().nodes.get(@intFromEnum(node_id));
+    return self.AST().nodes.get(@backingInt(node_id));
 }
 
 /// Get a node by its ID, returning `null` if its the root node (which acts as null).
@@ -2094,13 +2062,13 @@ inline fn maybeGetNode(self: *const SemanticBuilder, node_id: NodeIndex) ?Node {
         if (node_id == .root) return null;
         const len = self.AST().nodes.len;
         self.assertCtx(
-            @intFromEnum(node_id) < len,
+            @backingInt(node_id) < len,
             "Cannot get node: id {d} is out of bounds ({d})",
-            .{ @intFromEnum(node_id), len },
+            .{ @backingInt(node_id), len },
         );
     }
 
-    return self.AST().nodes.get(@intFromEnum(node_id));
+    return self.AST().nodes.get(@backingInt(node_id));
 }
 
 /// Returns `token` if it has the expected tag, or `null` if it doesn't.
@@ -2202,7 +2170,7 @@ fn debugNodeStack(self: *const SemanticBuilder) void {
                     std.mem.trim(u8, source[(source.len - 64)..source.len], &std.ascii.whitespace),
                 },
             ) catch @panic("Out of memory") else source;
-        print("  - [{d}, {d}:{d}] {any} - {s}\n", .{ @intFromEnum(id), loc.line, loc.column, tag, snippet });
+        print("  - [{d}, {d}:{d}] {any} - {s}\n", .{ @backingInt(id), loc.line, loc.column, tag, snippet });
         if (!mem.eql(u8, source, snippet)) {
             self._gpa.free(snippet);
         }

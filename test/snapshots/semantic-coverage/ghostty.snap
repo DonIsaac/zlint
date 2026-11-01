@@ -1,3 +1,20 @@
-Passed: 100% (715/715)
+Passed: 97.622375% (698/715)
 Panics: 0% (0/715)
 
+src/cli/args.zig: error.AnalysisFailed
+src/cli/ssh-cache/DiskCache.zig: error.AnalysisFailed
+src/datastruct/message_data.zig: error.AnalysisFailed
+src/font/shaper/feature.zig: error.AnalysisFailed
+src/input/Binding.zig: error.AnalysisFailed
+src/inspector/widgets/pagelist.zig: error.AnalysisFailed
+src/os/hostname.zig: error.AnalysisFailed
+src/simd/base64_scalar.zig: error.AnalysisFailed
+src/simd/vt.zig: error.AnalysisFailed
+src/terminal/PageList.zig: error.AnalysisFailed
+src/terminal/Screen.zig: error.AnalysisFailed
+src/terminal/c/render.zig: error.AnalysisFailed
+src/terminal/c/sys.zig: error.AnalysisFailed
+src/terminal/c/terminal.zig: error.AnalysisFailed
+src/terminal/osc/parsers/change_window_title.zig: error.AnalysisFailed
+src/terminal/osc/parsers/context_signal.zig: error.AnalysisFailed
+src/terminal/osc/parsers/kitty_text_sizing.zig: error.AnalysisFailed

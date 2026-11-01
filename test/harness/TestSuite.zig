@@ -254,8 +254,9 @@ fn writeSnapshot(self: *TestSuite) !void {
 fn openSnapshotFile(self: *TestSuite) !Io.File {
     const SNAP_EXT = ".snap";
 
-    var stack_alloc = std.heap.stackFallback(1024, self.alloc);
-    var allocator = stack_alloc.get();
+    var stack_alloc_buf: [1024]u8 = undefined;
+    var stack_alloc: std.heap.BufferFirstAllocator = .init(&stack_alloc_buf, self.alloc);
+    var allocator = stack_alloc.allocator();
 
     const snapshot_name = try std.mem.concat(allocator, u8, &[_]string{ self.suite_name, SNAP_EXT });
     defer allocator.free(snapshot_name);

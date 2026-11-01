@@ -20,11 +20,11 @@ pub const RuleInfo = struct {
     name_pascale: []const u8,
 
     pub const builtin_rules = blk: {
-        const rule_decls: []const std.builtin.Type.Declaration = @typeInfo(zlint.lint.rules).@"struct".decls;
+        const rule_decls = @typeInfo(zlint.lint.rules).@"struct".decl_names;
 
         var rule_infos: [rule_decls.len]RuleInfo = undefined;
         for (rule_decls, 0..) |rule_decl, i| {
-            const rule = @field(zlint.lint.rules, rule_decl.name);
+            const rule = @field(zlint.lint.rules, rule_decl);
             const rule_meta: Rule.Meta = rule.meta;
             var snake_case_name: [rule_meta.name.len]u8 = undefined;
             @memcpy(&snake_case_name, rule_meta.name);
@@ -32,7 +32,7 @@ pub const RuleInfo = struct {
             rule_infos[i] = RuleInfo{
                 .meta = rule_meta,
                 .path = c.@"linter/rules" ++ "/" ++ snake_case_name ++ ".zig",
-                .name_pascale = rule_decl.name,
+                .name_pascale = rule_decl,
             };
         }
         break :blk rule_infos;
@@ -74,12 +74,11 @@ pub fn ruleSchemaMap(allocator: Allocator) !struct { *Schema.Context, *SchemaMap
 
     var map = try allocator.create(SchemaMap);
     map.* = SchemaMap.init(allocator);
-    try map.ensureTotalCapacity(info.fields.len);
+    try map.ensureTotalCapacity(info.field_types.len);
 
     var ctx = try allocator.create(Schema.Context);
     ctx.* = Schema.Context.init(allocator);
-    inline for (info.fields) |rule_config| {
-        const RuleConfig = @FieldType(RulesConfig.Rules, rule_config.name);
+    inline for (info.field_types) |RuleConfig| {
         const rule_schema = try ctx.addSchema(RuleConfig);
         try map.put(RuleConfig.name, rule_schema.*);
     }

@@ -21,7 +21,7 @@ const source =
 ;
 
 fn makeSource(arena: Allocator, source_text: []const u8) !Source {
-    const srctext = try arena.dupeZ(u8, source_text);
+    const srctext = try arena.dupeSentinel(u8, source_text, 0);
     errdefer arena.free(srctext);
 
     const path = try arena.dupe(u8, "test.zig");

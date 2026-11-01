@@ -1,12 +1,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
-pub const RUNTIME_SAFETY = builtin.mode != .ReleaseFast;
-pub const IS_DEBUG = builtin.mode == .Debug;
+pub const RUNTIME_SAFETY = builtin.mode != .fast;
+pub const IS_DEBUG = builtin.mode == .debug;
 pub const IS_TEST = builtin.is_test;
 pub const IS_WINDOWS = builtin.target.os.tag == .windows;
 pub const NEWLINE = if (IS_WINDOWS) "\r\n" else "\n";
 
-pub const @"inline": std.builtin.CallingConvention = if (IS_DEBUG) .@"inline" else .auto;
+pub const @"inline": std.lang.CallingConvention = if (IS_DEBUG) .@"inline" else .auto;
 
 pub const env = @import("util/env.zig");
 pub const NominalId = @import("util/id.zig").NominalId;

@@ -11,7 +11,7 @@
         
       ], 
       "members": [], 
-      "exports": [1,4,6,8,9,11,14,18,22], 
+      "exports": [1,4,6,8,9,12,16,20], 
       
     }, 
     {
@@ -22,8 +22,8 @@
       "scope": 0, 
       "flags": ["variable","const","union"], 
       "references": [
-        {"symbol":1,"scope":16,"node":"identifier","identifier":"U","flags":["read"]}, 
-        {"symbol":1,"scope":21,"node":"identifier","identifier":"U","flags":["read"]}, 
+        {"symbol":1,"scope":13,"node":"identifier","identifier":"U","flags":["read"]}, 
+        {"symbol":1,"scope":18,"node":"identifier","identifier":"U","flags":["read"]}, 
         
       ], 
       "members": [2,3], 
@@ -66,8 +66,7 @@
       "scope": 0, 
       "flags": ["fn"], 
       "references": [
-        {"symbol":4,"scope":9,"node":"identifier","identifier":"log","flags":["call"]}, 
-        {"symbol":4,"scope":15,"node":"identifier","identifier":"log","flags":["call"]}, 
+        {"symbol":4,"scope":12,"node":"identifier","identifier":"log","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -96,7 +95,7 @@
       "scope": 0, 
       "flags": ["extern","fn"], 
       "references": [
-        {"symbol":6,"scope":27,"node":"identifier","identifier":"puts","flags":["call"]}, 
+        {"symbol":6,"scope":24,"node":"identifier","identifier":"puts","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -125,7 +124,7 @@
       "scope": 0, 
       "flags": ["fn"], 
       "references": [
-        {"symbol":8,"scope":11,"node":"identifier","identifier":"next","flags":["call"]}, 
+        {"symbol":8,"scope":8,"node":"identifier","identifier":"next","flags":["call"]}, 
         
       ], 
       "members": [], 
@@ -133,7 +132,7 @@
       
     }, 
     {
-      "name": "errdeferPayload", 
+      "name": "whileElseCapture", 
       "debugName": "", 
       "token": 59, 
       "declNode": "fn_decl", 
@@ -147,43 +146,14 @@
       
     }, 
     {
-      "name": "err", 
+      "name": "value", 
       "debugName": "", 
-      "token": 67, 
-      "declNode": "errdefer", 
+      "token": 71, 
+      "declNode": "block_two_semicolon", 
       "scope": 9, 
       "flags": ["payload","const"], 
       "references": [
-        {"symbol":10,"scope":9,"node":"identifier","identifier":"err","flags":["read"]}, 
-        
-      ], 
-      "members": [], 
-      "exports": [], 
-      
-    }, 
-    {
-      "name": "whileElseCapture", 
-      "debugName": "", 
-      "token": 81, 
-      "declNode": "fn_decl", 
-      "scope": 0, 
-      "flags": ["fn"], 
-      "references": [
-        
-      ], 
-      "members": [], 
-      "exports": [], 
-      
-    }, 
-    {
-      "name": "value", 
-      "debugName": "", 
-      "token": 93, 
-      "declNode": "block_two_semicolon", 
-      "scope": 12, 
-      "flags": ["payload","const"], 
-      "references": [
-        {"symbol":12,"scope":13,"node":"identifier","identifier":"value","flags":["read"]}, 
+        {"symbol":10,"scope":10,"node":"identifier","identifier":"value","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -193,12 +163,12 @@
     {
       "name": "err", 
       "debugName": "", 
-      "token": 103, 
+      "token": 81, 
       "declNode": "block_two_semicolon", 
-      "scope": 14, 
+      "scope": 11, 
       "flags": ["payload","const"], 
       "references": [
-        {"symbol":13,"scope":15,"node":"identifier","identifier":"err","flags":["read"]}, 
+        {"symbol":11,"scope":12,"node":"identifier","identifier":"err","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -208,7 +178,7 @@
     {
       "name": "switchCaptures", 
       "debugName": "", 
-      "token": 114, 
+      "token": 92, 
       "declNode": "fn_decl", 
       "scope": 0, 
       "flags": ["fn"], 
@@ -222,12 +192,12 @@
     {
       "name": "u", 
       "debugName": "", 
-      "token": 116, 
+      "token": 94, 
       "declNode": "identifier", 
-      "scope": 16, 
+      "scope": 13, 
       "flags": ["const","fn_param"], 
       "references": [
-        {"symbol":15,"scope":17,"node":"identifier","identifier":"u","flags":["read"]}, 
+        {"symbol":13,"scope":14,"node":"identifier","identifier":"u","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -237,12 +207,12 @@
     {
       "name": "value", 
       "debugName": "", 
-      "token": 131, 
+      "token": 109, 
       "declNode": "switch_case_inline_one", 
-      "scope": 19, 
+      "scope": 16, 
       "flags": ["payload","const"], 
       "references": [
-        {"symbol":16,"scope":20,"node":"identifier","identifier":"value","flags":["read"]}, 
+        {"symbol":14,"scope":17,"node":"identifier","identifier":"value","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -252,12 +222,12 @@
     {
       "name": "tag", 
       "debugName": "", 
-      "token": 133, 
+      "token": 111, 
       "declNode": "switch_case_inline_one", 
-      "scope": 19, 
+      "scope": 16, 
       "flags": ["payload","const"], 
       "references": [
-        {"symbol":17,"scope":20,"node":"identifier","identifier":"tag","flags":["read"]}, 
+        {"symbol":15,"scope":17,"node":"identifier","identifier":"tag","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -267,7 +237,7 @@
     {
       "name": "switchPointerCaptures", 
       "debugName": "", 
-      "token": 149, 
+      "token": 127, 
       "declNode": "fn_decl", 
       "scope": 0, 
       "flags": ["fn"], 
@@ -281,12 +251,12 @@
     {
       "name": "u", 
       "debugName": "", 
-      "token": 151, 
+      "token": 129, 
       "declNode": "ptr_type_aligned", 
-      "scope": 21, 
+      "scope": 18, 
       "flags": ["const","fn_param"], 
       "references": [
-        {"symbol":19,"scope":22,"node":"identifier","identifier":"u","flags":["read"]}, 
+        {"symbol":17,"scope":19,"node":"identifier","identifier":"u","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -296,12 +266,12 @@
     {
       "name": "value", 
       "debugName": "", 
-      "token": 169, 
+      "token": 147, 
       "declNode": "switch_case_inline_one", 
-      "scope": 24, 
+      "scope": 21, 
       "flags": ["payload","const"], 
       "references": [
-        {"symbol":20,"scope":25,"node":"identifier","identifier":"value","flags":["read"]}, 
+        {"symbol":18,"scope":22,"node":"identifier","identifier":"value","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -311,12 +281,12 @@
     {
       "name": "tag", 
       "debugName": "", 
-      "token": 171, 
+      "token": 149, 
       "declNode": "switch_case_inline_one", 
-      "scope": 24, 
+      "scope": 21, 
       "flags": ["payload","const"], 
       "references": [
-        {"symbol":21,"scope":25,"node":"identifier","identifier":"tag","flags":["read"]}, 
+        {"symbol":19,"scope":22,"node":"identifier","identifier":"tag","flags":["read"]}, 
         
       ], 
       "members": [], 
@@ -326,7 +296,7 @@
     {
       "name": "callExternFn", 
       "debugName": "", 
-      "token": 187, 
+      "token": 165, 
       "declNode": "fn_decl", 
       "scope": 0, 
       "flags": ["fn"], 
@@ -352,11 +322,10 @@
       "log": 4, 
       "puts": 6, 
       "next": 8, 
-      "errdeferPayload": 9, 
-      "whileElseCapture": 11, 
-      "switchCaptures": 14, 
-      "switchPointerCaptures": 18, 
-      "callExternFn": 22, 
+      "whileElseCapture": 9, 
+      "switchCaptures": 12, 
+      "switchPointerCaptures": 16, 
+      "callExternFn": 20, 
       
     }, 
     "children": [
@@ -434,41 +403,12 @@
                 "id": 9, 
                 "flags": [], 
                 "bindings": {
-                  "err": 10, 
-                  
-                }, 
-                "children": [], 
-                
-              }, 
-            ], 
-            
-          }, 
-        ], 
-        
-      }, {
-        "id": 10, 
-        "flags": ["function"], 
-        "bindings": {
-          
-        }, 
-        "children": [
-          {
-            "id": 11, 
-            "flags": ["function","block"], 
-            "bindings": {
-              
-            }, 
-            "children": [
-              {
-                "id": 12, 
-                "flags": [], 
-                "bindings": {
-                  "value": 12, 
+                  "value": 10, 
                   
                 }, 
                 "children": [
                   {
-                    "id": 13, 
+                    "id": 10, 
                     "flags": ["block"], 
                     "bindings": {
                       
@@ -479,15 +419,15 @@
                 ], 
                 
               }, {
-                "id": 14, 
+                "id": 11, 
                 "flags": [], 
                 "bindings": {
-                  "err": 13, 
+                  "err": 11, 
                   
                 }, 
                 "children": [
                   {
-                    "id": 15, 
+                    "id": 12, 
                     "flags": ["block"], 
                     "bindings": {
                       
@@ -504,38 +444,38 @@
         ], 
         
       }, {
-        "id": 16, 
+        "id": 13, 
         "flags": ["function"], 
         "bindings": {
-          "u": 15, 
+          "u": 13, 
           
         }, 
         "children": [
           {
-            "id": 17, 
+            "id": 14, 
             "flags": ["function","block"], 
             "bindings": {
               
             }, 
             "children": [
               {
-                "id": 18, 
+                "id": 15, 
                 "flags": [], 
                 "bindings": {
                   
                 }, 
                 "children": [
                   {
-                    "id": 19, 
+                    "id": 16, 
                     "flags": [], 
                     "bindings": {
-                      "value": 16, 
-                      "tag": 17, 
+                      "value": 14, 
+                      "tag": 15, 
                       
                     }, 
                     "children": [
                       {
-                        "id": 20, 
+                        "id": 17, 
                         "flags": ["block"], 
                         "bindings": {
                           
@@ -555,38 +495,38 @@
         ], 
         
       }, {
-        "id": 21, 
+        "id": 18, 
         "flags": ["function"], 
         "bindings": {
-          "u": 19, 
+          "u": 17, 
           
         }, 
         "children": [
           {
-            "id": 22, 
+            "id": 19, 
             "flags": ["function","block"], 
             "bindings": {
               
             }, 
             "children": [
               {
-                "id": 23, 
+                "id": 20, 
                 "flags": [], 
                 "bindings": {
                   
                 }, 
                 "children": [
                   {
-                    "id": 24, 
+                    "id": 21, 
                     "flags": [], 
                     "bindings": {
-                      "value": 20, 
-                      "tag": 21, 
+                      "value": 18, 
+                      "tag": 19, 
                       
                     }, 
                     "children": [
                       {
-                        "id": 25, 
+                        "id": 22, 
                         "flags": ["block"], 
                         "bindings": {
                           
@@ -606,14 +546,14 @@
         ], 
         
       }, {
-        "id": 26, 
+        "id": 23, 
         "flags": ["function"], 
         "bindings": {
           
         }, 
         "children": [
           {
-            "id": 27, 
+            "id": 24, 
             "flags": ["function","block"], 
             "bindings": {
               
