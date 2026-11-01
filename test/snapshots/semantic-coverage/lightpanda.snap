@@ -1,3 +1,20 @@
-Passed: 100% (426/426)
+Passed: 96.00939% (409/426)
 Panics: 0% (0/426)
 
+src/Server.zig: error.AnalysisFailed
+src/browser/Mime.zig: error.AnalysisFailed
+src/browser/markdown.zig: error.AnalysisFailed
+src/browser/webapi/DOMMatrix.zig: error.AnalysisFailed
+src/browser/webapi/DOMMatrixReadOnly.zig: error.AnalysisFailed
+src/browser/webapi/EventCounts.zig: error.AnalysisFailed
+src/browser/webapi/storage/Cookie.zig: error.AnalysisFailed
+src/cdp/Connection.zig: error.AnalysisFailed
+src/cdp/domains/dom.zig: error.AnalysisFailed
+src/cdp/id.zig: error.AnalysisFailed
+src/log.zig: error.AnalysisFailed
+src/network/CurlDebugAllocator.zig: error.AnalysisFailed
+src/network/WS.zig: error.AnalysisFailed
+src/network/cache/FsCache.zig: error.AnalysisFailed
+src/string.zig: error.AnalysisFailed
+src/test_runner.zig: error.AnalysisFailed
+src/testing.zig: error.AnalysisFailed

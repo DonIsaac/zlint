@@ -93,7 +93,7 @@ pub const Fix = struct {
         pub fn spanCovering(self: Builder, comptime kind: Spanned, id: u32) Span {
             return switch (kind) {
                 .token => self.ctx.semantic.tokenSpan(id),
-                .node => self.ctx.semantic.nodeSpan(@enumFromInt(id)),
+                .node => self.ctx.semantic.nodeSpan(@fromBackingInt(@intCast(id))),
             };
         }
     };
@@ -116,8 +116,9 @@ pub const Fixer = struct {
 
         util.assert(diagnostics.len > 0, "Caller must check if fixes is empty", .{});
 
-        var stackfb = heap.stackFallback(STACK_SIZE * @sizeOf(Fix), self.allocator);
-        const alloc = stackfb.get();
+        var stackfb_buf: [STACK_SIZE * @sizeOf(Fix)]u8 = undefined;
+        var stackfb: std.heap.BufferFirstAllocator = .init(&stackfb_buf, self.allocator);
+        const alloc = stackfb.allocator();
 
         var fixes = std.array_list.Managed(Diagnostic).init(alloc);
         defer fixes.deinit();

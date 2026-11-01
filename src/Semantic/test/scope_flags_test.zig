@@ -4,12 +4,11 @@ const Semantic = @import("../../Semantic.zig");
 const t = std.testing;
 const print = std.debug.print;
 const build = @import("./util.zig").build;
-const Tuple = std.meta.Tuple;
 
 const Scope = Semantic.Scope;
 const Symbol = Semantic.Symbol;
 
-const TestCase = Tuple(&[_]type{ [:0]const u8, Scope.Flags });
+const TestCase = @Tuple(&[_]type{ [:0]const u8, Scope.Flags });
 
 /// Check flags of the scope where a variable `x` is declared.
 fn testXDeclScope(cases: []const TestCase) !void {

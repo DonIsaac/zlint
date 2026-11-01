@@ -26,8 +26,9 @@ const Spliterator = struct {
 /// exist or otherwise fails to open.
 fn tryOpen(allocator: Allocator, io: std.Io, root: Dir, dirname_: ?[]const u8) Allocator.Error!?std.Io.File {
     if (dirname_) |dirname| {
-        var stackfb = std.heap.stackFallback(512, allocator);
-        const stackalloc = stackfb.get();
+        var stackfb_buf: [512]u8 = undefined;
+        var stackfb: std.heap.BufferFirstAllocator = .init(&stackfb_buf, allocator);
+        const stackalloc = stackfb.allocator();
         const gitignore_path = try path.join(stackalloc, &[_][]const u8{ dirname, ".gitignore" });
         defer stackalloc.free(gitignore_path);
         return Dir.openFileAbsolute(io, gitignore_path, .{ .mode = .read_only }) catch return null;

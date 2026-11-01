@@ -51,7 +51,7 @@ ZLint is anopinionated linter for the Zig programming language, written in Zig.
 
 ## Tools
 
-Zig 0.16, `just` for tasks, `bun` for package management and running JS apps, `typos` for spell checking.
+Zig 0.17, `just` for tasks, `bun` for package management and running JS apps, `typos` for spell checking.
 
 ## Build, Test, Run
 

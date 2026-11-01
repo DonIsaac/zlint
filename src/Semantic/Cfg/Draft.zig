@@ -302,8 +302,9 @@ fn markUnreachable(self: *Draft, alloc: Allocator) Allocator.Error!void {
     var visited = try std.DynamicBitSetUnmanaged.initEmpty(alloc, self.blocks.len);
     defer visited.deinit(alloc);
 
-    var stack_fallback = std.heap.stackFallback(@sizeOf(BasicBlock.Id) * 64, alloc);
-    const stack_alloc = stack_fallback.get();
+    var stack_fallback_buf: [@sizeOf(BasicBlock.Id) * 64]u8 = undefined;
+    var stack_fallback: std.heap.BufferFirstAllocator = .init(&stack_fallback_buf, alloc);
+    const stack_alloc = stack_fallback.allocator();
     var stack: std.ArrayList(BasicBlock.Id) = .empty;
     defer stack.deinit(stack_alloc);
 

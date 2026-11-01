@@ -192,7 +192,7 @@ test "SHA-256 digests require GitHub's exact encoding" {
     try t.expectEqual(expected, try parseDigest("sha256:" ++ encoded));
     try t.expectError(error.InvalidDigest, parseDigest(encoded));
     try t.expectError(error.InvalidDigest, parseDigest("sha256:abcd"));
-    try t.expectError(error.InvalidDigest, parseDigest("sha256:" ++ ("z" ** 64)));
+    try t.expectError(error.InvalidDigest, parseDigest("sha256:" ++ @as([64]u8, @splat('z'))));
 }
 
 test "digest verification rejects mismatches" {

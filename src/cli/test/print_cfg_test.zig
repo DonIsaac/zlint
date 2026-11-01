@@ -19,7 +19,7 @@ const source_code: [:0]const u8 =
 /// Render `src` through the `--print-cfg` path. Result is owned by `alloc`,
 /// which is expected to be an arena.
 fn printCfg(alloc: std.mem.Allocator, opts: Options, src: [:0]const u8) ![]const u8 {
-    const owned = try alloc.dupeZ(u8, src);
+    const owned = try alloc.dupeSentinel(u8, src, 0);
     const source = try Source.fromString(alloc, owned, "foo.zig");
     var buf: std.Io.Writer.Allocating = .init(alloc);
     try print_command.printCfg(alloc, t.io, opts, source, &buf.writer);

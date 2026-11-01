@@ -60,8 +60,9 @@ pub fn parse(self: *DisableDirectivesParser, allocator: Allocator, line_comment:
     self.cursor = line_comment.start;
     self.span = line_comment;
 
-    var fb = std.heap.stackFallback(STACK_FALLBACK_SIZE, allocator);
-    const alloc = fb.get();
+    var fb_buf: [STACK_FALLBACK_SIZE]u8 = undefined;
+    var fb: std.heap.BufferFirstAllocator = .init(&fb_buf, allocator);
+    const alloc = fb.allocator();
     defer {
         self.rules.deinit(alloc);
         self.rules = .empty; // Put rules back into a valid, empty state for the next parse.
@@ -208,14 +209,13 @@ fn reset(self: *DisableDirectivesParser) void {
 }
 
 const t = std.testing;
-const Tuple = std.meta.Tuple;
 test {
     t.refAllDecls(DisableDirectivesParser);
 }
 
 test parse {
     const ExpectedDisableDisableDirectives = []const []const u8;
-    const TestCase = Tuple(&[_]type{ []const u8, ?DisableDirectiveComment, ExpectedDisableDisableDirectives });
+    const TestCase = @Tuple(&[_]type{ []const u8, ?DisableDirectiveComment, ExpectedDisableDisableDirectives });
     const cases = &[_]TestCase{
         // global directives
         TestCase{
@@ -292,7 +292,7 @@ test {
 }
 
 test eatWhitespace {
-    const TestCase = Tuple(&[_]type{ []const u8, []const u8 });
+    const TestCase = @Tuple(&[_]type{ []const u8, []const u8 });
     const cases: []const TestCase = &[_]TestCase{
         TestCase{ "", "" },
         TestCase{ " ", "" },
