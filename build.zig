@@ -210,13 +210,6 @@ pub fn build(b: *std.Build) void {
         .root_module = zlint,
         .use_llvm = use_llvm,
     });
-    // Test fixtures live outside `src/`, so they must be registered as imports
-    // before unit tests can `@embedFile` them.
-    inline for (.{"unresolved_reference.zig"}) |fixture| {
-        test_lib.root_module.addAnonymousImport("fixtures/" ++ fixture, .{
-            .root_source_file = b.path("test/fixtures/simple/pass/" ++ fixture),
-        });
-    }
     b.installArtifact(test_lib);
 
     // `src/cli/` and `src/io/` live in the exe's module, so their tests need
