@@ -769,7 +769,11 @@ fn unresolvedNames(sem: *const Semantic, buf: [][]const u8) [][]const u8 {
 }
 
 test "unresolved references only contain identifiers with no binding" {
-    const source: [:0]const u8 = @embedFile("fixtures/unresolved_reference.zig");
+    const source =
+        \\const a = missing_symbol;
+        \\const b = later;
+        \\const later = 1;
+    ;
     var sem = try build(source);
     defer sem.deinit();
 
