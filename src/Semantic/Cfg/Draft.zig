@@ -295,7 +295,8 @@ fn linkUnreachable(self: *Draft, alloc: Allocator) Allocator.Error!void {
 }
 
 /// Mark every block not reachable from its container's entry. `.@"unreachable"`
-/// edges are not real control flow, so they are not followed.
+/// edges are not real control flow, so they are not followed. `b_orphan` blocks
+/// are disconnected by construction, so they are walked as extra roots.
 fn markUnreachable(self: *Draft, alloc: Allocator) Allocator.Error!void {
     if (self.blocks.len == 0) return;
 
@@ -309,11 +310,15 @@ fn markUnreachable(self: *Draft, alloc: Allocator) Allocator.Error!void {
 
     const entries = self.containers.items(.entry);
     const containers: []const Container.Id = self.blocks.items(.container);
+    const block_flags: []const BasicBlock.Flags = self.blocks.items(.flags);
     for (0..self.containers.len) |i| {
         const owner: Container.Id = .from(i);
 
         stack.clearRetainingCapacity();
         try stack.append(stack_alloc, entries[i]);
+        for (block_flags, 0..) |f, b| {
+            if (f.b_orphan and containers[b] == owner) try stack.append(stack_alloc, .from(b));
+        }
         while (stack.pop()) |id| {
             const idx = id.into(usize);
             if (visited.isSet(idx)) continue;

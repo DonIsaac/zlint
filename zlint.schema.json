@@ -73,6 +73,11 @@
                 }
             ]
         },
+        "linter.rules.unreachable_code": {
+            "type": "object",
+            "title": "unreachable-code config",
+            "properties": {}
+        },
         "linter.config.rules_config.RulesConfig": {
             "type": "object",
             "description": "Configure which rules are enabled and how.",
@@ -182,6 +187,28 @@
                                 },
                                 {
                                     "$ref": "#/definitions/linter.rules.unused_decls"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "unreachable-code": {
+                    "description": "## What This Rule Does\nFinds code that can never run because every path leading to it has already\nexited: a `return`, `break`, `continue`, `unreachable`, or a call to a\n`noreturn` function.\n\nDead code is usually a leftover from a refactor. It misleads readers into\nthinking it matters, and the compiler never checks that it still makes sense.\n\n`unreachable` statements themselves are not flagged; they are how Zig\ndocuments that a path is impossible.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nfn foo(x: u32) u32 {\n    if (x > 10) {\n        return 1;\n    } else {\n        return x;\n    }\n    return 3; // never runs\n}\n\nfn bar() void {\n    while (true) {\n        break;\n        std.debug.print(\"never printed\", .{});\n    }\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn foo(x: u32) u32 {\n    if (x > 10) return 1;\n    return x;\n}\n\nfn bar(x: u32) u32 {\n    switch (x) {\n        0 => return 1,\n        else => unreachable,\n    }\n}\n```",
+                    "default": "off",
+                    "markdownDescription": "## What This Rule Does\nFinds code that can never run because every path leading to it has already\nexited: a `return`, `break`, `continue`, `unreachable`, or a call to a\n`noreturn` function.\n\nDead code is usually a leftover from a refactor. It misleads readers into\nthinking it matters, and the compiler never checks that it still makes sense.\n\n`unreachable` statements themselves are not flagged; they are how Zig\ndocuments that a path is impossible.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nfn foo(x: u32) u32 {\n    if (x > 10) {\n        return 1;\n    } else {\n        return x;\n    }\n    return 3; // never runs\n}\n\nfn bar() void {\n    while (true) {\n        break;\n        std.debug.print(\"never printed\", .{});\n    }\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn foo(x: u32) u32 {\n    if (x > 10) return 1;\n    return x;\n}\n\nfn bar(x: u32) u32 {\n    switch (x) {\n        0 => return 1,\n        else => unreachable,\n    }\n}\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.unreachable_code"
                                 }
                             ]
                         }
