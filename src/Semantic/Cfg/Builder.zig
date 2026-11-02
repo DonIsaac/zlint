@@ -159,10 +159,13 @@ pub fn pushCleanup(self: *CfgBuilder, alloc: Allocator, body: NodeIndex, is_errd
 
 /// Stop lowering into the current block. A `defer`/`errdefer` body does not
 /// execute at its declaration site, so every block it forces into existence is
-/// orphaned.
-pub inline fn enterOrphan(self: *CfgBuilder) BasicBlock.Id.Optional {
-    defer self.curr = .none;
-    return self.curr;
+/// orphaned. The region starts in a `b_orphan` block so `Draft.finalize` can
+/// walk it as a root and still mark code that is dead within the body.
+pub fn enterOrphan(self: *CfgBuilder, alloc: Allocator, node: NodeIndex) Allocator.Error!BasicBlock.Id.Optional {
+    const prev = self.curr;
+    const head = try self.newBlock(alloc, node, .{ .b_orphan = true });
+    self.curr = head.into(BasicBlock.Id.Optional);
+    return prev;
 }
 
 /// Close an orphan region and go back to `prev`. The region's trailing block
