@@ -62,7 +62,8 @@ const Error = @import("../../Error.zig");
 const UnreachableCode = @This();
 pub const meta: Rule.Meta = .{
     .name = "unreachable-code",
-    .category = .correctness,
+    // todo: make this `correctness
+    .category = .nursery,
     .default = .err,
     .needs_cfg = true,
 };
@@ -86,9 +87,9 @@ pub fn runOnce(_: *const UnreachableCode, ctx: *LinterContext) void {
         // instructions, and cleanup chains hanging off them only re-run
         // `defer`s.
         //
-        // NOTE: we don't have type information, so we usualy cannot tell if
+        // NOTE: we don't have type information, so we usually cannot tell if
         // `errdefers` are dead because `return`ing a fn call could
-        // activiate it if that fn returns an error union
+        // activate it if that fn returns an error union
         //
         // TODO: detect dead `errdefer`s in `!void` functions
         if (instructions[i].len == 0 or flag.b_cleanup) continue;
