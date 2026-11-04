@@ -59,6 +59,35 @@ jobs:
             -Dtarget=${{ matrix.arch }}-${{ matrix.os }}
           mv zig-out/bin/${binary_name} zig-out/bin/${{ env.BINARY_NAME }}
 
+      # ELF is the only output format that inlines DWARF into the executable, so
+      # Linux assets ship ~5x larger than the equivalent macOS/Windows ones. Split
+      # the debug info out into a companion `.debug` asset instead.
+      # `zig objcopy` can't do this (its ELF->ELF path is unimplemented on 0.16).
+      - name: Strip debug info
+        if: matrix.os == 'linux'
+        env:
+          BINARY_NAME: ${{ steps.binary_name.outputs.binary_name }}
+        run: |
+          objcopy="$(command -v llvm-objcopy || true)"
+          if [ -z "$objcopy" ]; then
+            objcopy="$(ls -1 /usr/lib/llvm-*/bin/llvm-objcopy 2>/dev/null | sort -V | tail -n1)"
+          fi
+          if [ -z "$objcopy" ]; then
+            sudo apt-get update && sudo apt-get install -y llvm
+            objcopy="$(ls -1 /usr/lib/llvm-*/bin/llvm-objcopy | sort -V | tail -n1)"
+          fi
+          echo "using $objcopy"
+          cd zig-out/bin
+          before=$(stat -c%s "$BINARY_NAME")
+          "$objcopy" --only-keep-debug "$BINARY_NAME" "$BINARY_NAME.debug"
+          "$objcopy" --strip-all --add-gnu-debuglink="$BINARY_NAME.debug" "$BINARY_NAME"
+          after=$(stat -c%s "$BINARY_NAME")
+          echo "$BINARY_NAME: $before -> $after bytes"
+          ls -l "$BINARY_NAME" "$BINARY_NAME.debug"
+          # runner is x86_64 linux, so this asset is native - prove strip didn't break it
+          if [ "${{ matrix.arch }}" = "x86_64" ]; then ./"$BINARY_NAME" --version; fi
+
+      # must run after stripping so the attested digest matches the published binary
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v4
         env:
@@ -71,7 +100,11 @@ jobs:
         env:
           BINARY_NAME: ${{ steps.binary_name.outputs.binary_name }}
         with:
-          path: zig-out/bin/${{ env.BINARY_NAME}}
+          # `.debug` only exists for linux; upload-artifact roots multi-path
+          # uploads at the least-common-ancestor, so both land flat.
+          path: |
+            zig-out/bin/${{ env.BINARY_NAME }}
+            zig-out/bin/${{ env.BINARY_NAME }}.debug
           name: ${{ env.BINARY_NAME }}
           retention-days: 1
 
