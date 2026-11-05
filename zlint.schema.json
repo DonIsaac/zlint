@@ -19,6 +19,13 @@
     },
     "$schema": "https://json-schema.org/draft-07/schema#",
     "definitions": {
+        "linter.rules.sort_imports.SeparatedGroups": {
+            "type": "string",
+            "enum": [
+                "none",
+                "local"
+            ]
+        },
         "linter.rules.allocator_first_param": {
             "type": "object",
             "title": "allocator-first-param config",
@@ -182,6 +189,28 @@
                                 },
                                 {
                                     "$ref": "#/definitions/linter.rules.unused_decls"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "sort-imports": {
+                    "description": "## What This Rule Does\n\nChecks maximal blocks of top-level `const` declarations initialized with `@import`, including projected imports such as `@import(\"foo\").Bar`.\nPackage imports sort before local imports, and each group sorts lexicographically by import specifier.\nLocal imports begin with `.` or end with `.zig`. Sorting is case-sensitive.\nAttached comments move with their declaration; standalone comments, module documentation, and ZLint disable directives stay in place.\n\n### Configuration\n\n`std_first` pins every import whose specifier is `std` to the start of its block.\n`separated_groups` controls blank lines inside a block: `none` removes them, while `local` keeps one blank line before the local group.\n\n```json\n{\n  \"rules\": {\n    \"sort-imports\": [\"warn\", {\n      \"std_first\": true,\n      \"separated_groups\": \"local\"\n    }]\n  }\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst a = @import(\"foo\");\nconst z = @import(\"bar\");\n\nconst bar = @import(\"bar.zig\");\nconst foo = @import(\"foo.zig\");\n```\n\nExamples of **correct** code for this rule:\n```zig\nconst z = @import(\"bar\");\nconst a = @import(\"foo\");\nconst bar = @import(\"bar.zig\");\nconst foo = @import(\"foo.zig\");\n```",
+                    "default": "off",
+                    "markdownDescription": "## What This Rule Does\n\nChecks maximal blocks of top-level `const` declarations initialized with `@import`, including projected imports such as `@import(\"foo\").Bar`.\nPackage imports sort before local imports, and each group sorts lexicographically by import specifier.\nLocal imports begin with `.` or end with `.zig`. Sorting is case-sensitive.\nAttached comments move with their declaration; standalone comments, module documentation, and ZLint disable directives stay in place.\n\n### Configuration\n\n`std_first` pins every import whose specifier is `std` to the start of its block.\n`separated_groups` controls blank lines inside a block: `none` removes them, while `local` keeps one blank line before the local group.\n\n```json\n{\n  \"rules\": {\n    \"sort-imports\": [\"warn\", {\n      \"std_first\": true,\n      \"separated_groups\": \"local\"\n    }]\n  }\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst a = @import(\"foo\");\nconst z = @import(\"bar\");\n\nconst bar = @import(\"bar.zig\");\nconst foo = @import(\"foo.zig\");\n```\n\nExamples of **correct** code for this rule:\n```zig\nconst z = @import(\"bar\");\nconst a = @import(\"foo\");\nconst bar = @import(\"bar.zig\");\nconst foo = @import(\"foo.zig\");\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.sort_imports"
                                 }
                             ]
                         }
@@ -483,6 +512,19 @@
             "type": "object",
             "title": "empty-file config",
             "properties": {}
+        },
+        "linter.rules.sort_imports": {
+            "type": "object",
+            "title": "sort-imports config",
+            "properties": {
+                "std_first": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "separated_groups": {
+                    "$ref": "#/definitions/linter.rules.sort_imports.SeparatedGroups"
+                }
+            }
         },
         "linter.rules.case_convention": {
             "type": "object",

@@ -1,0 +1,61 @@
+---
+rule: '{"name":"sort-imports","category":"style","default":"off","fix":{"kind":"fix","dangerous":false},"needs_cfg":false}'
+---
+
+# `sort-imports`
+
+<RuleBanner category="style" default="off" fix={{ kind: 'fix', dangerous: false }} />
+
+## What This Rule Does
+
+Checks maximal blocks of top-level `const` declarations initialized with `@import`, including projected imports such as `@import("foo").Bar`.
+Package imports sort before local imports, and each group sorts lexicographically by import specifier.
+Local imports begin with `.` or end with `.zig`. Sorting is case-sensitive.
+Attached comments move with their declaration; standalone comments, module documentation, and ZLint disable directives stay in place.
+
+### Configuration
+
+`std_first` pins every import whose specifier is `std` to the start of its block.
+`separated_groups` controls blank lines inside a block: `none` removes them, while `local` keeps one blank line before the local group.
+
+```json
+{
+  "rules": {
+    "sort-imports": [
+      "warn",
+      {
+        "std_first": true,
+        "separated_groups": "local"
+      }
+    ]
+  }
+}
+```
+
+## Examples
+
+Examples of **incorrect** code for this rule:
+
+```zig
+const a = @import("foo");
+const z = @import("bar");
+
+const bar = @import("bar.zig");
+const foo = @import("foo.zig");
+```
+
+Examples of **correct** code for this rule:
+
+```zig
+const z = @import("bar");
+const a = @import("foo");
+const bar = @import("bar.zig");
+const foo = @import("foo.zig");
+```
+
+## Configuration
+
+This rule accepts the following options:
+
+- std_first: boolean
+- separated_groups: $ref

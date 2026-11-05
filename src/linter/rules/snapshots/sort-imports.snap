@@ -1,0 +1,100 @@
+  𝙭 sort-imports: Import block is not sorted.
+   ╭─[sort-imports.zig:1:1]
+ 1 │ ╭─▶ const std = @import("std");
+ 2 │ │   const z = @import("bar");
+ 3 │ ├─▶ const a = @import("foo");
+   · ╰──── this import block is not sorted
+   ╰────
+  help: Sort package imports before local imports and alphabetically within each group.
+
+  𝙭 sort-imports: Import block is not sorted.
+   ╭─[sort-imports.zig:1:1]
+ 1 │ ╭─▶ const baz = @import("baz.zig");
+ 2 │ │   const bar = @import("bar.zig");
+ 3 │ ├─▶ const foo = @import("foo.zig");
+   · ╰──── this import block is not sorted
+   ╰────
+  help: Sort package imports before local imports and alphabetically within each group.
+
+  𝙭 sort-imports: Import block is not sorted.
+   ╭─[sort-imports.zig:1:1]
+ 1 │ ╭─▶ const std = @import("std");
+ 2 │ │   const foo = @import("foo.zig");
+ 3 │ │   const baz = @import("baz");
+ 4 │ ├─▶ const bar = @import("bar.zig");
+   · ╰──── this import block is not sorted
+   ╰────
+  help: Sort package imports before local imports and alphabetically within each group.
+
+  𝙭 sort-imports: Import block is not sorted.
+   ╭─[sort-imports.zig:1:1]
+ 1 │ ╭─▶ const baz = @import("baz");
+ 2 │ │   
+ 3 │ ├─▶ const bar = @import("bar.zig");
+   · ╰──── this import block is not sorted
+   ╰────
+  help: Sort package imports before local imports and alphabetically within each group.
+
+  𝙭 sort-imports: Import block is not sorted.
+   ╭─[sort-imports.zig:1:1]
+ 1 │ ╭─▶ const a = @import("a");
+ 2 │ │   
+ 3 │ ├─▶ const b = @import("b");
+   · ╰──── this import block is not sorted
+   ╰────
+  help: Sort package imports before local imports and alphabetically within each group.
+
+  𝙭 sort-imports: Import block is not sorted.
+   ╭─[sort-imports.zig:1:1]
+ 1 │ ╭─▶ const b = @import("b");
+ 2 │ ├─▶ const a = @import("a");
+   · ╰──── this import block is not sorted
+   ╰────
+  help: Sort package imports before local imports and alphabetically within each group.
+
+  𝙭 sort-imports: Import block is not sorted.
+   ╭─[sort-imports.zig:1:1]
+ 1 │ ╭─▶ pub const z = @import("z");
+ 2 │ ├─▶ pub const a = @import("a");
+   · ╰──── this import block is not sorted
+   ╰────
+  help: Sort package imports before local imports and alphabetically within each group.
+
+  𝙭 sort-imports: Import block is not sorted.
+   ╭─[sort-imports.zig:1:1]
+ 1 │ ╭─▶ const z = @import(
+ 2 │ │       "z",
+ 3 │ │   );
+ 4 │ │   const a = @import(
+ 5 │ │       "a",
+ 6 │ ├─▶ );
+   · ╰──── this import block is not sorted
+   ╰────
+  help: Sort package imports before local imports and alphabetically within each group.
+
+  𝙭 sort-imports: Import block is not sorted.
+   ╭─[sort-imports.zig:1:1]
+ 1 │ ╭─▶ const Z = @import("z.zig").Z;
+ 2 │ │   const A = @import("a.zig").A;
+ 3 │ ├─▶ const P = @import("p").P;
+   · ╰──── this import block is not sorted
+   ╰────
+  help: Sort package imports before local imports and alphabetically within each group.
+
+  𝙭 sort-imports: Import block is not sorted.
+   ╭─[sort-imports.zig:1:1]
+ 1 │ ╭─▶ const z = @import("foo"); // z
+ 2 │ │   /// a docs
+ 3 │ ├─▶ const a = @import("bar");
+   · ╰──── this import block is not sorted
+   ╰────
+  help: Sort package imports before local imports and alphabetically within each group.
+
+  𝙭 sort-imports: Import block is not sorted.
+   ╭─[sort-imports.zig:1:1]
+ 1 │ ╭─▶ const z = @import("foo");
+ 2 │ ├─▶ const a = @import("bar");
+   · ╰──── this import block is not sorted
+   ╰────
+  help: Sort package imports before local imports and alphabetically within each group.
+
