@@ -26,16 +26,12 @@
     // internet connectivity.
     .dependencies = .{
         .smart_pointers = .{
-            .url = "https://github.com/DonIsaac/smart-pointers/archive/refs/tags/v0.0.4.tar.gz",
-            .hash = "smart_pointers-0.0.4-NPos2JOtAACuxKEoBGQgkmncI0APAPl-QwaI6klLObuP",
-        },
-        .chameleon = .{
-            .url = "git+https://github.com/tr1ckydev/chameleon#414169dede742d9ac8261d31b9fca6e31a1d7246",
-            .hash = "chameleon-2.0.1-ZOxajZ17AADmYCpHFqqoGfaXQiRkXM8B5lYJfir9tqsz",
+            .url = "https://github.com/DonIsaac/smart-pointers/archive/refs/tags/v0.0.5.tar.gz",
+            .hash = "smart_pointers-0.0.5-NPos2I6tAACKTvrhSOK4ZmpAJGa7FcU65dWc412pK6AM",
         },
         .recover = .{
-            .url = "https://github.com/dimdin/zig-recover/archive/refs/tags/1.3.0.tar.gz",
-            .hash = "recover-1.3.0-Zd97opwlAAB5ocfOuy8Fxp7_prPehOuEnh0R_8rBsNCk",
+            .url = "https://github.com/dimdin/zig-recover/archive/051d306f0f0af1e0cff2609ec07ab815ead552aa.tar.gz",
+            .hash = "recover-1.3.0-Zd97ouYmAADW5QlC02l3SdKLzW4WOxtTRZSGt_XQLQ-R",
         },
     },
     .paths = .{
