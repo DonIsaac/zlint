@@ -41,8 +41,8 @@ fn foo() !void {
 }
 ```
 
-Zig allows `try` in comptime scopes in or nested within functions. This rule
-does not flag these cases.
+Zig allows `try` in comptime blocks and expressions within functions, since
+returned errors become compile errors. This rule does not flag these cases.
 
 ```zig
 const std = @import("std");
@@ -51,6 +51,8 @@ fn foo(x: u32) void {
     // valid
     try bar(x);
   }
+  // also valid
+  _ = comptime try bar(1);
 }
 fn bar(x: u32) !void {
   return if (x == 0) error.Unreachable else void;

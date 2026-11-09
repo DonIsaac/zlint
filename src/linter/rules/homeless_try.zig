@@ -30,8 +30,8 @@
 //! }
 //! ```
 //!
-//! Zig allows `try` in comptime scopes in or nested within functions. This rule
-//! does not flag these cases.
+//! Zig allows `try` in comptime blocks and expressions within functions, since
+//! returned errors become compile errors. This rule does not flag these cases.
 //! ```zig
 //! const std = @import("std");
 //! fn foo(x: u32) void {
@@ -39,6 +39,8 @@
 //!     // valid
 //!     try bar(x);
 //!   }
+//!   // also valid
+//!   _ = comptime try bar(1);
 //! }
 //! fn bar(x: u32) !void {
 //!   return if (x == 0) error.Unreachable else void;
@@ -116,24 +118,36 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
 
     while (it.next()) |scope| {
         const flags = scope_flags[scope.int()];
-        // `try` is allowed in non-error returning comptime code; it causes
-        // a compilation error.
-        if (flags.s_comptime) return;
+        if (flags.isContainer()) break;
         const is_function_sig = flags.s_function and !flags.s_block;
         // functions create two scopes: one for the signature (binds params,
         // return type references symbols here) and one for the function body.
         // We want to check at the function signature level
         if (is_function_sig) {
-            checkFnDecl(ctx, scope, wrapper.idx);
+            const fn_node = ctx.scopes().scopes.items(.node)[scope.int()];
+            // a returned error becomes a compile error, so the function need
+            // not return an error union.
+            if (isInComptime(ctx, wrapper.idx, fn_node)) return;
+            checkFnDecl(ctx, fn_node, wrapper.idx);
             return;
         } else if (flags.s_test) {
             // test statements implicitly have !void signatures.
             return;
         }
-        if (flags.isContainer()) break;
     }
 
     ctx.report(notInFnDiagnostic(ctx, wrapper.idx));
+}
+
+/// Whether `node` is inside a `comptime` block or expression within `fn_node`.
+fn isInComptime(ctx: *LinterContext, node: Node.Index, fn_node: Node.Index) bool {
+    const tags = ctx.ast().nodes.items(.tag);
+    var it = ctx.links().iterParentIds(node);
+    while (it.next()) |id| {
+        if (id == fn_node) return false;
+        if (tags[@intFromEnum(id)] == .@"comptime") return true;
+    }
+    return false;
 }
 
 /// Max const/var alias hops to follow. Bounds recursion, so alias cycles
@@ -230,9 +244,8 @@ fn resolveAliasErrorUnion(ctx: *LinterContext, node: Node.Index, depth: u8) ?boo
     return resolveAliasErrorUnion(ctx, init_node, depth + 1);
 }
 
-fn checkFnDecl(ctx: *LinterContext, scope: Scope.Id, try_node: Node.Index) void {
+fn checkFnDecl(ctx: *LinterContext, decl_node: Node.Index, try_node: Node.Index) void {
     const ast = ctx.ast();
-    const decl_node: Node.Index = ctx.scopes().scopes.items(.node)[scope.int()];
 
     if (ast.nodeTag(decl_node) != .fn_decl) {
         if (comptime util.IS_DEBUG) {
@@ -369,6 +382,22 @@ test HomelessTry {
         \\      try bar(x);
         \\    }
         \\  }
+        \\}
+        ,
+        \\const std = @import("std");
+        \\fn foo(comptime n: u64, x: u64) bool {
+        \\  return x < comptime try std.math.powi(u64, 10, n);
+        \\}
+        ,
+        \\fn foo() void {
+        \\  const x = comptime blk: {
+        \\    break :blk try bar();
+        \\  };
+        \\  _ = x;
+        \\}
+        ,
+        \\fn foo() void {
+        \\  _ = comptime (try bar()) + 1;
         \\}
         ,
         // conditional error union, or error union over a conditional
@@ -556,6 +585,28 @@ test HomelessTry {
         \\fn bar() !void {}
         \\fn foo() mod.Result {
         \\  try bar();
+        \\}
+        ,
+        // `try` is never allowed outside a function, even at comptime
+        \\const x = comptime try bar();
+        ,
+        \\comptime {
+        \\  try bar();
+        \\}
+        ,
+        // `comptime` does not extend into nested functions
+        \\fn foo() void {
+        \\  _ = comptime struct {
+        \\    fn bar() void {
+        \\      try baz();
+        \\    }
+        \\  };
+        \\}
+        ,
+        \\fn foo() void {
+        \\  _ = comptime struct {
+        \\    x: u32 = try bar(),
+        \\  };
         \\}
         ,
         // generic instantiation, likewise
