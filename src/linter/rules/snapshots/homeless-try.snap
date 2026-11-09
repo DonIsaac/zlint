@@ -102,6 +102,43 @@
    ╰────
   help: Change the return type to `!mod.Result`.
 
+  𝙭 homeless-try: `try` cannot be used outside of a function or test block.
+   ╭─[homeless-try.zig:1:20]
+ 1 │ const x = comptime try bar();
+   ·                    ─┬─
+   ·                     ╰── there is nowhere to propagate errors to.
+   ╰────
+
+  𝙭 homeless-try: `try` cannot be used outside of a function or test block.
+   ╭─[homeless-try.zig:2:3]
+ 1 │ comptime {
+ 2 │   try bar();
+   ·   ─┬─
+   ·    ╰── there is nowhere to propagate errors to.
+ 3 │ }
+   ╰────
+
+  𝙭 homeless-try: `try` cannot be used in functions that do not return errors.
+   ╭─[homeless-try.zig:3:8]
+ 2 │   _ = comptime struct {
+ 3 │     fn bar() void {
+   ·        ─┬─
+   ·         ╰── function `bar` is declared here.
+ 4 │       try baz();
+   ·       ─┬─
+   ·        ╰── it cannot propagate error unions.
+   ╰────
+  help: Change the return type to `!void`.
+
+  𝙭 homeless-try: `try` cannot be used outside of a function or test block.
+   ╭─[homeless-try.zig:3:14]
+ 2 │   _ = comptime struct {
+ 3 │     x: u32 = try bar(),
+   ·              ─┬─
+   ·               ╰── there is nowhere to propagate errors to.
+ 4 │   };
+   ╰────
+
   𝙭 homeless-try: `try` cannot be used in functions that do not return errors.
    ╭─[homeless-try.zig:2:4]
  1 │ const std = @import("std");
