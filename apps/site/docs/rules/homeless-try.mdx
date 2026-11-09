@@ -31,6 +31,13 @@ fn bar() !void {
     property: u32 = try std.heap.page_allocator.alloc(u8, 8),
   };
 }
+
+fn qux() !void {
+  defer try std.fs.cwd().deleteFile("tmp.txt");
+  errdefer {
+    try std.fs.cwd().deleteFile("tmp.txt");
+  }
+}
 ```
 
 Examples of **correct** code for this rule:
