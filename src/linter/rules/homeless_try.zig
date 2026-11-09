@@ -1,5 +1,6 @@
 //! ## What This Rule Does
-//! Checks for `try` statements used outside of error-returning functions.
+//! Checks for `try` statements used outside of error-returning functions, or
+//! inside of `defer` and `errdefer` statements.
 //!
 //! As a `compiler`-level lint, this rule checks for errors also caught by the
 //! Zig compiler.
@@ -20,6 +21,13 @@
 //!   const Baz = struct {
 //!     property: u32 = try std.heap.page_allocator.alloc(u8, 8),
 //!   };
+//! }
+//!
+//! fn qux() !void {
+//!   defer try std.fs.cwd().deleteFile("tmp.txt");
+//!   errdefer {
+//!     try std.fs.cwd().deleteFile("tmp.txt");
+//!   }
 //! }
 //! ```
 //!
@@ -98,6 +106,18 @@ fn notInFnDiagnostic(ctx: *LinterContext, node: Node.Index) Error {
     });
 }
 
+fn inDeferDiagnostic(ctx: *LinterContext, try_node: Node.Index, defer_node: Node.Index) Error {
+    const ast = ctx.ast();
+    const defer_token = ast.nodeMainToken(defer_node);
+    const keyword = ctx.semantic.tokenSlice(defer_token);
+    var e = ctx.diagnosticf("`try` cannot be used inside of `{s}` statements.", .{keyword}, .{
+        ctx.labelT(defer_token, "`{s}` statement is here.", .{keyword}),
+        ctx.labelT(ast.firstToken(try_node), "errors cannot be propagated from here.", .{}),
+    });
+    e.help = Cow.static("Handle the error with `catch` instead.");
+    return e;
+}
+
 // Rule metadata
 const HomelessTry = @This();
 pub const meta: Rule.Meta = .{
@@ -123,15 +143,16 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
         // functions create two scopes: one for the signature (binds params,
         // return type references symbols here) and one for the function body.
         // We want to check at the function signature level
-        if (is_function_sig) {
-            const fn_node = ctx.scopes().scopes.items(.node)[scope.int()];
-            // a returned error becomes a compile error, so the function need
-            // not return an error union.
-            if (isInComptime(ctx, wrapper.idx, fn_node)) return;
-            checkFnDecl(ctx, fn_node, wrapper.idx);
-            return;
-        } else if (flags.s_test) {
-            // test statements implicitly have !void signatures.
+        if (is_function_sig or flags.s_test) {
+            const body_node = ctx.scopes().scopes.items(.node)[scope.int()];
+            switch (classifyTry(ctx, wrapper.idx, body_node)) {
+                .deferred => |defer_node| ctx.report(inDeferDiagnostic(ctx, wrapper.idx, defer_node)),
+                // a returned error becomes a compile error, so the function
+                // need not return an error union.
+                .@"comptime" => {},
+                // test statements implicitly have !void signatures.
+                .runtime => if (is_function_sig) checkFnDecl(ctx, body_node, wrapper.idx),
+            }
             return;
         }
     }
@@ -139,15 +160,28 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
     ctx.report(notInFnDiagnostic(ctx, wrapper.idx));
 }
 
-/// Whether `node` is inside a `comptime` block or expression within `fn_node`.
-fn isInComptime(ctx: *LinterContext, node: Node.Index, fn_node: Node.Index) bool {
+const TryContext = union(enum) {
+    runtime,
+    @"comptime",
+    /// The innermost `defer` or `errdefer` containing the `try`.
+    deferred: Node.Index,
+};
+
+/// Classify a `try` by the AST between it and the function or test it is in.
+/// `defer` takes precedence, since `try` is never allowed there.
+fn classifyTry(ctx: *LinterContext, try_node: Node.Index, boundary: Node.Index) TryContext {
     const tags = ctx.ast().nodes.items(.tag);
-    var it = ctx.links().iterParentIds(node);
+    var in_comptime = false;
+    var it = ctx.links().iterParentIds(try_node);
     while (it.next()) |id| {
-        if (id == fn_node) return false;
-        if (tags[@intFromEnum(id)] == .@"comptime") return true;
+        if (id == boundary) break;
+        switch (tags[@intFromEnum(id)]) {
+            .@"defer", .@"errdefer" => return .{ .deferred = id },
+            .@"comptime" => in_comptime = true,
+            else => {},
+        }
     }
-    return false;
+    return if (in_comptime) .@"comptime" else .runtime;
 }
 
 /// Max const/var alias hops to follow. Bounds recursion, so alias cycles
@@ -400,6 +434,37 @@ test HomelessTry {
         \\  _ = comptime (try bar()) + 1;
         \\}
         ,
+        // functions and containers inside a `defer` are not part of it
+        \\fn foo() !void {
+        \\  defer {
+        \\    const S = struct {
+        \\      fn bar() !void {
+        \\        try baz();
+        \\      }
+        \\    };
+        \\    _ = S;
+        \\  }
+        \\}
+        ,
+        \\fn foo() !void {
+        \\  defer bar() catch {};
+        \\  errdefer bar() catch {};
+        \\  try bar();
+        \\}
+        ,
+        \\fn foo() !void {
+        \\  try bar();
+        \\  errdefer {
+        \\    const S = struct {
+        \\      fn baz() !void {
+        \\        try bar();
+        \\      }
+        \\    };
+        \\    _ = S;
+        \\  }
+        \\  try bar();
+        \\}
+        ,
         // conditional error union, or error union over a conditional
         \\const std = @import("std");
         \\pub fn push(list: std.array_list.Managed(u32), x: u32, comptime assume_capacity: bool) if(assume_capacity) void else Allocator.Error!void {
@@ -607,6 +672,93 @@ test HomelessTry {
         \\  _ = comptime struct {
         \\    x: u32 = try bar(),
         \\  };
+        \\}
+        ,
+        // `try` is never allowed inside `defer` or `errdefer`
+        \\fn foo() !void {
+        \\  defer try bar();
+        \\}
+        ,
+        \\fn foo() !void {
+        \\  defer {
+        \\    try bar();
+        \\  }
+        \\}
+        ,
+        \\fn foo(x: bool) !void {
+        \\  defer {
+        \\    if (x) {
+        \\      try bar();
+        \\    }
+        \\  }
+        \\}
+        ,
+        \\fn foo() !void {
+        \\  errdefer try bar();
+        \\}
+        ,
+        \\fn foo() !void {
+        \\  errdefer |err| {
+        \\    _ = err;
+        \\    try bar();
+        \\  }
+        \\}
+        ,
+        \\fn foo() void {
+        \\  defer try bar();
+        \\}
+        ,
+        \\fn foo() void {
+        \\  defer comptime try bar();
+        \\}
+        ,
+        \\fn foo() void {
+        \\  comptime {
+        \\    defer try bar();
+        \\  }
+        \\}
+        ,
+        \\test "foo" {
+        \\  defer try bar();
+        \\}
+        ,
+        \\fn foo() !void {
+        \\  defer {
+        \\    defer try bar();
+        \\  }
+        \\}
+        ,
+        \\fn foo(xs: []const u32) !void {
+        \\  for (xs) |_| {
+        \\    bar() catch {
+        \\      defer try bar();
+        \\    };
+        \\  }
+        \\}
+        ,
+        // nested functions are checked on their own
+        \\fn foo() !void {
+        \\  defer {
+        \\    const S = struct {
+        \\      fn baz() void {
+        \\        try bar();
+        \\      }
+        \\    };
+        \\    _ = S;
+        \\  }
+        \\}
+        ,
+        \\comptime {
+        \\  defer try bar();
+        \\}
+        ,
+        \\fn foo() !void {
+        \\  defer {
+        \\    const S = struct {
+        \\      x: u32 = try bar(),
+        \\    };
+        \\    _ = S;
+        \\  }
         \\}
         ,
         // generic instantiation, likewise

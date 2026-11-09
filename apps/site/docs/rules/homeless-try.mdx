@@ -8,7 +8,8 @@ rule: '{"name":"homeless-try","category":"compiler","default":"err","fix":{"kind
 
 ## What This Rule Does
 
-Checks for `try` statements used outside of error-returning functions.
+Checks for `try` statements used outside of error-returning functions, or
+inside of `defer` and `errdefer` statements.
 
 As a `compiler`-level lint, this rule checks for errors also caught by the
 Zig compiler.
@@ -30,6 +31,13 @@ fn bar() !void {
   const Baz = struct {
     property: u32 = try std.heap.page_allocator.alloc(u8, 8),
   };
+}
+
+fn qux() !void {
+  defer try std.fs.cwd().deleteFile("tmp.txt");
+  errdefer {
+    try std.fs.cwd().deleteFile("tmp.txt");
+  }
 }
 ```
 
