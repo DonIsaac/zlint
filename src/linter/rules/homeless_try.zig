@@ -1,6 +1,5 @@
 //! ## What This Rule Does
-//! Checks for `try` statements used outside of error-returning functions, or
-//! inside of `defer` and `errdefer` statements.
+//! Checks for `try` statements used outside of error-returning functions.
 //!
 //! As a `compiler`-level lint, this rule checks for errors also caught by the
 //! Zig compiler.
