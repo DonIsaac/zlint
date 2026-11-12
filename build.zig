@@ -26,7 +26,8 @@ pub fn build(b: *std.Build) void {
     }
 
     // dependencies
-    l.dependency("chameleon", .{});
+    // Vendored: upstream's build.zig does not compile on Zig 0.17.
+    l.createModule("chameleon", .{ .root_source_file = b.path("src/reporter/chameleon.zig") });
     {
         const dep = l.b.dependency("smart_pointers", .{});
         l.dependencies.put(b.allocator, "smart-pointers", dep) catch @panic("OOM");
@@ -195,7 +196,6 @@ pub fn build(b: *std.Build) void {
 
     // util omitted
     e2e_mod.addImport("zlint", zlint);
-    e2e_mod.addImport("chameleon", l.dependencies.get("chameleon").?.module("chameleon"));
     l.link(e2e_mod, true, .{ "smart-pointers", "recover", "chameleon" });
 
     b.installArtifact(e2e);
@@ -239,6 +239,13 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(test_utils);
 
+    const test_chameleon = b.addTest(.{
+        .name = "test-chameleon",
+        .root_module = l.modules.get("chameleon").?,
+        .use_llvm = use_llvm,
+    });
+    b.installArtifact(test_chameleon);
+
     // steps
 
     const run_exe = b.addRunArtifact(exe);
@@ -251,10 +258,12 @@ pub fn build(b: *std.Build) void {
         const run_lib_tests = b.addRunArtifact(test_lib);
         const run_cli_tests = b.addRunArtifact(test_cli);
         const run_utils_tests = b.addRunArtifact(test_utils);
+        const run_chameleon_tests = b.addRunArtifact(test_chameleon);
         const unit_step = b.step("test", "Run unit tests");
         unit_step.dependOn(&run_lib_tests.step);
         unit_step.dependOn(&run_cli_tests.step);
         unit_step.dependOn(&run_utils_tests.step);
+        unit_step.dependOn(&run_chameleon_tests.step);
 
         const run_e2e = b.addRunArtifact(e2e);
         const e2e_step = b.step("test-e2e", "Run e2e tests");
