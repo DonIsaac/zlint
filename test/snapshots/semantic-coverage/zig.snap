@@ -1,4 +1,4 @@
-Passed: 98.52941% (2948/2992)
+Passed: 98.59626% (2950/2992)
 Panics: 0% (0/2992)
 
 doc/langref/invalid_doc-comment.zig: error.AnalysisFailed
@@ -13,8 +13,6 @@ test/cases/compile_errors/empty_if_body.zig: error.AnalysisFailed
 test/cases/compile_errors/empty_while_loop_body.zig: error.AnalysisFailed
 test/cases/compile_errors/extra_comma_in_destructure.zig: error.AnalysisFailed
 test/cases/compile_errors/for_empty.zig: error.AnalysisFailed
-test/cases/compile_errors/for_extra_capture.zig: error.AnalysisFailed
-test/cases/compile_errors/for_extra_condition.zig: error.AnalysisFailed
 test/cases/compile_errors/implicit_semicolon-block_expr.zig: error.AnalysisFailed
 test/cases/compile_errors/implicit_semicolon-block_statement.zig: error.AnalysisFailed
 test/cases/compile_errors/implicit_semicolon-comptime_expression.zig: error.AnalysisFailed

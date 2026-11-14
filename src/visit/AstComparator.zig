@@ -59,8 +59,7 @@ fn eqlInner(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
         => self.eqlNode(a, b),
         .@"return" => self.eqlOptNode(a, b),
         .unwrap_optional, .grouped_expression => self.eqlNodeAndToken(a, b),
-        .@"defer" => self.eqlNode(a, b),
-        .@"errdefer" => self.eqlOptTokenAndNode(a, b),
+        .@"defer", .@"errdefer" => self.eqlNode(a, b),
         .@"break", .@"continue" => self.eqlOptTokenAndOptNode(a, b),
         .for_range => self.eqlNodeAndOptNode(a, b),
         .@"catch" => self.eqlCatch(a, b),
@@ -90,7 +89,6 @@ fn eqlInner(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
         .assign_sub_sat,
         .assign,
         .merge_error_sets,
-        .array_mult,
         .mul_wrap,
         .mul_sat,
         .array_cat,
@@ -473,13 +471,6 @@ fn eqlNodeAndOptNode(self: *const AstComparator, a: Node.Index, b: Node.Index) b
     return self.eqlInner(a_node, b_node) and self.maybeNodesEql(a_opt_node, b_opt_node);
 }
 
-fn eqlOptTokenAndNode(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
-    const a_token, const a_node = self.ast.nodeData(a).opt_token_and_node;
-    const b_token, const b_node = self.ast.nodeData(b).opt_token_and_node;
-    return self.maybeTokensEql(a_token.unwrap(), b_token.unwrap()) and
-        self.eqlInner(a_node, b_node);
-}
-
 fn eqlOptTokenAndOptNode(self: *const AstComparator, a: Node.Index, b: Node.Index) bool {
     const a_token, const a_node = self.ast.nodeData(a).opt_token_and_opt_node;
     const b_token, const b_node = self.ast.nodeData(b).opt_token_and_opt_node;
@@ -496,7 +487,7 @@ const TokenIndex = Ast.TokenIndex;
 fn expectRootInitializersEql(source: [:0]const u8, expected: bool) !void {
     const t = std.testing;
 
-    var ast = try Ast.parse(t.allocator, source, .zig);
+    var ast = try Ast.parse(t.allocator, source, .{});
     defer ast.deinit(t.allocator);
 
     if (ast.errors.len != 0) std.debug.print("Failed to parse comparator test source:\n{s}\n", .{source});
@@ -514,7 +505,7 @@ fn expectRootInitializersEql(source: [:0]const u8, expected: bool) !void {
 fn expectRootDeclarationsEql(source: [:0]const u8, expected: bool) !void {
     const t = std.testing;
 
-    var ast = try Ast.parse(t.allocator, source, .zig);
+    var ast = try Ast.parse(t.allocator, source, .{});
     defer ast.deinit(t.allocator);
 
     if (ast.errors.len != 0) std.debug.print("Failed to parse comparator test source:\n{s}\n", .{source});
@@ -528,14 +519,14 @@ fn expectRootDeclarationsEql(source: [:0]const u8, expected: bool) !void {
 fn expectTaggedNodesEql(source: [:0]const u8, tag: Node.Tag, expected: bool) !void {
     const t = std.testing;
 
-    var ast = try Ast.parse(t.allocator, source, .zig);
+    var ast = try Ast.parse(t.allocator, source, .{});
     defer ast.deinit(t.allocator);
 
     try t.expectEqual(@as(usize, 0), ast.errors.len);
     var nodes: [2]Node.Index = undefined;
     var len: usize = 0;
     for (0..ast.nodes.len) |i| {
-        const node: Node.Index = @enumFromInt(i);
+        const node: Node.Index = @fromBackingInt(@intCast(i));
         if (ast.nodeTag(node) != tag) continue;
         try t.expect(len < nodes.len);
         nodes[len] = node;
@@ -708,10 +699,6 @@ test "AstComparator compares common expression families" {
 }
 
 test "AstComparator compares optional token and node data" {
-    try expectTaggedNodesEql(
-        \\fn left() void { errdefer |err| consume(err); }
-        \\fn right() void { errdefer |err| consume(err); }
-    , .@"errdefer", true);
     try expectTaggedNodesEql(
         \\fn left() void { label: while (true) break :label; }
         \\fn right() void { other: while (true) break :other; }

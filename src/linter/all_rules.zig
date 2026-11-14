@@ -9,17 +9,17 @@ const std = @import("std");
 const builtin_rules = @import("builtin_rules.zig");
 const custom_rules = @import("custom_rules").custom_rules;
 
-const builtin_decls = @typeInfo(builtin_rules).@"struct".decls;
-const custom_decls = @typeInfo(custom_rules).@"struct".decls;
+const builtin_decls = @typeInfo(builtin_rules).@"struct".decl_names;
+const custom_decls = @typeInfo(custom_rules).@"struct".decl_names;
 
 /// Rule implementation types, builtins first.
 pub const all: []const type = blk: {
     var rules: [builtin_decls.len + custom_decls.len]type = undefined;
-    for (builtin_decls, 0..) |decl, i| {
-        rules[i] = validate(@field(builtin_rules, decl.name), "Builtin", decl.name);
+    for (builtin_decls, 0..) |decl_name, i| {
+        rules[i] = validate(@field(builtin_rules, decl_name), "Builtin", decl_name);
     }
-    for (custom_decls, builtin_decls.len..) |decl, i| {
-        rules[i] = validate(@field(custom_rules, decl.name), "Custom", decl.name);
+    for (custom_decls, builtin_decls.len..) |decl_name, i| {
+        rules[i] = validate(@field(custom_rules, decl_name), "Custom", decl_name);
     }
     const frozen = rules;
     break :blk &frozen;

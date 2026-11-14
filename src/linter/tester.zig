@@ -284,7 +284,7 @@ fn lint(
     // TODO: support static strings in Source w/o leaking memory.
     var source = try Source.fromString(
         self.alloc,
-        try self.alloc.dupeZ(u8, src),
+        try self.alloc.dupeSentinel(u8, src, 0),
         try self.alloc.dupe(u8, self.filename),
     );
     defer source.deinit();

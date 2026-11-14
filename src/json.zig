@@ -170,23 +170,23 @@ pub const Schema = union(enum) {
                         if (s.is_tuple) @compileError("todo: tuples");
 
                         var properties: Schema.Object.Properties = .{};
-                        try properties.ensureUnusedCapacity(ctx.allocator, s.fields.len);
-                        var required = try std.ArrayListUnmanaged([]const u8).initCapacity(ctx.allocator, s.fields.len);
+                        try properties.ensureUnusedCapacity(ctx.allocator, s.field_names.len);
+                        var required = try std.ArrayListUnmanaged([]const u8).initCapacity(ctx.allocator, s.field_names.len);
 
-                        inline for (s.fields) |field| {
-                            const fieldInfo = @typeInfo(field.type);
+                        inline for (s.field_names, s.field_types, s.field_attrs) |field_name, field_type, field_attrs| {
+                            const fieldInfo = @typeInfo(field_type);
                             const FieldType = if (fieldInfo != .optional) brk: {
-                                if (field.default_value_ptr == null)
-                                    required.appendAssumeCapacity(field.name);
-                                break :brk field.type;
+                                if (field_attrs.default_value_ptr == null)
+                                    required.appendAssumeCapacity(field_name);
+                                break :brk field_type;
                             } else fieldInfo.optional.child;
 
                             if (FieldType != anyopaque and FieldType != *anyopaque) {
                                 var field_schema = try ctx.genSchemaImpl(FieldType, true, false);
-                                if (field.defaultValue()) |default| {
+                                if (field_attrs.defaultValue(field_type)) |default| {
                                     field_schema.common().default = try ctx.toValue(default);
                                 }
-                                try properties.put(ctx.allocator, field.name, field_schema);
+                                try properties.put(ctx.allocator, field_name, field_schema);
                             }
                         }
 
@@ -201,9 +201,9 @@ pub const Schema = union(enum) {
                 },
                 .@"enum" => |e| @"enum": {
                     const schema = if (@hasDecl(T, "jsonSchema") and !force_codegen) try T.jsonSchema(ctx) else blk: {
-                        const fields = try ctx.allocator.alloc([]const u8, e.fields.len);
-                        inline for (0..e.fields.len) |i| {
-                            fields[i] = try ctx.allocator.dupe(u8, e.fields[i].name);
+                        const fields = try ctx.allocator.alloc([]const u8, e.field_names.len);
+                        inline for (e.field_names, 0..) |field_name, i| {
+                            fields[i] = try ctx.allocator.dupe(u8, field_name);
                         }
                         break :blk Schema{
                             .@"enum" = .{ .common = .{}, .@"enum" = fields },
@@ -637,13 +637,13 @@ fn toValueT(T: type, value: T, ctx: *Schema.Context) Allocator.Error!?Value {
         .bool => Value{ .bool = value },
         .null => Value{ .null = .{} },
         .@"struct" => |s| obj: {
-            var obj = try ctx.objectSized(s.fields.len);
-            inline for (s.fields) |field| {
-                const field_value: Value = switch (field.type) {
+            var obj = try ctx.objectSized(s.field_names.len);
+            inline for (s.field_names, s.field_types) |field_name, field_type| {
+                const field_value: Value = switch (field_type) {
                     *anyopaque => .{ .bool = true },
-                    else => try toValueT(field.type, @field(value, field.name), ctx) orelse return null,
+                    else => try toValueT(field_type, @field(value, field_name), ctx) orelse return null,
                 };
-                try obj.put(ctx.allocator, field.name, field_value);
+                try obj.put(ctx.allocator, field_name, field_value);
             }
             break :obj Value{ .object = obj };
         },

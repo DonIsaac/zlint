@@ -19,7 +19,7 @@ pub fn buildWithErrors(src: [:0]const u8) !Semantic.Builder.Result {
     errdefer builder.deinit();
     var source = try Source.fromString(
         t.allocator,
-        try t.allocator.dupeZ(u8, src),
+        try t.allocator.dupeSentinel(u8, src, 0),
         try t.allocator.dupe(u8, "test.zig"),
     );
     defer source.deinit();
@@ -42,7 +42,7 @@ pub fn build(src: [:0]const u8) !Semantic {
     var builder = Semantic.Builder.init(t.allocator);
     var source = try Source.fromString(
         t.allocator,
-        try t.allocator.dupeZ(u8, src),
+        try t.allocator.dupeSentinel(u8, src, 0),
         try t.allocator.dupe(u8, "test.zig"),
     );
     defer source.deinit();

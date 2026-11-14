@@ -77,7 +77,7 @@ test "symbols that are never referenced" {
     }
 }
 
-const RefTestCase = meta.Tuple(&[_]type{ [:0]const u8, Reference.Flags });
+const RefTestCase = @Tuple(&[_]type{ [:0]const u8, Reference.Flags });
 fn testRefsOnX(cases: []const RefTestCase) !void {
     for (cases) |case| {
         const source = case[0];

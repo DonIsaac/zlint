@@ -8,7 +8,7 @@ const build = test_util.build;
 const panic = std.debug.panic;
 const print = std.debug.print;
 
-const TestCase = std.meta.Tuple(&[_]type{ [:0]const u8, Symbol.Flags });
+const TestCase = @Tuple(&[_]type{ [:0]const u8, Symbol.Flags });
 
 fn testFlags(cases: []const TestCase) !void {
     for (cases) |case| {
@@ -284,16 +284,6 @@ test "Symbol flags - control flow payloads" {
             ,
             .{ .s_payload = true, .s_const = true },
         },
-        // errdefer
-        .{
-            \\fn foo() !void {
-            \\  errdefer |x| log(x);
-            \\  return error.Oops;
-            \\}
-            \\fn log(_: anyerror) void {}
-            ,
-            .{ .s_payload = true, .s_const = true },
-        },
         // while ... else |err|
         .{
             \\fn next() anyerror!?u32 { return 1; }
@@ -531,41 +521,6 @@ test "visitSwitchCase: pointer payload declares scoped binding" {
     const p = sem.symbols.getSymbolNamed("p") orelse return error.SymbolNotFound;
     const flags = sem.symbols.symbols.items(.flags);
     try t.expect(flags[p.int()].s_payload);
-}
-
-test "errdefer payload shadows an outer declaration" {
-    const src =
-        \\const err: u32 = 1;
-        \\fn log(_: anyerror) void {}
-        \\fn foo() !void {
-        \\    errdefer |err| log(err);
-        \\    return error.Oops;
-        \\}
-    ;
-    var sem = try build(src);
-    defer sem.deinit();
-
-    // `err` inside the errdefer must resolve to the payload, not to the
-    // top-level `const err`.
-    const flags = sem.symbols.symbols.items(.flags);
-    const names = sem.symbols.symbols.items(.name);
-    var found_payload = false;
-    var found_outer = false;
-    var it = sem.symbols.iter();
-    while (it.next()) |symbol| {
-        if (!std.mem.eql(u8, names[symbol.into(usize)], "err")) continue;
-        const refs = sem.symbols.getReferences(symbol);
-        if (flags[symbol.into(usize)].s_payload) {
-            found_payload = true;
-            try t.expect(flags[symbol.into(usize)].s_const);
-            try t.expectEqual(1, refs.len);
-        } else {
-            found_outer = true;
-            try t.expectEqual(0, refs.len);
-        }
-    }
-    try t.expect(found_payload);
-    try t.expect(found_outer);
 }
 
 test "standalone fn protos bind their name in the enclosing scope" {

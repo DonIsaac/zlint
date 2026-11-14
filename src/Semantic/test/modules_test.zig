@@ -124,12 +124,12 @@ test "@import non-string specifier does not add import entry" {
 // ---------------------------------------------------------------------------
 
 test "withSource: multiple calls do not leak ArcStr" {
-    const a_src = try t.allocator.dupeZ(u8, "const x = 0;");
+    const a_src = try t.allocator.dupeSentinel(u8, "const x = 0;", 0);
     const a_path = try t.allocator.dupe(u8, "a.zig");
     var a = try _source.Source.fromString(t.allocator, a_src, a_path);
     defer a.deinit();
 
-    const b_src = try t.allocator.dupeZ(u8, "const y = 0;");
+    const b_src = try t.allocator.dupeSentinel(u8, "const y = 0;", 0);
     const b_path = try t.allocator.dupe(u8, "b.zig");
     var b = try _source.Source.fromString(t.allocator, b_src, b_path);
     defer b.deinit();

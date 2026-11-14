@@ -280,19 +280,19 @@ pub const Edge = struct {
         // zig fmt: on
 
         pub inline fn isBranch(self: Kind) bool {
-            return @intFromEnum(self) & branch_mask != 0;
+            return @backingInt(self) & branch_mask != 0;
         }
 
         pub inline fn isCleanup(self: Kind) bool {
-            return @intFromEnum(self) & cleanup_mask != 0;
+            return @backingInt(self) & cleanup_mask != 0;
         }
 
         pub inline fn isJump(self: Kind) bool {
-            return @intFromEnum(self) & jump_mask != 0;
+            return @backingInt(self) & jump_mask != 0;
         }
 
         pub inline fn isUnreachable(self: Kind) bool {
-            return @intFromEnum(self) & unreachable_mask != 0;
+            return @backingInt(self) & unreachable_mask != 0;
         }
     };
 };

@@ -69,7 +69,7 @@ pub fn deinit(self: *NodeLinks, alloc: Allocator) void {
 }
 
 pub inline fn setScope(self: *NodeLinks, node_id: NodeIndex, scope_id: Scope.Id) void {
-    const idx = @intFromEnum(node_id);
+    const idx = @backingInt(node_id);
     assert(
         idx < self.scopes.items.len,
         "Node id out of bounds (id {d} >= {d})",
@@ -84,7 +84,7 @@ pub inline fn getScope(self: *const NodeLinks, node_id: NodeIndex) ?Scope.Id {
         @branchHint(.cold);
         return null;
     }
-    const idx = @intFromEnum(node_id);
+    const idx = @backingInt(node_id);
     assert(
         idx < self.scopes.items.len,
         "Node id out of bounds (id {d} >= {d})",
@@ -97,21 +97,21 @@ pub inline fn getScope(self: *const NodeLinks, node_id: NodeIndex) ?Scope.Id {
 pub inline fn setParent(self: *NodeLinks, child_id: NodeIndex, parent_id: NodeIndex) void {
     assert(child_id != parent_id, "AST nodes cannot be children of themselves", .{});
     assert(child_id != .root, "Re-assigning the root node's parent is illegal behavior", .{});
-    const parent_idx = @intFromEnum(parent_id);
+    const parent_idx = @backingInt(parent_id);
     assert(
         parent_idx < self.parents.items.len,
         "Parent node id out of bounds (id {d} >= {d})",
         .{ parent_idx, self.parents.items.len },
     );
 
-    self.parents.items[@intFromEnum(child_id)] = parent_id;
+    self.parents.items[@backingInt(child_id)] = parent_id;
 }
 
 pub inline fn getParent(self: *const NodeLinks, node_id: NodeIndex) ?NodeIndex {
     if (node_id == .root) {
         return null;
     }
-    return self.parents.items[@intFromEnum(node_id)];
+    return self.parents.items[@backingInt(node_id)];
 }
 
 /// Iterate over a node's parents. The first element is the node itself, and

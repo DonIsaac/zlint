@@ -1144,8 +1144,8 @@ test "errdefer only runs on error paths, in reverse declaration order" {
     // reverse declaration order: errdefer c, defer b, defer a
     const instructions = cfg.instructionsOf(err_chain);
     const nodes = instructions.items(.node);
-    try t.expect(@intFromEnum(nodes[0]) > @intFromEnum(nodes[1]));
-    try t.expect(@intFromEnum(nodes[1]) > @intFromEnum(nodes[2]));
+    try t.expect(@backingInt(nodes[0]) > @backingInt(nodes[1]));
+    try t.expect(@backingInt(nodes[1]) > @backingInt(nodes[2]));
 
     // and the fallthrough off the end of the body runs the defers too.
     const fallthrough = try succ(cfg, try succ(cfg, @"try", .normal), .cleanup);

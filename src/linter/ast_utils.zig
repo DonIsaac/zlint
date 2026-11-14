@@ -207,7 +207,7 @@ pub fn resolveConstAlias(ctx: *Context, node: Node.Index) ?Node.Index {
     // file's root scope to `null`, which would make container-level aliases
     // unresolvable. `homeless_try.runOnNode` indexes directly for the same
     // reason.
-    const scope: Scope.Id = ctx.links().scopes.items[@intFromEnum(node)];
+    const scope: Scope.Id = ctx.links().scopes.items[@backingInt(node)];
     const name = ctx.semantic.tokenSlice(ast.nodeMainToken(node));
     // `.decls` excludes container fields (`Symbol.Flags.s_member`).
     const symbol_id = ctx.semantic.resolveBinding(scope, name, .decls) orelse return null;

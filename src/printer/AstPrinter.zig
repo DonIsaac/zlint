@@ -38,7 +38,7 @@ pub fn printAst(self: *AstPrinter) !void {
 }
 
 fn printAstNode(self: *AstPrinter, node_id: NodeId) anyerror!void {
-    const idx = @intFromEnum(node_id);
+    const idx = @backingInt(node_id);
     if (idx > self.max_node_id) {
         try self.printer.print("\"<out of bounds: {d}>\"", .{idx});
         return;
@@ -61,7 +61,7 @@ fn printAstNode(self: *AstPrinter, node_id: NodeId) anyerror!void {
         try self.printer.pProp("id", "{d}", idx);
         if (self.node_links) |node_links| {
             const parent = node_links.parents.items[idx];
-            try self.printer.pProp("parent", "{d}", @intFromEnum(parent));
+            try self.printer.pProp("parent", "{d}", @backingInt(parent));
         }
     }
 
@@ -116,10 +116,10 @@ fn printVarDecl(self: *AstPrinter, main_token: Ast.TokenIndex, var_decl: Ast.ful
     const ident = self.ast.tokenSlice(identifier_tok_id);
     try self.printer.pPropStr("ident", ident);
     try self.printer.pPropJson("data", var_decl);
-    inline for (std.meta.fields(Ast.full.VarDecl.Components)) |field| {
-        if (comptime std.mem.indexOf(u8, field.name, "_node")) |node_suffix_index| {
-            const name: []const u8 = field.name[0..node_suffix_index];
-            const val = @field(var_decl.ast, field.name);
+    inline for (@typeInfo(Ast.full.VarDecl.Components).@"struct".field_names) |field_name| {
+        if (comptime std.mem.indexOf(u8, field_name, "_node")) |node_suffix_index| {
+            const name: []const u8 = field_name[0..node_suffix_index];
+            const val = @field(var_decl.ast, field_name);
             if (comptime @TypeOf(val) == Node.OptionalIndex) {
                 if (val.unwrap()) |node_id| {
                     try self.printer.pPropName(name);
@@ -170,7 +170,7 @@ fn printPropNodeArray(self: *AstPrinter, key: []const u8, nodes: []const NodeId)
     }
 }
 
-const IS_DEBUG = builtin.mode == .Debug;
+const IS_DEBUG = builtin.mode == .debug;
 const assert = std.debug.assert;
 
 const AstPrinter = @This();

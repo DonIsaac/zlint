@@ -132,7 +132,7 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
     const node = wrapper.node;
     if (node.tag != Node.Tag.@"try") return;
 
-    const curr_scope = ctx.links().scopes.items[@intFromEnum(wrapper.idx)];
+    const curr_scope = ctx.links().scopes.items[@backingInt(wrapper.idx)];
     var it = ctx.scopes().iterParents(curr_scope);
 
     while (it.next()) |scope| {

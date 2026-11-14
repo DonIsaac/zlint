@@ -274,7 +274,7 @@ test "redirects may not leave HTTPS" {
     try t.expectError(error.InsecureRedirect, copyHttpsLocation(&buffer, "evil.example/zlint", null));
     try t.expectError(error.InsecureRedirect, copyHttpsLocation(&buffer, "ftp://example.com/zlint", null));
 
-    const too_long = "https://example.com/" ++ ("a" ** max_redirect_url_len);
+    const too_long = "https://example.com/" ++ @as([max_redirect_url_len]u8, @splat('a'));
     try t.expectError(error.RedirectLocationTooLong, copyHttpsLocation(&buffer, too_long, null));
 }
 

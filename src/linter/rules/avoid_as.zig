@@ -130,10 +130,10 @@ fn removeAs(as_node: Node.Index, builder: Fix.Builder) !Fix {
     // .builtin_call_two data is .opt_node_and_opt_node: [0]=first arg, [1]=second arg
     const expr_node = builder.ctx.ast().nodeData(as_node).opt_node_and_opt_node[1].unwrap() orelse
         return builder.noop();
-    const as_span = builder.spanCovering(.node, @intFromEnum(as_node));
+    const as_span = builder.spanCovering(.node, @backingInt(as_node));
     return builder.replace(
         as_span,
-        Cow.initBorrowed(builder.snippet(.node, @intFromEnum(expr_node))),
+        Cow.initBorrowed(builder.snippet(.node, @backingInt(expr_node))),
     );
 }
 
@@ -172,10 +172,10 @@ const VarFixer = struct {
 
             const prelude = var_prelude.snippet(builder.ctx.source.text());
             const ident = builder.ctx.semantic.tokenSlice(tok);
-            const ty_text = builder.snippet(.node, @intFromEnum(as_type_arg.?));
-            const expr_text = builder.snippet(.node, @intFromEnum(as_value_arg.?));
+            const ty_text = builder.snippet(.node, @backingInt(as_type_arg.?));
+            const expr_text = builder.snippet(.node, @backingInt(as_value_arg.?));
             return builder.replace(
-                builder.spanCovering(.node, @intFromEnum(this.var_decl)),
+                builder.spanCovering(.node, @backingInt(this.var_decl)),
                 try Cow.fmt(
                     builder.allocator,
                     "{s} {s}: {s} = {s}",
@@ -189,9 +189,9 @@ const VarFixer = struct {
             );
         } else {
             const init_node = this.var_decl_data[1].unwrap() orelse return builder.noop();
-            const expr = builder.snippet(.node, @intFromEnum(as_value_arg.?));
+            const expr = builder.snippet(.node, @backingInt(as_value_arg.?));
             return builder.replace(
-                builder.spanCovering(.node, @intFromEnum(init_node)),
+                builder.spanCovering(.node, @backingInt(init_node)),
                 Cow.initBorrowed(expr),
             );
         }
