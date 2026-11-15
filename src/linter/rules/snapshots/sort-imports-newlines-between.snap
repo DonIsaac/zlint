@@ -1,0 +1,27 @@
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:3:1]
+ 2 │ const foo = @import("foo.zig");
+ 3 │ const baz = @import("baz");
+   · ─────────────┬─────────────
+   ·              ╰── `baz` should come before `foo`
+ 4 │ const bar = @import("bar.zig");
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by import path.
+
+  𝙭 sort-imports: Module and file imports are not separated by a blank line.
+   ╭─[sort-imports.zig:3:1]
+ 2 │ const baz = @import("baz");
+ 3 │ const bar = @import("bar.zig");
+   · ───────────────┬───────────────
+   ·                ╰── expected a blank line before `bar`
+   ╰────
+  help: Add a blank line between module imports and file imports.
+
+  𝙭 sort-imports: Module and file imports are not separated by a blank line.
+   ╭─[sort-imports.zig:1:25]
+ 1 │ const a = @import("a"); const b = @import("b.zig");
+   ·                         ─────────────┬─────────────
+   ·                                      ╰── expected a blank line before `b`
+   ╰────
+  help: Add a blank line between module imports and file imports.
+
