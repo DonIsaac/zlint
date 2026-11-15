@@ -28,6 +28,26 @@
 //! }
 //! ```
 //!
+//! ### Blank Lines Between Sections
+//! Set `newlines_between` to `"always"` to require a blank line between module
+//! imports and file imports. The default, `"ignore"`, does not check blank
+//! lines.
+//!
+//! ```json
+//! {
+//!   "rules": {
+//!     "sort-imports": ["warn", { "newlines_between": "always" }]
+//!   }
+//! }
+//! ```
+//!
+//! ```zig
+//! const std = @import("std");
+//! const clap = @import("clap");
+//!
+//! const foo = @import("foo.zig");
+//! ```
+//!
 //! ## Examples
 //!
 //! Examples of **incorrect** code for this rule:
@@ -71,6 +91,7 @@ const Error = @import("../../Error.zig");
 const Cow = util.Cow(false);
 
 sort_by: SortBy = .specifier,
+newlines_between: NewlinesBetween = .ignore,
 
 const SortImports = @This();
 pub const meta: Rule.Meta = .{
@@ -85,6 +106,13 @@ pub const SortBy = enum {
     specifier,
     /// Sort by the name of the declaration an import is bound to.
     name,
+};
+
+pub const NewlinesBetween = enum {
+    /// Do not check blank lines between sections.
+    ignore,
+    /// Require a blank line between module imports and file imports.
+    always,
 };
 
 const Import = struct {
@@ -138,6 +166,15 @@ fn unsortedDiagnostic(ctx: *LinterContext, sort_by: SortBy, curr: Import, prev: 
         .specifier => Cow.static(help ++ "import path."),
         .name => Cow.static(help ++ "declaration name."),
     };
+    return e;
+}
+
+fn missingNewlineDiagnostic(ctx: *LinterContext, first_file: Import) Error {
+    var e = ctx.diagnostic(
+        "Module and file imports are not separated by a blank line.",
+        .{ctx.labelN(first_file.decl, "expected a blank line before `{s}`", .{first_file.name})},
+    );
+    e.help = Cow.static("Add a blank line between module imports and file imports.");
     return e;
 }
 
@@ -262,21 +299,40 @@ const Comments = struct {
 
 fn checkGroup(self: *const SortImports, ctx: *LinterContext, group: []const Import) void {
     if (group.len < 2) return;
+    const fix = GroupFix{
+        .group = group,
+        .sort_by = self.sort_by,
+        .split = self.newlines_between == .always,
+        .source = ctx.source.text(),
+    };
     for (group[1..], group[0 .. group.len - 1]) |curr, prev| {
         if (!Import.lessThan(self.sort_by, curr, prev)) continue;
-        ctx.reportWithFix(
-            GroupFix{ .group = group, .sort_by = self.sort_by, .source = ctx.source.text() },
-            unsortedDiagnostic(ctx, self.sort_by, curr, prev),
-            &GroupFix.sort,
-        );
+        ctx.reportWithFix(fix, unsortedDiagnostic(ctx, self.sort_by, curr, prev), &GroupFix.sort);
         return;
     }
+
+    // a blank line ends a group, so a sorted group containing both modules and files is missing one
+    if (!fix.split) return;
+    const first_file = GroupFix.firstFile(group) orelse return;
+    ctx.reportWithFix(fix, missingNewlineDiagnostic(ctx, group[first_file]), &GroupFix.sort);
 }
 
 const GroupFix = struct {
     group: []const Import,
     sort_by: SortBy,
+    /// Insert a blank line between module and file imports.
+    split: bool,
     source: []const u8,
+
+    /// Index of the first file import in a sorted group, if it is preceded by
+    /// a module import.
+    fn firstFile(sorted: []const Import) ?usize {
+        if (sorted[0].kind == .file) return null;
+        for (sorted[1..], 1..) |item, i| {
+            if (item.kind == .file) return i;
+        }
+        return null;
+    }
 
     /// Reorder imports, keeping the text between them in place.
     fn sort(self: GroupFix, builder: Fix.Builder) !Fix {
@@ -287,15 +343,27 @@ const GroupFix = struct {
         defer builder.allocator.free(sorted);
         std.mem.sort(Import, sorted, self.sort_by, Import.lessThan);
 
+        // the separator before this import is replaced with a blank line
+        const split_at: usize = if (self.split) firstFile(sorted) orelse 0 else 0;
+
         // moving a trailing comment in front of an import on the same line would comment it out
-        for (sorted[0 .. group.len - 1], group[0 .. group.len - 1], group[1..]) |item, before, after| {
+        for (sorted[0 .. group.len - 1], group[0 .. group.len - 1], group[1..], 1..) |item, before, after, i| {
+            if (i == split_at) continue;
             const separator = self.source[before.span.end..after.span.start];
             if (item.hasTrailingComment(self.source) and std.mem.indexOfScalar(u8, separator, '\n') == null) {
                 return builder.noop();
             }
         }
 
-        const fixed = try builder.allocator.alloc(u8, span.len());
+        var len: usize = span.len();
+        var eol: []const u8 = "\n";
+        if (split_at != 0) {
+            const separator = self.source[group[split_at - 1].span.end..group[split_at].span.start];
+            if (lineEnding(separator) orelse lineEnding(self.source)) |e| eol = e;
+            len = len - separator.len + 2 * eol.len;
+        }
+
+        const fixed = try builder.allocator.alloc(u8, len);
         errdefer builder.allocator.free(fixed);
         var cursor: usize = 0;
         for (sorted, 0..) |item, i| {
@@ -303,13 +371,26 @@ const GroupFix = struct {
             @memcpy(fixed[cursor..][0..text.len], text);
             cursor += text.len;
             if (i + 1 == group.len) break;
+            if (i + 1 == split_at) {
+                for (0..2) |_| {
+                    @memcpy(fixed[cursor..][0..eol.len], eol);
+                    cursor += eol.len;
+                }
+                continue;
+            }
             const separator = self.source[group[i].span.end..group[i + 1].span.start];
             @memcpy(fixed[cursor..][0..separator.len], separator);
             cursor += separator.len;
         }
-        util.assert(cursor == fixed.len, "sorted imports ({d} bytes) do not fill the original span ({d} bytes)", .{ cursor, fixed.len });
+        util.assert(cursor == fixed.len, "sorted imports ({d} bytes) do not fill the fixed span ({d} bytes)", .{ cursor, fixed.len });
 
         return builder.replace(span, Cow.owned(fixed, builder.allocator));
+    }
+
+    /// Get the first line ending in `text`.
+    fn lineEnding(text: []const u8) ?[]const u8 {
+        const nl = std.mem.indexOfScalar(u8, text, '\n') orelse return null;
+        return if (nl > 0 and text[nl - 1] == '\r') "\r\n" else "\n";
     }
 };
 
@@ -684,6 +765,149 @@ test "SortImports: sort_by name" {
             \\const there = @import("something");
             \\const foo = @import("a.zig");
             ,
+        },
+    };
+
+    try runner
+        .withPass(pass)
+        .withFail(fail)
+        .withFix(fix)
+        .run();
+}
+
+test "SortImports: newlines_between always" {
+    const t = std.testing;
+
+    var sort_imports = SortImports{ .newlines_between = .always };
+    var runner = RuleTester.init(t.allocator, sort_imports.rule());
+    runner.snapshot_name = "sort-imports-newlines-between";
+    defer runner.deinit();
+
+    const pass = &[_][:0]const u8{
+        \\const std = @import("std");
+        \\const baz = @import("baz");
+        \\
+        \\const bar = @import("bar.zig");
+        \\const foo = @import("foo.zig");
+        ,
+        \\const std = @import("std");
+        \\const builtin = @import("builtin");
+        \\const clap = @import("clap");
+        ,
+        \\const a = @import("a.zig");
+        \\const b = @import("b.zon");
+        ,
+        \\const std = @import("std");
+        \\// a comment
+        \\
+        \\const a = @import("a.zig");
+        ,
+        // files before modules in separate groups are not checked
+        \\const a = @import("a.zig");
+        \\
+        \\const std = @import("std");
+        ,
+    };
+
+    const fail = &[_][:0]const u8{
+        \\const std = @import("std");
+        \\const foo = @import("foo.zig");
+        \\const baz = @import("baz");
+        \\const bar = @import("bar.zig");
+        ,
+        \\const std = @import("std");
+        \\const baz = @import("baz");
+        \\const bar = @import("bar.zig");
+        ,
+        "const a = @import(\"a\"); const b = @import(\"b.zig\");",
+    };
+
+    const fix = &[_]RuleTester.FixCase{
+        .{
+            .src =
+            \\const std = @import("std");
+            \\const foo = @import("foo.zig");
+            \\const baz = @import("baz");
+            \\const bar = @import("bar.zig");
+            ,
+            .expected =
+            \\const std = @import("std");
+            \\const baz = @import("baz");
+            \\
+            \\const bar = @import("bar.zig");
+            \\const foo = @import("foo.zig");
+            ,
+        },
+        .{
+            .src =
+            \\const std = @import("std");
+            \\const bar = @import("bar.zig");
+            \\
+            \\pub fn main() void {}
+            ,
+            .expected =
+            \\const std = @import("std");
+            \\
+            \\const bar = @import("bar.zig");
+            \\
+            \\pub fn main() void {}
+            ,
+        },
+        // comments move with their import
+        .{
+            .src =
+            \\/// bar docs
+            \\const bar = @import("bar.zig"); // bar
+            \\const std = @import("std"); // std
+            ,
+            .expected =
+            \\const std = @import("std"); // std
+            \\
+            \\/// bar docs
+            \\const bar = @import("bar.zig"); // bar
+            ,
+        },
+        .{
+            .src = "const a = @import(\"a\"); const b = @import(\"b.zig\");",
+            .expected = "const a = @import(\"a\");\n\nconst b = @import(\"b.zig\");",
+        },
+        .{
+            .src = "const std = @import(\"std\");\r\nconst a = @import(\"a.zig\");\r\n",
+            .expected = "const std = @import(\"std\");\r\n\r\nconst a = @import(\"a.zig\");\r\n",
+        },
+        .{
+            .src = "const x = 1;\r\nconst a = @import(\"a\"); const b = @import(\"b.zig\");\r\n",
+            .expected = "const x = 1;\r\nconst a = @import(\"a\");\r\n\r\nconst b = @import(\"b.zig\");\r\n",
+        },
+        // the separator after a trailing comment is replaced, so the fix is safe
+        .{
+            .src =
+            \\const b = @import("b.zig"); const a = @import("a"); // a
+            ,
+            .expected =
+            \\const a = @import("a"); // a
+            \\
+            \\const b = @import("b.zig");
+            ,
+        },
+        .{
+            .src =
+            \\const b = @import("b"); // b
+            \\const a = @import("a"); const c = @import("c.zig");
+            ,
+            .expected =
+            \\const a = @import("a");
+            \\const b = @import("b"); // b
+            \\
+            \\const c = @import("c.zig");
+            ,
+        },
+        .{
+            .src =
+            \\const b = @import("b.zig"); const z = @import("z"); const a = @import("a"); // a
+            ,
+            .expected = "",
+            .fails_lint = true,
         },
     };
 

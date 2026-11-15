@@ -38,6 +38,27 @@ of by import path.
 }
 ```
 
+### Blank Lines Between Sections
+
+Set `newlines_between` to `"always"` to require a blank line between module
+imports and file imports. The default, `"ignore"`, does not check blank
+lines.
+
+```json
+{
+  "rules": {
+    "sort-imports": ["warn", { "newlines_between": "always" }]
+  }
+}
+```
+
+```zig
+const std = @import("std");
+const clap = @import("clap");
+
+const foo = @import("foo.zig");
+```
+
 ## Examples
 
 Examples of **incorrect** code for this rule:
@@ -68,3 +89,4 @@ const bar = @import("bar.zig");
 This rule accepts the following options:
 
 - sort_by: $ref
+- newlines_between: $ref

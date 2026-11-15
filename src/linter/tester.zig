@@ -218,8 +218,10 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
             // TODO: check fix kind.
 
             if (case.fails_lint) {
+                for (unfixed) |*err| {
+                    err.deinit(self.alloc);
+                }
                 if (fixed.did_fix) {
-                    defer fixed.deinit(self.alloc);
                     self.diagnostic.message = Cow.fmt(
                         self.alloc,
                         "Expected case #{d} not to fix any violations, but some fixes were applied.\n\n{s}",
@@ -227,14 +229,10 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
                     ) catch @panic("OOM");
                     return error.FixMismatch;
                 }
-                for (fixed.unfixed_errors.items) |*err| {
-                    err.deinit(self.alloc);
-                }
                 continue;
             }
 
             if (unfixed.len > 0) {
-                defer if (fixed.did_fix) fixed.source.deinit(self.alloc);
                 try self.diagnostics.ensureUnusedCapacity(self.alloc, unfixed.len);
                 for (unfixed) |err| {
                     self.diagnostics.appendAssumeCapacity(.{ .err = err });
