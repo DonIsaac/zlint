@@ -1,0 +1,108 @@
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:2:1]
+ 1 │ const foo = @import("foo.zig");
+ 2 │ const std = @import("std");
+   · ─────────────┬─────────────
+   ·              ╰── `std` should come before `foo`
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by import path.
+
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:2:1]
+ 1 │ const z = @import("z");
+ 2 │ const a = @import("a");
+   · ───────────┬───────────
+   ·            ╰── `a` should come before `z`
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by import path.
+
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:2:1]
+ 1 │ const bar = @import("bar.zig");
+ 2 │ const baz = @import("baz");
+   · ─────────────┬─────────────
+   ·              ╰── `baz` should come before `bar`
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by import path.
+
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:2:1]
+ 1 │ const builtin = @import("builtin");
+ 2 │ const std = @import("std");
+   · ─────────────┬─────────────
+   ·              ╰── `std` should come before `builtin`
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by import path.
+
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:3:1]
+ 2 │ const a = @import("a.zig");
+ 3 │ const b = @import("b");
+   · ───────────┬───────────
+   ·            ╰── `b` should come before `a`
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by import path.
+
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:2:1]
+ 1 │ const B = @import("a.zig").B;
+ 2 │ const A = @import("a.zig").A;
+   · ──────────────┬──────────────
+   ·               ╰── `A` should come before `B`
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by import path.
+
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:2:1]
+ 1 │ pub const z = @import("z");
+ 2 │ const a = @import("a");
+   · ───────────┬───────────
+   ·            ╰── `a` should come before `z`
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by import path.
+
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:2:1]
+ 1 │ const z = @import("z");
+ 2 │ const a = @import("a");
+   · ───────────┬───────────
+   ·            ╰── `a` should come before `z`
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by import path.
+
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:5:1]
+ 4 │ const y = @import("y");
+ 5 │ const b = @import("b");
+   · ───────────┬───────────
+   ·            ╰── `b` should come before `y`
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by import path.
+
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:4:1]
+ 3 │ );
+ 4 │ ╭─▶ const a = @import(
+ 5 │ │       "a",
+ 6 │ ├─▶ );
+   · ╰──── `a` should come before `z`
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by import path.
+
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:1:25]
+ 1 │ const z = @import("z"); const a = @import("a");
+   ·                         ───────────┬───────────
+   ·                                    ╰── `a` should come before `z`
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by import path.
+
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:3:1]
+ 2 │ const z = @import("z");
+ 3 │ const a = @import("a");
+   · ───────────┬───────────
+   ·            ╰── `a` should come before `z`
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by import path.
+

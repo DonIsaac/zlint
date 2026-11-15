@@ -1,0 +1,70 @@
+---
+rule: '{"name":"sort-imports","category":"style","default":"warning","fix":{"kind":"fix","dangerous":false},"needs_cfg":false}'
+---
+
+# `sort-imports`
+
+<RuleBanner category="style" default="warning" fix={{ kind: 'fix', dangerous: false }} />
+
+## What This Rule Does
+
+Checks that top-level `@import` declarations are sorted.
+
+Imports are sorted within groups. A group is a run of consecutive `const`
+declarations initialized with an `@import`, including field accesses on an
+import (e.g. `const Allocator = @import("std").mem.Allocator;`). Blank
+lines and other declarations end a group. Within each group, `@import("std")`
+comes first, followed by other modules (e.g. `builtin` or dependencies),
+followed by `.zig` and `.zon` files. Each of these sections is sorted
+alphabetically by import path. Sorting is case-sensitive.
+
+Doc comments, comments directly above an import, and comments on the same
+line as an import move with it when sorting. `zlint-disable` directives do
+not move. To keep a header comment above a group, separate it from the
+group's first import with a blank line.
+
+Imports nested inside functions or other containers are not checked.
+
+### Sorting by Name
+
+Set `sort_by` to `"name"` to sort each section by declaration name instead
+of by import path.
+
+```json
+{
+  "rules": {
+    "sort-imports": ["warn", { "sort_by": "name" }]
+  }
+}
+```
+
+## Examples
+
+Examples of **incorrect** code for this rule:
+
+```zig
+const foo = @import("foo.zig");
+const std = @import("std");
+
+const bar = @import("bar.zig");
+const baz = @import("baz");
+```
+
+Examples of **correct** code for this rule:
+
+```zig
+const std = @import("std");
+const builtin = @import("builtin");
+const clap = @import("clap");
+const foo = @import("foo.zig");
+
+// groups are sorted independently
+const baz = @import("baz");
+const bar = @import("bar.zig");
+```
+
+## Configuration
+
+This rule accepts the following options:
+
+- sort_by: $ref

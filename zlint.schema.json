@@ -187,6 +187,28 @@
                         }
                     ]
                 },
+                "sort-imports": {
+                    "description": "## What This Rule Does\nChecks that top-level `@import` declarations are sorted.\n\nImports are sorted within groups. A group is a run of consecutive `const`\ndeclarations initialized with an `@import`, including field accesses on an\nimport (e.g. `const Allocator = @import(\"std\").mem.Allocator;`). Blank\nlines and other declarations end a group. Within each group, `@import(\"std\")`\ncomes first, followed by other modules (e.g. `builtin` or dependencies),\nfollowed by `.zig` and `.zon` files. Each of these sections is sorted\nalphabetically by import path. Sorting is case-sensitive.\n\nDoc comments, comments directly above an import, and comments on the same\nline as an import move with it when sorting. `zlint-disable` directives do\nnot move. To keep a header comment above a group, separate it from the\ngroup's first import with a blank line.\n\nImports nested inside functions or other containers are not checked.\n\n### Sorting by Name\nSet `sort_by` to `\"name\"` to sort each section by declaration name instead\nof by import path.\n\n```json\n{\n  \"rules\": {\n    \"sort-imports\": [\"warn\", { \"sort_by\": \"name\" }]\n  }\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst foo = @import(\"foo.zig\");\nconst std = @import(\"std\");\n\nconst bar = @import(\"bar.zig\");\nconst baz = @import(\"baz\");\n```\n\nExamples of **correct** code for this rule:\n```zig\nconst std = @import(\"std\");\nconst builtin = @import(\"builtin\");\nconst clap = @import(\"clap\");\nconst foo = @import(\"foo.zig\");\n\n// groups are sorted independently\nconst baz = @import(\"baz\");\nconst bar = @import(\"bar.zig\");\n```",
+                    "default": "warn",
+                    "markdownDescription": "## What This Rule Does\nChecks that top-level `@import` declarations are sorted.\n\nImports are sorted within groups. A group is a run of consecutive `const`\ndeclarations initialized with an `@import`, including field accesses on an\nimport (e.g. `const Allocator = @import(\"std\").mem.Allocator;`). Blank\nlines and other declarations end a group. Within each group, `@import(\"std\")`\ncomes first, followed by other modules (e.g. `builtin` or dependencies),\nfollowed by `.zig` and `.zon` files. Each of these sections is sorted\nalphabetically by import path. Sorting is case-sensitive.\n\nDoc comments, comments directly above an import, and comments on the same\nline as an import move with it when sorting. `zlint-disable` directives do\nnot move. To keep a header comment above a group, separate it from the\ngroup's first import with a blank line.\n\nImports nested inside functions or other containers are not checked.\n\n### Sorting by Name\nSet `sort_by` to `\"name\"` to sort each section by declaration name instead\nof by import path.\n\n```json\n{\n  \"rules\": {\n    \"sort-imports\": [\"warn\", { \"sort_by\": \"name\" }]\n  }\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst foo = @import(\"foo.zig\");\nconst std = @import(\"std\");\n\nconst bar = @import(\"bar.zig\");\nconst baz = @import(\"baz\");\n```\n\nExamples of **correct** code for this rule:\n```zig\nconst std = @import(\"std\");\nconst builtin = @import(\"builtin\");\nconst clap = @import(\"clap\");\nconst foo = @import(\"foo.zig\");\n\n// groups are sorted independently\nconst baz = @import(\"baz\");\nconst bar = @import(\"bar.zig\");\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.sort_imports"
+                                }
+                            ]
+                        }
+                    ]
+                },
                 "homeless-try": {
                     "description": "## What This Rule Does\nChecks for `try` statements used outside of error-returning functions.\n\nAs a `compiler`-level lint, this rule checks for errors also caught by the\nZig compiler.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst std = @import(\"std\");\n\nvar not_in_a_function = try std.heap.page_allocator.alloc(u8, 8);\n\nfn foo() void {\n  var my_str = try std.heap.page_allocator.alloc(u8, 8);\n}\n\nfn bar() !void {\n  const Baz = struct {\n    property: u32 = try std.heap.page_allocator.alloc(u8, 8),\n  };\n}\n\nfn qux() !void {\n  defer try std.fs.cwd().deleteFile(\"tmp.txt\");\n  errdefer {\n    try std.fs.cwd().deleteFile(\"tmp.txt\");\n  }\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn foo() !void {\n  var my_str = try std.heap.page_allocator.alloc(u8, 8);\n}\n```\n\nZig allows `try` in comptime blocks and expressions within functions, since\nreturned errors become compile errors. This rule does not flag these cases.\n```zig\nconst std = @import(\"std\");\nfn foo(x: u32) void {\n  comptime {\n    // valid\n    try bar(x);\n  }\n  // also valid\n  _ = comptime try bar(1);\n}\nfn bar(x: u32) !void {\n  return if (x == 0) error.Unreachable else void;\n}\n```\n\nZig also allows `try` on functions whose error union sets are empty. ZLint\ndoes _not_ respect this case. Please refactor such functions to not return\nan error union.\n```zig\nconst std = @import(\"std\");\nfn foo() !u32 {\n  // compiles, but treated as a violation. `bar` should return `u32`.\n  const x = try bar();\n  return x + 1;\n}\nfn bar() u32 {\n  return 1;\n}\n```\n\nNamed aliases for error unions are resolved through the semantic model, so\nfunctions returning them are not flagged.\n```zig\nconst Error = error{Oops};\nconst Result = Error!void;\nfn foo() Result {\n  try bar();\n}\n```\n\nReturn types that this rule cannot statically resolve (imported types,\ngeneric instantiations, etc.) are never flagged, since doing so risks a\nfalse positive.",
                     "default": "error",
@@ -483,6 +505,22 @@
             "type": "object",
             "title": "empty-file config",
             "properties": {}
+        },
+        "linter.rules.sort_imports.SortBy": {
+            "type": "string",
+            "enum": [
+                "specifier",
+                "name"
+            ]
+        },
+        "linter.rules.sort_imports": {
+            "type": "object",
+            "title": "sort-imports config",
+            "properties": {
+                "sort_by": {
+                    "$ref": "#/definitions/linter.rules.sort_imports.SortBy"
+                }
+            }
         },
         "linter.rules.case_convention": {
             "type": "object",

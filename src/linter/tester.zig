@@ -2,6 +2,9 @@ rule: Rule,
 linter: Linter,
 
 filename: []const u8,
+/// Snapshot file name, without the `.snap` extension. Defaults to the rule's
+/// name. Set this when a rule has multiple testers.
+snapshot_name: ?[]const u8 = null,
 
 /// Test cases that should produce no violations when linted.
 passes: std.ArrayListUnmanaged([:0]const u8) = .empty,
@@ -333,7 +336,7 @@ fn saveSnapshot(self: *RuleTester) SnapshotError!void {
             return e;
         };
         defer snapshot_dir.close(io);
-        const snapshot_filename = try std.mem.concat(self.alloc, u8, &[_][]const u8{ self.rule.meta.name, ".snap" });
+        const snapshot_filename = try std.mem.concat(self.alloc, u8, &[_][]const u8{ self.snapshot_name orelse self.rule.meta.name, ".snap" });
         defer self.alloc.free(snapshot_filename);
         const snapshot_file = snapshot_dir.createFile(io, snapshot_filename, .{ .truncate = true }) catch |e| {
             self.diagnostic.message = Cow.fmt(
