@@ -1,0 +1,53 @@
+  𝙭 unreachable-code: This code is unreachable.
+   ╭─[unreachable-code.zig:7:5]
+ 6 │     }
+ 7 │     return 3;
+   ·     ────┬────
+   ·         ╰── every path leading here has already exited
+ 8 │ }
+   ╰────
+
+  𝙭 unreachable-code: This code is unreachable.
+   ╭─[unreachable-code.zig:1:26]
+ 1 │ fn foo() u32 { return 1; return 2; }
+   ·                          ────┬────
+   ·                              ╰── every path leading here has already exited
+   ╰────
+
+  𝙭 unreachable-code: This code is unreachable.
+   ╭─[unreachable-code.zig:4:9]
+ 3 │         break;
+ 4 │         bar();
+   ·         ──┬──
+   ·           ╰── every path leading here has already exited
+ 5 │     }
+   ╰────
+
+  𝙭 unreachable-code: This code is unreachable.
+   ╭─[unreachable-code.zig:3:5]
+ 2 │     return;
+ 3 │ ╭─▶     while (bar()) {
+ 4 │ │           baz();
+ 5 │ ├─▶     }
+   · ╰──── every path leading here has already exited
+ 6 │     qux();
+   ╰────
+
+  𝙭 unreachable-code: This code is unreachable.
+   ╭─[unreachable-code.zig:6:5]
+ 5 │     }
+ 6 │     bar();
+   ·     ──┬──
+   ·       ╰── every path leading here has already exited
+ 7 │ }
+   ╰────
+
+  𝙭 unreachable-code: This code is unreachable.
+   ╭─[unreachable-code.zig:4:9]
+ 3 │         return;
+ 4 │         bar();
+   ·         ──┬──
+   ·           ╰── every path leading here has already exited
+ 5 │     }
+   ╰────
+

@@ -519,7 +519,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             const body = ast.nodeData(node_id).node;
             if (self.cfg()) |c| {
                 try c.pushCleanup(self._gpa, body, false);
-                const prev = c.enterOrphan();
+                const prev = try c.enterOrphan(self._gpa, body);
                 defer c.exitOrphan(prev);
                 return self.visit(body);
             }
@@ -1316,7 +1316,7 @@ fn visitErrdefer(self: *SemanticBuilder, node_id: NodeIndex) !void {
     var orphan: Cfg.BasicBlock.Id.Optional = .none;
     if (self.cfg()) |c| {
         try c.pushCleanup(self._gpa, expr, true);
-        orphan = c.enterOrphan();
+        orphan = try c.enterOrphan(self._gpa, expr);
     }
     defer if (self.cfg()) |c| c.exitOrphan(orphan);
 

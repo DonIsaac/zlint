@@ -226,6 +226,7 @@ fn renderBlock(ctx: Ctx, id: BasicBlock.Id, writer: *Writer) Writer.Error!void {
         .{ "b_error", "error" },
         .{ "b_comptime", "comptime" },
         .{ "b_unreachable", "unreachable" },
+        .{ "b_orphan", "orphan" },
     }) |flag| {
         if (@field(block.flags, flag[0])) try writer.writeAll(" " ++ flag[1]);
     }

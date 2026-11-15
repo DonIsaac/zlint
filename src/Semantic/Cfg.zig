@@ -172,8 +172,9 @@ pub const BasicBlock = struct {
         b_comptime: bool = false,
         /// Not reachable from its container's entry. Set by `finalize`.
         b_unreachable: bool = false,
-        // Padding
-        _: u1 = 0,
+        /// First block of a `defer`/`errdefer` body. Has no predecessors by
+        /// construction; `finalize` treats it as a reachability root.
+        b_orphan: bool = false,
 
         const BitflagsMixin = util.Bitflags(Flags);
         pub const Flag = BitflagsMixin.Flag;

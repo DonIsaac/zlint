@@ -1,0 +1,61 @@
+---
+rule: '{"name":"unreachable-code","category":"nursery","default":"err","fix":{"kind":"none","dangerous":false},"needs_cfg":true}'
+---
+
+# `unreachable-code`
+
+<RuleBanner category="nursery" default="err" />
+
+## What This Rule Does
+
+Finds code that can never run because every path leading to it has already
+exited: a `return`, `break`, `continue`, `unreachable`, or a call to a
+`noreturn` function.
+
+Dead code is usually a leftover from a refactor. It misleads readers into
+thinking it matters, and the compiler never checks that it still makes sense.
+
+`unreachable` statements themselves are not flagged; they are how Zig
+documents that a path is impossible.
+
+## Examples
+
+Examples of **incorrect** code for this rule:
+
+```zig
+fn foo(x: u32) u32 {
+    if (x > 10) {
+        return 1;
+    } else {
+        return x;
+    }
+    return 3; // never runs
+}
+
+fn bar() void {
+    while (true) {
+        break;
+        std.debug.print("never printed", .{});
+    }
+}
+```
+
+Examples of **correct** code for this rule:
+
+```zig
+fn foo(x: u32) u32 {
+    if (x > 10) return 1;
+    return x;
+}
+
+fn bar(x: u32) u32 {
+    switch (x) {
+        0 => return 1,
+        else => unreachable,
+    }
+}
+```
+
+## Configuration
+
+This rule has no configuration.
