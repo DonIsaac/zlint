@@ -70,11 +70,15 @@ all default rules, only enabling the ones you choose.
 }
 ```
 
-ZLint also supports [ESLint-like disable directives](https://eslint.org/docs/latest/use/configure/rules#comment-descriptions) to turn off some or all rules for a specific file.
+ZLint also supports [ESLint-like disable directives](https://eslint.org/docs/latest/use/configure/rules#comment-descriptions) to turn off some or all rules for a specific file or line.
 
 ```zig
 // zlint-disable unsafe-undefined -- We need to come back and fix this later
 const x: i32 = undefined;
+
+// zlint-disable-next-line unused-decls
+const y = 1;
+const z = 2; // zlint-disable-line
 ```
 
 ## 🙋‍♂️ Contributing

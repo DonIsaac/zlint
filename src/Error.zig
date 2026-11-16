@@ -55,6 +55,26 @@ pub fn deinit(self: *Error, alloc: std.mem.Allocator) void {
     self.* = undefined;
 }
 
+/// Index of the label that locates this error: the first primary label,
+/// otherwise the earliest one in the source. Formatters and line disable
+/// directives must agree on this, or a directive above the reported line
+/// would not suppress it.
+pub fn primaryLabelIndex(self: *const Error) ?usize {
+    const labels = self.labels.items;
+    if (labels.len == 0) return null;
+    var earliest: usize = 0;
+    for (labels, 0..) |label, i| {
+        if (label.primary) return i;
+        if (label.span.start < labels[earliest].span.start) earliest = i;
+    }
+    return earliest;
+}
+
+pub fn primaryLabel(self: *const Error) ?LabeledSpan {
+    const i = self.primaryLabelIndex() orelse return null;
+    return self.labels.items[i];
+}
+
 pub fn jsonStringify(self: *const Error, jw: anytype) !void {
     try jw.beginObject();
 
@@ -253,6 +273,18 @@ fn expectParse(input: []const u8, expected: Severity) !void {
     const actual = try json.parseFromSlice(Severity, t.allocator, input, .{});
     defer actual.deinit();
     try t.expectEqual(expected, actual.value);
+}
+
+test primaryLabel {
+    var e = Error.newStatic("oops");
+    defer e.labels.deinit(t.allocator);
+    try t.expectEqual(null, e.primaryLabel());
+
+    try e.labels.appendSlice(t.allocator, &.{ .unlabeled(.new(10, 12)), .unlabeled(.new(3, 5)) });
+    try t.expectEqual(Span.new(3, 5), e.primaryLabel().?.span);
+
+    e.labels.items[0].primary = true;
+    try t.expectEqual(Span.new(10, 12), e.primaryLabel().?.span);
 }
 
 test "Severity.jsonParse" {
