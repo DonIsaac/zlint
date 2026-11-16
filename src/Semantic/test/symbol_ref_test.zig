@@ -803,3 +803,43 @@ test "root-level references that resolve are never reported as unresolved" {
     try t.expectEqualStrings("nope_one", names[0]);
     try t.expectEqualStrings("nope_two", names[1]);
 }
+
+// The parser reports every `name,` field as tuple-like with `type_expr` pointing
+// at the name. Only structs have tuple fields; in enums and unions that
+// identifier is the member's name and must never be recorded as a reference.
+test "untyped enum and union members are declarations, not references" {
+    const Case = struct { src: [:0]const u8, members: []const []const u8, references: []const []const u8 };
+    const cases = [_]Case{
+        .{
+            .src = "const U = union(enum) { a, b: u32 };",
+            .members = &.{ "a", "b" },
+            .references = &.{"u32"},
+        },
+        // anonymous containers have no symbol of their own
+        .{
+            .src = "const S = struct { k: enum(u16) { x, y, _ } };",
+            .members = &.{ "k", "x", "y", "_" },
+            .references = &.{"u16"},
+        },
+        .{
+            .src = "const U = union(enum) { a: struct { u32, bool }, b };",
+            .members = &.{ "a", "b" },
+            .references = &.{ "u32", "bool" },
+        },
+    };
+
+    for (cases) |case| {
+        errdefer print("Source:\n\n{s}\n\n", .{case.src});
+        var sem = try build(case.src);
+        defer sem.deinit();
+
+        var members: std.ArrayList([]const u8) = .empty;
+        defer members.deinit(t.allocator);
+        for (sem.symbols.symbols.items(.flags), sem.symbols.symbols.items(.name)) |flags, name| {
+            if (flags.s_member) try members.append(t.allocator, name);
+        }
+        try t.expectEqualDeep(case.members, members.items);
+        try t.expectEqualDeep(case.references, sem.symbols.references.items(.identifier));
+        try t.expectEqual(0, sem.symbols.unresolved_references.items.len);
+    }
+}

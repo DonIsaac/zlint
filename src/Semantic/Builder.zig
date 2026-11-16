@@ -752,9 +752,17 @@ fn visitErrorSetDecl(self: *SemanticBuilder, node_id: NodeIndex) !void {
 ///   bar: u32    // <-- This is a container field. It is always Symbol.Visibility.public.
 /// };            //     It is added to Foo's member table.
 /// ```
-fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.ContainerField) !void {
-    // This is a tuple field, e.g. `a` in `const Foo = struct { a, b };`
-    if (field.ast.tuple_like and self.currentContainerSymbolFlags().s_struct) {
+fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, parsed: full.ContainerField) !void {
+    const ast = self.AST();
+    const scope_flags = self.scopeTree().scopes.items(.flags)[self.currentScope().int()];
+
+    // Use the scope, not the container symbol: anonymous containers share
+    // their enclosing declaration's symbol.
+    var field = parsed;
+    if (scope_flags.s_enum or scope_flags.s_union) field.convertToNonTupleLike(ast);
+
+    // e.g. `u32` in `const Foo = struct { u32, bool };`
+    if (field.ast.tuple_like) {
         if (comptime util.IS_DEBUG) assert(field.ast.align_expr == .none);
 
         try self.visitOptionalType(field.ast.type_expr);
@@ -762,10 +770,9 @@ fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.C
         return;
     }
 
-    const main_token = self.AST().nodeMainToken(node_id);
     // main_token points to the field name
     // NOTE: container fields are always public
-    const identifier = self.expectToken(main_token, .identifier);
+    const identifier = self.expectToken(ast.nodeMainToken(node_id), .identifier);
 
     try self.declareMemberSymbol(.{
         .identifier = identifier,
@@ -775,7 +782,6 @@ fn visitContainerField(self: *SemanticBuilder, node_id: NodeIndex, field: full.C
         },
     });
     try self.visitOptional(field.ast.align_expr);
-    const scope_flags = self.scopeTree().getScope(self.currentScope()).flags;
     if (!scope_flags.s_enum) {
         try self.visitOptionalType(field.ast.type_expr);
     }
