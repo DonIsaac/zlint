@@ -28,12 +28,11 @@ fn run(alloc: Allocator) !void {
     }) |suite_inputs| {
         const suite_name, const suite_run_fn = suite_inputs;
 
-        var fixtures = try std.Io.Dir.cwd().openDir(
+        const fixtures = try std.Io.Dir.cwd().openDir(
             io,
             "test/fixtures/simple/" ++ suite_name,
             .{ .iterate = true },
         );
-        defer fixtures.close(io);
 
         var suite = try test_runner.TestSuite.init(
             alloc,
@@ -43,6 +42,7 @@ fn run(alloc: Allocator) !void {
             suite_name,
             .{ .test_fn = suite_run_fn },
         );
+        defer suite.deinit();
         try suite.run();
         if (suite.stats.total() == 0) {
             std.debug.print("Suite {s} contains no test cases.\n", .{suite_name});
