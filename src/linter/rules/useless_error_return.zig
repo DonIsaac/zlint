@@ -161,7 +161,7 @@ pub fn runOnSymbol(_: *const UselessErrorReturn, symbol: Symbol.Id, ctx: *Linter
     };
 
     // allow for `error{}!ty` return types
-    if (@intFromEnum(err_type) < ast.nodes.len and ast.nodeTag(err_type) == .error_union) {
+    if (@backingInt(err_type) < ast.nodes.len and ast.nodeTag(err_type) == .error_union) {
         const left = ast.nodeData(err_type).node_and_node[0];
         if (ast.nodeTag(left) == .error_set_decl) {
             const maybe_lbrace = ast.nodeData(left).token_and_token[1] -| 1;
@@ -170,14 +170,16 @@ pub fn runOnSymbol(_: *const UselessErrorReturn, symbol: Symbol.Id, ctx: *Linter
     }
 
     // 3. look for fail-y things
-    var visitorfb = std.heap.stackFallback(8, ctx.gpa);
-    var visitor = Visitor.init(ctx.ast(), err_ident, visitorfb.get());
+    var visitorfb_buf: [8]u8 = undefined;
+    var visitorfb: std.heap.BufferFirstAllocator = .init(&visitorfb_buf, ctx.gpa);
+    var visitor = Visitor.init(ctx.ast(), err_ident, visitorfb.allocator());
     defer visitor.err_stack.deinit();
     {
         var arena = std.heap.ArenaAllocator.init(ctx.gpa);
         defer arena.deinit();
-        var stackfb = std.heap.stackFallback(512, arena.allocator());
-        const alloc = stackfb.get();
+        var stackfb_buf: [512]u8 = undefined;
+        var stackfb: std.heap.BufferFirstAllocator = .init(&stackfb_buf, arena.allocator());
+        const alloc = stackfb.allocator();
 
         var walker = walk.Walker(Visitor, Visitor.VisitError).init(alloc, ctx.ast(), &visitor) catch @panic("OOM");
         // walker.deinit() not needed b/c arena

@@ -13,11 +13,6 @@ fn next() anyerror!?u32 {
     return 1;
 }
 
-fn errdeferPayload() !void {
-    errdefer |err| log(err);
-    return error.Oops;
-}
-
 fn whileElseCapture() void {
     while (next()) |value| {
         _ = value;

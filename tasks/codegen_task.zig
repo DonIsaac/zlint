@@ -9,7 +9,7 @@ pub const CodegenTasks = struct {
     zlint: *Module,
     b: *Build,
     target: ?Build.ResolvedTarget = null,
-    optimize: std.builtin.OptimizeMode = .Debug,
+    optimize: std.lang.Optimize = .debug,
 
     _docgen_exe: ?*Step.Compile = null,
     _confgen_exe: ?*Step.Compile = null,

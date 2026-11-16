@@ -84,13 +84,12 @@ fn testConfig(source: []const u8, expected: RulesConfig) !void {
         return err;
     };
     defer actual.deinit();
-    const info = @typeInfo(RulesConfig.Rules);
-    inline for (info.@"struct".fields) |field| {
-        const expected_rule_config = @field(expected.rules, field.name);
-        const actual_rule_config = @field(actual.value.rules, field.name);
+    inline for (@typeInfo(RulesConfig.Rules).@"struct".field_names) |field_name| {
+        const expected_rule_config = @field(expected.rules, field_name);
+        const actual_rule_config = @field(actual.value.rules, field_name);
         // TODO: Test that configs are the same, once rule configuration is implemented.
         t.expectEqual(expected_rule_config.severity, actual_rule_config.severity) catch |err| {
-            print("Mismatched severity for rule '{s}':\n", .{field.name});
+            print("Mismatched severity for rule '{s}':\n", .{field_name});
             print("Expected:\n\n\t{any}\n\n", .{expected});
             print("Actual:\n\n\t{any}\n", .{actual.value});
             return err;
@@ -103,8 +102,8 @@ fn withSeverities(overrides: anytype) RulesConfig {
     comptime std.debug.assert(builtin.is_test);
 
     var config: RulesConfig = .default;
-    inline for (@typeInfo(@TypeOf(overrides)).@"struct".fields) |field| {
-        @field(config.rules, field.name).severity = @field(overrides, field.name);
+    inline for (@typeInfo(@TypeOf(overrides)).@"struct".field_names) |field_name| {
+        @field(config.rules, field_name).severity = @field(overrides, field_name);
     }
     return config;
 }

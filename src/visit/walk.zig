@@ -95,7 +95,7 @@ pub fn Walker(Visitor: type, Error: type) type {
     const WalkerVTable = struct {
         // SAFETY: set immediately when iterating over tag infos. Only one
         // vtable is ever instantiated.
-        tag_table: [tag_info.fields.len]?*const VisitFn = undefined,
+        tag_table: [tag_info.field_names.len]?*const VisitFn = undefined,
 
         // "full node" visitors
         visitVarDecl: ?*const VisitFull(full.VarDecl) = null,
@@ -128,10 +128,10 @@ pub fn Walker(Visitor: type, Error: type) type {
     const vtable: WalkerVTable, const has_any_methods: bool = comptime blk: {
         var vt: WalkerVTable = .{};
         var has_methods = false;
-        for (tag_info.fields) |field| {
-            const id: usize = field.value;
+        for (tag_info.field_names, tag_info.field_values) |field_name, field_value| {
+            const id: usize = field_value;
             // e.g. visit_if_stmt, visit_less_than, visit_greater_than
-            const visit_fn_name = "visit_" ++ field.name;
+            const visit_fn_name = "visit_" ++ field_name;
 
             // visitors who do not care about visiting certain kinds of nodes do not
             // need to implement visitor methods for them. Visiting will simply be
@@ -148,8 +148,7 @@ pub fn Walker(Visitor: type, Error: type) type {
         }
 
         // "full node" visitors
-        for (@typeInfo(WalkerVTable).@"struct".fields) |field| {
-            const name = field.name;
+        for (@typeInfo(WalkerVTable).@"struct".field_names) |name| {
             if (!std.mem.eql(u8, name, "tag_table")) {
                 if (@hasDecl(Visitor, name)) {
                     @field(vt, name) = @field(Visitor, name);
@@ -259,7 +258,7 @@ pub fn Walker(Visitor: type, Error: type) type {
             while (self.stack.pop()) |entry| {
                 if (comptime util.IS_DEBUG) i += 1;
                 if (entry.kind == .exit) {
-                    print("[{}] exit: {s} ({})\n", .{ self.stack.items.len, @tagName(self.ast.nodeTag(entry.id)), @intFromEnum(entry.id) });
+                    print("[{}] exit: {s} ({})\n", .{ self.stack.items.len, @tagName(self.ast.nodeTag(entry.id)), @backingInt(entry.id) });
                     self.exitNode(entry.id);
                     continue;
                 }
@@ -352,7 +351,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                     .call_one, .call_one_comma => self.walkFull(full.Call, node, tag, .visitCall, .callOne, .{&buf}),
 
                     else => tag_visit: {
-                        const state: WalkState = if (vtable.tag_table[@intFromEnum(tag)]) |visit_fn|
+                        const state: WalkState = if (vtable.tag_table[@backingInt(tag)]) |visit_fn|
                             try @call(.auto, visit_fn, .{ self.visitor, node })
                         else
                             WalkState.Continue;
@@ -418,7 +417,7 @@ pub fn Walker(Visitor: type, Error: type) type {
             // Either way, the full node is still traversed correctly.
             const state: WalkState = if (visit_full_fn) |visitFullFn|
                 try visitFullFn(self.visitor, node, &full_node)
-            else if (vtable.tag_table[@intFromEnum(tag)]) |visitTagFn|
+            else if (vtable.tag_table[@backingInt(tag)]) |visitTagFn|
                 try visitTagFn(self.visitor, node)
             else
                 WalkState.Continue;
@@ -435,8 +434,9 @@ pub fn Walker(Visitor: type, Error: type) type {
             // recursion.
             if (comptime Full == full.FnProto) {
                 const Item = Node.Index;
-                var temp = std.heap.stackFallback(8 * @sizeOf(Item), self.alloc);
-                var parambuf = std.array_list.Managed(Item).init(temp.get());
+                var temp_buf: [8 * @sizeOf(Item)]u8 = undefined;
+                var temp: std.heap.BufferFirstAllocator = .init(&temp_buf, self.alloc);
+                var parambuf = std.array_list.Managed(Item).init(temp.allocator());
                 defer parambuf.deinit();
                 try parambuf.ensureTotalCapacityPrecise(8);
 
@@ -462,45 +462,44 @@ pub fn Walker(Visitor: type, Error: type) type {
         /// Use comptime fuckery to push a `FullNode.Components` subtree onto
         /// the stack in reverse order.
         fn pushFullNode(self: *Self, Components: type, own_id: Node.Index, components: Components) Allocator.Error!void {
-            const info = @typeInfo(Components);
-            const fields = info.@"struct".fields;
-            // @compileLog(fields);
-            try self.stack.ensureUnusedCapacity(self.alloc, 2 * fields.len);
+            const info = @typeInfo(Components).@"struct";
+            const field_names = info.field_names;
+            try self.stack.ensureUnusedCapacity(self.alloc, 2 * field_names.len);
 
             // NOTE: std.mem.reverseIterator does not work in comptime
-            inline for (0..fields.len) |i| {
-                const idx = fields.len - i - 1;
-                const field = fields[idx];
-                const is_token = comptime mem.endsWith(u8, field.name, "_token") or
-                    token_names.has(field.name);
+            inline for (0..field_names.len) |i| {
+                const idx = field_names.len - i - 1;
+                const field_name = field_names[idx];
+                const is_token = comptime mem.endsWith(u8, field_name, "_token") or
+                    token_names.has(field_name);
 
                 const is_specific_undesirable_node = comptime Components == full.FnProto.Components and
-                    (std.mem.eql(u8, field.name, "proto_node") or
-                        std.mem.eql(u8, field.name, "params"));
+                    (std.mem.eql(u8, field_name, "proto_node") or
+                        std.mem.eql(u8, field_name, "params"));
 
                 if (!is_token and !is_specific_undesirable_node) {
-                    const subnode: field.type = @field(components, field.name);
+                    const subnode: info.field_types[idx] = @field(components, field_name);
                     switch (@TypeOf(subnode)) {
                         []const Node.Index, []Node.Index => {
                             try self.ensureStackCapacity(subnode.len);
                             for (0..subnode.len) |j| {
                                 const el: Node.Index = subnode[subnode.len - j - 1];
-                                util.assert(el != own_id, "Cycle detected on node {d}", .{@intFromEnum(own_id)});
+                                util.assert(el != own_id, "Cycle detected on node {d}", .{@backingInt(own_id)});
                                 self.push(el, .{ .assume_capacity = true });
                             }
                         },
                         Node.Index => if (subnode != .root) {
-                            if (comptime std.mem.eql(u8, field.name, "proto_node")) {
+                            if (comptime std.mem.eql(u8, field_name, "proto_node")) {
                                 if (own_id != subnode) try self.push(subnode, .{ .maybe_null = false });
                             } else {
-                                util.assert(subnode != own_id, "Cycle detected on node {d}", .{@intFromEnum(own_id)});
+                                util.assert(subnode != own_id, "Cycle detected on node {d}", .{@backingInt(own_id)});
                                 try self.push(subnode, .{ .maybe_null = false });
                             }
                         },
                         Node.OptionalIndex => {
                             if (subnode.unwrap()) |n| {
                                 if (n != .root) {
-                                    util.assert(n != own_id, "Cycle detected on node {d}", .{@intFromEnum(own_id)});
+                                    util.assert(n != own_id, "Cycle detected on node {d}", .{@backingInt(own_id)});
                                     try self.push(n, .{ .maybe_null = false });
                                 }
                             }
@@ -508,14 +507,14 @@ pub fn Walker(Visitor: type, Error: type) type {
                         ?Node.Index => {
                             if (subnode) |n| {
                                 if (n != .root) {
-                                    util.assert(n != own_id, "Cycle detected on node {d}", .{@intFromEnum(own_id)});
+                                    util.assert(n != own_id, "Cycle detected on node {d}", .{@backingInt(own_id)});
                                     try self.push(n, .{ .maybe_null = false });
                                 }
                             }
                         },
                         bool, ?Ast.TokenIndex => {},
                         else => |Unsupported| {
-                            @compileError(@typeName(Components) ++ "." ++ field.name ++ " has unsupported type " ++ @typeName(Unsupported) ++ ".");
+                            @compileError(@typeName(Components) ++ "." ++ field_name ++ " has unsupported type " ++ @typeName(Unsupported) ++ ".");
                         },
                     }
                 }
@@ -614,6 +613,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                     // .node
                     .deref,
                     .@"defer",
+                    .@"errdefer",
                     .@"suspend",
                     .@"resume",
                     .@"comptime",
@@ -660,7 +660,6 @@ pub fn Walker(Visitor: type, Error: type) type {
                     .mul,
                     .div,
                     .mod,
-                    .array_mult,
                     .mul_wrap,
                     .mul_sat,
                     .add,
@@ -778,7 +777,7 @@ pub fn Walker(Visitor: type, Error: type) type {
                     .anyframe_type => .token_and_node,
 
                     // .opt_token_and_node
-                    .test_decl, .@"errdefer" => .opt_token_and_node,
+                    .test_decl => .opt_token_and_node,
 
                     // .opt_node_and_token
                     .asm_output => .opt_node_and_token,
@@ -864,10 +863,10 @@ pub fn Walker(Visitor: type, Error: type) type {
             util.assert(node != .root, "Tried to push null node onto stack", .{});
 
             if (comptime util.RUNTIME_SAFETY) {
-                if (@intFromEnum(node) >= self.ast.nodes.len) {
+                if (@backingInt(node) >= self.ast.nodes.len) {
                     print(
                         "Tried to push out-of-bounds node (id: {d}, nodes.len: {d}). It's likely a token or extra_data index.",
-                        .{ @intFromEnum(node), self.ast.nodes.len },
+                        .{ @backingInt(node), self.ast.nodes.len },
                     );
                     self.printStack();
                     @panic("node index out of bounds");
@@ -894,7 +893,7 @@ pub fn Walker(Visitor: type, Error: type) type {
             print("Stack:\n", .{});
             for (self.stack.items) |el| {
                 if (el.kind == .exit) continue;
-                print("- {d}: {s}\n", .{ @intFromEnum(el.id), @tagName(self.ast.nodeTag(el.id)) });
+                print("- {d}: {s}\n", .{ @backingInt(el.id), @tagName(self.ast.nodeTag(el.id)) });
             }
         }
 
@@ -917,7 +916,7 @@ inline fn print(comptime fmt: []const u8, args: anytype) void {
     std.debug.print(fmt ++ "\n", args);
 }
 comptime {
-    if (@import("builtin").mode != .Debug) assert(DEBUG_PRINT == false);
+    if (@import("builtin").mode != .debug) assert(DEBUG_PRINT == false);
 }
 
 const std = @import("std");
@@ -949,18 +948,18 @@ test Walker {
 
         const Error = error{};
 
-        fn enterNode(self: *@This(), _: Node.Index) !void {
+        pub fn enterNode(self: *@This(), _: Node.Index) !void {
             self.depth += 1;
             self.nodes_visited += 1;
         }
-        fn exitNode(self: *@This(), _: Node.Index) void {
+        pub fn exitNode(self: *@This(), _: Node.Index) void {
             expect(self.depth > 0) catch @panic("expect failed");
             self.depth -= 1;
         }
 
         // All nodes may be visited with a function called `visit_[tag]`,
         // where `tag` is a variant of `Node.Tag`.
-        fn visit_fn_decl(self: *@This(), _: Node.Index) Error!WalkState {
+        pub fn visit_fn_decl(self: *@This(), _: Node.Index) Error!WalkState {
             self.seen_fn_decl = true;
             return .Continue;
         }
@@ -969,7 +968,7 @@ test Walker {
         /// called `fullNodeKind`, then you can visit it with `visitNodeKind`.
         ///
         /// See `zig.Ast.full` for a list.
-        fn visitVarDecl(
+        pub fn visitVarDecl(
             self: *@This(),
             _: Node.Index,
             _: *const Ast.full.VarDecl,
@@ -989,7 +988,7 @@ test Walker {
     ;
 
     // parse some source code into a zig.Ast
-    var ast = try Ast.parse(allocator, src, .zig);
+    var ast = try Ast.parse(allocator, src, .{});
     defer ast.deinit(allocator);
     try expectEqual(0, ast.errors.len);
 

@@ -4,11 +4,6 @@ const Module = std.Build.Module;
 const codegen = @import("tasks/codegen_task.zig");
 
 pub fn build(b: *std.Build) void {
-    // default to -freference-trace, but respect -fnoreference-trace
-    if (b.reference_trace == null) {
-        b.reference_trace = 256;
-    }
-
     // cli options
     const single_threaded = b.option(bool, "single-threaded", "Build a single-threaded executable");
     const debug_release = b.option(bool, "debug-release", "Build with debug info in release mode") orelse false;
@@ -27,7 +22,7 @@ pub fn build(b: *std.Build) void {
     var l = Linker.init(b);
     defer l.deinit();
     if (debug_release) {
-        l.optimize = .ReleaseSafe;
+        l.optimize = .safe;
     }
 
     // dependencies
@@ -240,9 +235,7 @@ pub fn build(b: *std.Build) void {
     // steps
 
     const run_exe = b.addRunArtifact(exe);
-    if (b.args) |args| {
-        run_exe.addArgs(args);
-    }
+    run_exe.addPassthruArgs();
     const run = b.step("run", "Run zlint from the current directory");
     run.dependOn(&run_exe.step);
 
@@ -312,7 +305,7 @@ const Linker = struct {
     b: *Build,
     options: *Build.Step.Options,
     target: Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
+    optimize: std.lang.Optimize,
     dependencies: std.StringHashMapUnmanaged(*Build.Dependency) = .{},
     modules: std.StringHashMapUnmanaged(*Module) = .{},
     dev_modules: std.StringHashMapUnmanaged(*Module) = .{},
@@ -406,9 +399,7 @@ pub const ZLintStep = struct {
 pub fn addRunLint(b: *std.Build, zlint_dep: *std.Build.Dependency) *ZLintStep {
     const exe = zlint_dep.artifact("zlint");
     const run = b.addRunArtifact(exe);
-    if (b.args) |args| {
-        run.addArgs(args);
-    }
+    run.addPassthruArgs();
     return @ptrCast(run);
 }
 

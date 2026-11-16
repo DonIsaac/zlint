@@ -81,8 +81,9 @@ fn renderContext(self: *GraphicalFormatter, w: *io.Writer, e: *Error) FormatErro
 
     std.sort.insertion(LabeledSpan, e.labels.items, {}, labelsLt);
 
-    var alloc = std.heap.stackFallback(@sizeOf(ContextInfo) * 8, self.alloc);
-    var locations = std.array_list.Managed(ContextInfo).init(alloc.get());
+    var alloc_buf: [@sizeOf(ContextInfo) * 8]u8 = undefined;
+    var alloc: std.heap.BufferFirstAllocator = .init(&alloc_buf, self.alloc);
+    var locations = std.array_list.Managed(ContextInfo).init(alloc.allocator());
     defer locations.deinit();
 
     var largest_line_num: u32 = 0;
@@ -909,7 +910,7 @@ fn dupeLf(alloc: std.mem.Allocator, s: []const u8) ![]u8 {
 }
 
 fn formatLabeledSpans(src_text: [:0]const u8, labels: []const LabeledSpan) ![]u8 {
-    var src = try Error.ArcStr.init(t.allocator, try t.allocator.dupeZ(u8, src_text));
+    var src = try Error.ArcStr.init(t.allocator, try t.allocator.dupeSentinel(u8, src_text, 0));
     defer src.deinit();
 
     var err = Error.newStatic("Switch statement has duplicate cases");

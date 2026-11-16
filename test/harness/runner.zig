@@ -15,7 +15,7 @@ const TestAllocator = std.heap.DebugAllocator(.{
     .stack_trace_frames = 0,
 });
 
-const is_debug = builtin.mode == .Debug;
+const is_debug = builtin.mode == .debug;
 var debug_allocator = TestAllocator{};
 var global_runner_instance = TestRunner.new(if (is_debug)
     debug_allocator.allocator()

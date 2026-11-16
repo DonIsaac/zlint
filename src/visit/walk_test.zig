@@ -23,7 +23,7 @@ test "Walker calls generic tag visitors if special cases aren't present" {
         }
     };
 
-    var ast = try Ast.parse(t.allocator, "const x = 1;", .zig);
+    var ast = try Ast.parse(t.allocator, "const x = 1;", .{});
     defer ast.deinit(t.allocator);
     var visitor: TestVisitor = .{};
     var walker = try Walker(TestVisitor, TestVisitor.Error).init(t.allocator, &ast, &visitor);
@@ -64,7 +64,7 @@ const XVisitor = struct {
 fn testXSeenTimes(expected: u32, src: [:0]const u8) !void {
     const allocator = std.testing.allocator;
 
-    var ast = try Ast.parse(allocator, src, .zig);
+    var ast = try Ast.parse(allocator, src, .{});
     defer ast.deinit(allocator);
     var visitor: XVisitor = .{ .ast = &ast };
     var walker = try Walker(XVisitor, XVisitor.Error).init(std.testing.allocator, &ast, &visitor);
@@ -163,7 +163,7 @@ const CountVisitor = struct {
 fn testNodeCount(src: [:0]const u8, expected: u32, expected_tag_counts: anytype) !void {
     const allocator = std.testing.allocator;
 
-    var ast = try Ast.parse(allocator, src, .zig);
+    var ast = try Ast.parse(allocator, src, .{});
     defer ast.deinit(allocator);
     var visitor: CountVisitor = .{ .ast = &ast };
     defer visitor.deinit();

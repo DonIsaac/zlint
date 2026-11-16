@@ -30,7 +30,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ZIG_VERSION: 0.16.0
+  ZIG_VERSION: 0.17.0
 
 jobs:
   check:
@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        optimize: ["ReleaseSafe", "ReleaseFast"]
+        optimize: ["safe", "fast"]
     steps:
       - uses: actions/checkout@v7
       # Install tooling

@@ -140,13 +140,13 @@ const Ctx = struct {
 fn replaceWithTry(ctx: Ctx, builder: Fix.Builder) !Fix {
     const catch_node = ctx.catch_node;
     const tried_expr = ctx.tried_expr;
-    var span = builder.spanCovering(.node, @intFromEnum(catch_node));
+    var span = builder.spanCovering(.node, @backingInt(catch_node));
     span.end = ctx.end;
 
     return builder.replacef(
         span,
         "try {s}",
-        .{builder.snippet(.node, @intFromEnum(tried_expr))},
+        .{builder.snippet(.node, @backingInt(tried_expr))},
     );
 }
 

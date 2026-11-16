@@ -43,10 +43,10 @@ pub fn Bitflags(Flags: type) type {
         pub const empty: Flags = .{};
         pub const all: Flags = blk: {
             var flags = Flags{};
-            for (@typeInfo(Flags).@"struct".fields) |field| {
+            for (info.field_names, info.field_types) |field_name, field_type| {
                 // skip padding. may not be present.
-                if (field.type != bool) continue;
-                @field(flags, field.name) = true;
+                if (field_type != bool) continue;
+                @field(flags, field_name) = true;
             }
             break :blk flags;
         };
@@ -141,12 +141,12 @@ pub fn Bitflags(Flags: type) type {
             try writer.writeAll(@typeName(Flags) ++ "(");
 
             var first = true;
-            inline for (@typeInfo(Flags).@"struct".fields) |field| {
-                if (field.type != bool) continue;
+            inline for (info.field_names, info.field_types) |field_name, field_type| {
+                if (field_type != bool) continue;
                 // "s_block" -> "block". less noisy.
-                const name = if (field.name.len > 2 and mem.startsWith(u8, field.name, "s_")) field.name[2..] else field.name;
+                const name = if (field_name.len > 2 and mem.startsWith(u8, field_name, "s_")) field_name[2..] else field_name;
                 // only print flags that are present.
-                if (@field(self, field.name)) {
+                if (@field(self, field_name)) {
                     if (first) first = false else try writer.writeAll(" | ");
                     try writer.writeAll(name);
                 }
@@ -158,12 +158,10 @@ pub fn Bitflags(Flags: type) type {
         // see: std.json.stringify.WriteStream for docs
         pub fn jsonStringify(self: *const Flags, jw: anytype) !void {
             try jw.beginArray();
-            const fields = meta.fields(Flags);
-
-            inline for (fields) |field| {
-                const f = @field(self, field.name);
+            inline for (info.field_names) |field_name| {
+                const f = @field(self, field_name);
                 if (@TypeOf(f) != bool) continue;
-                var name: []const u8 = field.name;
+                var name: []const u8 = field_name;
                 // "s_block" -> "block". less noisy.
                 if (mem.startsWith(u8, name, "s_")) name = name[2..];
                 // only print flags that are present.
@@ -193,7 +191,7 @@ test Bitflags {
         pub const Flag = BitflagsMixin.Flag;
         pub const jsonStringify = BitflagsMixin.jsonStringify;
     };
-    try std.testing.expectEqual(4, @typeInfo(Position.Flag).@"enum".fields.len);
+    try std.testing.expectEqual(4, @typeInfo(Position.Flag).@"enum".field_names.len);
 
     const p = Position{ .s_top = true, .s_left = true };
     try std.testing.expectFmt(

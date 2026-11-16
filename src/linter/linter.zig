@@ -112,7 +112,7 @@ pub const Linter = struct {
                 const node = nodes.get(i);
                 const wrapper: NodeWrapper = .{
                     .node = &node,
-                    .idx = @enumFromInt(i),
+                    .idx = @fromBackingInt(@intCast(i)),
                 };
                 rule.runOnNode(wrapper, &ctx) catch |e| {
                     const err = try Error.fmt(

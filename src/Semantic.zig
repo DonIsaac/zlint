@@ -159,7 +159,7 @@ test Semantic {
     // only used for testing.
     var src = try Source.fromString(
         allocator,
-        try allocator.dupeZ(u8, source_text),
+        try allocator.dupeSentinel(u8, source_text, 0),
         try allocator.dupe(u8, "test.zig"),
     );
     defer src.deinit();

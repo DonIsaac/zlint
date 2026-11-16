@@ -11,7 +11,7 @@ const t = std.testing;
 const print = std.debug.print;
 
 fn createCtx(src: [:0]const u8, sema_out: *Semantic, source_out: *Source) !LinterContext {
-    const src2 = try t.allocator.dupeZ(u8, src);
+    const src2 = try t.allocator.dupeSentinel(u8, src, 0);
     var source = try Source.fromString(t.allocator, src2, null);
     errdefer source.deinit();
     source_out.* = source;

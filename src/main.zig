@@ -29,8 +29,9 @@ pub fn main(init: std.process.Init) !u8 {
     defer if (comptime util.IS_DEBUG) {
         _ = debug_allocator.deinit();
     };
-    var stack = std.heap.stackFallback(16, alloc);
-    const stack_alloc = stack.get();
+    var stack_buf: [16]u8 = undefined;
+    var stack: std.heap.BufferFirstAllocator = .init(&stack_buf, alloc);
+    const stack_alloc = stack.allocator();
 
     const is_update = update_cmd.isCommand(stack_alloc, init.minimal.args) catch {
         std.debug.print("error: ran out of memory while parsing command-line arguments\n", .{});

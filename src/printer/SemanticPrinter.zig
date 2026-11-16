@@ -113,17 +113,17 @@ fn printReference(self: *SemanticPrinter, ref_id: Reference.Id) !void {
     const ref = self.semantic.symbols.getReference(ref_id);
     const tags = ast.nodes.items(.tag);
 
-    const flag_fields = std.meta.fields(Reference.Flags);
-    var buf: [flag_fields.len * @sizeOf([]const u8) + @alignOf([]const u8) - 1]u8 = undefined;
+    const flag_names = @typeInfo(Reference.Flags).@"struct".field_names;
+    var buf: [flag_names.len * @sizeOf([]const u8) + @alignOf([]const u8) - 1]u8 = undefined;
     var fixed_alloc = std.heap.FixedBufferAllocator.init(&buf);
     const alloc = fixed_alloc.allocator();
     var flags = std.array_list.Managed([]const u8).init(alloc);
-    flags.ensureTotalCapacityPrecise(flag_fields.len) catch @panic("fixed buffer is not large enough.");
+    flags.ensureTotalCapacityPrecise(flag_names.len) catch @panic("fixed buffer is not large enough.");
 
-    inline for (flag_fields) |field| {
-        const f = @field(ref.flags, field.name);
+    inline for (flag_names) |field_name| {
+        const f = @field(ref.flags, field_name);
         if (@TypeOf(f) == bool and f) {
-            flags.appendAssumeCapacity(field.name);
+            flags.appendAssumeCapacity(field_name);
         }
     }
 
@@ -131,7 +131,7 @@ fn printReference(self: *SemanticPrinter, ref_id: Reference.Id) !void {
     const printable = PrintableReference{
         .symbol = sid,
         .scope = ref.scope.int(),
-        .node = tags[@intFromEnum(ref.node)],
+        .node = tags[@backingInt(ref.node)],
         .identifier = ref.identifier,
         .flags = flags.items,
     };
