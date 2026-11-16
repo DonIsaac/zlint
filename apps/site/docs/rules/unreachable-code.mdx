@@ -1,16 +1,16 @@
 ---
-rule: '{"name":"unreachable-code","category":"nursery","default":"err","fix":{"kind":"none","dangerous":false},"needs_cfg":true}'
+rule: '{"name":"unreachable-code","category":"nursery","default":"off","fix":{"kind":"none","dangerous":false},"needs_cfg":true}'
 ---
 
 # `unreachable-code`
 
-<RuleBanner category="nursery" default="err" />
+<RuleBanner category="nursery" default="off" />
 
 ## What This Rule Does
 
 Finds code that can never run because every path leading to it has already
 exited: a `return`, `break`, `continue`, `unreachable`, or a call to a
-`noreturn` function.
+`noreturn` function declared in the same file.
 
 Dead code is usually a leftover from a refactor. It misleads readers into
 thinking it matters, and the compiler never checks that it still makes sense.
@@ -32,11 +32,13 @@ fn foo(x: u32) u32 {
     return 3; // never runs
 }
 
+fn fail() noreturn {
+    @panic("oops");
+}
+
 fn bar() void {
-    while (true) {
-        break;
-        std.debug.print("never printed", .{});
-    }
+    fail();
+    std.debug.print("never printed", .{});
 }
 ```
 

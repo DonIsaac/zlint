@@ -176,7 +176,9 @@ pub fn splitBlock(
         const blocks = self.blocks.slice();
         const container = blocks.items(.container)[i];
         const node = blocks.items(.node)[i];
-        const flags = blocks.items(.flags)[i];
+        var flags = blocks.items(.flags)[i];
+        // The rest of a `defer` body's first block is not where the body starts.
+        flags.b_orphan = false;
         break :blk try self.addBlock(alloc, .{ .container = container, .node = node, .flags = flags });
     };
     const j = rest.into(usize);
@@ -308,27 +310,20 @@ fn markUnreachable(self: *Draft, alloc: Allocator) Allocator.Error!void {
     var stack: std.ArrayList(BasicBlock.Id) = .empty;
     defer stack.deinit(stack_alloc);
 
-    const entries = self.containers.items(.entry);
     const containers: []const Container.Id = self.blocks.items(.container);
-    const block_flags: []const BasicBlock.Flags = self.blocks.items(.flags);
-    for (0..self.containers.len) |i| {
-        const owner: Container.Id = .from(i);
-
-        stack.clearRetainingCapacity();
-        try stack.append(stack_alloc, entries[i]);
-        for (block_flags, 0..) |f, b| {
-            if (f.b_orphan and containers[b] == owner) try stack.append(stack_alloc, .from(b));
-        }
-        while (stack.pop()) |id| {
-            const idx = id.into(usize);
-            if (visited.isSet(idx)) continue;
-            visited.set(idx);
-            for (self.successors.items[idx].items) |edge| {
-                if (edge.kind.isUnreachable()) continue;
-                const dest = edge.dest.into(usize);
-                if (containers[dest] != owner or visited.isSet(dest)) continue;
-                try stack.append(stack_alloc, edge.dest);
-            }
+    try stack.appendSlice(stack_alloc, self.containers.items(.entry));
+    for (self.blocks.items(.flags), 0..) |flags, i| {
+        if (flags.b_orphan) try stack.append(stack_alloc, .from(i));
+    }
+    while (stack.pop()) |id| {
+        const idx = id.into(usize);
+        if (visited.isSet(idx)) continue;
+        visited.set(idx);
+        for (self.successors.items[idx].items) |edge| {
+            if (edge.kind.isUnreachable()) continue;
+            const dest = edge.dest.into(usize);
+            if (containers[dest] != containers[idx] or visited.isSet(dest)) continue;
+            try stack.append(stack_alloc, edge.dest);
         }
     }
 

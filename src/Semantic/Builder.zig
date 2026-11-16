@@ -1522,7 +1522,10 @@ fn visitBuiltinCall(self: *SemanticBuilder, node: NodeIndex, comptime is_slice: 
     }
 
     if (self.cfg()) |c| {
-        if (mem.eql(u8, builtin_name, "@panic") or mem.eql(u8, builtin_name, "@trap")) {
+        if (mem.eql(u8, builtin_name, "@panic") or
+            mem.eql(u8, builtin_name, "@trap") or
+            mem.eql(u8, builtin_name, "@compileError"))
+        {
             c.terminate(.@"unreachable", node);
         }
     }
@@ -2037,11 +2040,19 @@ fn recordCfgCall(self: *SemanticBuilder, c: *Cfg.Builder, node: NodeIndex, calle
 /// Calls lowered before their callee was bound. Container decls are order
 /// independent, so re-resolve them after the walk.
 fn resolvePendingCalls(self: *SemanticBuilder, c: *Cfg.Builder) Allocator.Error!void {
+    if (c.pending_calls.items.len == 0) return;
+
+    // Pending calls are in source order, so a call in an already cut block is
+    // in its dead remainder.
+    var cut = try std.DynamicBitSetUnmanaged.initEmpty(self._gpa, c.draft.blocks.len);
+    defer cut.deinit(self._gpa);
+
     for (c.pending_calls.items) |pc| {
+        if (cut.isSet(pc.block.into(usize))) continue;
         const name = self.tokenSlice(pc.token);
         const symbol = self._semantic.resolveBinding(pc.scope, name, .decls) orelse continue;
         if (!self.isNoreturnFn(symbol)) continue;
-        if (c.draft.blockMut(pc.block).terminator.kind != .goto) continue;
+        cut.set(pc.block.into(usize));
 
         // Everything after the call is dead. Move it, and the block's outgoing
         // edges, into a block nothing branches to.
@@ -2062,7 +2073,9 @@ fn isNoreturnFn(self: *SemanticBuilder, symbol_id: Symbol.Id) bool {
     var buf: [1]NodeIndex = undefined;
     const proto = ast.fullFnProto(&buf, decl) orelse return false;
     const return_type = proto.ast.return_type.unwrap() orelse return false;
-    return mem.eql(u8, ast.getNodeSource(return_type), "noreturn");
+    if (!mem.eql(u8, ast.getNodeSource(return_type), "noreturn")) return false;
+    // `!noreturn` keeps its `!` outside the return type node.
+    return ast.tokenTag(ast.firstToken(return_type) - 1) != .bang;
 }
 
 fn tokenSlice(self: *const SemanticBuilder, token: TokenIndex) []const u8 {

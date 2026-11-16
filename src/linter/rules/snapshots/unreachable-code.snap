@@ -51,3 +51,66 @@
  5 │     }
    ╰────
 
+  𝙭 unreachable-code: This code is unreachable.
+   ╭─[unreachable-code.zig:6:5]
+ 5 │     die();
+ 6 │     bar();
+   ·     ──┬──
+   ·       ╰── every path leading here has already exited
+ 7 │ }
+   ╰────
+
+  𝙭 unreachable-code: This code is unreachable.
+   ╭─[unreachable-code.zig:3:5]
+ 2 │     if (x) return else return;
+ 3 │     if (x) bar() else baz();
+   ·     ───────────┬───────────
+   ·                ╰── every path leading here has already exited
+ 4 │     qux();
+   ╰────
+
+  𝙭 unreachable-code: This code is unreachable.
+   ╭─[unreachable-code.zig:5:5]
+ 4 │     } else return;
+ 5 │     bar();
+   ·     ──┬──
+   ·       ╰── every path leading here has already exited
+ 6 │ }
+   ╰────
+
+  𝙭 unreachable-code: This code is unreachable.
+   ╭─[unreachable-code.zig:3:5]
+ 2 │     die();
+ 3 │     if (x) bar();
+   ·     ──────┬──────
+   ·           ╰── every path leading here has already exited
+ 4 │ }
+   ╰────
+
+  𝙭 unreachable-code: This code is unreachable.
+   ╭─[unreachable-code.zig:3:5]
+ 2 │     die();
+ 3 │     try bar();
+   ·     ────┬────
+   ·         ╰── every path leading here has already exited
+ 4 │ }
+   ╰────
+
+  𝙭 unreachable-code: This code is unreachable.
+   ╭─[unreachable-code.zig:4:9]
+ 3 │         die();
+ 4 │         bar();
+   ·         ──┬──
+   ·           ╰── every path leading here has already exited
+ 5 │     }
+   ╰────
+
+  𝙭 unreachable-code: This code is unreachable.
+   ╭─[unreachable-code.zig:3:5]
+ 2 │     if (T == u8) @compileError("a") else @compileError("b");
+ 3 │     bar();
+   ·     ──┬──
+   ·       ╰── every path leading here has already exited
+ 4 │ }
+   ╰────
+

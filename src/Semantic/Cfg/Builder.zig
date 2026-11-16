@@ -163,6 +163,7 @@ pub fn pushCleanup(self: *CfgBuilder, alloc: Allocator, body: NodeIndex, is_errd
 /// walk it as a root and still mark code that is dead within the body.
 pub fn enterOrphan(self: *CfgBuilder, alloc: Allocator, node: NodeIndex) Allocator.Error!BasicBlock.Id.Optional {
     const prev = self.curr;
+    if (self.container == .none) return prev;
     const head = try self.newBlock(alloc, node, .{ .b_orphan = true });
     self.curr = head.into(BasicBlock.Id.Optional);
     return prev;
@@ -1187,6 +1188,17 @@ test "sibling scopes do not share memoized cleanup chains" {
     const first_node = cfg.instructionsOf(first_chain).items(.node)[0];
     const second_node = cfg.instructionsOf(second_chain).items(.node)[0];
     try t.expect(first_node != second_node);
+}
+
+test "defer in a container field default is not lowered" {
+    for ([_][:0]const u8{
+        "x: u32 = blk: { defer {} break :blk 1; },",
+        "x: u32 = blk: { errdefer {} break :blk 1; },",
+    }) |src| {
+        var semantic = try buildCfg(src);
+        defer semantic.deinit();
+        try t.expectEqual(0, semantic.cfg.len());
+    }
 }
 
 test "unreachable and @panic terminate a block" {
