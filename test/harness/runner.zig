@@ -64,6 +64,9 @@ pub fn globalShutdown() void {
 
 pub const TestRunner = struct {
     tests: std.ArrayListUnmanaged(TestFile) = .empty,
+    /// Number of leading entries in `tests` whose `globalSetup` completed.
+    /// Only these get torn down.
+    setup_count: usize = 0,
     alloc: Allocator,
     config: Config,
     /// Used for `PATH` when spawning subprocesses.
@@ -74,12 +77,13 @@ pub const TestRunner = struct {
     }
 
     pub inline fn deinit(self: *TestRunner) void {
-        for (self.tests.items) |test_file| {
+        for (self.tests.items[0..self.setup_count]) |test_file| {
             if (test_file.deinit) |deinit_fn| {
                 deinit_fn(self.alloc);
             }
         }
         self.tests.deinit(self.alloc);
+        self.setup_count = 0;
     }
     pub inline fn setConfig(self: *TestRunner, cfg: Config) *TestRunner {
         self.config = cfg;
@@ -108,6 +112,7 @@ pub const TestRunner = struct {
             if (test_file.globalSetup) |global_setup| {
                 try global_setup(self.alloc);
             }
+            self.setup_count += 1;
             print("Running {s}...\n", .{test_file.name});
             test_file.run(self.alloc) catch |e| {
                 print("Failed to run test {s}: {any}\n", .{ test_file.name, e });
