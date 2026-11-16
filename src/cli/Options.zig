@@ -88,7 +88,11 @@ fn parse(alloc: Allocator, io: std.Io, args_iter: anytype, err: ?*Error) ParseEr
     while (argv.next()) |arg| {
         if (arg.len == 0) continue;
         if (arg[0] != '-') {
-            try opts.args.append(alloc, arg);
+            // Owned: on Windows and WASI the iterator's decoded command line
+            // is freed when `parseArgv` returns.
+            const owned = try alloc.dupe(u8, arg);
+            errdefer alloc.free(owned);
+            try opts.args.append(alloc, owned);
             continue;
         }
         if (eq(arg, "--fix")) {
@@ -141,7 +145,8 @@ fn parse(alloc: Allocator, io: std.Io, args_iter: anytype, err: ?*Error) ParseEr
                 }
                 return error.InvalidArgValue;
             }
-            opts.config = config;
+            if (opts.config) |old| alloc.free(old);
+            opts.config = try alloc.dupe(u8, config);
         } else if (eq(arg, "-h") or eq(arg, "--help") or eq(arg, "--hlep") or eq(arg, "-help")) {
             var buf: [512]u8 = undefined;
             var writer = std.Io.File.stdout().writer(io, &buf);
@@ -167,7 +172,10 @@ fn parse(alloc: Allocator, io: std.Io, args_iter: anytype, err: ?*Error) ParseEr
 }
 
 pub fn deinit(self: *Options, alloc: std.mem.Allocator) void {
+    for (self.args.items) |arg| alloc.free(arg);
     self.args.deinit(alloc);
+    if (self.config) |config| alloc.free(config);
+    self.config = null;
 }
 
 inline fn eq(arg: anytype, name: @TypeOf(arg)) bool {
@@ -307,4 +315,19 @@ test "--config without a value" {
         defer err.deinit(t.allocator);
         try t.expect(std.mem.indexOf(u8, err.message.borrow(), "requires a path") != null);
     }
+}
+
+test "--config and positional arguments outlive the argument buffer" {
+    // On Windows and WASI, parseArgv frees the decoded command line before
+    // returning; Options must not point into it.
+    const line = try t.allocator.dupe(u8, "zlint --config config/custom.json src lib");
+    const argv = std.mem.splitScalar(u8, line, ' ');
+    var opts = try parse(t.allocator, t.io, argv, null);
+    defer opts.deinit(t.allocator);
+    @memset(line, 0);
+    t.allocator.free(line);
+    try t.expectEqualStrings("config/custom.json", opts.config.?);
+    try t.expectEqual(2, opts.args.items.len);
+    try t.expectEqualStrings("src", opts.args.items[0]);
+    try t.expectEqualStrings("lib", opts.args.items[1]);
 }
