@@ -1,86 +1,35 @@
 const std = @import("std");
-const StaticStringSet = std.StaticStringMap(void);
 
 /// ## References
-/// - [Zig Docs - Primitive Types](https://ziglang.org/documentation/0.13.0/#Primitive-Types)
-const PRIMITIVE_TYPES = StaticStringSet.initComptime([_]struct { []const u8 }{
-    // integers
-    .{"i8"},
-    .{"i16"},
-    .{"i32"},
-    .{"i64"},
-    .{"i128"},
-    .{"isize"},
-    .{"u8"}, // unsigned
-    .{"u16"},
-    .{"u32"},
-    .{"u64"},
-    .{"u128"},
-    .{"usize"},
-
-    // floats
-    .{"f16"},
-    .{"f32"},
-    .{"f64"},
-    .{"f80"},
-    .{"f128"},
-
-    // c types
-    .{"c_char"},
-    .{"c_short"},
-    .{"c_int"},
-    .{"c_long"},
-    .{"c_longlong"},
-    .{"c_longdouble"},
-    .{"c_ushort"}, // unsigned
-    .{"c_uint"},
-    .{"c_ulong"},
-    .{"c_ulonglong"},
-
-    // etc
-    .{"bool"},
-    .{"void"},
-    .{"anyopaque"},
-    .{"noreturn"},
-    .{"type"},
-    .{"anyerror"},
-    .{"comptime_int"},
-    .{"comptime_float"},
-});
-
-/// ## References
-/// - [Zig Docs - Primitive Values](https://ziglang.org/documentation/0.13.0/#Primitive-Values)
-const PRIMITIVE_VALUES = StaticStringSet.initComptime([_]struct { []const u8 }{
+/// - [Zig Docs - Primitive Values](https://ziglang.org/documentation/0.16.0/#Primitive-Values)
+const PRIMITIVE_VALUES = std.StaticStringMap(void).initComptime([_]struct { []const u8 }{
     .{"null"},
     .{"undefined"},
     .{"true"},
     .{"false"},
 });
 
-/// Check if a type is built in to Zig itself.
+/// Check if a type is built in to Zig itself. Integer types are only matched
+/// for syntax: oversized bit widths and leading zeros are accepted.
 ///
 /// ## References
-/// - [Zig Docs - Primitive Types](https://ziglang.org/documentation/0.13.0/#Primitive-Types)
+/// - [Zig Docs - Primitive Types](https://ziglang.org/documentation/0.16.0/#Primitive-Types)
 pub fn isPrimitiveType(typename: []const u8) bool {
-    if (PRIMITIVE_TYPES.has(typename)) return true;
-
-    // Zig allows arbitrary-sized integers.
-    if (typename.len > 2 and (typename[0] == 'u' or typename[0] == 'i')) {
-        for (1..typename.len) |i| switch (typename[i]) {
-            '0'...'9' => {},
-            else => return false,
-        };
-
-        return true;
-    }
-
-    return false;
+    return std.zig.primitives.isPrimitive(typename) and !PRIMITIVE_VALUES.has(typename);
 }
 
-/// Check if an identifier refers to a primitive value.
-///
-/// ## References
-/// - [Zig Docs - Primitive Values](https://ziglang.org/documentation/0.13.0/#Primitive-Values)
-pub fn isPrimitiveValue(value: []const u8) bool {
-    return PRIMITIVE_VALUES.has(value);
+const t = std.testing;
+
+test isPrimitiveType {
+    const types = [_][]const u8{ "u0", "i0", "u1", "i7", "u8", "u9", "i32", "u65535", "usize", "bool", "void", "f64" };
+    for (types) |name| {
+        errdefer std.debug.print("name: '{s}'\n", .{name});
+        try t.expect(isPrimitiveType(name));
+    }
+
+    const not_types = [_][]const u8{ "", "u", "i", "ux", "u1x", "U8", "f8", "_", "null", "undefined", "true", "false" };
+    for (not_types) |name| {
+        errdefer std.debug.print("name: '{s}'\n", .{name});
+        try t.expect(!isPrimitiveType(name));
+    }
 }

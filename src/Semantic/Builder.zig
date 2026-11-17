@@ -1853,7 +1853,7 @@ fn recordReference(self: *SemanticBuilder, opts: CreateReference) SemanticError!
     var is_primitive = false;
     if (reference.symbol == .none) {
         // TODO: add primitives to the symbol table and bind them here.
-        is_primitive = builtins.isPrimitiveType(identifier) or builtins.isPrimitiveValue(identifier);
+        is_primitive = std.zig.primitives.isPrimitive(identifier);
         reference.flags.primitive = is_primitive;
     }
 
@@ -2240,7 +2240,6 @@ fn printScopeStack(self: *const SemanticBuilder) void {
     }
 }
 
-const builtins = @import("builtins.zig");
 const Semantic = @import("../Semantic.zig");
 const Scope = Semantic.Scope;
 const Symbol = Semantic.Symbol;
