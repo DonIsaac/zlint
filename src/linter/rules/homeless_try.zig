@@ -623,6 +623,12 @@ test HomelessTry {
         \\  _ = try std.heap.page_allocator.alloc(u8, 8);
         \\}
         ,
+        \\fn bar() !void {}
+        \\fn foo() u1 {
+        \\  try bar();
+        \\  return 0;
+        \\}
+        ,
         // aliases to structural types are still definitively not fallible
         \\const std = @import("std");
         \\const Foo = struct { x: u32 };

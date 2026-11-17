@@ -804,6 +804,21 @@ test "root-level references that resolve are never reported as unresolved" {
     try t.expectEqualStrings("nope_two", names[1]);
 }
 
+test "arbitrary-width integer types resolve as primitives" {
+    const source =
+        \\fn f() u1 { return 0; }
+        \\const x: i2 = 0;
+        \\const y: u0 = 0;
+    ;
+    var sem = try build(source);
+    defer sem.deinit();
+
+    const references = sem.symbols.references;
+    try t.expectEqualDeep(&[_][]const u8{ "u1", "i2", "u0" }, references.items(.identifier));
+    for (references.items(.flags)) |flags| try t.expect(flags.primitive);
+    try t.expectEqual(0, sem.symbols.unresolved_references.items.len);
+}
+
 // The parser reports every `name,` field as tuple-like with `type_expr` pointing
 // at the name. Only structs have tuple fields; in enums and unions that
 // identifier is the member's name and must never be recorded as a reference.
