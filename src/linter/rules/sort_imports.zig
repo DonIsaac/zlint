@@ -205,7 +205,7 @@ pub fn runOnce(self: *const SortImports, ctx: *LinterContext) void {
 
         const item: Import = .{
             .span = .new(
-                comments.leadingStart(ctx.gpa, ctx.semantic.tokenSpan(first_tok).start),
+                comments.leadingStart(ctx.semantic.tokenSpan(first_tok).start),
                 comments.trailingEnd(ctx.semantic.tokenSpan(semicolon).end),
             ),
             .decl = decl,
@@ -257,7 +257,7 @@ const Comments = struct {
 
     /// Get the start of the comments on the lines directly above `decl_start`.
     /// Global disable directives are not attached.
-    fn leadingStart(self: Comments, gpa: std.mem.Allocator, decl_start: u32) u32 {
+    fn leadingStart(self: Comments, decl_start: u32) u32 {
         var parser = disable_directives.Parser.new(self.source);
         var start = decl_start;
         var i = self.firstAtOrAfter(decl_start);
@@ -268,10 +268,8 @@ const Comments = struct {
             if (std.mem.indexOfNone(u8, between, &std.ascii.whitespace) != null or std.mem.count(u8, between, "\n") != 1) break;
             const line_start = if (std.mem.lastIndexOfScalar(u8, self.source[0..comment.start], '\n')) |nl| nl + 1 else 0;
             if (std.mem.indexOfNone(u8, self.source[line_start..comment.start], " \t") != null) break;
-            if (parser.parse(gpa, comment) catch @panic("OOM")) |directive| {
-                var d = directive;
-                defer d.deinit(gpa);
-                if (d.isGlobal()) break;
+            if (parser.parse(comment)) |directive| {
+                if (directive.isGlobal()) break;
             }
             start = comment.start;
         }
@@ -611,6 +609,16 @@ test SortImports {
             \\const a = @import("a");
             \\// zlint-disable-next-line no-unresolved
             \\const z = @import("z");
+            ,
+        },
+        .{
+            .src =
+            \\const z = @import("z"); // zlint-disable-line no-unresolved
+            \\const a = @import("a");
+            ,
+            .expected =
+            \\const a = @import("a");
+            \\const z = @import("z"); // zlint-disable-line no-unresolved
             ,
         },
         // a blank line keeps a header in place

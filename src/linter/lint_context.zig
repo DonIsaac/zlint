@@ -7,12 +7,13 @@ io: std.Io,
 /// Errors collected by lint rules
 diagnostics: Diagnostic.List,
 
-/// this slice is 'static (in data segment) and should never be free'd
-curr_rule_name: []const u8 = "",
-curr_severity: Severity = Severity.err,
-// TODO: `void` in release builds
-curr_fix_capabilities: Fix.Meta = Fix.Meta.disabled,
-curr_rule_needs_cfg: bool = false,
+/// Rules disabled by line directives. Owned by the caller.
+suppressions: *const Suppressions = &.empty,
+
+/// The rule currently running. `null` until `updateForRule` is called.
+/// Stored by value so callers may pass pointers to loop captures or
+/// temporaries.
+curr_rule: ?Rule.WithSeverity = null,
 
 /// Are auto fixes enabled?
 // fix: bool = false,
@@ -35,10 +36,7 @@ pub fn init(gpa: Allocator, io: std.Io, semantic: *const Semantic, source: *Sour
 // invocations.
 
 pub inline fn updateForRule(self: *Context, rule: *const Rule.WithSeverity) void {
-    self.curr_rule_name = rule.rule.meta.name;
-    self.curr_severity = rule.severity;
-    self.curr_fix_capabilities = rule.rule.meta.fix;
-    self.curr_rule_needs_cfg = rule.rule.meta.needs_cfg;
+    self.curr_rule = rule.*;
 }
 
 pub fn takeDiagnostics(self: *Context) Diagnostic.List {
@@ -70,7 +68,7 @@ pub inline fn links(self: *const Context) *const Semantic.NodeLinks {
 }
 
 pub inline fn cfg(self: *const Context) *const Semantic.Cfg {
-    util.debugAssert(self.curr_rule_needs_cfg, "Rules cannot use a CFG unless `needs_cfg` is enabled.", .{});
+    util.debugAssert(self.curr_rule != null and self.curr_rule.?.rule.meta.needs_cfg, "Rules cannot use a CFG unless `needs_cfg` is enabled.", .{});
     return &self.semantic.cfg;
 }
 
@@ -173,6 +171,7 @@ pub fn diagnosticf(self: *Context, comptime template: []const u8, args: anytype,
 /// };
 /// ```
 pub fn report(self: *Context, diagnostic_: Error) void {
+    if (self.dropIfSuppressed(diagnostic_)) return;
     self._report(Diagnostic{ .err = diagnostic_ });
 }
 
@@ -182,15 +181,17 @@ pub fn reportWithFix(
     diagnostic_: Error,
     fixer: *const FixerFn(@TypeOf(ctx)),
 ) void {
+    if (self.dropIfSuppressed(diagnostic_)) return;
     if (self.fix.isDisabled()) return self._report(Diagnostic{ .err = diagnostic_ });
 
+    const rule_name = self.currRuleName();
     if (comptime util.IS_DEBUG and @import("builtin").is_test) {
         util.assert(
-            !self.curr_fix_capabilities.isDisabled(),
+            self.curr_rule != null and !self.curr_rule.?.rule.meta.fix.isDisabled(),
             "Rule '{s}' just provided an auto-fix without advertising " ++
                 "auto-fix capabilities in its `Meta`. Please update your " ++
                 "rule's `meta.fix` field.",
-            .{self.curr_rule_name},
+            .{rule_name},
         );
     }
 
@@ -200,7 +201,7 @@ pub fn reportWithFix(
         .ctx = self,
     };
     const fix: Fix = @call(.never_inline, fixer, .{ ctx, fix_builder }) catch |e| {
-        std.debug.panic("Fixer for rule \"{s}\" failed: {s}", .{ self.curr_rule_name, @errorName(e) });
+        std.debug.panic("Fixer for rule \"{s}\" failed: {s}", .{ rule_name, @errorName(e) });
     };
 
     if (self.fix.canApply(fix.meta)) {
@@ -210,13 +211,35 @@ pub fn reportWithFix(
     }
 }
 
+/// Frees `err` and returns `true` if the current rule is disabled by a line
+/// directive on the line where `err`'s primary label starts.
+///
+/// Checked before `_report` and any fixer runs so suppressed diagnostics cost
+/// no further allocations.
+fn dropIfSuppressed(self: *const Context, err: Error) bool {
+    // Most files have no line directives. Skip scanning labels.
+    if (self.suppressions.lines.len == 0) return false;
+    const curr = self.curr_rule orelse return false;
+    const label = err.primaryLabel() orelse return false;
+    if (!self.suppressions.isSuppressed(curr.rule.id, label.span.start)) return false;
+
+    var e = err;
+    e.deinit(self.gpa);
+    return true;
+}
+
+/// 'static (in the data segment). Never free it.
+inline fn currRuleName(self: *const Context) []const u8 {
+    return if (self.curr_rule) |curr| curr.rule.meta.name else "";
+}
+
 fn _report(self: *Context, diagnostic_: Diagnostic) void {
     var d = diagnostic_;
     var e = &d.err;
-    e.code = self.curr_rule_name;
+    e.code = self.currRuleName();
     e.source_name = if (self.source.pathname) |p| self.gpa.dupe(u8, p) catch @panic("OOM") else null;
     e.source = self.source.contents.clone();
-    e.severity = self.curr_severity;
+    e.severity = if (self.curr_rule) |curr| curr.severity else .err;
     // TODO: handle errors better
     self.diagnostics.append(d) catch @panic("Cannot add new error: Out of memory");
 }
@@ -278,10 +301,10 @@ const Semantic = @import("../Semantic.zig");
 const Allocator = std.mem.Allocator;
 const Ast = Semantic.Ast;
 const Error = @import("../Error.zig");
-const Severity = Error.Severity;
 const LabeledSpan = @import("../span.zig").LabeledSpan;
 const Span = @import("../span.zig").Span;
 const Rule = _rule.Rule;
+const Suppressions = @import("disable_directives.zig").Suppressions;
 const Source = _source.Source;
 
 const Fix = @import("./fix.zig").Fix;

@@ -79,6 +79,8 @@ fn renderContext(self: *GraphicalFormatter, w: *io.Writer, e: *Error) FormatErro
     // No source text means there are no lines to render a code frame for.
     if (src.len == 0) return;
 
+    // Mark it before sorting so the chosen label survives the reorder.
+    e.labels.items[e.primaryLabelIndex().?].primary = true;
     std.sort.insertion(LabeledSpan, e.labels.items, {}, labelsLt);
 
     var alloc = std.heap.stackFallback(@sizeOf(ContextInfo) * 8, self.alloc);
@@ -93,15 +95,9 @@ fn renderContext(self: *GraphicalFormatter, w: *io.Writer, e: *Error) FormatErro
     }
     const lineum_width = std.math.log10(largest_line_num);
 
-    const primary: ContextInfo = blk: {
-        for (locations.items) |loc| {
-            if (loc.span.primary) {
-                break :blk loc;
-            }
-        }
-        locations.items[0].span.primary = true;
-        break :blk locations.items[0];
-    };
+    const primary: ContextInfo = for (locations.items) |loc| {
+        if (loc.span.primary) break loc;
+    } else unreachable;
 
     try self.renderContextMasthead(w, e, lineum_width, primary);
 
