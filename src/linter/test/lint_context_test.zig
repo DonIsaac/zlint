@@ -46,13 +46,17 @@ test "Dangerous fixes do not get saved when only safe fixes are allowed" {
     defer sema.deinit();
     defer source.deinit();
 
+    ctx.fix = Fix.Meta.safe_fix;
+    var impl: AvoidAs = .{};
+    var rule = Rule.init(&impl);
+    rule.meta.fix = Fix.Meta.dangerous_fix;
+    ctx.updateForRule(&.{ .rule = rule, .severity = .err });
+
     const DangerousFixer = struct {
         span: _span.Span,
 
         fn remove(self: @This(), b: Fix.Builder) anyerror!Fix {
-            var fix = b.delete(self.span);
-            fix.meta.dangerous = true;
-            return fix;
+            return b.delete(self.span);
         }
     };
 
@@ -66,6 +70,47 @@ test "Dangerous fixes do not get saved when only safe fixes are allowed" {
     try t.expectEqual(1, ctx.diagnostics.items.len);
     try t.expectEqual(null, ctx.diagnostics.items[0].fix);
     try t.expectEqualStrings("ahhh", ctx.diagnostics.items[0].err.message.borrow());
+}
+
+test "Dangerous fixes are saved when dangerous fixes are allowed" {
+    var sema: Semantic = undefined;
+    var source: Source = undefined;
+    var ctx = try createCtx("fn foo() void { return 1; }", &sema, &source);
+    defer {
+        var diagnostics = ctx.takeDiagnostics();
+        for (diagnostics.items) |*diagnostic| {
+            diagnostic.deinit(t.allocator);
+        }
+        diagnostics.deinit();
+        ctx.deinit();
+    }
+    defer sema.deinit();
+    defer source.deinit();
+
+    ctx.fix = Fix.Meta.dangerous_fix;
+    var impl: AvoidAs = .{};
+    var rule = Rule.init(&impl);
+    rule.meta.fix = Fix.Meta.dangerous_fix;
+    ctx.updateForRule(&.{ .rule = rule, .severity = .err });
+
+    const Fixer = struct {
+        span: _span.Span,
+
+        fn remove(self: @This(), b: Fix.Builder) anyerror!Fix {
+            return b.delete(self.span);
+        }
+    };
+
+    const fix_ctx = Fixer{ .span = .empty };
+    ctx.reportWithFix(
+        fix_ctx,
+        ctx.diagnostic("ahhh", .{_span.LabeledSpan.from(fix_ctx.span)}),
+        &Fixer.remove,
+    );
+
+    try t.expectEqual(1, ctx.diagnostics.items.len);
+    try t.expect(ctx.diagnostics.items[0].fix != null);
+    try t.expect(ctx.diagnostics.items[0].fix.?.meta.dangerous);
 }
 
 test "updateForRule tracks the current rule's needs_cfg flag" {

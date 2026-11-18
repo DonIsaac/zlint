@@ -190,7 +190,8 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
 
     // Run fix cases
     i = 0;
-    self.linter.options.fix = Fix.Meta.safe_fix;
+    // Rules advertise their own fix safety; allow dangerous fixes so they can be tested.
+    self.linter.options.fix = Fix.Meta.dangerous_fix;
     for (self.fixes.items) |case| {
         defer i += 1;
 
