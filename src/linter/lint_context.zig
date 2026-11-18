@@ -197,7 +197,7 @@ pub fn reportWithFix(
 
     const fix_builder = Fix.Builder{
         .allocator = self.gpa,
-        .meta = .{ .kind = .fix },
+        .meta = self.curr_fix_capabilities,
         .ctx = self,
     };
     const fix: Fix = @call(.never_inline, fixer, .{ ctx, fix_builder }) catch |e| {
