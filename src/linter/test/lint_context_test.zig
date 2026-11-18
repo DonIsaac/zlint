@@ -47,7 +47,10 @@ test "Dangerous fixes do not get saved when only safe fixes are allowed" {
     defer source.deinit();
 
     ctx.fix = Fix.Meta.safe_fix;
-    ctx.curr_fix_capabilities = Fix.Meta.dangerous_fix;
+    var impl: AvoidAs = .{};
+    var rule = Rule.init(&impl);
+    rule.meta.fix = Fix.Meta.dangerous_fix;
+    ctx.updateForRule(&.{ .rule = rule, .severity = .err });
 
     const DangerousFixer = struct {
         span: _span.Span,
@@ -85,7 +88,10 @@ test "Dangerous fixes are saved when dangerous fixes are allowed" {
     defer source.deinit();
 
     ctx.fix = Fix.Meta.dangerous_fix;
-    ctx.curr_fix_capabilities = Fix.Meta.dangerous_fix;
+    var impl: AvoidAs = .{};
+    var rule = Rule.init(&impl);
+    rule.meta.fix = Fix.Meta.dangerous_fix;
+    ctx.updateForRule(&.{ .rule = rule, .severity = .err });
 
     const Fixer = struct {
         span: _span.Span,
