@@ -62,7 +62,7 @@ pub fn getNewlineOffset(line: []const u8) u32 {
 
 pub fn runOnce(self: *const LineLength, ctx: *LinterContext) void {
     var line_start_idx: u32 = 0;
-    var lines = std.mem.splitSequence(u8, ctx.source.text(), "\n");
+    var lines = std.mem.splitScalar(u8, ctx.source.text(), '\n');
     const newline_offset = getNewlineOffset(lines.first());
     lines.reset();
     while (lines.next()) |line| {
