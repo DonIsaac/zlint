@@ -11,8 +11,8 @@ const lint = @import("zlint").lint;
 const Cow = util.Cow(false);
 const Error = @import("zlint").Error;
 const Span = @import("zlint").span.Span;
-const ParentIterator = @import("../../io/parent_iterator.zig").ParentIterator;
 const fs = @import("../../io/fs.zig");
+const ParentIterator = @import("../../io/parent_iterator.zig").ParentIterator;
 const gitignore = @import("gitignore.zig");
 
 /// Load the lint configuration. When `config_path` is given, that file is used

@@ -134,13 +134,13 @@ const ParentIdsIterator = struct {
 };
 
 const std = @import("std");
-const _ast = @import("ast.zig");
 const util = @import("util");
+const _ast = @import("ast.zig");
 
 const Ast = _ast.Ast;
 const NodeIndex = _ast.NodeIndex;
-const Cfg = @import("Cfg.zig");
 const Semantic = @import("../Semantic.zig");
+const Cfg = @import("Cfg.zig");
 const Scope = Semantic.Scope;
 const Symbol = Semantic.Symbol;
 const Reference = Semantic.Reference;

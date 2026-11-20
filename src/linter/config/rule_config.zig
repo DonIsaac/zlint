@@ -2,8 +2,8 @@ const std = @import("std");
 const json = std.json;
 const Severity = @import("../../Error.zig").Severity;
 const Allocator = std.mem.Allocator;
-const Rule = @import("../rule.zig").Rule;
 const Schema = @import("../../json.zig").Schema;
+const Rule = @import("../rule.zig").Rule;
 
 const ParseError = json.ParseError(json.Scanner);
 

@@ -182,5 +182,5 @@ const Ast = Semantic.Ast;
 const NodeLinks = Semantic.NodeLinks;
 const Node = Ast.Node;
 const NodeId = Ast.Node.Index;
-const Printer = @import("Printer.zig");
 const Source = @import("../source.zig").Source;
+const Printer = @import("Printer.zig");

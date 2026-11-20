@@ -37,8 +37,8 @@ const util = @import("util");
 const path = std.fs.path;
 
 const LinterContext = @import("../lint_context.zig");
-const Rule = @import("../rule.zig").Rule;
 const NodeWrapper = @import("../rule.zig").NodeWrapper;
+const Rule = @import("../rule.zig").Rule;
 
 const NoUnresolved = @This();
 pub const meta: Rule.Meta = .{

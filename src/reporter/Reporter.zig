@@ -249,11 +249,11 @@ const Stats = struct {
 
 const std = @import("std");
 const io = std.Io;
+const Chameleon = @import("chameleon");
 const util = @import("util");
+const Error = @import("../Error.zig");
 const tty = @import("../io/tty.zig");
 const formatters = @import("./formatter.zig");
-const Chameleon = @import("chameleon");
-const Error = @import("../Error.zig");
 const Allocator = std.mem.Allocator;
 const FormatError = formatters.FormatError;
 

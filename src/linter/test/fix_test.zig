@@ -10,8 +10,8 @@ const expect = t.expect;
 const expectEqual = t.expectEqual;
 const expectEqualStrings = t.expectEqualStrings;
 
-const Diagnostic = @import("../lint_context.zig").Diagnostic;
 const Error = @import("../../Error.zig");
+const Diagnostic = @import("../lint_context.zig").Diagnostic;
 
 const fake_err = Error.newStatic("oops");
 inline fn toDiagnostic(comptime fixes: anytype) []const Diagnostic {

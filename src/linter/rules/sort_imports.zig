@@ -73,9 +73,9 @@
 
 const std = @import("std");
 const util = @import("util");
-const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 const disable_directives = @import("../disable_directives.zig");
+const _rule = @import("../rule.zig");
 
 const Span = _span.Span;
 const LinterContext = @import("../lint_context.zig");

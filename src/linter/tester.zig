@@ -390,19 +390,19 @@ const util = @import("util");
 
 const Allocator = std.mem.Allocator;
 
-const Linter = @import("linter.zig").Linter;
-const Rule = @import("rule.zig").Rule;
+const Semantic = @import("../Semantic.zig");
+const GraphicalFormatter = @import("../reporter.zig").formatter.Graphical;
+const Source = @import("../source.zig").Source;
 const Fix = @import("fix.zig").Fix;
 const Fixer = @import("fix.zig").Fixer;
-const Semantic = @import("../Semantic.zig");
-const Source = @import("../source.zig").Source;
-const GraphicalFormatter = @import("../reporter.zig").formatter.Graphical;
+const Linter = @import("linter.zig").Linter;
+const Rule = @import("rule.zig").Rule;
 
 const Cow = util.Cow(false);
 const panic = std.debug.panic;
 
-const NodeWrapper = @import("rule.zig").NodeWrapper;
 const LinterContext = @import("lint_context.zig");
+const NodeWrapper = @import("rule.zig").NodeWrapper;
 const MockRule = struct {
     pub const meta: Rule.Meta = .{
         .name = "unsafe-undefined",

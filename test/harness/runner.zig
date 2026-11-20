@@ -22,6 +22,7 @@ var global_runner_instance = TestRunner.new(if (is_debug)
 else
     std.heap.smp_allocator);
 
+// SAFETY: inaccessible outside of `io()`, which is guarded on `io_initialized`.
 var io_threaded: std.Io.Threaded = undefined;
 var io_initialized = false;
 

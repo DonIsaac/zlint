@@ -35,6 +35,6 @@ pub fn needsCfg(self: *const RuleSet) bool {
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const Rule = @import("rule.zig").Rule;
-const RulesConfig = @import("config/rules_config.zig").RulesConfig;
 const Severity = @import("../Error.zig").Severity;
+const RulesConfig = @import("config/rules_config.zig").RulesConfig;
+const Rule = @import("rule.zig").Rule;

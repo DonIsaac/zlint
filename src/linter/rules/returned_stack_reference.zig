@@ -50,9 +50,9 @@
 const std = @import("std");
 const util = @import("util");
 const Semantic = @import("../../Semantic.zig");
-const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
 const walk = @import("../../visit/walk.zig");
+const _rule = @import("../rule.zig");
 
 const Ast = Semantic.Ast;
 const Node = Ast.Node;

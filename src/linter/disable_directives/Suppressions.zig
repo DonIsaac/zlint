@@ -146,10 +146,10 @@ const mem = std.mem;
 const all_rules = @import("../all_rules.zig");
 
 const Allocator = mem.Allocator;
-const Parser = @import("./Parser.zig");
-const DisableDirectiveComment = @import("./Comment.zig");
-const Rule = @import("../rule.zig").Rule;
 const Semantic = @import("../../Semantic.zig");
+const Rule = @import("../rule.zig").Rule;
+const DisableDirectiveComment = @import("./Comment.zig");
+const Parser = @import("./Parser.zig");
 
 const assert = std.debug.assert;
 

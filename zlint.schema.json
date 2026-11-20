@@ -19,12 +19,25 @@
     },
     "$schema": "https://json-schema.org/draft-07/schema#",
     "definitions": {
-        "linter.rules.sort_imports.NewlinesBetween": {
-            "type": "string",
-            "enum": [
-                "ignore",
-                "always"
-            ]
+        "linter.rules.unsafe_undefined": {
+            "type": "object",
+            "title": "unsafe-undefined config",
+            "properties": {
+                "allowed_types": {
+                    "type": "array",
+                    "default": [
+                        "ThreadPool",
+                        "Thread.Pool"
+                    ],
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "allow_arrays": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
         },
         "linter.rules.allocator_first_param": {
             "type": "object",
@@ -172,28 +185,6 @@
                         }
                     ]
                 },
-                "unused-decls": {
-                    "description": "## What This Rule Does\n\nDisallows container-scoped variables that are declared but never used. Note\nthat top-level declarations are included.\n\nThe Zig compiler checks for unused parameters, payloads bound by `if`,\n`catch`, etc, and `const`/`var` declaration within functions. However,\nvariables and functions declared in container scopes are not given the same\ntreatment. This rule handles those cases.\n\n:::warning\n\nZLint's semantic analyzer does not yet record references to variables on\nmember access expressions (e.g. `bar` on `foo.bar`). It also does not\nhandle method calls correctly. Until these features are added, only\ntop-level `const` variable declarations are checked.\n\n:::\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\n// `std` used, but `Allocator` is not.\nconst std = @import(\"std\");\nconst Allocator = std.mem.Allocator;\n\n// Variables available to other code, either via `export` or `pub`, are not\n// reported.\npub const x = 1;\nexport fn foo(x: u32) void {}\n\n// `extern` functions are not reported\nextern fn bar(a: i32) void;\n```\n\nExamples of **correct** code for this rule:\n```zig\n// Discarded variables are considered \"used\".\nconst x = 1;\n_ = x;\n\n// non-container scoped variables are allowed by this rule but banned by the\n// compiler. `x`, `y`, and `z` are ignored by this rule.\npub fn foo(x: u32) void {\n  const y = true;\n  var z: u32 = 1;\n}\n```",
-                    "default": "warn",
-                    "markdownDescription": "## What This Rule Does\n\nDisallows container-scoped variables that are declared but never used. Note\nthat top-level declarations are included.\n\nThe Zig compiler checks for unused parameters, payloads bound by `if`,\n`catch`, etc, and `const`/`var` declaration within functions. However,\nvariables and functions declared in container scopes are not given the same\ntreatment. This rule handles those cases.\n\n:::warning\n\nZLint's semantic analyzer does not yet record references to variables on\nmember access expressions (e.g. `bar` on `foo.bar`). It also does not\nhandle method calls correctly. Until these features are added, only\ntop-level `const` variable declarations are checked.\n\n:::\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\n// `std` used, but `Allocator` is not.\nconst std = @import(\"std\");\nconst Allocator = std.mem.Allocator;\n\n// Variables available to other code, either via `export` or `pub`, are not\n// reported.\npub const x = 1;\nexport fn foo(x: u32) void {}\n\n// `extern` functions are not reported\nextern fn bar(a: i32) void;\n```\n\nExamples of **correct** code for this rule:\n```zig\n// Discarded variables are considered \"used\".\nconst x = 1;\n_ = x;\n\n// non-container scoped variables are allowed by this rule but banned by the\n// compiler. `x`, `y`, and `z` are ignored by this rule.\npub fn foo(x: u32) void {\n  const y = true;\n  var z: u32 = 1;\n}\n```",
-                    "oneOf": [
-                        {
-                            "$ref": "#/definitions/Error.Severity"
-                        },
-                        {
-                            "type": "array",
-                            "items": false,
-                            "prefixItems": [
-                                {
-                                    "$ref": "#/definitions/Error.Severity"
-                                },
-                                {
-                                    "$ref": "#/definitions/linter.rules.unused_decls"
-                                }
-                            ]
-                        }
-                    ]
-                },
                 "sort-imports": {
                     "description": "## What This Rule Does\nChecks that top-level `@import` declarations are sorted.\n\nImports are sorted within groups. A group is a run of consecutive `const`\ndeclarations initialized with an `@import`, including field accesses on an\nimport (e.g. `const Allocator = @import(\"std\").mem.Allocator;`). Blank\nlines and other declarations end a group. Within each group, `@import(\"std\")`\ncomes first, followed by other modules (e.g. `builtin` or dependencies),\nfollowed by `.zig` and `.zon` files. Each of these sections is sorted\nalphabetically by import path. Sorting is case-sensitive.\n\nDoc comments, comments directly above an import, and comments on the same\nline as an import move with it when sorting. `zlint-disable` directives do\nnot move. To keep a header comment above a group, separate it from the\ngroup's first import with a blank line.\n\nImports nested inside functions or other containers are not checked.\n\n### Sorting by Name\nSet `sort_by` to `\"name\"` to sort each section by declaration name instead\nof by import path.\n\n```json\n{\n  \"rules\": {\n    \"sort-imports\": [\"warn\", { \"sort_by\": \"name\" }]\n  }\n}\n```\n\n### Blank Lines Between Sections\nSet `newlines_between` to `\"always\"` to require a blank line between module\nimports and file imports. The default, `\"ignore\"`, does not check blank\nlines.\n\n```json\n{\n  \"rules\": {\n    \"sort-imports\": [\"warn\", { \"newlines_between\": \"always\" }]\n  }\n}\n```\n\n```zig\nconst std = @import(\"std\");\nconst clap = @import(\"clap\");\n\nconst foo = @import(\"foo.zig\");\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst foo = @import(\"foo.zig\");\nconst std = @import(\"std\");\n\nconst bar = @import(\"bar.zig\");\nconst baz = @import(\"baz\");\n```\n\nExamples of **correct** code for this rule:\n```zig\nconst std = @import(\"std\");\nconst builtin = @import(\"builtin\");\nconst clap = @import(\"clap\");\nconst foo = @import(\"foo.zig\");\n\n// groups are sorted independently\nconst baz = @import(\"baz\");\nconst bar = @import(\"bar.zig\");\n```",
                     "default": "warn",
@@ -211,6 +202,28 @@
                                 },
                                 {
                                     "$ref": "#/definitions/linter.rules.sort_imports"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "unused-decls": {
+                    "description": "## What This Rule Does\n\nDisallows container-scoped variables that are declared but never used. Note\nthat top-level declarations are included.\n\nThe Zig compiler checks for unused parameters, payloads bound by `if`,\n`catch`, etc, and `const`/`var` declaration within functions. However,\nvariables and functions declared in container scopes are not given the same\ntreatment. This rule handles those cases.\n\n:::warning\n\nZLint's semantic analyzer does not yet record references to variables on\nmember access expressions (e.g. `bar` on `foo.bar`). It also does not\nhandle method calls correctly. Until these features are added, only\ntop-level `const` variable declarations are checked.\n\n:::\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\n// `std` used, but `Allocator` is not.\nconst std = @import(\"std\");\nconst Allocator = std.mem.Allocator;\n\n// Variables available to other code, either via `export` or `pub`, are not\n// reported.\npub const x = 1;\nexport fn foo(x: u32) void {}\n\n// `extern` functions are not reported\nextern fn bar(a: i32) void;\n```\n\nExamples of **correct** code for this rule:\n```zig\n// Discarded variables are considered \"used\".\nconst x = 1;\n_ = x;\n\n// non-container scoped variables are allowed by this rule but banned by the\n// compiler. `x`, `y`, and `z` are ignored by this rule.\npub fn foo(x: u32) void {\n  const y = true;\n  var z: u32 = 1;\n}\n```",
+                    "default": "warn",
+                    "markdownDescription": "## What This Rule Does\n\nDisallows container-scoped variables that are declared but never used. Note\nthat top-level declarations are included.\n\nThe Zig compiler checks for unused parameters, payloads bound by `if`,\n`catch`, etc, and `const`/`var` declaration within functions. However,\nvariables and functions declared in container scopes are not given the same\ntreatment. This rule handles those cases.\n\n:::warning\n\nZLint's semantic analyzer does not yet record references to variables on\nmember access expressions (e.g. `bar` on `foo.bar`). It also does not\nhandle method calls correctly. Until these features are added, only\ntop-level `const` variable declarations are checked.\n\n:::\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\n// `std` used, but `Allocator` is not.\nconst std = @import(\"std\");\nconst Allocator = std.mem.Allocator;\n\n// Variables available to other code, either via `export` or `pub`, are not\n// reported.\npub const x = 1;\nexport fn foo(x: u32) void {}\n\n// `extern` functions are not reported\nextern fn bar(a: i32) void;\n```\n\nExamples of **correct** code for this rule:\n```zig\n// Discarded variables are considered \"used\".\nconst x = 1;\n_ = x;\n\n// non-container scoped variables are allowed by this rule but banned by the\n// compiler. `x`, `y`, and `z` are ignored by this rule.\npub fn foo(x: u32) void {\n  const y = true;\n  var z: u32 = 1;\n}\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.unused_decls"
                                 }
                             ]
                         }
@@ -304,6 +317,28 @@
                         }
                     ]
                 },
+                "duplicate-case": {
+                    "description": "## What This Rule Does\nChecks for duplicate cases in switch statements.\n\nThis rule identifies when switch statements have case branches that could\nbe merged together without affecting program behavior. It does _not_ check\nthat the value being switched over is the same; rather it checks whether\nthe target expressions are duplicates.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nfn foo() void {\n  const x = switch (1) {\n    1 => 1,\n    else => 1,\n  };\n}\n\nfn bar(y: u32) void {\n  const x = switch (y) {\n    1 => y + 1,\n    2 => 1 + y,\n    else => y * 2,\n  };\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn foo() void {\n  const x = switch (1) {\n    1 => 1,\n    2 => 2,\n  };\n}\n\nfn bar(y: u32) void {\n  const x = switch (y) {\n    1 => y + 1,\n    2 => y * 2,\n    3 => y - 1,\n  };\n}\n```",
+                    "default": "off",
+                    "markdownDescription": "## What This Rule Does\nChecks for duplicate cases in switch statements.\n\nThis rule identifies when switch statements have case branches that could\nbe merged together without affecting program behavior. It does _not_ check\nthat the value being switched over is the same; rather it checks whether\nthe target expressions are duplicates.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nfn foo() void {\n  const x = switch (1) {\n    1 => 1,\n    else => 1,\n  };\n}\n\nfn bar(y: u32) void {\n  const x = switch (y) {\n    1 => y + 1,\n    2 => 1 + y,\n    else => y * 2,\n  };\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn foo() void {\n  const x = switch (1) {\n    1 => 1,\n    2 => 2,\n  };\n}\n\nfn bar(y: u32) void {\n  const x = switch (y) {\n    1 => y + 1,\n    2 => y * 2,\n    3 => y - 1,\n  };\n}\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.duplicate_case"
+                                }
+                            ]
+                        }
+                    ]
+                },
                 "no-print": {
                     "description": "## What This Rule Does\nDisallows the use of `std.debug.print`.\n\n`print` statements are great for debugging, but they should be removed\nbefore code gets merged. When you need debug logs in production, use\n`std.log` instead.\n\nThis rule makes a best-effort attempt to ensure `print` calls are actually\nfrom `std.debug.print`. It will not report calls to custom print functions\nif they are defined within the same file. If you are getting false positives\nbecause you import a custom print function, consider disabling this rule on\na file-by-file basis instead of turning it off globally.\n\n### Tests\nBy default, this rule ignores `print`s in test blocks and files. Files are\nconsidered to be a test file if they end with `test.zig`. You may disable\nthis by setting `allow_tests` to `false` in the rule's metadata.\n\n```json\n{\n  \"rules\": {\n    \"no-print\": [\"warn\", { \"allow_tests\": false }]\n  }\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst std = @import(\"std\");\nconst debug = std.debug;\nconst print = std.debug.print;\nfn main() void {\n    std.debug.print(\"This should not be here: {d}\\n\", .{42});\n    debug.print(\"This should not be here: {d}\\n\", .{42});\n    print(\"This should not be here: {d}\\n\", .{42});\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nconst std = @import(\"std\");\nfn foo() u32 {\n    std.log.debug(\"running foo\", .{});\n    return 1;\n}\n\ntest foo {\n    std.debug.print(\"testing foo\\n\", .{});\n    try std.testing.expectEqual(1, foo());\n}\n```\n\n```zig\nfn print(comptime msg: []const u8, args: anytype) void {\n    // ...\n}\nfn main() void {\n    print(\"Staring program\", .{});\n}\n```",
                     "default": "warn",
@@ -343,28 +378,6 @@
                                 },
                                 {
                                     "$ref": "#/definitions/linter.rules.returned_stack_reference"
-                                }
-                            ]
-                        }
-                    ]
-                },
-                "duplicate-case": {
-                    "description": "## What This Rule Does\nChecks for duplicate cases in switch statements.\n\nThis rule identifies when switch statements have case branches that could\nbe merged together without affecting program behavior. It does _not_ check\nthat the value being switched over is the same; rather it checks whether\nthe target expressions are duplicates.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nfn foo() void {\n  const x = switch (1) {\n    1 => 1,\n    else => 1,\n  };\n}\n\nfn bar(y: u32) void {\n  const x = switch (y) {\n    1 => y + 1,\n    2 => 1 + y,\n    else => y * 2,\n  };\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn foo() void {\n  const x = switch (1) {\n    1 => 1,\n    2 => 2,\n  };\n}\n\nfn bar(y: u32) void {\n  const x = switch (y) {\n    1 => y + 1,\n    2 => y * 2,\n    3 => y - 1,\n  };\n}\n```",
-                    "default": "off",
-                    "markdownDescription": "## What This Rule Does\nChecks for duplicate cases in switch statements.\n\nThis rule identifies when switch statements have case branches that could\nbe merged together without affecting program behavior. It does _not_ check\nthat the value being switched over is the same; rather it checks whether\nthe target expressions are duplicates.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nfn foo() void {\n  const x = switch (1) {\n    1 => 1,\n    else => 1,\n  };\n}\n\nfn bar(y: u32) void {\n  const x = switch (y) {\n    1 => y + 1,\n    2 => 1 + y,\n    else => y * 2,\n  };\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\nfn foo() void {\n  const x = switch (1) {\n    1 => 1,\n    2 => 2,\n  };\n}\n\nfn bar(y: u32) void {\n  const x = switch (y) {\n    1 => y + 1,\n    2 => y * 2,\n    3 => y - 1,\n  };\n}\n```",
-                    "oneOf": [
-                        {
-                            "$ref": "#/definitions/Error.Severity"
-                        },
-                        {
-                            "type": "array",
-                            "items": false,
-                            "prefixItems": [
-                                {
-                                    "$ref": "#/definitions/Error.Severity"
-                                },
-                                {
-                                    "$ref": "#/definitions/linter.rules.duplicate_case"
                                 }
                             ]
                         }
@@ -573,25 +586,12 @@
             "title": "returned-stack-reference config",
             "properties": {}
         },
-        "linter.rules.unsafe_undefined": {
-            "type": "object",
-            "title": "unsafe-undefined config",
-            "properties": {
-                "allowed_types": {
-                    "type": "array",
-                    "default": [
-                        "ThreadPool",
-                        "Thread.Pool"
-                    ],
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "allow_arrays": {
-                    "type": "boolean",
-                    "default": true
-                }
-            }
+        "linter.rules.sort_imports.NewlinesBetween": {
+            "type": "string",
+            "enum": [
+                "ignore",
+                "always"
+            ]
         }
     }
 }

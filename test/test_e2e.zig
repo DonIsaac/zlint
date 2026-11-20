@@ -5,10 +5,10 @@ const test_runner = @import("harness/runner.zig");
 // snapshot file, and testing continues.
 pub const panic = @import("recover").panic;
 
+const cfg_dot_coverage = @import("semantic/cfg_dot_coverage.zig");
 // test suites
 const semantic_coverage = @import("semantic/ecosystem_coverage.zig");
 const snapshot_coverage = @import("semantic/snapshot_coverage.zig");
-const cfg_dot_coverage = @import("semantic/cfg_dot_coverage.zig");
 
 pub fn main(init: std.process.Init) !void {
     const runner = test_runner.getRunner();

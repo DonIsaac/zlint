@@ -3,8 +3,8 @@ const meta = std.meta;
 const test_util = @import("util.zig");
 
 const Semantic = @import("../../Semantic.zig");
-const Symbol = @import("../Symbol.zig");
 const Reference = @import("../Reference.zig");
+const Symbol = @import("../Symbol.zig");
 
 const t = std.testing;
 const panic = std.debug.panic;

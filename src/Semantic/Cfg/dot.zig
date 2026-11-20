@@ -394,8 +394,8 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Writer = std.Io.Writer;
 
-const Cfg = @import("../Cfg.zig");
 const Semantic = @import("../../Semantic.zig");
+const Cfg = @import("../Cfg.zig");
 const BasicBlock = Cfg.BasicBlock;
 const Container = Cfg.Container;
 const Edge = Cfg.Edge;

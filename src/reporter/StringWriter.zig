@@ -4,6 +4,7 @@ const StringWriter = @This();
 const GenericWriter = io.GenericWriter(*StringWriter, Allocator.Error, write);
 
 buf: std.array_list.Managed(u8),
+// zlint-disable-next-line unsafe-undefined --  safely used by buf writers.
 writer_buffer: [4096]u8 = undefined,
 
 /// Create a new, empty `StringWriter`. Does not allocate memory.

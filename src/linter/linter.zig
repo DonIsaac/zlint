@@ -1,11 +1,11 @@
 const std = @import("std");
 const util = @import("util");
-const _source = @import("../source.zig");
 const Semantic = @import("../Semantic.zig");
+const _source = @import("../source.zig");
 
-const _rule = @import("rule.zig");
-const Context = @import("lint_context.zig");
 const disable_directives = @import("disable_directives.zig");
+const Context = @import("lint_context.zig");
+const _rule = @import("rule.zig");
 const Suppressions = disable_directives.Suppressions;
 
 const Fix = @import("fix.zig").Fix;

@@ -359,8 +359,8 @@ const Allocator = std.mem.Allocator;
 const NominalId = util.NominalId;
 
 const Node = ast.Node;
-const Scope = @import("Scope.zig");
 const Reference = @import("Reference.zig");
+const Scope = @import("Scope.zig");
 
 const assert = std.debug.assert;
 

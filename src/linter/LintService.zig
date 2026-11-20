@@ -43,6 +43,7 @@ pub fn init(
 }
 
 pub fn deinit(self: *LintService) void {
+    // zlint-disable-next-line suppressed-errors
     self.group.await(self.io) catch {};
     // NOTE: lint jobs must be joined first
     self.linter.deinit();
@@ -183,11 +184,11 @@ const Io = std.Io;
 const reporters = @import("../reporter.zig");
 
 const Allocator = std.mem.Allocator;
-const Linter = @import("linter.zig").Linter;
-const Config = @import("Config.zig");
+const Error = @import("../Error.zig");
 const Source = @import("../source.zig").Source;
+const Config = @import("Config.zig");
 const Fix = @import("fix.zig").Fix;
 const Fixer = @import("fix.zig").Fixer;
-const Error = @import("../Error.zig");
+const Linter = @import("linter.zig").Linter;
 
 const Semantic = @import("../Semantic.zig");

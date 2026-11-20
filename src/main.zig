@@ -1,15 +1,15 @@
 const std = @import("std");
-const util = @import("util");
-const Source = @import("zlint").Source;
 const config = @import("config");
+const util = @import("util");
 const Error = @import("zlint").Error;
+const Source = @import("zlint").Source;
 
 const Io = std.Io;
 const print = std.debug.print;
 
 const Options = @import("cli/Options.zig");
-const print_cmd = @import("cli/print_command.zig");
 const lint_cmd = @import("cli/lint_command.zig");
+const print_cmd = @import("cli/print_command.zig");
 const update_cmd = @import("cli/update_command.zig");
 
 // in debug builds, include more information for debugging memory leaks,
@@ -46,7 +46,7 @@ pub fn main(init: std.process.Init) !u8 {
         );
     }
 
-    var err: Error = undefined;
+    var err: Error = .empty;
     var opts = Options.parseArgv(stack_alloc, io, init.minimal.args, &err) catch |e| switch (e) {
         // These variants populate `err` with a user-facing message describing
         // exactly what went wrong (e.g. the unknown flag or invalid value).

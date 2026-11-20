@@ -1,8 +1,8 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-const assert = @import("../util.zig").assert;
 const IS_DEBUG = @import("../util.zig").IS_DEBUG;
+const assert = @import("../util.zig").assert;
 const DebugOnly = @import("./debug_only.zig").DebugOnly;
 const debugOnly = @import("./debug_only.zig").debugOnly;
 

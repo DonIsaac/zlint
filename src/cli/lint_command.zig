@@ -1,7 +1,7 @@
 const std = @import("std");
 const zlint = @import("zlint");
-const fs = @import("../io/fs.zig");
 const walk = @import("../io/Walker.zig");
+const fs = @import("../io/fs.zig");
 
 const lint_config = @import("lint/config.zig");
 const gitignore = @import("lint/gitignore.zig");

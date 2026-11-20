@@ -1,8 +1,8 @@
 const std = @import("std");
 const Source = @import("zlint").Source;
 
-const print_command = @import("../print_command.zig");
 const Options = @import("../Options.zig");
+const print_command = @import("../print_command.zig");
 
 const t = std.testing;
 

@@ -227,5 +227,5 @@ const Allocator = std.mem.Allocator;
 const Span = @import("../span.zig").Span;
 const Cow = util.Cow(false);
 
-const LinterContext = @import("./lint_context.zig");
 const Error = @import("../Error.zig");
+const LinterContext = @import("./lint_context.zig");

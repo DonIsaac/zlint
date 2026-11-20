@@ -83,6 +83,7 @@ fn handoffWindows(self: *Self, alloc: Allocator) !void {
     });
     var helper_file_open = true;
     defer if (helper_file_open) helper_file.close(self.io);
+    // zlint-disable-next-line suppressed-errors -- already handling an error, can't throw again.
     errdefer self.staged.dir.deleteFile(self.io, helper_basename) catch {};
 
     const helper_path = try path.join(alloc, &.{ self.directory_path, helper_basename });

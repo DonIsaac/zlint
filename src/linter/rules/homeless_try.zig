@@ -87,8 +87,8 @@ const std = @import("std");
 const util = @import("util");
 const Semantic = @import("../../Semantic.zig");
 const builtins = @import("../../Semantic/builtins.zig");
-const _rule = @import("../rule.zig");
 const a = @import("../ast_utils.zig");
+const _rule = @import("../rule.zig");
 
 const Ast = Semantic.Ast;
 const Node = Ast.Node;

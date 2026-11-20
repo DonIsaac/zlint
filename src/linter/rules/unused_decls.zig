@@ -49,11 +49,11 @@
 //! ```
 
 const std = @import("std");
-const Semantic = @import("../../Semantic.zig");
-const _rule = @import("../rule.zig");
-const _fix = @import("../fix.zig");
-const _span = @import("../../span.zig");
 const Error = @import("../../Error.zig");
+const Semantic = @import("../../Semantic.zig");
+const _span = @import("../../span.zig");
+const _fix = @import("../fix.zig");
+const _rule = @import("../rule.zig");
 
 const Span = _span.Span;
 const Symbol = Semantic.Symbol;

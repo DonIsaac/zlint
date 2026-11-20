@@ -294,9 +294,9 @@ const Context = @This();
 const std = @import("std");
 const mem = std.mem;
 const util = @import("util");
-const _rule = @import("rule.zig");
-const _source = @import("../source.zig");
 const Semantic = @import("../Semantic.zig");
+const _source = @import("../source.zig");
+const _rule = @import("rule.zig");
 
 const Allocator = std.mem.Allocator;
 const Ast = Semantic.Ast;

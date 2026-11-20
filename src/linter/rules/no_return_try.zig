@@ -39,8 +39,8 @@
 
 const std = @import("std");
 const util = @import("util");
-const _rule = @import("../rule.zig");
 const _span = @import("../../span.zig");
+const _rule = @import("../rule.zig");
 
 const LinterContext = @import("../lint_context.zig");
 const LabeledSpan = _span.LabeledSpan;

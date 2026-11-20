@@ -1,5 +1,5 @@
-const Context = @import("./lint_context.zig");
 const Semantic = @import("../Semantic.zig");
+const Context = @import("./lint_context.zig");
 const Ast = Semantic.Ast;
 const Node = Ast.Node;
 const Scope = Semantic.Scope;

@@ -6,8 +6,8 @@
 //! `all` degrades to just the builtin rules.
 
 const std = @import("std");
-const builtin_rules = @import("builtin_rules.zig");
 const custom_rules = @import("custom_rules").custom_rules;
+const builtin_rules = @import("builtin_rules.zig");
 
 const builtin_decls = @typeInfo(builtin_rules).@"struct".decls;
 const custom_decls = @typeInfo(custom_rules).@"struct".decls;

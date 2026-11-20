@@ -79,6 +79,7 @@ inline fn backtrack(self: *State) void {
 
 const State = @This();
 const BraceStack = struct {
+    // SAFETY: initialized as frames are pushed
     stack: [10]State = undefined,
     len: u32 = 0,
     longest_brace_match: u32 = 0,

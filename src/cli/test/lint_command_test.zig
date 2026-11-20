@@ -10,12 +10,12 @@
 //! wrapped in `todo()`.
 
 const std = @import("std");
-const Fixture = @import("Fixture.zig");
+const Config = @import("zlint").lint.Config;
 const walk = @import("../../io/Walker.zig");
+const gitignore = @import("../lint/gitignore.zig");
 const FileFilter = @import("../lint/visitor.zig").FileFilter;
 const lint_command = @import("../lint_command.zig");
-const gitignore = @import("../lint/gitignore.zig");
-const Config = @import("zlint").lint.Config;
+const Fixture = @import("Fixture.zig");
 
 const t = std.testing;
 const Allocator = std.mem.Allocator;

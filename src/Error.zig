@@ -23,6 +23,8 @@ help: ?Cow(false) = null,
 // free the slice.
 pub const ArcStr = Arc([:0]u8);
 
+pub const empty: Error = .{ .message = .empty };
+
 pub fn new(message: []u8, allocator: Allocator) Error {
     return Error{ .message = Cow(false).owned(message, allocator) };
 }
@@ -257,8 +259,8 @@ const std = @import("std");
 const json = std.json;
 const ptrs = @import("smart-pointers");
 const util = @import("util");
-const _span = @import("span.zig");
 const Schema = @import("json.zig").Schema;
+const _span = @import("span.zig");
 
 const Allocator = std.mem.Allocator;
 const Arc = ptrs.Arc;

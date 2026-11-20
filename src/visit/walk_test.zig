@@ -5,8 +5,8 @@ const Semantic = @import("../Semantic.zig");
 const Ast = Semantic.Ast;
 const Node = Ast.Node;
 
-const Walker = @import("./walk.zig").Walker;
 const WalkState = @import("./walk.zig").WalkState;
+const Walker = @import("./walk.zig").Walker;
 
 const t = std.testing;
 const expect = t.expect;

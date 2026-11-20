@@ -142,10 +142,10 @@ const Symbol = Semantic.Symbol;
 const Ast = Semantic.Ast;
 const Token = Semantic.Token;
 const TokenIndex = Ast.TokenIndex;
-const LinterContext = @import("../lint_context.zig");
-const Rule = @import("../rule.zig").Rule;
-const NodeWrapper = @import("../rule.zig").NodeWrapper;
 const Error = @import("../../Error.zig");
+const LinterContext = @import("../lint_context.zig");
+const NodeWrapper = @import("../rule.zig").NodeWrapper;
+const Rule = @import("../rule.zig").Rule;
 const Cow = util.Cow(false);
 
 allow_arrays: bool = true,

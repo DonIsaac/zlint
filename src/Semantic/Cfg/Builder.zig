@@ -826,8 +826,8 @@ const NodeIndex = _ast.NodeIndex;
 const TokenIndex = _ast.TokenIndex;
 const MaybeTokenId = _ast.MaybeTokenId;
 
-const Draft = @import("Draft.zig");
 const Cfg = @import("../Cfg.zig");
+const Draft = @import("Draft.zig");
 const BasicBlock = Cfg.BasicBlock;
 const Container = Cfg.Container;
 const Edge = Cfg.Edge;

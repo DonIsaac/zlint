@@ -11,12 +11,12 @@ const std = @import("std");
 const io = std.Io;
 const Allocator = std.mem.Allocator;
 
-const Options = @import("../cli/Options.zig");
-const Source = @import("zlint").Source;
 const Semantic = @import("zlint").Semantic;
+const Source = @import("zlint").Source;
+const Options = @import("../cli/Options.zig");
 
-const Printer = @import("zlint").printer.Printer;
 const AstPrinter = @import("zlint").printer.AstPrinter;
+const Printer = @import("zlint").printer.Printer;
 const SemanticPrinter = @import("zlint").printer.SemanticPrinter;
 
 /// Borrows source.

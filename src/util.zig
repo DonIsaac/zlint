@@ -8,13 +8,13 @@ pub const NEWLINE = if (IS_WINDOWS) "\r\n" else "\n";
 
 pub const @"inline": std.builtin.CallingConvention = if (IS_DEBUG) .@"inline" else .auto;
 
-pub const env = @import("util/env.zig");
-pub const NominalId = @import("util/id.zig").NominalId;
+pub const Bitflags = @import("util/bitflags.zig").Bitflags;
 pub const Cow = @import("util/cow.zig").Cow;
 pub const DebugOnly = @import("util/debug_only.zig").DebugOnly;
 pub const debugOnly = @import("util/debug_only.zig").debugOnly;
-pub const Bitflags = @import("util/bitflags.zig").Bitflags;
+pub const env = @import("util/env.zig");
 pub const FeatureFlags = @import("util/feature_flags.zig");
+pub const NominalId = @import("util/id.zig").NominalId;
 
 /// remove leading and trailing whitespace characters from a string
 pub fn trimWhitespace(s: []const u8) []const u8 {

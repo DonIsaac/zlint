@@ -1,0 +1,9 @@
+{
+    "$schema": "./zlint.schema.json",
+    "ignore":[
+        "test/fixtures/**"
+    ],
+    "rules": {
+        "no-print": "off"
+    }
+}

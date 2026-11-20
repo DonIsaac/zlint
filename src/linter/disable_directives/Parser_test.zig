@@ -1,7 +1,7 @@
 const std = @import("std");
-const DisableDirectivesParser = @import("./Parser.zig");
-const DisableDirectiveComment = @import("./Comment.zig");
 const Span = @import("../../span.zig").Span;
+const DisableDirectiveComment = @import("./Comment.zig");
+const DisableDirectivesParser = @import("./Parser.zig");
 
 const t = std.testing;
 const print = std.debug.print;

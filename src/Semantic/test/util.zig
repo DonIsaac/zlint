@@ -1,8 +1,8 @@
 const std = @import("std");
 
-const Source = @import("../../source.zig").Source;
 const Semantic = @import("../../Semantic.zig");
 const report = @import("../../reporter.zig");
+const Source = @import("../../source.zig").Source;
 
 const printer = @import("../../root.zig").printer;
 

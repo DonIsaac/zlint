@@ -1,9 +1,9 @@
 const std = @import("std");
-const LinterContext = @import("../lint_context.zig");
-const Fix = @import("../fix.zig").Fix;
 const Semantic = @import("../../Semantic.zig");
-const _span = @import("../../span.zig");
 const Source = @import("../../source.zig").Source;
+const _span = @import("../../span.zig");
+const Fix = @import("../fix.zig").Fix;
+const LinterContext = @import("../lint_context.zig");
 const Rule = @import("../rule.zig").Rule;
 const AvoidAs = @import("../rules/avoid_as.zig");
 

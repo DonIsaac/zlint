@@ -5,8 +5,8 @@
 
 const std = @import("std");
 const io = std.Io;
-const gen = @import("./gen_utils.zig");
 const zlint = @import("zlint");
+const gen = @import("./gen_utils.zig");
 const log = std.log;
 const mem = std.mem;
 const path = std.fs.path;

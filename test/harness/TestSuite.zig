@@ -309,11 +309,11 @@ const std = @import("std");
 const Io = std.Io;
 const Allocator = std.mem.Allocator;
 
-const recover = @import("recover");
 const Chameleon = @import("chameleon");
+const recover = @import("recover");
 
-const utils = @import("../utils.zig");
 const harness = @import("../harness.zig");
+const utils = @import("../utils.zig");
 const string = utils.string;
 const Source = zlint.Source;
 

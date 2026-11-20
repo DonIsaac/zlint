@@ -1,8 +1,8 @@
 const std = @import("std");
 const test_util = @import("util.zig");
 
-const _source = @import("../../source.zig");
 const Semantic = @import("../../Semantic.zig");
+const _source = @import("../../source.zig");
 
 const t = std.testing;
 

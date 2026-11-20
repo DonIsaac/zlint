@@ -62,9 +62,9 @@
 //! ```
 
 const std = @import("std");
+const _span = @import("../../span.zig");
 const ast_utils = @import("../ast_utils.zig");
 const _rule = @import("../rule.zig");
-const _span = @import("../../span.zig");
 
 const Span = _span.Span;
 const LabeledSpan = _span.LabeledSpan;
@@ -120,7 +120,7 @@ pub fn runOnNode(self: *const NoPrint, wrapper: NodeWrapper, ctx: *LinterContext
 
     // .call/.call_comma data is .node_and_extra: [0]=callee
     const callee = node.data.node_and_extra[0];
-    var print_span: Span = undefined;
+    var print_span: Span = .empty;
 
     switch (ast.nodeTag(callee)) {
         // look for `print(msg, args);`

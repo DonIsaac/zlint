@@ -61,9 +61,9 @@ const std = @import("std");
 const util = @import("util");
 
 const Semantic = @import("../../Semantic.zig");
-const _rule = @import("../rule.zig");
-const a = @import("../ast_utils.zig");
 const walk = @import("../../visit/walk.zig");
+const a = @import("../ast_utils.zig");
+const _rule = @import("../rule.zig");
 
 const Allocator = std.mem.Allocator;
 

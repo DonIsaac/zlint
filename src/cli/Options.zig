@@ -180,8 +180,8 @@ const Options = @This();
 const std = @import("std");
 const util = @import("util");
 const Allocator = std.mem.Allocator;
-const formatter = @import("zlint").report.formatter;
 const Error = @import("zlint").Error;
+const formatter = @import("zlint").report.formatter;
 
 const t = std.testing;
 

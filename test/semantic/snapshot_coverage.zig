@@ -1,6 +1,6 @@
-const test_runner = @import("../harness.zig");
 const std = @import("std");
 const zlint = @import("zlint");
+const test_runner = @import("../harness.zig");
 const utils = @import("../utils.zig");
 
 const Allocator = std.mem.Allocator;

@@ -2,9 +2,9 @@
 //!
 //! Note that rules config is a subset of zlint's full config.
 const std = @import("std");
-const gen = @import("gen_utils.zig");
 const zlint = @import("zlint");
 const c = @import("constants.zig");
+const gen = @import("gen_utils.zig");
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Schema = zlint.json.Schema;

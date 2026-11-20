@@ -1,5 +1,5 @@
-pub const TestSuite = @import("harness/TestSuite.zig");
 pub const Config = @import("harness/Config.zig");
+pub const TestSuite = @import("harness/TestSuite.zig");
 
 const runner = @import("harness/runner.zig");
 pub const getRunner = runner.getRunner;

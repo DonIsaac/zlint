@@ -1,8 +1,8 @@
 const std = @import("std");
-const Suppressions = @import("./Suppressions.zig");
-const Rule = @import("../rule.zig").Rule;
 const Semantic = @import("../../Semantic.zig");
 const build = @import("../../Semantic/test/util.zig").build;
+const Rule = @import("../rule.zig").Rule;
+const Suppressions = @import("./Suppressions.zig");
 
 const t = std.testing;
 

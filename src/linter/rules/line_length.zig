@@ -28,8 +28,8 @@
 //! ```
 
 const std = @import("std");
-const _rule = @import("../rule.zig");
 const span = @import("../../span.zig");
+const _rule = @import("../rule.zig");
 
 const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
