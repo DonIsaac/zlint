@@ -6,67 +6,49 @@ source: []const u8,
 // All fields below here are private and not initialized until parse() is
 // called. No touchy.
 
-/// Cursor pointer to current char in source code. This is a u32 index
-/// instead of a pointer type as a size optimization.
+/// Cursor pointer to current char in source code.
 ///
 /// @internal
 cursor: usize,
 /// @internal
 span: Span,
-/// @internal
-kind: DisableDirectiveComment.Kind,
-/// Stack allocated. Must be copied into newly-allocated directives.
-///
-/// @internal
-rules: std.ArrayListUnmanaged(Span) = .empty,
 
 const DisableDirectivesParser = @This();
 const MIN_LEN: u32 = "//zlint-disable".len;
-/// Amount of stack space to reserve when parsing.
-const STACK_FALLBACK_SIZE: usize = 2048;
 
 pub fn new(source: []const u8) DisableDirectivesParser {
-    // SAFETY: initialized at beginning of parsed(). These are private fields
-    // that shouldn't be accessed externally: fuck around with abstraction
-    // leaks and find out.
     return .{
         .source = source,
-        // SAFETY: above
+        // SAFETY: initialized at the beginning of parse(). These are private
+        // fields that shouldn't be accessed externally.
         .cursor = undefined,
-        // SAFETY: above
-        .kind = undefined,
         // SAFETY: above
         .span = undefined,
     };
 }
 
+/// Parse a line comment into a disable directive. Returns `null` if the
+/// comment is not a directive. Does not allocate.
+///
 /// ### Examples
 /// - `// zlint-disable` - disable all rules for this file
 /// - `// zlint-disable -- some comment` - same as above
 /// - `// zlint-disable unsafe-undefined` - disable "unsafe-undefined" for the entire file
-/// - `// zlint-disable foo bar baz` - disable "foo", "bar", and  "baz" for entire fil
-/// - `// `ZLint-disable foo, bar, baz` - let user do their thing, if they want commas and caps that's fine
+/// - `// zlint-disable foo bar baz` - disable "foo", "bar", and  "baz" for entire file
+/// - `// ZLint-disable foo, bar, baz` - let user do their thing, if they want commas and caps that's fine
 ///
-/// Disabling only on the next line works basically the same way
+/// Disabling only on the next line or the current line works the same way
 /// - `// zlint-disable-next-line` - disable violations for all rules on next line
 /// - `// zlint-disable-next-line  -- unsafe-undefined` same as above. `unsafe-undefined` is treated as a comment
 /// - `// zlint-disable-next-line unsafe-undefined`
-pub fn parse(self: *DisableDirectivesParser, allocator: Allocator, line_comment: Span) Allocator.Error!?DisableDirectiveComment {
+/// - `foo(); // zlint-disable-line unsafe-undefined`
+pub fn parse(self: *DisableDirectivesParser, line_comment: Span) ?DisableDirectiveComment {
     assert(self.source.len >= line_comment.end); // ensure line comment is within source code
-    defer if (comptime util.IS_DEBUG) self.reset();
 
     // "//zlint-disable" is the smallest possible disable directive.
     if (line_comment.len() < MIN_LEN) return null;
     self.cursor = line_comment.start;
     self.span = line_comment;
-
-    var fb_buf: [STACK_FALLBACK_SIZE]u8 = undefined;
-    var fb: std.heap.BufferFirstAllocator = .init(&fb_buf, allocator);
-    const alloc = fb.allocator();
-    defer {
-        self.rules.deinit(alloc);
-        self.rules = .empty; // Put rules back into a valid, empty state for the next parse.
-    }
 
     // consume /\s*//[/!]?\s*/
     self.eatWhitespace(); // "\s*"
@@ -84,82 +66,41 @@ pub fn parse(self: *DisableDirectivesParser, allocator: Allocator, line_comment:
     }
     self.eatWhitespace(); // "\s*"
 
-    // consume /zlint-disable[-next-line]/. determines directive kind.
+    // consume /zlint-disable(-next-line|-line)?/. determines directive kind.
     self.eatMany("zlint-disable", true) orelse return null;
-    // returning .build() before this line is UB.
-    self.kind = if (self.eatMany("-next-line", true)) |_| .line else .global;
-    const ckpt = self.cursor;
-    self.eatWhitespace();
-    // short-circuit for global directives that disable all rules
-    if (self.cursor >= self.span.end) {
-        self.cursor = ckpt;
-        return self.build(allocator);
-    }
-    // everything past '--' is a comment
-    if (self.eatMany("--", false)) |_| {
-        self.cursor = ckpt;
-        return self.build(allocator);
-    }
+    const kind: DisableDirectiveComment.Kind = if (self.eatMany("-next-line", true)) |_|
+        .next_line
+    else if (self.eatMany("-line", true)) |_|
+        .same_line
+    else
+        .global;
 
-    while (self.cursor < self.span.end) {
-        const start = self.cursor;
-        while (self.cursor < self.span.end) : (self.cursor += 1) {
-            switch (self.curr()) {
-                'a'...'z', 'A'...'Z' => {},
-                '-' => {
-                    if (self.peek() == '-') break;
-                    // continue
-                },
-                else => break,
-            }
-        }
-        self.cursor = @min(self.cursor, self.span.end);
-        // Skip unrecognized characters (digits, underscores, etc.) that the
-        // inner loop cannot consume.
-        if (self.cursor == start) {
-            @branchHint(.cold);
-            self.cursor += 1;
-            continue;
-        }
-        try self.rules.append(alloc, Span.new(@intCast(start), @intCast(self.cursor)));
-        self.eat(',') orelse {};
-        self.eatWhitespace();
-        if (self.eatMany("--", false)) |_| break;
-    }
-
-    return self.build(allocator);
-}
-
-fn build(self: *const DisableDirectivesParser, allocator: Allocator) Allocator.Error!?DisableDirectiveComment {
-    var comment: DisableDirectiveComment = .{
-        .kind = self.kind,
-        .span = Span.new(self.span.start, @intCast(self.cursor)),
+    // The keyword must end at a word boundary. This rejects things like
+    // `zlint-disable-lines` and `zlint-disablefoo`.
+    if (self.cursor < self.span.end) switch (self.curr()) {
+        ',' => {},
+        '-' => if (self.peek() != '-') return null,
+        else => |c| if (!std.ascii.isWhitespace(c)) return null,
     };
-    if (self.rules.items.len > 0) {
-        comment.disabled_rules = try allocator.alloc(Span, self.rules.items.len);
-        @memcpy(comment.disabled_rules, self.rules.items);
-    }
 
-    return comment;
+    const keyword_end: u32 = @intCast(self.cursor);
+    // Rule names can't contain `--`, so the first one starts the explanation.
+    const list_end: u32 = if (mem.indexOfPos(u8, self.source[0..self.span.end], keyword_end, "--")) |i| @intCast(i) else self.span.end;
+    // Any text in the list, even if it has no valid rule names, means the user
+    // meant to disable specific rules. Treating it as "all rules" would hide
+    // far more than intended.
+    const separators = ascii.whitespace ++ ",";
+    const list = mem.trim(u8, self.source[keyword_end..list_end], separators);
+    if (list.len == 0) return .{ .kind = kind, .span = .new(self.span.start, keyword_end) };
+
+    const list_start: u32 = @intCast(list.ptr - self.source.ptr);
+    const rules: Span = .new(list_start, list_start + @as(u32, @intCast(list.len)));
+    return .{ .kind = kind, .span = .new(self.span.start, rules.end), .rules = rules };
 }
 
-/// Trim leading whitespace c`haracters starting from the cursor.
+/// Trim leading whitespace characters starting from the cursor.
 fn eatWhitespace(self: *DisableDirectivesParser) void {
-    const whitespace = std.ascii.whitespace;
-    while (self.cursor < self.span.end and std.mem.indexOfScalar(u8, &whitespace, self.curr()) != null) : (self.cursor += 1) {}
-}
-
-/// Move the cursor forward if the next character is `expected`. Otherwise
-/// the cursor is not modified and `null` is returned.
-fn eat(self: *DisableDirectivesParser, expected: u8) ?void {
-    if (self.cursor >= self.span.end) return null;
-
-    if (self.curr() == expected) {
-        self.cursor += 1;
-        return;
-    } else {
-        return null;
-    }
+    while (self.cursor < self.span.end and std.ascii.isWhitespace(self.curr())) : (self.cursor += 1) {}
 }
 
 /// Safely read the next character. Returns `null` if we're at the end of the
@@ -189,126 +130,29 @@ inline fn curr(self: *const DisableDirectivesParser) u8 {
     return self.source[self.cursor];
 }
 
-fn remaining(self: *const DisableDirectivesParser) []const u8 {
-    self.assertInRange();
-    return self.source[self.cursor..self.span.end];
-}
-
-/// Inlined so LLVM can optimize away bounds-related safety checks.
-inline fn assertInRange(self: *const DisableDirectivesParser) void {
-    assert(self.cursor < self.source.len);
-    assert(self.cursor < self.span.end);
-}
-
-fn reset(self: *DisableDirectivesParser) void {
-    self.cursor = undefined;
-    // SAFETY: this is a destructor
-    self.kind = undefined;
-    // SAFETY: this is a destructor
-    self.span = undefined;
-}
-
 const t = std.testing;
 test {
     t.refAllDecls(DisableDirectivesParser);
-}
-
-test parse {
-    const ExpectedDisableDisableDirectives = []const []const u8;
-    const TestCase = @Tuple(&[_]type{ []const u8, ?DisableDirectiveComment, ExpectedDisableDisableDirectives });
-    const cases = &[_]TestCase{
-        // global directives
-        TestCase{
-            "//zlint-disable",
-            .{ .kind = .global, .span = .new(0, 15) },
-            &[_][]const u8{},
-        },
-        TestCase{
-            "// zlint-disable",
-            .{ .kind = .global, .span = .new(0, 16) },
-            &[_][]const u8{},
-        },
-        TestCase{
-            "// zlint-disable -- unsafe-undefined",
-            .{ .kind = .global, .span = .new(0, 16) },
-            &[_][]const u8{},
-        },
-        TestCase{
-            "// zlint-disable unsafe-undefined",
-            .{
-                .kind = .global,
-                .span = .new(0, 33),
-                .disabled_rules = @constCast(&[_]Span{Span.new(17, 33)}),
-            },
-            &[_][]const u8{
-                "unsafe-undefined",
-            },
-        },
-        TestCase{
-            "// zlint-disable foo bar baz",
-            .{
-                .kind = .global,
-                .span = .new(0, 28),
-                .disabled_rules = @constCast(&[_]Span{
-                    Span.new(17, 20),
-                    Span.new(21, 24),
-                    Span.new(25, 28),
-                }),
-            },
-            &[_][]const u8{ "foo", "bar", "baz" },
-        },
-    };
-
-    for (cases) |case| {
-        const source, const expected, const expected_disabled_directives = case;
-        var parser = DisableDirectivesParser.new(source);
-        var actual = try parser.parse(t.allocator, Span.new(0, @intCast(source.len)));
-        if (actual) |*a| {
-            defer a.deinit(t.allocator);
-            const e: DisableDirectiveComment = expected.?;
-            try t.expectEqual(e.kind, a.kind);
-            try t.expectEqual(e.span, a.span);
-            try t.expectEqualSlices(Span, e.disabled_rules, a.disabled_rules);
-
-            for (0.., expected_disabled_directives) |idx, expected_disabled_directive| {
-                try t.expectEqualStrings(
-                    expected_disabled_directive,
-                    source[a.disabled_rules[idx].start..a.disabled_rules[idx].end],
-                );
-            }
-
-            // try t.expectEqual(expected, a);
-        } else {
-            try t.expectEqual(expected, actual);
-        }
-        // defer if (actual) |*a| a.deinit(t.allocator);
-        // try t.expectEqual(expected.kind, actual.k);
-        // try t.expectEqual(expected, actual);
-    }
-}
-
-test {
     _ = @import("./Parser_test.zig");
 }
 
 test eatWhitespace {
-    const TestCase = @Tuple(&[_]type{ []const u8, []const u8 });
+    const TestCase = struct { []const u8, []const u8 };
     const cases: []const TestCase = &[_]TestCase{
-        TestCase{ "", "" },
-        TestCase{ " ", "" },
-        TestCase{ "\n", "" },
-        TestCase{ "foo", "foo" },
-        TestCase{ "bar  ", "bar  " },
-        TestCase{ "\n\tbaz", "baz" },
-        TestCase{ "    baz", "baz" },
-        TestCase{ "foo bar", "foo bar" },
+        .{ "", "" },
+        .{ " ", "" },
+        .{ "\n", "" },
+        .{ "foo", "foo" },
+        .{ "bar  ", "bar  " },
+        .{ "\n\tbaz", "baz" },
+        .{ "    baz", "baz" },
+        .{ "foo bar", "foo bar" },
     };
 
     for (cases) |case| {
         const source, const expected = case;
 
-        var p: DisableDirectivesParser = undefined;
-        p.source = source;
+        var p: DisableDirectivesParser = .new(source);
         p.span = Span.new(0, @intCast(source.len));
         p.cursor = 0;
         p.eatWhitespace();
@@ -318,12 +162,10 @@ test eatWhitespace {
 }
 
 const std = @import("std");
-const util = @import("util");
 const ascii = std.ascii;
 const mem = std.mem;
 
 const Span = @import("../../span.zig").Span;
-const Allocator = mem.Allocator;
 
 const assert = std.debug.assert;
 

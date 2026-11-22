@@ -20,13 +20,7 @@ pub fn format(_: *GithubFormatter, w: *io.Writer, e: Error) FormatError!void {
         .off => @panic("disabled error passed to formatter"),
     };
 
-    const primary: ?LabeledSpan = blk: {
-        if (e.labels.items.len == 0) break :blk null;
-        for (e.labels.items) |label| {
-            if (label.primary) break :blk label;
-        }
-        break :blk e.labels.items[0];
-    };
+    const primary: ?LabeledSpan = e.primaryLabel();
 
     const line, const col = blk: {
         if (primary) |p| {

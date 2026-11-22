@@ -1,5 +1,4 @@
 const std = @import("std");
-const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 
 const lint = @import("../../lint.zig");
@@ -20,319 +19,261 @@ const source =
     \\};
 ;
 
-fn makeSource(arena: Allocator, source_text: []const u8) !Source {
-    const srctext = try arena.dupeSentinel(u8, source_text, 0);
-    errdefer arena.free(srctext);
+const both_rules = Config{
+    .rules = .{ .rules = .{
+        .unsafe_undefined = .{ .severity = .err },
+        .unused_decls = .{ .severity = .err },
+    } },
+};
 
-    const path = try arena.dupe(u8, "test.zig");
-    errdefer arena.free(path);
+/// Caller owns the returned diagnostics. Free them with `freeErrors`.
+fn lintSource(source_text: []const u8, config: Config) !?ErrorList {
+    var arena = ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+    var src = try Source.fromString(
+        t.allocator,
+        try t.allocator.dupeSentinel(u8, source_text, 0),
+        try t.allocator.dupe(u8, "test.zig"),
+    );
+    defer src.deinit();
 
-    return Source.fromString(arena, srctext, path);
+    var builder = Semantic.Builder.init(t.allocator);
+    builder.withSource(&src);
+    defer builder.deinit();
+    var res = try builder.build(src.text());
+    defer res.deinit();
+
+    var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
+    defer linter.deinit();
+
+    var errors: ?ErrorList = null;
+    linter.runOnSource(std.testing.io, &res.value, &src, &errors) catch |e| switch (e) {
+        error.LintingFailed => {},
+        else => return e,
+    };
+    return errors;
+}
+
+/// Multiline string literals can't contain `\r`.
+fn crlf(comptime lf: []const u8) []const u8 {
+    return comptime blk: {
+        var out: []const u8 = "";
+        for (lf) |c| out = out ++ if (c == '\n') "\r\n" else .{c};
+        break :blk out;
+    };
+}
+
+fn freeErrors(errors: ?ErrorList) void {
+    const errs = errors orelse return;
+    for (errs.items) |*err| err.deinit(t.allocator);
+    errs.deinit();
+}
+
+fn expectCodes(expected: []const []const u8, errors: ?ErrorList) !void {
+    const errs = errors orelse return expectEqual(0, expected.len);
+    try expectEqual(expected.len, errs.items.len);
+    for (expected, errs.items) |code, err| try t.expectEqualStrings(code, err.err.code);
 }
 
 test "Enabled rules have their violations reported" {
-    var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
-    var src = try makeSource(t.allocator, source);
-    defer src.deinit();
-
-    var errors: ?ErrorList = null;
-    defer if (errors) |errs| {
-        for (errs.items) |*err| err.deinit(t.allocator);
-        errs.deinit();
-    };
-
-    const config = Config{
-        .rules = .{
-            .rules = .{
-                .unsafe_undefined = .{ .severity = .err },
-                .unused_decls = .{ .severity = .err },
-            },
-        },
-    };
-
-    var builder = Semantic.Builder.init(t.allocator);
-    builder.withSource(&src);
-    defer builder.deinit();
-
-    var semantic_result = try builder.build(src.text());
-    defer semantic_result.deinit();
-    const sema = semantic_result.value;
-
-    {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
-        defer linter.deinit();
-        linter.runOnSource(std.testing.io, &sema, &src, &errors) catch |e| {
-            switch (e) {
-                error.OutOfMemory => return e,
-                else => {},
-            }
-        };
-        try expectEqual(2, errors.?.items.len);
-    }
+    const errors = try lintSource(source, both_rules);
+    defer freeErrors(errors);
+    try expectEqual(2, errors.?.items.len);
 }
 
 test "When no rules are enabled, no violations are reported" {
-    var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
-    var src = try makeSource(t.allocator, source);
-    defer src.deinit();
-
-    var errors: ?ErrorList = null;
-    // only populated when linting fails, which should not happen (that's what's
-    // being tested).
-    errdefer if (errors) |errs| {
-        for (errs.items) |*err| err.deinit(t.allocator);
-        errs.deinit();
-    };
-
-    var builder = Semantic.Builder.init(t.allocator);
-    builder.withSource(&src);
-    defer builder.deinit();
-
-    var res = try builder.build(src.text());
-    defer res.deinit();
-    const sema = res.value;
-
-    {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = .empty });
-
-        defer linter.deinit();
-        try linter.runOnSource(std.testing.io, &sema, &src, &errors);
-        try expectEqual(null, errors);
-    }
+    const errors = try lintSource(source, .empty);
+    defer freeErrors(errors);
+    try expectEqual(null, errors);
 }
 
 test "When a rule is configured to 'off', none of its violations are reported" {
-    var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
-    var src = try makeSource(t.allocator, source);
-    defer src.deinit();
-
-    var errors: ?ErrorList = null;
-    defer if (errors) |errs| {
-        for (errs.items) |*err| err.deinit(t.allocator);
-        errs.deinit();
-    };
-
-    const config = Config{
-        .rules = .{
-            .rules = .{
-                .unsafe_undefined = .{ .severity = .err },
-            },
-        },
-    };
-
-    var builder = Semantic.Builder.init(t.allocator);
-    builder.withSource(&src);
-    defer builder.deinit();
-
-    var res = try builder.build(src.text());
-    defer res.deinit();
-    const sema = res.value;
-
-    {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
-        defer linter.deinit();
-        linter.runOnSource(std.testing.io, &sema, &src, &errors) catch |e| {
-            switch (e) {
-                error.OutOfMemory => return e,
-                else => {},
-            }
-        };
-        try expectEqual(1, errors.?.items.len);
-        try expectEqual("unsafe-undefined", errors.?.items[0].err.code);
-    }
+    const errors = try lintSource(source, .{
+        .rules = .{ .rules = .{ .unsafe_undefined = .{ .severity = .err } } },
+    });
+    defer freeErrors(errors);
+    try expectCodes(&.{"unsafe-undefined"}, errors);
 }
 
 test "When rules are configured but a specific rule is disabled with 'zlint-disable', only non-disabled rules get reported" {
-    const source_with_global_disable =
+    const errors = try lintSource(
         \\// zlint-disable unsafe-undefined
         \\const Unused = struct{
         \\  uninitialized: u32 = undefined,
         \\};
-    ;
-    var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
-    var src = try makeSource(t.allocator, source_with_global_disable);
-    defer src.deinit();
-
-    var errors: ?ErrorList = null;
-    defer if (errors) |errs| {
-        for (errs.items) |*err| err.deinit(t.allocator);
-        errs.deinit();
-    };
-
-    const config = Config{
-        .rules = .{
-            .rules = .{
-                .unsafe_undefined = .{ .severity = .err },
-                .unused_decls = .{ .severity = .err },
-            },
-        },
-    };
-
-    var builder = Semantic.Builder.init(t.allocator);
-    builder.withSource(&src);
-    defer builder.deinit();
-
-    var res = try builder.build(src.text());
-    defer res.deinit();
-    const sema = res.value;
-
-    {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
-        defer linter.deinit();
-        linter.runOnSource(std.testing.io, &sema, &src, &errors) catch |e| {
-            switch (e) {
-                error.OutOfMemory => return e,
-                else => {},
-            }
-        };
-        try expectEqual(1, errors.?.items.len);
-        try expectEqual("unused-decls", errors.?.items[0].err.code);
-    }
+    , both_rules);
+    defer freeErrors(errors);
+    try expectCodes(&.{"unused-decls"}, errors);
 }
 
 test "When rules are configured but disabled with 'zlint-disable', nothing gets reported" {
-    const source_with_global_disable =
+    const errors = try lintSource(
         \\// zlint-disable
         \\const Unused = struct{
         \\  uninitialized: u32 = undefined,
         \\};
-    ;
-    var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
-    var src = try makeSource(t.allocator, source_with_global_disable);
-    defer src.deinit();
-
-    var errors: ?ErrorList = null;
-    defer if (errors) |errs| {
-        for (errs.items) |*err| err.deinit(t.allocator);
-        errs.deinit();
-    };
-
-    const config = Config{
-        .rules = .{
-            .rules = .{
-                .unsafe_undefined = .{ .severity = .err },
-                .unused_decls = .{ .severity = .err },
-            },
-        },
-    };
-
-    var builder = Semantic.Builder.init(t.allocator);
-    builder.withSource(&src);
-    defer builder.deinit();
-
-    var res = try builder.build(src.text());
-    defer res.deinit();
-    const sema = res.value;
-
-    {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
-        defer linter.deinit();
-        linter.runOnSource(std.testing.io, &sema, &src, &errors) catch |e| {
-            switch (e) {
-                error.OutOfMemory => return e,
-                else => {},
-            }
-        };
-        try expectEqual(null, errors);
-    }
+    , both_rules);
+    defer freeErrors(errors);
+    try expectEqual(null, errors);
 }
 
 test "When the global disable directive is misplaced, violations still gets reported" {
-    const source_with_global_disable =
+    const errors = try lintSource(
         \\const Unused = struct{
         \\  uninitialized: u32 = undefined,
         \\};
         \\// zlint-disable
-    ;
-    var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
-    var src = try makeSource(t.allocator, source_with_global_disable);
-    defer src.deinit();
-
-    var errors: ?ErrorList = null;
-    defer if (errors) |errs| {
-        for (errs.items) |*err| err.deinit(t.allocator);
-        errs.deinit();
-    };
-
-    const config = Config{
-        .rules = .{
-            .rules = .{
-                .unsafe_undefined = .{ .severity = .err },
-                .unused_decls = .{ .severity = .err },
-            },
-        },
-    };
-
-    var builder = Semantic.Builder.init(t.allocator);
-    builder.withSource(&src);
-    defer builder.deinit();
-
-    var res = try builder.build(src.text());
-    defer res.deinit();
-    const sema = res.value;
-
-    {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
-        defer linter.deinit();
-        linter.runOnSource(std.testing.io, &sema, &src, &errors) catch |e| {
-            switch (e) {
-                error.OutOfMemory => return e,
-                else => {},
-            }
-        };
-        try expectEqual(2, errors.?.items.len);
-    }
+    , both_rules);
+    defer freeErrors(errors);
+    try expectEqual(2, errors.?.items.len);
 }
 
 test "When the multiple global directives are set, all rules are honored" {
-    const source_with_global_disable =
+    const errors = try lintSource(
         \\// zlint-disable unused-decls unsafe-undefined
         \\const Unused = struct{
         \\  uninitialized: u32 = undefined,
         \\};
-    ;
-    var arena = ArenaAllocator.init(t.allocator);
-    defer arena.deinit();
-    var src = try makeSource(t.allocator, source_with_global_disable);
-    defer src.deinit();
+    , both_rules);
+    defer freeErrors(errors);
+    try expectEqual(null, errors);
+}
 
-    var errors: ?ErrorList = null;
-    defer if (errors) |errs| {
-        for (errs.items) |*err| err.deinit(t.allocator);
-        errs.deinit();
-    };
+test "Separate global directives are all honored" {
+    const errors = try lintSource(
+        \\// zlint-disable unused-decls
+        \\// zlint-disable unsafe-undefined
+        \\const Unused = struct{
+        \\  uninitialized: u32 = undefined,
+        \\};
+    , both_rules);
+    defer freeErrors(errors);
+    try expectEqual(null, errors);
+}
 
-    const config = Config{
-        .rules = .{ .rules = .{
-            .unsafe_undefined = .{ .severity = .err },
-            .unused_decls = .{ .severity = .err },
-        } },
-    };
+test "zlint-disable-next-line suppresses violations on the next line" {
+    const errors = try lintSource(
+        \\const Unused = struct{
+        \\  // zlint-disable-next-line unsafe-undefined
+        \\  uninitialized: u32 = undefined,
+        \\};
+    , both_rules);
+    defer freeErrors(errors);
+    try expectCodes(&.{"unused-decls"}, errors);
+}
 
-    var builder = Semantic.Builder.init(t.allocator);
-    builder.withSource(&src);
-    defer builder.deinit();
+test "zlint-disable-line suppresses violations on the same line" {
+    const errors = try lintSource(
+        \\const Unused = struct{
+        \\  uninitialized: u32 = undefined, // zlint-disable-line -- trust me
+        \\};
+    , both_rules);
+    defer freeErrors(errors);
+    try expectCodes(&.{"unused-decls"}, errors);
+}
 
-    var res = try builder.build(src.text());
-    defer res.deinit();
-    const sema = res.value;
+test "Line directives only suppress the rules they name" {
+    const errors = try lintSource(
+        \\// zlint-disable-next-line unsafe-undefined
+        \\const Unused = struct{
+        \\  uninitialized: u32 = undefined, // zlint-disable-line unused-decls
+        \\};
+    , both_rules);
+    defer freeErrors(errors);
+    try expectEqual(2, errors.?.items.len);
+}
 
-    {
-        var linter = try Linter.init(t.allocator, .{ .arena = &arena, .config = config });
-        defer linter.deinit();
+test "Line directives do not suppress violations on other lines" {
+    const errors = try lintSource(
+        \\// zlint-disable-next-line
+        \\
+        \\const Unused = struct{
+        \\  uninitialized: u32 = undefined,
+        \\};
+        \\// zlint-disable-line
+    , both_rules);
+    defer freeErrors(errors);
+    try expectEqual(2, errors.?.items.len);
+}
 
-        linter.runOnSource(std.testing.io, &sema, &src, &errors) catch |e| {
-            switch (e) {
-                error.OutOfMemory => return e,
-                else => {},
-            }
-        };
-        try expectEqual(null, errors);
-    }
+test "Line directives in doc comments are ignored" {
+    const errors = try lintSource(
+        \\const Unused = struct{
+        \\  /// zlint-disable-next-line
+        \\  uninitialized: u32 = undefined,
+        \\};
+    , both_rules);
+    defer freeErrors(errors);
+    try expectEqual(2, errors.?.items.len);
+}
+
+test "Line directives target the reported line of multi-label violations" {
+    const duplicate_case = Config{ .rules = .{ .rules = .{ .duplicate_case = .{ .severity = .err } } } };
+    const on_duplicate = try lintSource(
+        \\fn f(x: u32) u32 {
+        \\    return switch (x) {
+        \\        1 => 1,
+        \\        // zlint-disable-next-line duplicate-case
+        \\        1 => 1,
+        \\        else => 0,
+        \\    };
+        \\}
+    , duplicate_case);
+    defer freeErrors(on_duplicate);
+    try expectCodes(&.{}, on_duplicate);
+
+    const on_original = try lintSource(
+        \\fn f(x: u32) u32 {
+        \\    return switch (x) {
+        \\        1 => 1, // zlint-disable-line duplicate-case
+        \\        1 => 1,
+        \\        else => 0,
+        \\    };
+        \\}
+    , duplicate_case);
+    defer freeErrors(on_original);
+    try expectCodes(&.{"duplicate-case"}, on_original);
+}
+
+test "Global and line directives combine" {
+    const errors = try lintSource(
+        \\// zlint-disable unused-decls
+        \\const Unused = struct{
+        \\  uninitialized: u32 = undefined, // zlint-disable-line unsafe-undefined
+        \\};
+    , both_rules);
+    defer freeErrors(errors);
+    try expectEqual(null, errors);
+}
+
+test "Line directives work with CRLF line endings" {
+    const source_crlf = crlf(
+        \\const Unused = struct{
+        \\  // zlint-disable-next-line unsafe-undefined
+        \\  uninitialized: u32 = undefined,
+        \\};
+        \\
+    );
+    try expectEqual(4, std.mem.count(u8, source_crlf, "\r\n"));
+    const errors = try lintSource(source_crlf, both_rules);
+    defer freeErrors(errors);
+    try expectCodes(&.{"unused-decls"}, errors);
+}
+
+test "Line directives with unknown or misspelled rule names suppress nothing" {
+    const errors = try lintSource(
+        \\const Unused = struct{
+        \\  uninitialized: u32 = undefined, // zlint-disable-line unsafe-undefine, Unsafe-Undefined
+        \\};
+    , both_rules);
+    defer freeErrors(errors);
+    try expectEqual(2, errors.?.items.len);
+}
+
+test "Directive text inside strings does not suppress violations" {
+    const errors = try lintSource(
+        \\const Unused = "// zlint-disable-line";
+    , both_rules);
+    defer freeErrors(errors);
+    try expectCodes(&.{"unused-decls"}, errors);
 }

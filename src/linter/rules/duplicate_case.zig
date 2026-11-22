@@ -66,10 +66,9 @@ pub const meta: Rule.Meta = .{
 };
 
 fn duplicateCaseDiagnostic(ctx: *LinterContext, first: Node.Index, second: Node.Index) Error {
-    return ctx.diagnostic(
-        "Switch statement has duplicate cases",
-        .{ ctx.spanN(first), ctx.spanN(second) },
-    );
+    var duplicate = ctx.spanN(second);
+    duplicate.primary = true;
+    return ctx.diagnostic("Switch statement has duplicate cases", .{ ctx.spanN(first), duplicate });
 }
 
 pub fn runOnNode(_: *const DuplicateCase, wrapper: NodeWrapper, ctx: *LinterContext) void {

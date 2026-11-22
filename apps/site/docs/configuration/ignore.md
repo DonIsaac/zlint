@@ -73,7 +73,25 @@ fn foo() u32 {
 }
 ```
 
-:::warning
-Next-line disable directives are not yet supported. Track issue
-[#184](https://github.com/DonIsaac/zlint/issues/184) for updates.
-:::
+File-level directives must come before any code. They may be in normal or doc
+comments.
+
+## Disabling Rules for a Single Line
+
+Use `// zlint-disable-next-line` to disable rules on the line after the comment,
+or `// zlint-disable-line` to disable rules on the same line as the comment.
+These take the same optional rule list and `--` explanation as `zlint-disable`.
+
+```zig title="src/bad.zig"
+fn foo() u32 {
+  // zlint-disable-next-line unsafe-undefined -- initialized below
+  var x: u32 = undefined;
+  x = 1;
+  return x;
+}
+
+const unused = @import("./foo.zig"); // zlint-disable-line unused-decls
+```
+
+A violation is disabled when its primary location starts on the disabled line.
+Line directives are not recognized in doc comments.

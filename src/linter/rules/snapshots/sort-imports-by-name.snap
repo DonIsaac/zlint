@@ -1,0 +1,28 @@
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:2:1]
+ 1 │ const @"zeta" = @import("a");
+ 2 │ const Alpha = @import("z");
+   · ─────────────┬─────────────
+   ·              ╰── `Alpha` should come before `@"zeta"`
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by declaration name.
+
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:2:1]
+ 1 │ const there = @import("something");
+ 2 │ const hello = @import("stuff");
+   · ───────────────┬───────────────
+   ·                ╰── `hello` should come before `there`
+ 3 │ const bar = @import("z.zig");
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by declaration name.
+
+  𝙭 sort-imports: Imports are not sorted.
+   ╭─[sort-imports.zig:2:1]
+ 1 │ const foo = @import("a.zig");
+ 2 │ const bar = @import("z.zig");
+   · ──────────────┬──────────────
+   ·               ╰── `bar` should come before `foo`
+   ╰────
+  help: Sort `std` first, then other modules, then files. Sort each section by declaration name.
+

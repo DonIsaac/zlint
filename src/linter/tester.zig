@@ -2,6 +2,9 @@ rule: Rule,
 linter: Linter,
 
 filename: []const u8,
+/// Snapshot file name, without the `.snap` extension. Defaults to the rule's
+/// name. Set this when a rule has multiple testers.
+snapshot_name: ?[]const u8 = null,
 
 /// Test cases that should produce no violations when linted.
 passes: std.ArrayListUnmanaged([:0]const u8) = .empty,
@@ -187,7 +190,8 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
 
     // Run fix cases
     i = 0;
-    self.linter.options.fix = Fix.Meta.safe_fix;
+    // Rules advertise their own fix safety; allow dangerous fixes so they can be tested.
+    self.linter.options.fix = Fix.Meta.dangerous_fix;
     for (self.fixes.items) |case| {
         defer i += 1;
 
@@ -215,8 +219,10 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
             // TODO: check fix kind.
 
             if (case.fails_lint) {
+                for (unfixed) |*err| {
+                    err.deinit(self.alloc);
+                }
                 if (fixed.did_fix) {
-                    defer fixed.deinit(self.alloc);
                     self.diagnostic.message = Cow.fmt(
                         self.alloc,
                         "Expected case #{d} not to fix any violations, but some fixes were applied.\n\n{s}",
@@ -224,14 +230,10 @@ fn runImpl(self: *RuleTester) LintTesterError!void {
                     ) catch @panic("OOM");
                     return error.FixMismatch;
                 }
-                for (fixed.unfixed_errors.items) |*err| {
-                    err.deinit(self.alloc);
-                }
                 continue;
             }
 
             if (unfixed.len > 0) {
-                defer if (fixed.did_fix) fixed.source.deinit(self.alloc);
                 try self.diagnostics.ensureUnusedCapacity(self.alloc, unfixed.len);
                 for (unfixed) |err| {
                     self.diagnostics.appendAssumeCapacity(.{ .err = err });
@@ -333,7 +335,7 @@ fn saveSnapshot(self: *RuleTester) SnapshotError!void {
             return e;
         };
         defer snapshot_dir.close(io);
-        const snapshot_filename = try std.mem.concat(self.alloc, u8, &[_][]const u8{ self.rule.meta.name, ".snap" });
+        const snapshot_filename = try std.mem.concat(self.alloc, u8, &[_][]const u8{ self.snapshot_name orelse self.rule.meta.name, ".snap" });
         defer self.alloc.free(snapshot_filename);
         const snapshot_file = snapshot_dir.createFile(io, snapshot_filename, .{ .truncate = true }) catch |e| {
             self.diagnostic.message = Cow.fmt(

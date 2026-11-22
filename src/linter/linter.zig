@@ -1,10 +1,12 @@
 const std = @import("std");
+const util = @import("util");
 const _source = @import("../source.zig");
 const Semantic = @import("../Semantic.zig");
 
 const _rule = @import("rule.zig");
 const Context = @import("lint_context.zig");
 const disable_directives = @import("disable_directives.zig");
+const Suppressions = disable_directives.Suppressions;
 
 const Fix = @import("fix.zig").Fix;
 
@@ -79,12 +81,16 @@ pub const Linter = struct {
         source: *Source,
         errors: *?std.array_list.Managed(Context.Diagnostic),
     ) (LintError || Allocator.Error)!void {
+        var suppressions: Suppressions = try .init(self.gpa, semantic);
+        defer suppressions.deinit(self.gpa);
+        // SAFETY: only the slice returned by getRulesForFile is read
         var rulebuf: [RuleSet.RULES_COUNT]Rule.WithSeverity = undefined;
-        const rules = try self.getRulesForFile(&rulebuf, semantic) orelse return;
+        const rules = self.getRulesForFile(&rulebuf, &suppressions.global) orelse return;
 
         var ctx = Context.init(self.gpa, io, semantic, source);
         defer ctx.deinit();
         ctx.fix = self.options.fix;
+        ctx.suppressions = &suppressions;
         const nodes = ctx.semantic.nodes();
         assert(nodes.len < std.math.maxInt(u32));
 
@@ -146,111 +152,30 @@ pub const Linter = struct {
         return error.LintingFailed;
     }
 
-    /// Get the list of rules that should be run on a file. Rules disabled
-    /// globally are filtered out.
+    /// Get the list of rules that should be run on a file, excluding rules
+    /// disabled for the whole file.
     ///
     /// ## Returns
-    /// - When filtering occurs, remaining rules are stored in `rulebuf`, and
-    ///   the slice of that buffer storing rules is returned.
-    /// - A slice over `rulebuf` when at least one rule is filtered out. It contains
-    ///   the rules that were not filtered.
-    /// - `null` if all rules are filtered out;
-    /// - A pointer to this linter's owned ruleset when no rules are filtered out.
-    ///   `rulebuf` will be unmodified.
+    /// - This linter's configured rules when no rules are disabled. `rulebuf`
+    ///   is unmodified.
+    /// - A slice of `rulebuf` holding the remaining rules when some are disabled.
+    /// - `null` if all rules are disabled.
     fn getRulesForFile(
-        self: *Linter,
+        self: *const Linter,
         rulebuf: *[RuleSet.RULES_COUNT]Rule.WithSeverity,
-        semantic: *const Semantic,
-    ) Allocator.Error!?[]const Rule.WithSeverity {
-        const configured_rules = self.rules.rules.items;
-        const alloc = self.arena.allocator();
-        var parser = disable_directives.Parser.new(semantic.source());
-        // global disable directives may be placed anywhere before the first
-        // non-doc comment token. Doc comments may have global disable directives.
-        var start_of_first_non_doc_tok: u32 = 0;
-
-        {
-            var toks = semantic.parse.ast.tokens;
-            const tok_starts: []const u32 = toks.items(.start);
-            const tok_tags: []const Semantic.Token.Tag = toks.items(.tag);
-            for (0..toks.len) |i| {
-                switch (tok_tags[i]) {
-                    .doc_comment, .container_doc_comment => {
-                        const end: u32 = @truncate(semantic.tokens().items(.loc)[i].end);
-                        if (try parser.parse(alloc, .{ .start = tok_starts[i], .end = end })) |comment| {
-                            // TODO: support next-line diagnostics
-                            if (!comment.isGlobal()) continue;
-                            return if (comment.disablesAllRules()) null else filterDisabledRules(
-                                semantic.source(),
-                                rulebuf,
-                                configured_rules,
-                                &comment,
-                            );
-                        }
-                    },
-                    else => {
-                        start_of_first_non_doc_tok = tok_starts[i];
-                        break;
-                    },
-                }
-            }
-        }
-
-        // Look for global disable directives in normal comments by parsing
-        // comments up to the first non-comment token.
-        for (0..semantic.comments().len) |i| {
-            const comment = semantic.comments().get(i);
-            if (comment.start >= start_of_first_non_doc_tok) break;
-            const dd = try parser.parse(alloc, comment) orelse continue;
-            // TODO: support next-line diagnostics
-            if (!dd.isGlobal()) continue;
-            return if (dd.disablesAllRules()) null else filterDisabledRules(
-                semantic.source(),
-                rulebuf,
-                configured_rules,
-                &dd,
-            );
-        }
-
-        return configured_rules;
-    }
-
-    /// Filter out configured rules based on a disable directive that
-    /// _definitely_ has at least one named rule disabled.
-    fn filterDisabledRules(
-        source: []const u8,
-        rulebuf: *[RuleSet.RULES_COUNT]Rule.WithSeverity,
-        configured_rules: []const Rule.WithSeverity,
-        dd: *const disable_directives.Comment,
+        disabled: *const Suppressions.RuleMask,
     ) ?[]const Rule.WithSeverity {
-        assert(dd.disabled_rules.len > 0);
-        var disabled_rules_buf: [RuleSet.RULES_COUNT]Rule.Id = undefined;
-        const disabled_rules: []const Rule.Id = blk: {
-            var i: usize = 0;
-            for (dd.disabled_rules) |rule_span| {
-                const rule_name = source[rule_span.start..rule_span.end];
-                if (Rule.getIdFor(rule_name)) |id| {
-                    disabled_rules_buf[i] = id;
-                    i += 1;
-                }
-            }
-
-            if (i == 0) return configured_rules;
-            break :blk disabled_rules_buf[0..i];
-        };
-        assert(disabled_rules.len > 0); // for LLVM optimizations. TODO: check if needed.
+        const configured_rules = self.rules.rules.items;
+        if (disabled.count() == 0) return configured_rules;
+        util.assert(configured_rules.len <= rulebuf.len, "{d} rules are configured but at most {d} may be enabled", .{ configured_rules.len, rulebuf.len });
 
         var i: usize = 0;
         for (configured_rules) |rule| {
-            if (std.mem.indexOfScalar(Rule.Id, disabled_rules, rule.rule.id) == null) {
-                rulebuf[i] = rule;
-                i += 1;
-            }
+            if (disabled.isSet(rule.rule.id.int())) continue;
+            rulebuf[i] = rule;
+            i += 1;
         }
-        // no rules will be matched if disable directives are misused or rule
-        // names are misspelled (e.g. `zlint-disable not-a-rule`). In this case,
-        // no rules are disabled so we just run them all.
-        return rulebuf[0..i];
+        return if (i == 0) null else rulebuf[0..i];
     }
 
     pub const LintError = error{
@@ -266,4 +191,5 @@ pub const Linter = struct {
 
 test {
     std.testing.refAllDecls(@This());
+    std.testing.refAllDecls(disable_directives);
 }
