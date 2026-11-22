@@ -29,14 +29,14 @@ pub fn NominalId(TRepr: type) type {
         pub const max: Id = .from(max_repr);
 
         pub inline fn new(value: Repr) Id {
-            return @enumFromInt(value);
+            return @fromBackingInt(value);
         }
 
         /// Get this id in its integer representation.
         ///
         /// This is the same as `Id.into(Repr)`.
         pub inline fn int(self: Id) Repr {
-            return @intFromEnum(self);
+            return @backingInt(self);
         }
 
         /// Check if two Ids are equal.
@@ -51,9 +51,9 @@ pub fn NominalId(TRepr: type) type {
         pub inline fn from(value: anytype) Id {
             const T = @TypeOf(value);
             return switch (T) {
-                Repr, comptime_int => return @enumFromInt(value),
+                Repr, comptime_int => return @fromBackingInt(value),
                 Id => return value,
-                Optional => @enumFromInt(@intFromEnum(value)),
+                Optional => @fromBackingInt(@backingInt(value)),
                 // allow other int types
                 else => {
                     const intoInfo = @typeInfo(T);
@@ -65,7 +65,7 @@ pub fn NominalId(TRepr: type) type {
                             if (comptime intoInfo.int.signedness == .signed) {
                                 assert(value >= 0);
                             }
-                            return @enumFromInt(@as(Repr, @intCast(value)));
+                            return @fromBackingInt(@as(Repr, @intCast(value)));
                         },
                         else => @compileError("Cannot create Id from type " ++ @typeName(T) ++ ". Only Maybe and " ++ @typeName(Repr) ++ " are supported."),
                     }
@@ -83,11 +83,11 @@ pub fn NominalId(TRepr: type) type {
         ///   made for types with fewer bits.
         pub inline fn into(self: Id, T: type) T {
             switch (T) {
-                Repr => return @intFromEnum(self),
+                Repr => return @backingInt(self),
                 Id => return self,
                 Optional => {
                     std.debug.assert(self != max);
-                    return @enumFromInt(@intFromEnum(self));
+                    return @fromBackingInt(@backingInt(self));
                 },
                 // try to turn this into another int type
                 else => {
@@ -97,7 +97,7 @@ pub fn NominalId(TRepr: type) type {
                             if (comptime intoInfo.int.bits < info.int.bits) {
                                 assert(self <= std.math.maxInt(T));
                             }
-                            return @intFromEnum(self);
+                            return @backingInt(self);
                         },
                         else => @compileError("Cannot create Id from type " ++ @typeName(T) ++ ". Only Maybe and " ++ @typeName(Repr) ++ " are supported."),
                     }
@@ -106,7 +106,7 @@ pub fn NominalId(TRepr: type) type {
         }
 
         pub fn format(self: Id, writer: *std.Io.Writer) std.Io.Writer.Error!void {
-            return writer.printInt(@intFromEnum(self), 10, .lower, .{});
+            return writer.printInt(@backingInt(self), 10, .lower, .{});
         }
 
         /// Try to turn this id into its corresponding optional type. Returns
@@ -115,7 +115,7 @@ pub fn NominalId(TRepr: type) type {
             return if (self == .max)
                 null
             else
-                @enumFromInt(@intFromEnum(self));
+                @fromBackingInt(@backingInt(self));
         }
 
         /// A compact representation of `?Id` using the Id's maximum value as `null`.
@@ -124,17 +124,17 @@ pub fn NominalId(TRepr: type) type {
             _,
 
             /// The largest value that is not `none`.
-            pub const max: Optional = @enumFromInt(max_repr - 1);
+            pub const max: Optional = @fromBackingInt(max_repr - 1);
 
             pub inline fn new(value: ?Repr) Optional {
-                return if (value == null or value.? == max_repr) Optional.none else @enumFromInt(value.?);
+                return if (value == null or value.? == max_repr) Optional.none else @fromBackingInt(value.?);
             }
 
             /// Get this id in its integer representation.
             ///
             /// This is the same as `Optional.into(Repr)`.
             pub inline fn int(self: Optional) Repr {
-                return @intFromEnum(self);
+                return @backingInt(self);
             }
 
             /// Check if two ids are equal.
@@ -147,12 +147,12 @@ pub fn NominalId(TRepr: type) type {
                 return if (self == .none)
                     null
                 else
-                    @enumFromInt(@intFromEnum(self));
+                    @fromBackingInt(@backingInt(self));
             }
 
             pub inline fn from(id: ?Id) Optional {
                 return if (id) |i|
-                    @enumFromInt(@intFromEnum(i))
+                    @fromBackingInt(@backingInt(i))
                 else
                     Optional.none;
             }

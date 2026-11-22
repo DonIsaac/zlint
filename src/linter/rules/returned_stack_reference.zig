@@ -145,7 +145,8 @@ pub fn runOnNode(_: *const ReturnedStackReference, wrapper: NodeWrapper, ctx: *L
     // FIXME: this is the fn body's parent
     const body_scope = links.getScope(func_body) orelse return;
 
-    var walk_stackfb = std.heap.stackFallback(256, ctx.gpa);
+    var walk_stackfb_buf: [256]u8 = undefined;
+    var walk_stackfb: std.heap.BufferFirstAllocator = .init(&walk_stackfb_buf, ctx.gpa);
 
     var visitor = StackReferenceVisitor.init(
         ctx,
@@ -153,7 +154,7 @@ pub fn runOnNode(_: *const ReturnedStackReference, wrapper: NodeWrapper, ctx: *L
     );
 
     var walker = StackReferenceWalker.initAtNode(
-        walk_stackfb.get(),
+        walk_stackfb.allocator(),
         ctx.ast(),
         &visitor,
         func_body,

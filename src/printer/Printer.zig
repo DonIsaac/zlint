@@ -87,7 +87,7 @@ pub fn pPropName(self: *Printer, key: []const u8) !void {
 /// printed.
 pub fn pPropWithNamespacedValue(self: *Printer, key: []const u8, value: anytype) !void {
     var value_buf: [256]u8 = undefined;
-    const value_str = try std.fmt.bufPrintZ(&value_buf, "{any}", .{value});
+    const value_str = try std.fmt.bufPrint(&value_buf, "{any}", .{value});
 
     // Get the last part of the dot-separated value string.
     var iter = std.mem.splitScalar(u8, value_str, '.');

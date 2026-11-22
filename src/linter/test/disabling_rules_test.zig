@@ -32,7 +32,7 @@ fn lintSource(source_text: []const u8, config: Config) !?ErrorList {
     defer arena.deinit();
     var src = try Source.fromString(
         t.allocator,
-        try t.allocator.dupeZ(u8, source_text),
+        try t.allocator.dupeSentinel(u8, source_text, 0),
         try t.allocator.dupe(u8, "test.zig"),
     );
     defer src.deinit();

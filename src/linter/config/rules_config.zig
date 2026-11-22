@@ -25,8 +25,9 @@ pub const RulesConfig = struct {
     pub const default: RulesConfig = blk: {
         var config: RulesConfig = .empty;
 
-        for (@typeInfo(RulesConfig.Rules).@"struct".fields) |field| {
-            @field(config.rules, field.name) = .{ .severity = field.type.meta.default };
+        const info = @typeInfo(RulesConfig.Rules).@"struct";
+        for (info.field_names, info.field_types) |field_name, field_type| {
+            @field(config.rules, field_name) = .{ .severity = field_type.meta.default };
         }
 
         break :blk config;
@@ -51,10 +52,10 @@ pub const RulesConfig = struct {
             };
 
             var found = false;
-            inline for (meta.fields(Rules)) |field| {
-                const RuleConfigImpl = @TypeOf(@field(rules, field.name));
+            inline for (@typeInfo(Rules).@"struct".field_names) |field_name| {
+                const RuleConfigImpl = @FieldType(Rules, field_name);
                 if (mem.eql(u8, key, RuleConfigImpl.name)) {
-                    @field(rules, field.name) = try RuleConfigImpl.jsonParse(allocator, source, options);
+                    @field(rules, field_name) = try RuleConfigImpl.jsonParse(allocator, source, options);
                     found = true;
                     break;
                 }
@@ -71,9 +72,8 @@ pub const RulesConfig = struct {
 
     pub fn jsonSchema(ctx: *Schema.Context) !Schema {
         const info = @typeInfo(RulesConfig.Rules).@"struct";
-        var obj = try ctx.object(info.fields.len);
-        inline for (info.fields) |field| {
-            const Rule = field.type;
+        var obj = try ctx.object(info.field_types.len);
+        inline for (info.field_types) |Rule| {
             var prop_schema: Schema = try Rule.jsonSchema(ctx);
             prop_schema.common().default = .{ .string = Rule.meta.default.asSlice() };
             obj.properties.putAssumeCapacityNoClobber(Rule.name, prop_schema);

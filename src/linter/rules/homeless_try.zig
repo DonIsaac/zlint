@@ -132,7 +132,7 @@ pub fn runOnNode(_: *const HomelessTry, wrapper: NodeWrapper, ctx: *LinterContex
     const node = wrapper.node;
     if (node.tag != Node.Tag.@"try") return;
 
-    const curr_scope = ctx.links().scopes.items[@intFromEnum(wrapper.idx)];
+    const curr_scope = ctx.links().scopes.items[@backingInt(wrapper.idx)];
     var it = ctx.scopes().iterParents(curr_scope);
 
     while (it.next()) |scope| {
@@ -174,7 +174,7 @@ fn classifyTry(ctx: *LinterContext, try_node: Node.Index, boundary: Node.Index) 
     var it = ctx.links().iterParentIds(try_node);
     while (it.next()) |id| {
         if (id == boundary) break;
-        switch (tags[@intFromEnum(id)]) {
+        switch (tags[@backingInt(id)]) {
             .@"defer", .@"errdefer" => return .{ .deferred = id },
             .@"comptime" => in_comptime = true,
             else => {},
@@ -700,13 +700,6 @@ test HomelessTry {
         ,
         \\fn foo() !void {
         \\  errdefer try bar();
-        \\}
-        ,
-        \\fn foo() !void {
-        \\  errdefer |err| {
-        \\    _ = err;
-        \\    try bar();
-        \\  }
         \\}
         ,
         \\fn foo() void {

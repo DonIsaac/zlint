@@ -124,8 +124,9 @@ pub const Reporter = struct {
         self.stats.recordErrors(errors);
         if (errors.len == 0) return;
 
-        var stackalloc = std.heap.stackFallback(1024, alloc);
-        const allocator = stackalloc.get();
+        var stackalloc_buf: [1024]u8 = undefined;
+        var stackalloc: std.heap.BufferFirstAllocator = .init(&stackalloc_buf, alloc);
+        const allocator = stackalloc.allocator();
 
         var w = try std.Io.Writer.Allocating.initCapacity(allocator, 256);
         defer w.deinit();

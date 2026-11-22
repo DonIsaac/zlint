@@ -191,11 +191,11 @@ test parse {
 
     const src_list: List = brk: {
         const items = &[_][]const u8{"src"};
-        break :brk List{ .items = @constCast(items), .capacity = items.len };
+        break :brk .fromOwnedSlice(@constCast(items));
     };
     const src_test_list: List = brk: {
         const items = &[_][]const u8{ "src", "test" };
-        break :brk List{ .items = @constCast(items), .capacity = items.len };
+        break :brk .fromOwnedSlice(@constCast(items));
     };
 
     const test_cases = [_]Case{
@@ -227,10 +227,10 @@ test parse {
         defer opts.deinit(t.allocator);
 
         // Reflective so a newly added option is covered the moment it exists.
-        inline for (@typeInfo(Options).@"struct".fields) |field| {
-            if (comptime std.mem.eql(u8, field.name, "args")) continue;
-            t.expectEqual(@field(expected, field.name), @field(opts, field.name)) catch |e| {
-                std.debug.print("^ field '{s}' of `{s}`\n", .{ field.name, test_case[0] });
+        inline for (@typeInfo(Options).@"struct".field_names) |field_name| {
+            if (comptime std.mem.eql(u8, field_name, "args")) continue;
+            t.expectEqual(@field(expected, field_name), @field(opts, field_name)) catch |e| {
+                std.debug.print("^ field '{s}' of `{s}`\n", .{ field_name, test_case[0] });
                 return e;
             };
         }

@@ -182,7 +182,7 @@ fn buildReportForParseError(
     errdefer err.deinit(alloc);
 
     {
-        const own_source = try alloc.dupeZ(u8, source);
+        const own_source = try alloc.dupeSentinel(u8, source, 0);
         errdefer alloc.free(own_source);
         err.source = try Error.ArcStr.init(alloc, own_source);
     }

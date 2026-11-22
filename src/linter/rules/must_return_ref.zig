@@ -93,9 +93,10 @@ pub fn runOnNode(_: *const MustReturnRef, wrapper: NodeWrapper, ctx: *LinterCont
 
     // look for member accesses in return statements
     var visitor = ReturnVisitor.new(ctx, returned_ident);
-    var stackAlloc = std.heap.stackFallback(512, ctx.gpa);
+    var stackAlloc_buf: [512]u8 = undefined;
+    var stackAlloc: std.heap.BufferFirstAllocator = .init(&stackAlloc_buf, ctx.gpa);
     var walker = walk.Walker(ReturnVisitor, ReturnVisitor.VisitError).initAtNode(
-        stackAlloc.get(),
+        stackAlloc.allocator(),
         ctx.ast(),
         &visitor,
         body,

@@ -1,3 +1,42 @@
-Passed: 100% (295/295)
+Passed: 86.77966% (256/295)
 Panics: 0% (0/295)
 
+src/agent/commands.zig: error.AnalysisFailed
+src/agent/root.zig: error.AnalysisFailed
+src/agent_routing.zig: error.AnalysisFailed
+src/audit/envelope.zig: error.AnalysisFailed
+src/channels/irc.zig: error.AnalysisFailed
+src/channels/line.zig: error.AnalysisFailed
+src/channels/mattermost.zig: error.AnalysisFailed
+src/channels/max.zig: error.AnalysisFailed
+src/channels/nostr.zig: error.AnalysisFailed
+src/channels/onebot.zig: error.AnalysisFailed
+src/channels/teams.zig: error.AnalysisFailed
+src/channels/telegram.zig: error.AnalysisFailed
+src/channels/telegram_draft_presenter.zig: error.AnalysisFailed
+src/channels/telegram_update_ingress.zig: error.AnalysisFailed
+src/channels/web.zig: error.AnalysisFailed
+src/config.zig: error.AnalysisFailed
+src/cron.zig: error.AnalysisFailed
+src/daemon.zig: error.AnalysisFailed
+src/gateway.zig: error.AnalysisFailed
+src/memory/engines/clickhouse.zig: error.AnalysisFailed
+src/memory/engines/postgres.zig: error.AnalysisFailed
+src/memory/lifecycle/summarizer.zig: error.AnalysisFailed
+src/memory/retrieval/llm_reranker.zig: error.AnalysisFailed
+src/memory/retrieval/qmd.zig: error.AnalysisFailed
+src/migration.zig: error.AnalysisFailed
+src/observability.zig: error.AnalysisFailed
+src/peripherals.zig: error.AnalysisFailed
+src/providers/compatible.zig: error.AnalysisFailed
+src/providers/ollama.zig: error.AnalysisFailed
+src/providers/scrub.zig: error.AnalysisFailed
+src/qr.zig: error.AnalysisFailed
+src/security/pairing.zig: error.AnalysisFailed
+src/security/secrets.zig: error.AnalysisFailed
+src/security/tencent_crypto.zig: error.AnalysisFailed
+src/session.zig: error.AnalysisFailed
+src/tools/composio.zig: error.AnalysisFailed
+src/tools/image.zig: error.AnalysisFailed
+src/tools/web_fetch.zig: error.AnalysisFailed
+src/tools/web_search.zig: error.AnalysisFailed

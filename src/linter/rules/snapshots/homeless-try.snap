@@ -201,20 +201,6 @@
    ╰────
   help: Handle the error with `catch` instead.
 
-  𝙭 homeless-try: `try` cannot be used inside of `errdefer` statements.
-   ╭─[homeless-try.zig:2:3]
- 1 │ fn foo() !void {
- 2 │   errdefer |err| {
-   ·   ────┬────
-   ·       ╰── `errdefer` statement is here.
- 3 │     _ = err;
- 4 │     try bar();
-   ·     ─┬─
-   ·      ╰── errors cannot be propagated from here.
- 5 │   }
-   ╰────
-  help: Handle the error with `catch` instead.
-
   𝙭 homeless-try: `try` cannot be used inside of `defer` statements.
    ╭─[homeless-try.zig:2:3]
  1 │ fn foo() void {

@@ -25,7 +25,7 @@ pub fn build(
     }
 
     // takes ownership of `ast_tokens` on success
-    const ast = try Ast.parseTokens(allocator, source, token_bundle.ast_tokens, .zig);
+    const ast = try Ast.parseTokens(allocator, source, token_bundle.ast_tokens, .{});
     return .{
         Parse{
             .ast = ast,

@@ -74,10 +74,10 @@ test GithubFormatter {
     w.clearRetainingCapacity();
     var src = try Error.ArcStr.init(
         allocator,
-        try allocator.dupeZ(u8,
+        try allocator.dupeSentinel(u8,
             \\
             \\foo bar baz bang
-        ),
+        , 0),
     );
     defer src.deinit();
     err.source = src;

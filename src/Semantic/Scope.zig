@@ -79,7 +79,7 @@ pub const Tree = struct {
     /// Shorthand for `scope_tree.scopes.len`.
     pub inline fn len(self: *const Scope.Tree) u32 {
         @setRuntimeSafety(!util.IS_DEBUG);
-        assert(self.scopes.len < @intFromEnum(Id.max));
+        assert(self.scopes.len < @backingInt(Id.max));
 
         return @intCast(self.scopes.len);
     }
@@ -220,7 +220,7 @@ test "Scope.Tree.addScope" {
     var tree: Scope.Tree = .empty;
     defer tree.deinit(alloc);
 
-    const root_id = try tree.addScope(alloc, null, @enumFromInt(0), .{ .s_top = true });
+    const root_id = try tree.addScope(alloc, null, @fromBackingInt(0), .{ .s_top = true });
     const root = tree.getScope(root_id);
     try expectEqual(1, tree.scopes.len);
     try expectEqual(0, root_id.int());
@@ -228,7 +228,7 @@ test "Scope.Tree.addScope" {
     try expectEqual(Scope.Flags{ .s_top = true }, root.flags);
     try expectEqual(root, tree.scopes.get(0));
 
-    const child_id = try tree.addScope(alloc, root.id, @enumFromInt(0), .{});
+    const child_id = try tree.addScope(alloc, root.id, @fromBackingInt(0), .{});
     const child = tree.getScope(child_id);
     try expectEqual(1, child.id.int());
     try expectEqual(Scope.Flags{}, child.flags);

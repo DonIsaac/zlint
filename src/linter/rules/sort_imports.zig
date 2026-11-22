@@ -190,8 +190,9 @@ pub fn runOnce(self: *const SortImports, ctx: *LinterContext) void {
         .ends = ctx.semantic.comments().items(.end),
     };
 
-    var stackfb = std.heap.stackFallback(16 * @sizeOf(Import), ctx.gpa);
-    const alloc = stackfb.get();
+    var stackfb_buf: [16 * @sizeOf(Import)]u8 = undefined;
+    var stackfb: std.heap.BufferFirstAllocator = .init(&stackfb_buf, ctx.gpa);
+    const alloc = stackfb.allocator();
     var group: std.ArrayList(Import) = .empty;
     defer group.deinit(alloc);
 

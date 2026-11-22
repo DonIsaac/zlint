@@ -12,7 +12,7 @@ lines: LineList.Slice,
 
 const Suppressions = @This();
 
-pub const empty: Suppressions = .{ .global = .initEmpty(), .lines = .empty };
+pub const empty: Suppressions = .{ .global = .empty, .lines = .empty };
 
 /// A set of rules, indexed by `Rule.Id`.
 pub const RuleMask = std.StaticBitSet(all_rules.all.len);
@@ -25,7 +25,7 @@ const LineList = std.MultiArrayList(Line);
 /// recognized in doc comments.
 pub fn init(gpa: Allocator, semantic: *const Semantic) Allocator.Error!Suppressions {
     const source = semantic.source();
-    var global: RuleMask = .initEmpty();
+    var global: RuleMask = .empty;
     var lines: LineList = .empty;
     errdefer lines.deinit(gpa);
     var parser = Parser.new(source);
@@ -118,8 +118,8 @@ fn addLine(
 
 /// Unknown rule names are ignored.
 fn ruleMask(source: []const u8, directive: *const DisableDirectiveComment) RuleMask {
-    if (directive.disablesAllRules()) return .initFull();
-    var mask: RuleMask = .initEmpty();
+    if (directive.disablesAllRules()) return .full;
+    var mask: RuleMask = .empty;
     var names = directive.ruleNames(source);
     while (names.next()) |name| {
         if (Rule.getIdFor(name.snippet(source))) |id| mask.set(id.int());
