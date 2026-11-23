@@ -301,6 +301,37 @@ test "Reference flags - `x` - function calls and arguments" {
     });
 }
 
+test "Reference flags - `x` - member access" {
+    try testRefsOnX(&[_]RefTestCase{
+        .{
+            "const x = struct { const y = 1; }; const z = x.y;",
+            .{ .read = true, .member = true },
+        },
+        .{
+            "const x = struct { fn y() void {} }; fn z() void { x.y(); }",
+            .{ .call = true, .member = true },
+        },
+        .{
+            "const x = struct { const y = struct { fn z() void {} }; }; fn f() void { x.y.z(); }",
+            .{ .call = true, .member = true },
+        },
+        .{
+            "var x: struct { y: u32 } = .{ .y = 1 }; fn f() void { x.y = 2; }",
+            .{ .write = true, .member = true },
+        },
+        // `x` itself is called; its return value's member is accessed.
+        .{
+            "fn x() struct { y: u32 } { return .{ .y = 1 }; } const z = x().y;",
+            .{ .call = true },
+        },
+        // member flag does not leak into arguments of a call on the LHS.
+        .{
+            "const x = 1; fn f(a: u32) struct { y: u32 } { return .{ .y = a }; } const z = f(x).y;",
+            .{ .read = true },
+        },
+    });
+}
+
 test "Reference flags - `x` - type annotations" {
     try testRefsOnX(&[_]RefTestCase{
         .{
@@ -491,7 +522,7 @@ test "Reference flags - `x` - tuples" {
             \\};
             \\const Foo = struct { x.y, u32 };
             ,
-            .{ .type = true },
+            .{ .type = true, .member = true },
         },
         .{
             \\const x = u32;
@@ -594,7 +625,7 @@ test "Reference flags - `x` - container backing field access" {
             \\  _: u7,
             \\};
             ,
-            .{ .type = true },
+            .{ .type = true, .member = true },
         },
     });
 }

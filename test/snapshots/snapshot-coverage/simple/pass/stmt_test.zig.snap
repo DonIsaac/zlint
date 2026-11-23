@@ -22,8 +22,8 @@
       "scope": 0, 
       "flags": ["variable","const"], 
       "references": [
-        {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["call"]}, 
-        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["call"]}, 
+        {"symbol":1,"scope":3,"node":"identifier","identifier":"std","flags":["call","member"]}, 
+        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["call","member"]}, 
         
       ], 
       "members": [], 

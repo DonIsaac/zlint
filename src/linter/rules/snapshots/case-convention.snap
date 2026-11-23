@@ -1,38 +1,44 @@
-  𝙭 case-convention: Function ThisFunctionIsInPascalCase name is in PascalCase. It should be camelCase
+  𝙭 case-convention: Function 'ThisFunctionIsInPascalCase' is in PascalCase
    ╭─[case-convention.zig:1:4]
  1 │ fn ThisFunctionIsInPascalCase() void {}
    ·    ──────────────────────────
    ╰────
+  help: It should be in camelCase
 
-  𝙭 case-convention: Function @"this-one-is-in-kebab-case" name is in kebab-case. It should be camelCase
+  𝙭 case-convention: Function '@"this-one-is-in-kebab-case"' is in kebab-case
    ╭─[case-convention.zig:1:4]
  1 │ fn @"this-one-is-in-kebab-case"() void {}
    ·    ────────────────────────────
    ╰────
+  help: It should be in camelCase
 
-  𝙭 case-convention: Function this_one_is_in_snake_case name is in snake_case. It should be camelCase
+  𝙭 case-convention: Function 'this_one_is_in_snake_case' is in snake_case
    ╭─[case-convention.zig:1:4]
  1 │ fn this_one_is_in_snake_case() void {}
    ·    ─────────────────────────
    ╰────
+  help: It should be in camelCase
 
-  𝙭 case-convention: Function @"This-is-both-Pascal-and-Kebab-kinda" name is not in camelCase
+  𝙭 case-convention: Function '@"This-is-both-Pascal-and-Kebab-kinda"' is in mixed case
    ╭─[case-convention.zig:1:4]
  1 │ fn @"This-is-both-Pascal-and-Kebab-kinda"() void {}
    ·    ──────────────────────────────────────
    ╰────
+  help: It should be in camelCase
 
-  𝙭 case-convention: Function This_is_both_snake_case_and_pascal_kinda name is not in camelCase
+  𝙭 case-convention: Function 'This_is_both_snake_case_and_pascal_kinda' is in mixed case
    ╭─[case-convention.zig:1:4]
  1 │ fn This_is_both_snake_case_and_pascal_kinda() void {}
    ·    ────────────────────────────────────────
    ╰────
+  help: It should be in camelCase
 
-  𝙭 case-convention: Function This_is_both_snake_case_and_pascal_kinda name is not in camelCase
+  𝙭 case-convention: Function 'This_is_both_snake_case_and_pascal_kinda' is in mixed case
    ╭─[case-convention.zig:1:4]
  1 │ fn This_is_both_snake_case_and_pascal_kinda(a: u32, b: u32, c: u32, d: u32) void {}
    ·    ────────────────────────────────────────
    ╰────
+  help: It should be in camelCase
 
   𝙭 case-convention: Function 'fooBar' returns a type, but does not use PascalCase
    ╭─[case-convention.zig:1:4]
@@ -41,11 +47,12 @@
    ╰────
   help: By convention, Zig uses PascalCase for structs, generics, and all other type variables.
 
-  𝙭 case-convention: Function NotGeneric name is in PascalCase. It should be camelCase
+  𝙭 case-convention: Function 'NotGeneric' is in PascalCase
    ╭─[case-convention.zig:1:4]
  1 │ fn NotGeneric(T: type) T { return T{}; }
    ·    ──────────
    ╰────
+  help: It should be in camelCase
 
   𝙭 case-convention: Function 'FOO' returns a type, but does not use PascalCase
    ╭─[case-convention.zig:1:4]
@@ -53,6 +60,69 @@
    ·    ───
    ╰────
   help: By convention, Zig uses PascalCase for structs, generics, and all other type variables.
+
+  𝙭 case-convention: Function 'foo_bar' is in snake_case
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn foo_bar() ?type { return null; }
+   ·    ───────
+   ╰────
+  help: It should be in camelCase or PascalCase
+
+  𝙭 case-convention: Function 'Foo_bar' is in mixed case
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn Foo_bar() ?type { return null; }
+   ·    ───────
+   ╰────
+  help: It should be in camelCase or PascalCase
+
+  𝙭 case-convention: Function 'FOO' is in uppercase
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn FOO() [2]type { return .{ u32, u8 }; }
+   ·    ───
+   ╰────
+  help: It should be in camelCase or PascalCase
+
+  𝙭 case-convention: Function 'T' is in uppercase
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn T() [2]u32 { return .{ 1, 2 }; }
+   ·    ─
+   ╰────
+  help: It should be in camelCase
+
+  𝙭 case-convention: Function 'foo_bar' returns a type, but does not use PascalCase
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn foo_bar() !type { return u32; }
+   ·    ───────
+   ╰────
+  help: By convention, Zig uses PascalCase for structs, generics, and all other type variables.
+
+  𝙭 case-convention: Function 'FOO_BAR' is in SCREAMING_SNAKE_CASE
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn FOO_BAR() void {}
+   ·    ───────
+   ╰────
+  help: It should be in camelCase
+
+  𝙭 case-convention: Function 'fooBar_baz' is in mixed case
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn fooBar_baz() void {}
+   ·    ──────────
+   ╰────
+  help: It should be in camelCase
+
+  𝙭 case-convention: Function '_foo_bar' is in snake_case
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn _foo_bar() void {}
+   ·    ────────
+   ╰────
+  help: It should be in camelCase
+
+  𝙭 case-convention: Function '_FooBar' is in PascalCase
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn _FooBar() void {}
+   ·    ───────
+   ╰────
+  help: It should be in camelCase
 
   𝙭 case-convention: Payload 'fooBar' is in camelCase
    ╭─[case-convention.zig:1:24]
@@ -68,17 +138,12 @@
    ╰────
   help: It should be in snake_case
 
-  𝙭 case-convention: Function foo_bar name is in snake_case. It should be camelCase
-   ╭─[case-convention.zig:1:4]
- 1 │ fn foo_bar() callconv(.naked) void {}
-   ·    ───────
+  𝙭 case-convention: Payload 'Foo_bar' is in mixed case
+   ╭─[case-convention.zig:1:24]
+ 1 │ const x = bar() catch |Foo_bar| return Foo_bar;
+   ·                        ───────
    ╰────
-
-  𝙭 case-convention: Function foo_bar name is in snake_case. It should be camelCase
-   ╭─[case-convention.zig:1:4]
- 1 │ fn foo_bar() callconv(.@"inline") void {}
-   ·    ───────
-   ╰────
+  help: It should be in snake_case
 
   𝙭 case-convention: Payload 'fooBar' is in camelCase
    ╭─[case-convention.zig:1:34]
@@ -100,4 +165,46 @@
    ·                                  ──────
    ╰────
   help: It should be in snake_case
+
+  𝙭 case-convention: Payload 'doThing' is in camelCase
+   ╭─[case-convention.zig:1:46]
+ 1 │ fn f(cb: ?*const fn () void) void { if (cb) |doThing| _ = doThing; }
+   ·                                              ───────
+   ╰────
+  help: It should be in snake_case
+
+  𝙭 case-convention: Payload 'myList' is in camelCase
+   ╭─[case-convention.zig:1:48]
+ 1 │ fn f(opt: ?std.ArrayList(u8)) void { if (opt) |myList| myList.deinit(); }
+   ·                                                ──────
+   ╰────
+  help: It should be in snake_case
+
+  𝙭 case-convention: Payload 'myFoo' is in camelCase
+   ╭─[case-convention.zig:1:34]
+ 1 │ fn f(opt: ?Foo) void { if (opt) |myFoo| myFoo.bar.baz(); }
+   ·                                  ─────
+   ╰────
+  help: It should be in snake_case
+
+  𝙭 case-convention: Function 'foo_bar' is in snake_case
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn foo_bar() callconv(.auto) void {}
+   ·    ───────
+   ╰────
+  help: It should be in camelCase
+
+  𝙭 case-convention: Function 'foo_bar' is in snake_case
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn foo_bar() callconv(.@"inline") void {}
+   ·    ───────
+   ╰────
+  help: It should be in camelCase
+
+  𝙭 case-convention: Function 'foo_bar' is in snake_case
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn foo_bar() callconv(std.builtin.CallingConvention.auto) void {}
+   ·    ───────
+   ╰────
+  help: It should be in camelCase
 

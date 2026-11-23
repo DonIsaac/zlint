@@ -22,9 +22,9 @@
       "scope": 0, 
       "flags": ["variable","const"], 
       "references": [
-        {"symbol":1,"scope":6,"node":"identifier","identifier":"std","flags":["call"]}, 
-        {"symbol":1,"scope":20,"node":"identifier","identifier":"std","flags":["call"]}, 
-        {"symbol":1,"scope":22,"node":"identifier","identifier":"std","flags":["call"]}, 
+        {"symbol":1,"scope":6,"node":"identifier","identifier":"std","flags":["call","member"]}, 
+        {"symbol":1,"scope":20,"node":"identifier","identifier":"std","flags":["call","member"]}, 
+        {"symbol":1,"scope":22,"node":"identifier","identifier":"std","flags":["call","member"]}, 
         
       ], 
       "members": [], 
@@ -39,8 +39,8 @@
       "scope": 0, 
       "flags": ["variable","const"], 
       "references": [
-        {"symbol":2,"scope":0,"node":"identifier","identifier":"builtin","flags":["read"]}, 
-        {"symbol":2,"scope":13,"node":"identifier","identifier":"builtin","flags":["read"]}, 
+        {"symbol":2,"scope":0,"node":"identifier","identifier":"builtin","flags":["read","member"]}, 
+        {"symbol":2,"scope":13,"node":"identifier","identifier":"builtin","flags":["read","member"]}, 
         
       ], 
       "members": [], 

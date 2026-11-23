@@ -22,10 +22,10 @@
       "scope": 0, 
       "flags": ["variable","const"], 
       "references": [
-        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["call"]}, 
-        {"symbol":1,"scope":6,"node":"identifier","identifier":"std","flags":["call"]}, 
-        {"symbol":1,"scope":8,"node":"identifier","identifier":"std","flags":["call"]}, 
-        {"symbol":1,"scope":13,"node":"identifier","identifier":"std","flags":["call"]}, 
+        {"symbol":1,"scope":4,"node":"identifier","identifier":"std","flags":["call","member"]}, 
+        {"symbol":1,"scope":6,"node":"identifier","identifier":"std","flags":["call","member"]}, 
+        {"symbol":1,"scope":8,"node":"identifier","identifier":"std","flags":["call","member"]}, 
+        {"symbol":1,"scope":13,"node":"identifier","identifier":"std","flags":["call","member"]}, 
         
       ], 
       "members": [], 
@@ -101,9 +101,9 @@
       "scope": 6, 
       "flags": ["variable"], 
       "references": [
-        {"symbol":6,"scope":6,"node":"identifier","identifier":"map","flags":["call"]}, 
-        {"symbol":6,"scope":6,"node":"identifier","identifier":"map","flags":["call"]}, 
-        {"symbol":6,"scope":6,"node":"identifier","identifier":"map","flags":["call"]}, 
+        {"symbol":6,"scope":6,"node":"identifier","identifier":"map","flags":["call","member"]}, 
+        {"symbol":6,"scope":6,"node":"identifier","identifier":"map","flags":["call","member"]}, 
+        {"symbol":6,"scope":6,"node":"identifier","identifier":"map","flags":["call","member"]}, 
         
       ], 
       "members": [], 
@@ -118,7 +118,7 @@
       "scope": 6, 
       "flags": ["variable","const"], 
       "references": [
-        {"symbol":7,"scope":6,"node":"identifier","identifier":"iter","flags":["call"]}, 
+        {"symbol":7,"scope":6,"node":"identifier","identifier":"iter","flags":["call","member"]}, 
         
       ], 
       "members": [], 
@@ -133,8 +133,8 @@
       "scope": 7, 
       "flags": ["payload","const"], 
       "references": [
-        {"symbol":8,"scope":8,"node":"identifier","identifier":"ent","flags":["read"]}, 
-        {"symbol":8,"scope":8,"node":"identifier","identifier":"ent","flags":["read"]}, 
+        {"symbol":8,"scope":8,"node":"identifier","identifier":"ent","flags":["read","member"]}, 
+        {"symbol":8,"scope":8,"node":"identifier","identifier":"ent","flags":["read","member"]}, 
         
       ], 
       "members": [], 

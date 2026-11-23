@@ -95,7 +95,7 @@
       "scope": 4, 
       "flags": ["const","fn_param"], 
       "references": [
-        {"symbol":6,"scope":5,"node":"identifier","identifier":"self","flags":["read"]}, 
+        {"symbol":6,"scope":5,"node":"identifier","identifier":"self","flags":["read","member"]}, 
         
       ], 
       "members": [], 

@@ -51,7 +51,7 @@
       "scope": 2, 
       "flags": ["variable","const","struct"], 
       "references": [
-        {"symbol":3,"scope":2,"node":"identifier","identifier":"inner","flags":["call"]}, 
+        {"symbol":3,"scope":2,"node":"identifier","identifier":"inner","flags":["call","member"]}, 
         
       ], 
       "members": [], 
