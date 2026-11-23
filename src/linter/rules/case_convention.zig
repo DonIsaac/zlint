@@ -151,58 +151,6 @@ fn getCase(name: []const u8) CaseType {
     return if (has_upper) .camelCase else .lowercase;
 }
 
-test getCase {
-    // lower
-    try expectEqual(.lowercase, getCase("foo"));
-    try expectEqual(.lowercase, getCase("foo bar"));
-    try expectEqual(.lowercase, getCase("foobar"));
-    try expectEqual(.lowercase, getCase("foo2"));
-
-    // upper
-    try expectEqual(.uppercase, getCase("FOO"));
-    try expectEqual(.uppercase, getCase("T"));
-    try expectEqual(.uppercase, getCase("U8"));
-
-    // camel
-    try expectEqual(.camelCase, getCase("fooBar"));
-    try expectEqual(.camelCase, getCase("fooBar2"));
-
-    // pascal
-    try expectEqual(.PascalCase, getCase("Foo"));
-    try expectEqual(.PascalCase, getCase("FooBar"));
-
-    // kebab
-    try expectEqual(.@"kebab-case", getCase("foo-bar"));
-    try expectEqual(.@"kebab-case", getCase("-foo"));
-    try expectEqual(.@"kebab-case", getCase("-"));
-
-    // snake
-    try expectEqual(.snake_case, getCase("foo_bar"));
-    try expectEqual(.snake_case, getCase("foo_bar_2"));
-    try expectEqual(.snake_case, getCase("foo_"));
-    try expectEqual(.SCREAMING_SNAKE_CASE, getCase("FOO_BAR"));
-
-    // mixed
-    try expectEqual(.mixed, getCase("foo-bar_baz"));
-    try expectEqual(.mixed, getCase("FooBar_baz"));
-    try expectEqual(.mixed, getCase("fooBar_baz"));
-    try expectEqual(.mixed, getCase("Foo_bar"));
-    try expectEqual(.mixed, getCase("draw25E2_25E5"));
-    try expectEqual(.mixed, getCase("Foo-bar"));
-    try expectEqual(.mixed, getCase("FOO-BAR"));
-
-    // leading underscores are ignored
-    try expectEqual(.camelCase, getCase(stripLeadingUnderscores("_fooBar")));
-    try expectEqual(.lowercase, getCase(stripLeadingUnderscores("__foo")));
-    try expectEqual(.snake_case, getCase(stripLeadingUnderscores("_foo_bar")));
-    try expectEqual(.PascalCase, getCase(stripLeadingUnderscores("_Foo")));
-    try expectEqual(.lowercase, getCase(stripLeadingUnderscores("_")));
-
-    // edge cases
-    try expectEqual(.lowercase, getCase(""));
-    try expectEqual(.lowercase, getCase(" "));
-}
-
 pub fn runOnSymbol(_: *const CaseConvention, symbol: Symbol.Id, ctx: *LinterContext) void {
     const symbols = ctx.symbols().symbols.slice();
     const symbol_flags: []const Symbol.Flags = symbols.items(.flags);
@@ -294,7 +242,7 @@ fn usesAbiCallconv(ctx: *LinterContext, fn_proto: *const Ast.full.FnProto) bool 
         else => return true,
     };
     const name = ctx.semantic.tokenSlice(token);
-    const zig_callconvs = [_][]const u8{ "auto", "inline", "@\"inline\"" };
+    const zig_callconvs = [_][]const u8{ "auto", "@\"inline\"" };
     for (zig_callconvs) |cc| {
         if (std.mem.eql(u8, name, cc)) return false;
     }
@@ -454,4 +402,56 @@ test CaseConvention {
         .withPass(pass)
         .withFail(fail)
         .run();
+}
+
+test getCase {
+    // lower
+    try expectEqual(.lowercase, getCase("foo"));
+    try expectEqual(.lowercase, getCase("foo bar"));
+    try expectEqual(.lowercase, getCase("foobar"));
+    try expectEqual(.lowercase, getCase("foo2"));
+
+    // upper
+    try expectEqual(.uppercase, getCase("FOO"));
+    try expectEqual(.uppercase, getCase("T"));
+    try expectEqual(.uppercase, getCase("U8"));
+
+    // camel
+    try expectEqual(.camelCase, getCase("fooBar"));
+    try expectEqual(.camelCase, getCase("fooBar2"));
+
+    // pascal
+    try expectEqual(.PascalCase, getCase("Foo"));
+    try expectEqual(.PascalCase, getCase("FooBar"));
+
+    // kebab
+    try expectEqual(.@"kebab-case", getCase("foo-bar"));
+    try expectEqual(.@"kebab-case", getCase("-foo"));
+    try expectEqual(.@"kebab-case", getCase("-"));
+
+    // snake
+    try expectEqual(.snake_case, getCase("foo_bar"));
+    try expectEqual(.snake_case, getCase("foo_bar_2"));
+    try expectEqual(.snake_case, getCase("foo_"));
+    try expectEqual(.SCREAMING_SNAKE_CASE, getCase("FOO_BAR"));
+
+    // mixed
+    try expectEqual(.mixed, getCase("foo-bar_baz"));
+    try expectEqual(.mixed, getCase("FooBar_baz"));
+    try expectEqual(.mixed, getCase("fooBar_baz"));
+    try expectEqual(.mixed, getCase("Foo_bar"));
+    try expectEqual(.mixed, getCase("draw25E2_25E5"));
+    try expectEqual(.mixed, getCase("Foo-bar"));
+    try expectEqual(.mixed, getCase("FOO-BAR"));
+
+    // leading underscores are ignored
+    try expectEqual(.camelCase, getCase(stripLeadingUnderscores("_fooBar")));
+    try expectEqual(.lowercase, getCase(stripLeadingUnderscores("__foo")));
+    try expectEqual(.snake_case, getCase(stripLeadingUnderscores("_foo_bar")));
+    try expectEqual(.PascalCase, getCase(stripLeadingUnderscores("_Foo")));
+    try expectEqual(.lowercase, getCase(stripLeadingUnderscores("_")));
+
+    // edge cases
+    try expectEqual(.lowercase, getCase(""));
+    try expectEqual(.lowercase, getCase(" "));
 }
