@@ -575,7 +575,6 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
         .bool_and,
         .bool_or,
         .array_type,
-        .array_access,
         .switch_range,
         .error_union,
         => {
@@ -583,6 +582,7 @@ fn visitNode(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
             try self.visit(left);
             return self.visit(right);
         },
+        .array_access => return self.visitArrayAccess(node_id),
 
         .@"orelse" => {
             const lhs, const rhs = ast.nodeData(node_id).node_and_node;
@@ -932,8 +932,11 @@ fn visitAssignmentTarget(self: *SemanticBuilder, node_id: NodeIndex) SemanticErr
             try self.visit(left);
             try self.visit(right);
         },
-        .field_access => try self.visitAssignmentTargetReadOperand(ast.nodeData(node_id).node_and_token[0]),
-        .deref => try self.visitAssignmentTargetReadOperand(ast.nodeData(node_id).node),
+        .field_access => {
+            const lhs = ast.nodeData(node_id).node_and_token[0];
+            try self.visitAssignmentTargetReadOperand(lhs, isMemberBase(ast, lhs));
+        },
+        .deref => try self.visitAssignmentTargetReadOperand(ast.nodeData(node_id).node, false),
         .grouped_expression, .unwrap_optional => {
             try self.visitAssignmentTarget(ast.nodeData(node_id).node_and_token[0]);
         },
@@ -947,12 +950,13 @@ fn visitAssignmentTarget(self: *SemanticBuilder, node_id: NodeIndex) SemanticErr
     }
 }
 
-fn visitAssignmentTargetReadOperand(self: *SemanticBuilder, node_id: NodeIndex) SemanticError!void {
+fn visitAssignmentTargetReadOperand(self: *SemanticBuilder, node_id: NodeIndex, member: bool) SemanticError!void {
     const prev = self.takeReferenceFlags();
     defer self._curr_reference_flags = prev;
     self._curr_reference_flags.read = true;
     self._curr_reference_flags.write = false;
     self._curr_reference_flags.call = false;
+    self._curr_reference_flags.member = member;
     try self.visit(node_id);
 }
 
@@ -980,17 +984,45 @@ fn visitIdentifier(self: *SemanticBuilder, node_id: NodeIndex) !void {
 }
 
 fn visitFieldAccess(self: *SemanticBuilder, node_id: NodeIndex) callconv(util.@"inline") !void {
-    // TODO: record references
+    // TODO: record a reference for the field name itself
     const lhs = self.getNodeData(node_id).node_and_token[0];
     const prev = self._curr_reference_flags;
     defer self._curr_reference_flags = prev;
-    // `foo.bar.baz`: `foo` is a member reference. `foo().bar` is not; `foo`
-    // itself is called.
-    self._curr_reference_flags.member = switch (self.AST().nodeTag(lhs)) {
-        .identifier, .field_access => true,
-        else => false,
-    };
+    self._curr_reference_flags.member = isMemberBase(self.AST(), lhs);
     return self.visit(lhs);
+}
+
+fn visitArrayAccess(self: *SemanticBuilder, node_id: NodeIndex) !void {
+    const ast = self.AST();
+    const array, const index = ast.nodeData(node_id).node_and_node;
+    const prev = self._curr_reference_flags;
+    defer self._curr_reference_flags = prev;
+
+    // Element access uses the array's flags (`x[0] = 1` writes `x`).
+    try self.visit(array);
+
+    self._curr_reference_flags = .{ .read = true };
+    try self.visit(index);
+}
+
+/// Whether references in `node` are on a symbol whose field is being
+/// accessed. `.?`, `.*`, `[i]`, and parentheses are transparent.
+///
+/// ```zig
+/// foo.bar;    // `foo` is a member reference
+/// foo.?.bar;  // `foo` is a member reference
+/// foo[i].bar; // `foo` is a member reference
+/// foo().bar;  // `foo` is not; it is called
+/// ```
+fn isMemberBase(ast: *const Ast, node: NodeIndex) bool {
+    var curr = node;
+    while (true) switch (ast.nodeTag(curr)) {
+        .identifier, .field_access => return true,
+        .unwrap_optional, .grouped_expression => curr = ast.nodeData(curr).node_and_token[0],
+        .deref => curr = ast.nodeData(curr).node,
+        .array_access => curr = ast.nodeData(curr).node_and_node[0],
+        else => return false,
+    };
 }
 
 fn visitSlice(self: *SemanticBuilder, _: NodeIndex, slice: full.Slice) !void {
@@ -1479,6 +1511,7 @@ fn visitCall(self: *SemanticBuilder, node_id: NodeIndex, call: full.Call) !void 
     // visit each param
     {
         self._curr_reference_flags.read = true;
+        self._curr_reference_flags.write = false;
         self._curr_reference_flags.call = false;
         defer self._curr_reference_flags = prev;
         for (call.ast.params) |arg| {

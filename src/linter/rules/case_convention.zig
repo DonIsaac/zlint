@@ -392,6 +392,8 @@ test CaseConvention {
         // method calls on a payload do not make it callable
         "fn f(opt: ?std.ArrayList(u8)) void { if (opt) |myList| myList.deinit(); }",
         "fn f(opt: ?Foo) void { if (opt) |myFoo| myFoo.bar.baz(); }",
+        "fn f(opt: ??Foo) void { if (opt) |myFoo| myFoo.?.baz(); }",
+        "fn f(xs: []const usize, arr: []Foo) void { for (xs) |idxVal| arr[idxVal].baz(); }",
         // Zig calling conventions
         "fn foo_bar() callconv(.auto) void {}",
         "fn foo_bar() callconv(.@\"inline\") void {}",
