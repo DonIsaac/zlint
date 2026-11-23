@@ -42,6 +42,7 @@ const LinterContext = @import("../lint_context.zig");
 const Rule = _rule.Rule;
 
 const Error = @import("../../Error.zig");
+const Cow = util.Cow(false);
 
 const expectEqual = std.testing.expectEqual;
 
@@ -65,6 +66,31 @@ fn functionNameDiagnostic(ctx: *LinterContext, fn_name: []const u8, case: CaseTy
         .{ fn_name, @tagName(case) },
         .{ctx.spanT(name)},
     );
+}
+
+fn caseConventionDiagnostic(
+    ctx: *LinterContext,
+    name: []const u8,
+    location: Ast.TokenIndex,
+    comptime symbol_type: enum { function, payload },
+    comptime expected: CaseType,
+    actual: CaseType,
+) Error {
+    std.debug.assert(expected != actual);
+    const type_str = switch (symbol_type) {
+        .function => "Function",
+        .payload => "Payload",
+    };
+
+    var diagnostic = ctx.diagnosticf(
+        type_str ++ " '{s}' is in {s}",
+        .{ name, actual.toStr() },
+        .{ctx.spanT(location)},
+    );
+    if (actual != .NotCamelCase) {
+        diagnostic.help = Cow.fmt(ctx.gpa, "It should be in {s}", .{expected.toStr()}) catch @panic("OOM");
+    }
+    return diagnostic;
 }
 
 fn genericsArePascaleCase(ctx: *LinterContext, fn_name: []const u8, name: Ast.TokenIndex) Error {
@@ -107,12 +133,34 @@ fn hasLower(string: []const u8) bool {
     return false;
 }
 
+fn hasUpper(string: []const u8) bool {
+    for (string) |c| {
+        if (std.ascii.isUpper(c)) return true;
+    }
+    return false;
+}
+
+fn isLowercase(string: []const u8) bool {
+    for (string) |c| {
+        if (std.ascii.isAlphabetic(c)) {
+            if (!std.ascii.isLower(c)) return false;
+        }
+    }
+    return true;
+}
+
 const CaseType = enum {
+    lowercase,
+    uppercase,
     @"kebab-case",
     PascalCase,
     snake_case,
     camelCase,
     NotCamelCase,
+
+    fn toStr(self: CaseType) []const u8 {
+        return if (self == .NotCamelCase) "not camel case" else @tagName(self);
+    }
 };
 
 fn getCase(string: []const u8) CaseType {
@@ -127,21 +175,25 @@ fn getCase(string: []const u8) CaseType {
     }
     if (has_uppercase_first_letter) {
         if (has_underline or has_dashes) return .NotCamelCase;
-        return .PascalCase;
+        if (hasLower(string)) return .PascalCase;
+        return .uppercase;
     }
     if (has_dashes) {
         if (has_underline or has_uppercase_first_letter) return .NotCamelCase;
         return .@"kebab-case";
     }
-    return .camelCase;
+    if (hasUpper(string)) return .camelCase;
+    if (isLowercase(string)) return .lowercase;
+    return .uppercase;
 }
 
 test getCase {
+    // lower
+    try expectEqual(.lowercase, getCase("foo"));
+    try expectEqual(.lowercase, getCase("foo bar"));
+    try expectEqual(.lowercase, getCase("foobar"));
 
     // camel
-    try expectEqual(.camelCase, getCase("foo"));
-    try expectEqual(.camelCase, getCase("foo bar"));
-    try expectEqual(.camelCase, getCase("foobar"));
     try expectEqual(.camelCase, getCase("fooBar"));
 
     // pascal
@@ -163,52 +215,86 @@ test getCase {
     try expectEqual(.NotCamelCase, getCase("FooBar_baz"));
 
     // edge cases
-    try expectEqual(.camelCase, getCase(""));
-    try expectEqual(.camelCase, getCase(" "));
+    try expectEqual(.lowercase, getCase(""));
+    try expectEqual(.lowercase, getCase(" "));
 }
 
 pub fn runOnSymbol(_: *const CaseConvention, symbol: Symbol.Id, ctx: *LinterContext) void {
     // const nodes = ctx.ast().nodes;
     const symbols = ctx.symbols().symbols.slice();
     const symbol_flags: []const Symbol.Flags = symbols.items(.flags);
+
+    const flags = symbol_flags[symbol.int()];
+    if (flags.s_extern or flags.s_export) return;
+    if (flags.s_fn) return checkFunction(ctx, symbol, symbols);
+    if (flags.s_payload) return checkPayload(ctx, symbol, symbols);
+}
+
+fn checkFunction(ctx: *LinterContext, symbol: Symbol.Id, symbols: std.MultiArrayList(Symbol).Slice) void {
     const id = symbol.into(usize);
-
-    const flags = symbol_flags[id];
-    if (!flags.s_fn or flags.s_extern) return;
-
     const decl: Node.Index = symbols.items(.decl)[id];
-    // if (tag != .fn_decl and tag != .fn_proto) return; // could be .fn_proto for e.g. fn types
+
     var buf: [1]Node.Index = undefined;
     const func = ctx.ast().fullFnProto(&buf, decl) orelse {
         util.debugAssert(false, "Symbol flagged as a function does not correspond to an fn-like node", .{});
         return;
     };
 
+    if (usesCCallconv(ctx, &func)) return;
+
     const fn_name: []const u8 = symbols.items(.name)[id];
     const case = getCase(fn_name);
     const returns_type = fnReturnsType(ctx, &func);
     if (returns_type) {
-        if (case != .PascalCase) {
+        const is_single_letter_generic = case == .uppercase and fn_name.len == 1;
+        if (case != .PascalCase and !is_single_letter_generic) {
             ctx.report(genericsArePascaleCase(ctx, fn_name, func.name_token.?));
         }
-    } else {
-        if (case != .camelCase) {
-            const ast = ctx.ast();
-            const fn_keyword_token_idx: Ast.TokenIndex = ast.nodeMainToken(decl);
-            const name_token_idx = fn_keyword_token_idx + 1;
-            ctx.report(functionNameDiagnostic(ctx, fn_name, case, name_token_idx));
-        }
+    } else if (case != .camelCase and case != .lowercase) {
+        const ast = ctx.ast();
+        const fn_keyword_token_idx: Ast.TokenIndex = ast.nodeMainToken(decl);
+        const name_token_idx = fn_keyword_token_idx + 1;
+        ctx.report(functionNameDiagnostic(ctx, fn_name, case, name_token_idx));
     }
+}
+
+fn checkPayload(ctx: *LinterContext, symbol: Symbol.Id, symbols: std.MultiArrayList(Symbol).Slice) void {
+    const id = symbol.into(usize);
+    const name = symbols.items(.name)[id];
+    const token = symbols.items(.token)[id].unwrap() orelse return;
+
+    if (name.len == 0) {
+        @branchHint(.cold);
+        return;
+    }
+
+    // PascalCase and uppercase payloads capture types (`inline for (types) |T|`)
+    const case = getCase(name);
+    switch (case) {
+        .snake_case, .lowercase, .PascalCase, .uppercase => return,
+        else => ctx.report(caseConventionDiagnostic(ctx, name, token.int(), .payload, .snake_case, case)),
+    }
+}
+
+/// `callconv(.c)` functions have names dictated by the C ABI.
+fn usesCCallconv(ctx: *LinterContext, fn_proto: *const Ast.full.FnProto) bool {
+    const expr = fn_proto.ast.callconv_expr.unwrap() orelse return false;
+    const ast = ctx.ast();
+    const token = switch (ast.nodeTag(expr)) {
+        .enum_literal => ast.nodeMainToken(expr),
+        .field_access => ast.nodeData(expr).node_and_token[1],
+        else => return false,
+    };
+    const name = ctx.semantic.tokenSlice(token);
+    return name.len == 1 and (name[0] == 'c' or name[0] == 'C');
 }
 
 fn fnReturnsType(ctx: *LinterContext, fn_proto: *const Ast.full.FnProto) bool {
     const return_type_node = fn_proto.ast.return_type.unwrap() orelse return false;
-    const return_type = ast_utils.getRightmostIdentifier(
-        ctx,
-        ast_utils.getInnerType(ctx.ast(), return_type_node),
-    ) orelse {
+    const inner_return_node = ast_utils.getInnerType(ctx.ast(), return_type_node);
+    const return_type = ast_utils.getRightmostIdentifier(ctx, inner_return_node) orelse
         return false;
-    };
+
     if (return_type.len == 0) {
         @branchHint(.cold);
         return false;
@@ -231,14 +317,47 @@ test CaseConvention {
     defer runner.deinit();
 
     const pass = &[_][:0]const u8{
+        // functions
         "fn alllowercasefunctionsarealwaysgreen() void {}",
         "fn thisFunctionIsInCamelCase() void {}",
         "fn Generic(T: type) type { return *T; }",
         "fn FooBar() type { return u32; }",
         "extern fn this_is_declared_in_c() void;",
+        // payloads
+        "const x = bar() catch |e| return e;",
+        "fn foo(x: u32) u32 { return x; }",
+        "fn f() void {}",
+        "fn foo2() void {}",
+        "fn fooBar2() void {}",
+        "const x = bar() catch |foo_bar| return foo_bar;",
+        "const x = bar() catch |foo_bar_2| return foo_bar_2;",
+        "const x = bar() catch |_| return;",
+        "fn f(opt: ?u32) void { if (opt) |x| _ = x; }",
+        "fn f(opt: ?u32) void { if (opt) |foo_bar| _ = foo_bar; }",
+        "fn f(opt: ?u32) void { while (opt) |foo_bar| _ = foo_bar; }",
+        "fn f(xs: []u32) void { for (xs) |x| _ = x; }",
+        "fn f(xs: []u32) void { for (xs, 0..) |x, i| _ = .{ x, i }; }",
+        "fn f(xs: []u32) void { for (xs) |*foo_bar| _ = foo_bar; }",
+        "fn f(u: union(enum) { a: u32 }) void { switch (u) { .a => |v| _ = v } }",
+        "fn f(u: union(enum) { a: u32 }) void { switch (u) { .a => |foo_bar| _ = foo_bar } }",
+        "fn A() type { return u32; }",
+        "fn T() type { return u32; }",
+        // C ABI
+        "export fn foo_bar() void {}",
+        "export fn FooBar() void {}",
+        "fn foo_bar() callconv(.c) void {}",
+        "fn foo_bar() callconv(.C) void {}",
+        "fn foo_bar() callconv(std.builtin.CallingConvention.c) void {}",
+        // type payloads
+        "const x = bar() catch |FooBar| return FooBar;",
+        "const x = bar() catch |FOO| return FOO;",
+        "fn f(comptime types: anytype) void { inline for (types) |T| _ = T; }",
+        "fn f(comptime types: anytype) void { inline for (types, 0..) |JsApi, i| _ = .{ JsApi, i }; }",
+        "fn f(i: std.builtin.Type) void { switch (i) { .int => |IntType| _ = IntType, else => {} } }",
     };
 
     const fail = &[_][:0]const u8{
+        // functions
         "fn ThisFunctionIsInPascalCase() void {}",
         "fn @\"this-one-is-in-kebab-case\"() void {}",
         "fn this_one_is_in_snake_case() void {}",
@@ -247,6 +366,15 @@ test CaseConvention {
         "fn This_is_both_snake_case_and_pascal_kinda(a: u32, b: u32, c: u32, d: u32) void {}",
         "fn fooBar() type { return u32; }",
         "fn NotGeneric(T: type) T { return T{}; }",
+        "fn FOO() type { return u32; }",
+        // payloads
+        "const x = bar() catch |fooBar| return fooBar;",
+        "const x = bar() catch |@\"foo-bar\"| return @\"foo-bar\";",
+        "fn foo_bar() callconv(.naked) void {}",
+        "fn foo_bar() callconv(.@\"inline\") void {}",
+        "fn f(opt: ?u32) void { if (opt) |fooBar| _ = fooBar; }",
+        "fn f(opt: ?u32) void { while (opt) |fooBar| _ = fooBar; }",
+        "fn f(xs: []u32) void { for (xs) |fooBar| _ = fooBar; }",
     };
 
     try runner

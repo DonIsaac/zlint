@@ -47,3 +47,57 @@
    ·    ──────────
    ╰────
 
+  𝙭 case-convention: Function 'FOO' returns a type, but does not use PascalCase
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn FOO() type { return u32; }
+   ·    ───
+   ╰────
+  help: By convention, Zig uses PascalCase for structs, generics, and all other type variables.
+
+  𝙭 case-convention: Payload 'fooBar' is in camelCase
+   ╭─[case-convention.zig:1:24]
+ 1 │ const x = bar() catch |fooBar| return fooBar;
+   ·                        ──────
+   ╰────
+  help: It should be in snake_case
+
+  𝙭 case-convention: Payload '@"foo-bar"' is in kebab-case
+   ╭─[case-convention.zig:1:24]
+ 1 │ const x = bar() catch |@"foo-bar"| return @"foo-bar";
+   ·                        ──────────
+   ╰────
+  help: It should be in snake_case
+
+  𝙭 case-convention: Function foo_bar name is in snake_case. It should be camelCase
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn foo_bar() callconv(.naked) void {}
+   ·    ───────
+   ╰────
+
+  𝙭 case-convention: Function foo_bar name is in snake_case. It should be camelCase
+   ╭─[case-convention.zig:1:4]
+ 1 │ fn foo_bar() callconv(.@"inline") void {}
+   ·    ───────
+   ╰────
+
+  𝙭 case-convention: Payload 'fooBar' is in camelCase
+   ╭─[case-convention.zig:1:34]
+ 1 │ fn f(opt: ?u32) void { if (opt) |fooBar| _ = fooBar; }
+   ·                                  ──────
+   ╰────
+  help: It should be in snake_case
+
+  𝙭 case-convention: Payload 'fooBar' is in camelCase
+   ╭─[case-convention.zig:1:37]
+ 1 │ fn f(opt: ?u32) void { while (opt) |fooBar| _ = fooBar; }
+   ·                                     ──────
+   ╰────
+  help: It should be in snake_case
+
+  𝙭 case-convention: Payload 'fooBar' is in camelCase
+   ╭─[case-convention.zig:1:34]
+ 1 │ fn f(xs: []u32) void { for (xs) |fooBar| _ = fooBar; }
+   ·                                  ──────
+   ╰────
+  help: It should be in snake_case
+
