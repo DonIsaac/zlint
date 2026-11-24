@@ -1,0 +1,10 @@
+  𝙭 lifecycle-conventions: Destructor takes `self` as a const pointer, so it cannot be invalidated
+   ╭─[lifecycle-conventions.zig:3:23]
+ 2 │   buf: []u8,
+ 3 │   pub fn deinit(self: *const Foo, allocator: std.mem.Allocator) void {
+   ·                       ─────┬─────
+   ·                            ╰── `self` points to constant memory
+ 4 │     allocator.free(self.buf);
+   ╰────
+  help: Take `self` as a mutable pointer
+

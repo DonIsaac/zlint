@@ -1,0 +1,98 @@
+  𝙭 lifecycle-conventions: Destructors should never fail
+   ╭─[lifecycle-conventions.zig:3:3]
+ 2 │   x: u32,
+ 3 │ ╭─▶   pub fn deinit(self: *Foo) !void {
+   ·                                  ──┬──
+   ·                                    ╰── It may not return error unions
+ 4 │ │       self.* = undefined;
+ 5 │ ├─▶   }
+   · ╰──── Destructor is declared here
+ 6 │ };
+   ╰────
+
+  𝙭 lifecycle-conventions: Destructor assigns to the `self` pointer instead of the value it points to
+   ╭─[lifecycle-conventions.zig:4:5]
+ 3 │   pub fn deinit(self: *Foo) void {
+ 4 │     self = undefined;
+   ·     ────────┬────────
+   ·             ╰── This only overwrites the local pointer
+ 5 │   }
+   ╰────
+  help: Dereference `self` to invalidate the memory it points to
+
+  𝙭 lifecycle-conventions: Destructor should invalidate `self` with `undefined`
+   ╭─[lifecycle-conventions.zig:4:5]
+ 3 │   pub fn deinit(self: *Foo) void {
+ 4 │     self.* = .{ .x = 0 };
+   ·     ──────────┬──────────
+   ·               ╰── `self` is assigned a value other than `undefined` here
+ 5 │   }
+   ╰────
+  help: Assign `undefined` instead
+
+  𝙭 lifecycle-conventions: Destructor does not invalidate `self`
+   ╭─[lifecycle-conventions.zig:3:17]
+ 2 │   list: std.ArrayList(u8),
+ 3 │   pub fn deinit(self: *Foo, allocator: std.mem.Allocator) void {
+   ·                 ────
+ 4 │     self.list.deinit(allocator);
+   ╰────
+  help: Add `self.* = undefined;` at the end of the destructor.
+
+  𝙭 lifecycle-conventions: Destructor does not invalidate `self`
+   ╭─[lifecycle-conventions.zig:3:17]
+ 2 │   x: u32,
+ 3 │   pub fn deinit(self: *Foo) void {
+   ·                 ────
+ 4 │     _ = self;
+   ╰────
+  help: Add `self.* = undefined;` at the end of the destructor.
+
+  𝙭 lifecycle-conventions: Destructor assigns to the `this` pointer instead of the value it points to
+   ╭─[lifecycle-conventions.zig:4:5]
+ 3 │   pub fn deinit(this: *Foo) void {
+ 4 │     this = undefined;
+   ·     ────────┬────────
+   ·             ╰── This only overwrites the local pointer
+ 5 │   }
+   ╰────
+  help: Dereference `this` to invalidate the memory it points to
+
+  𝙭 lifecycle-conventions: Destructor should invalidate `self` with `undefined`
+   ╭─[lifecycle-conventions.zig:4:5]
+ 3 │   pub fn deinit(self: *Foo) void {
+ 4 │     self.* = .{ .x = 0 };
+   ·     ──────────┬──────────
+   ·               ╰── `self` is assigned a value other than `undefined` here
+ 5 │     self.* = .{ .x = 1 };
+   ╰────
+  help: Assign `undefined` instead
+
+  𝙭 lifecycle-conventions: Destructor should invalidate `self` with `undefined`
+   ╭─[lifecycle-conventions.zig:4:5]
+ 3 │   pub fn deinit(self: *Foo) void {
+ 4 │     self.* = .{};
+   ·     ──────┬──────
+   ·           ╰── `self` is assigned a value other than `undefined` here
+ 5 │   }
+   ╰────
+  help: Assign `undefined` instead
+
+  𝙭 lifecycle-conventions: Destructor does not invalidate `self`
+   ╭─[lifecycle-conventions.zig:3:17]
+ 2 │   fd: i32,
+ 3 │   pub fn deinit(self: *Foo) void {
+   ·                 ────
+ 4 │     close(self.fd);
+   ╰────
+  help: Add `self.* = undefined;` at the end of the destructor.
+
+  𝙭 lifecycle-conventions: Destructor does not invalidate `self`
+   ╭─[lifecycle-conventions.zig:2:17]
+ 1 │ const Foo = struct {
+ 2 │   pub fn deinit(self: *Foo, allocator: std.mem.Allocator) void {
+   ·                 ────
+ 3 │     allocator.free(self);
+   ╰────
+  help: Add `self.* = undefined;` at the end of the destructor.
+

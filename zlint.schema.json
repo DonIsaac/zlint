@@ -458,6 +458,28 @@
                         }
                     ]
                 },
+                "lifecycle-conventions": {
+                    "description": "## What This Rule Does\nEnforces conventions for destructors (functions named `deinit`):\n\n1. Destructors should never fail. They must not return an error union.\n2. Destructors taking `self: *T` should invalidate `self` by assigning\n   `undefined` to it (`self.* = undefined;`).\n\nIn safe build modes, assigning `undefined` fills memory with `0xaa` bytes.\nAny use of the value after it has been deinitialized then reads garbage and\nis far more likely to crash or trip a safety check than to silently \"work\".\nIn unsafe build modes the assignment compiles to nothing, so it has no\nruntime cost.\n\nDestructors are skipped when invalidating `self` is impossible or harmful:\n- `self` is taken by value, or is a pointer to `anyopaque` or an `opaque` type\n- `self` is freed inside the destructor (e.g. `allocator.destroy(self)`).\n  Writing to it afterwards would be a use-after-free.\n- the destructor is declared inside a `test` block\n\nDestructors that delegate to a helper method (e.g. `self.discard()`) are\nnot followed into that helper and will still be reported.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst Foo = struct {\n  list: std.ArrayList(u32),\n  // fallible destructor\n  pub fn deinit(self: *Foo, allocator: std.mem.Allocator) !void {\n    self.list.deinit(allocator);\n    self.* = undefined;\n  }\n};\n\nconst Bar = struct {\n  list: std.ArrayList(u32),\n  // `self` is never invalidated\n  pub fn deinit(self: *Bar, allocator: std.mem.Allocator) void {\n    self.list.deinit(allocator);\n  }\n};\n\nconst Baz = struct {\n  x: u32,\n  // resets `self` instead of invalidating it\n  pub fn deinit(self: *Baz) void {\n    self.* = .{ .x = 0 };\n  }\n};\n```\n\nExamples of **correct** code for this rule:\n```zig\nconst Foo = struct {\n  list: std.ArrayList(u32),\n  pub fn deinit(self: *Foo, allocator: std.mem.Allocator) void {\n    self.list.deinit(allocator);\n    self.* = undefined;\n  }\n};\n\nconst Bar = struct {\n  allocator: std.mem.Allocator,\n  // `self` is freed, so it cannot be invalidated\n  pub fn deinit(self: *Bar) void {\n    self.allocator.destroy(self);\n  }\n};\n```\n\n## Configuration\n- `deinitializers` - names of functions treated as destructors. Defaults to `[\"deinit\"]`.\n- `allow_reset` - accept destructors that reset `self` instead of\n  invalidating it, which makes them safe to call more than once. This\n  includes `self.* = .{}`, `self.* = .empty` (or any other decl literal),\n  and setting a field to `null`, `false`, `0`, or `-1`. Defaults to `false`.\n- `require_mutable_self` - report destructors that take `self: *const T`,\n  since they cannot invalidate `self`. Defaults to `false`, as `*const T`\n  destructors are a common, deliberate choice for small value types.",
+                    "default": "off",
+                    "markdownDescription": "## What This Rule Does\nEnforces conventions for destructors (functions named `deinit`):\n\n1. Destructors should never fail. They must not return an error union.\n2. Destructors taking `self: *T` should invalidate `self` by assigning\n   `undefined` to it (`self.* = undefined;`).\n\nIn safe build modes, assigning `undefined` fills memory with `0xaa` bytes.\nAny use of the value after it has been deinitialized then reads garbage and\nis far more likely to crash or trip a safety check than to silently \"work\".\nIn unsafe build modes the assignment compiles to nothing, so it has no\nruntime cost.\n\nDestructors are skipped when invalidating `self` is impossible or harmful:\n- `self` is taken by value, or is a pointer to `anyopaque` or an `opaque` type\n- `self` is freed inside the destructor (e.g. `allocator.destroy(self)`).\n  Writing to it afterwards would be a use-after-free.\n- the destructor is declared inside a `test` block\n\nDestructors that delegate to a helper method (e.g. `self.discard()`) are\nnot followed into that helper and will still be reported.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst Foo = struct {\n  list: std.ArrayList(u32),\n  // fallible destructor\n  pub fn deinit(self: *Foo, allocator: std.mem.Allocator) !void {\n    self.list.deinit(allocator);\n    self.* = undefined;\n  }\n};\n\nconst Bar = struct {\n  list: std.ArrayList(u32),\n  // `self` is never invalidated\n  pub fn deinit(self: *Bar, allocator: std.mem.Allocator) void {\n    self.list.deinit(allocator);\n  }\n};\n\nconst Baz = struct {\n  x: u32,\n  // resets `self` instead of invalidating it\n  pub fn deinit(self: *Baz) void {\n    self.* = .{ .x = 0 };\n  }\n};\n```\n\nExamples of **correct** code for this rule:\n```zig\nconst Foo = struct {\n  list: std.ArrayList(u32),\n  pub fn deinit(self: *Foo, allocator: std.mem.Allocator) void {\n    self.list.deinit(allocator);\n    self.* = undefined;\n  }\n};\n\nconst Bar = struct {\n  allocator: std.mem.Allocator,\n  // `self` is freed, so it cannot be invalidated\n  pub fn deinit(self: *Bar) void {\n    self.allocator.destroy(self);\n  }\n};\n```\n\n## Configuration\n- `deinitializers` - names of functions treated as destructors. Defaults to `[\"deinit\"]`.\n- `allow_reset` - accept destructors that reset `self` instead of\n  invalidating it, which makes them safe to call more than once. This\n  includes `self.* = .{}`, `self.* = .empty` (or any other decl literal),\n  and setting a field to `null`, `false`, `0`, or `-1`. Defaults to `false`.\n- `require_mutable_self` - report destructors that take `self: *const T`,\n  since they cannot invalidate `self`. Defaults to `false`, as `*const T`\n  destructors are a common, deliberate choice for small value types.",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.lifecycle_conventions"
+                                }
+                            ]
+                        }
+                    ]
+                },
                 "must-return-ref": {
                     "description": "## What This Rule Does\nDisallows returning copies of types that store a `capacity`.\n\nZig does not have move semantics. Returning a value by value copies it.\nReturning a copy of a struct's field that records how much memory it has\nallocated can easily lead to memory leaks.\n\n```zig\nconst std = @import(\"std\");\npub const Foo = struct {\n  list: std.array_list.Managed(u32),\n  pub fn getList(self: *Foo) std.array_list.Managed(u32) {\n      return self.list;\n  }\n};\n\npub fn main() !void {\n  var foo: Foo = .{\n    .list = try std.array_list.Managed(u32).init(std.heap.page_allocator)\n  };\n  defer foo.list.deinit();\n  var list = foo.getList();\n  try list.append(1); // leaked!\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nfn foo(self: *Foo) std.array_list.Managed(u32) {\n  return self.list;\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\n// pass by reference\nfn foo(self: *Foo) *std.array_list.Managed(u32) {\n  return &self.list;\n}\n\n// new instances are fine\nfn foo() ArenaAllocator {\n  return std.mem.ArenaAllocator.init(std.heap.page_allocator);\n}\n```",
                     "default": "warn",
@@ -492,6 +514,29 @@
             "type": "object",
             "title": "duplicate-case config",
             "properties": {}
+        },
+        "linter.rules.lifecycle_conventions": {
+            "type": "object",
+            "title": "lifecycle-conventions config",
+            "properties": {
+                "allow_reset": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "require_mutable_self": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "deinitializers": {
+                    "type": "array",
+                    "default": [
+                        "deinit"
+                    ],
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
         },
         "linter.rules.homeless_try": {
             "type": "object",

@@ -1,0 +1,101 @@
+---
+rule: '{"name":"lifecycle-conventions","category":"pedantic","default":"off","fix":{"kind":"fix","dangerous":true},"needs_cfg":false}'
+---
+
+# `lifecycle-conventions`
+
+<RuleBanner category="pedantic" default="off" fix={{ kind: 'fix', dangerous: true }} />
+
+## What This Rule Does
+
+Enforces conventions for destructors (functions named `deinit`):
+
+1. Destructors should never fail. They must not return an error union.
+2. Destructors taking `self: *T` should invalidate `self` by assigning
+   `undefined` to it (`self.* = undefined;`).
+
+In safe build modes, assigning `undefined` fills memory with `0xaa` bytes.
+Any use of the value after it has been deinitialized then reads garbage and
+is far more likely to crash or trip a safety check than to silently "work".
+In unsafe build modes the assignment compiles to nothing, so it has no
+runtime cost.
+
+Destructors are skipped when invalidating `self` is impossible or harmful:
+
+- `self` is taken by value, or is a pointer to `anyopaque` or an `opaque` type
+- `self` is freed inside the destructor (e.g. `allocator.destroy(self)`).
+  Writing to it afterwards would be a use-after-free.
+- the destructor is declared inside a `test` block
+
+Destructors that delegate to a helper method (e.g. `self.discard()`) are
+not followed into that helper and will still be reported.
+
+## Examples
+
+Examples of **incorrect** code for this rule:
+
+```zig
+const Foo = struct {
+  list: std.ArrayList(u32),
+  // fallible destructor
+  pub fn deinit(self: *Foo, allocator: std.mem.Allocator) !void {
+    self.list.deinit(allocator);
+    self.* = undefined;
+  }
+};
+
+const Bar = struct {
+  list: std.ArrayList(u32),
+  // `self` is never invalidated
+  pub fn deinit(self: *Bar, allocator: std.mem.Allocator) void {
+    self.list.deinit(allocator);
+  }
+};
+
+const Baz = struct {
+  x: u32,
+  // resets `self` instead of invalidating it
+  pub fn deinit(self: *Baz) void {
+    self.* = .{ .x = 0 };
+  }
+};
+```
+
+Examples of **correct** code for this rule:
+
+```zig
+const Foo = struct {
+  list: std.ArrayList(u32),
+  pub fn deinit(self: *Foo, allocator: std.mem.Allocator) void {
+    self.list.deinit(allocator);
+    self.* = undefined;
+  }
+};
+
+const Bar = struct {
+  allocator: std.mem.Allocator,
+  // `self` is freed, so it cannot be invalidated
+  pub fn deinit(self: *Bar) void {
+    self.allocator.destroy(self);
+  }
+};
+```
+
+## Configuration
+
+- `deinitializers` - names of functions treated as destructors. Defaults to `["deinit"]`.
+- `allow_reset` - accept destructors that reset `self` instead of
+  invalidating it, which makes them safe to call more than once. This
+  includes `self.* = .{}`, `self.* = .empty` (or any other decl literal),
+  and setting a field to `null`, `false`, `0`, or `-1`. Defaults to `false`.
+- `require_mutable_self` - report destructors that take `self: *const T`,
+  since they cannot invalidate `self`. Defaults to `false`, as `*const T`
+  destructors are a common, deliberate choice for small value types.
+
+## Configuration
+
+This rule accepts the following options:
+
+- allow_reset: boolean
+- require_mutable_self: boolean
+- deinitializers: array
