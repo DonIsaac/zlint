@@ -52,7 +52,7 @@
       "scope": 0, 
       "flags": ["variable","const","struct"], 
       "references": [
-        {"symbol":3,"scope":3,"node":"identifier","identifier":"Namespace","flags":["type"]}, 
+        {"symbol":3,"scope":3,"node":"identifier","identifier":"Namespace","flags":["type","member"]}, 
         
       ], 
       "members": [], 

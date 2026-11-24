@@ -23,7 +23,7 @@
       "flags": ["variable","const","enum"], 
       "references": [
         {"symbol":1,"scope":2,"node":"identifier","identifier":"Foo","flags":["read"]}, 
-        {"symbol":1,"scope":3,"node":"identifier","identifier":"Foo","flags":["read"]}, 
+        {"symbol":1,"scope":3,"node":"identifier","identifier":"Foo","flags":["read","member"]}, 
         
       ], 
       "members": [2,3,4], 

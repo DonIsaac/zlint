@@ -11,7 +11,7 @@ rule: '{"name":"case-convention","category":"style","default":"off","fix":{"kind
 Enforces Zig's naming convention.
 
 :::warning
-Only functions are checked at this time.
+Only functions and payload captures are checked at this time.
 :::
 
 ## Functions
@@ -21,8 +21,18 @@ those that return types should use PascalCase. Specially coming from Rust,
 some people may be used to use snake_case for their functions, which can
 lead to inconsistencies in the code.
 
-Note that `extern` functions are not checked since you cannot change
-their names.
+Functions whose names are dictated by an ABI are not checked. This includes
+`extern` and `export` functions, as well as functions with a calling
+convention other than `.auto` or `.@"inline"`.
+
+## Payloads
+
+Payload captures (`|x|`) should use snake_case. PascalCase captures are
+allowed since they often capture types (`inline for (types) |T|`), as are
+all-caps captures of constants. camelCase captures are allowed when they
+are called as functions.
+
+Leading underscores are ignored when checking names.
 
 ## Examples
 
@@ -30,15 +40,18 @@ Examples of **incorrect** code for this rule:
 
 ```zig
 fn this_one_is_in_snake_case() void {}
-fn generic(T: type) T { return T{}; }
+fn generic(T: type) type { return *T; }
+fn foo(opt: ?u32) void { if (opt) |fooBar| _ = fooBar; }
 ```
 
 Examples of **correct** code for this rule:
 
 ```zig
 fn thisFunctionIsInCamelCase() void {}
-fn Generic(T: type) T { return T{}; }
+fn Generic(T: type) type { return *T; }
+fn foo(opt: ?u32) void { if (opt) |foo_bar| _ = foo_bar; }
 extern fn this_is_declared_in_c() void;
+fn this_is_called_from_c() callconv(.c) void {}
 ```
 
 ## Configuration

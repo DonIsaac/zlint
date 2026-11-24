@@ -140,7 +140,7 @@
       "scope": 4, 
       "flags": ["variable","const"], 
       "references": [
-        {"symbol":9,"scope":7,"node":"identifier","identifier":"ptr_info","flags":["call"]}, 
+        {"symbol":9,"scope":7,"node":"identifier","identifier":"ptr_info","flags":["call","member"]}, 
         
       ], 
       "members": [], 
@@ -155,7 +155,7 @@
       "scope": 4, 
       "flags": ["variable","const","struct"], 
       "references": [
-        {"symbol":10,"scope":4,"node":"identifier","identifier":"gen","flags":["read"]}, 
+        {"symbol":10,"scope":4,"node":"identifier","identifier":"gen","flags":["read","member"]}, 
         
       ], 
       "members": [], 
@@ -243,8 +243,8 @@
       "scope": 8, 
       "flags": ["const","fn_param"], 
       "references": [
-        {"symbol":16,"scope":9,"node":"identifier","identifier":"self","flags":["call"]}, 
-        {"symbol":16,"scope":9,"node":"identifier","identifier":"self","flags":["read"]}, 
+        {"symbol":16,"scope":9,"node":"identifier","identifier":"self","flags":["call","member"]}, 
+        {"symbol":16,"scope":9,"node":"identifier","identifier":"self","flags":["read","member"]}, 
         
       ], 
       "members": [], 

@@ -981,7 +981,16 @@ fn visitIdentifier(self: *SemanticBuilder, node_id: NodeIndex) !void {
 
 fn visitFieldAccess(self: *SemanticBuilder, node_id: NodeIndex) callconv(util.@"inline") !void {
     // TODO: record references
-    return self.visit(self.getNodeData(node_id).node_and_token[0]);
+    const lhs = self.getNodeData(node_id).node_and_token[0];
+    const prev = self._curr_reference_flags;
+    defer self._curr_reference_flags = prev;
+    // `foo.bar.baz`: `foo` is a member reference. `foo().bar` is not; `foo`
+    // itself is called.
+    self._curr_reference_flags.member = switch (self.AST().nodeTag(lhs)) {
+        .identifier, .field_access => true,
+        else => false,
+    };
+    return self.visit(lhs);
 }
 
 fn visitSlice(self: *SemanticBuilder, _: NodeIndex, slice: full.Slice) !void {
