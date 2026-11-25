@@ -1,0 +1,8 @@
+  𝙭 lifecycle-conventions: `init` takes no parameters and returns a constant
+   ╭─[lifecycle-conventions.zig:1:37]
+ 1 │ const Foo = struct { x: u32, pub fn init() Foo { return .{ .x = 0 }; } };
+   ·                                     ──┬──
+   ·                                       ╰── This can be a declaration
+   ╰────
+  help: Replace it with `pub const init: Foo = ...;` so callers can use `.init`
+

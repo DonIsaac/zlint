@@ -225,11 +225,7 @@ fn isNeverErrorUnion(ctx: *LinterContext, node: Node.Index) bool {
         => true,
         // `const Self = @This();`. Other builtins (`@Type`, `@FieldType`, ...)
         // can evaluate to anything, so they stay unclassifiable.
-        .builtin_call_two, .builtin_call_two_comma => std.mem.eql(
-            u8,
-            ctx.semantic.tokenSlice(ast.nodeMainToken(node)),
-            "@This",
-        ),
+        .builtin_call_two, .builtin_call_two_comma => a.isThisCall(ctx, node),
         else => false,
     };
 }

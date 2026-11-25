@@ -37,7 +37,7 @@
    ·                 ────
  4 │     self.list.deinit(allocator);
    ╰────
-  help: Add `self.* = undefined;` at the end of the destructor.
+  help: Add `self.* = undefined;` at the end of the destructor
 
   𝙭 lifecycle-conventions: Destructor does not invalidate `self`
    ╭─[lifecycle-conventions.zig:3:17]
@@ -46,7 +46,7 @@
    ·                 ────
  4 │     _ = self;
    ╰────
-  help: Add `self.* = undefined;` at the end of the destructor.
+  help: Add `self.* = undefined;` at the end of the destructor
 
   𝙭 lifecycle-conventions: Destructor assigns to the `this` pointer instead of the value it points to
    ╭─[lifecycle-conventions.zig:4:5]
@@ -85,7 +85,7 @@
    ·                 ────
  4 │     close(self.fd);
    ╰────
-  help: Add `self.* = undefined;` at the end of the destructor.
+  help: Add `self.* = undefined;` at the end of the destructor
 
   𝙭 lifecycle-conventions: Destructor does not invalidate `self`
    ╭─[lifecycle-conventions.zig:2:17]
@@ -94,5 +94,133 @@
    ·                 ────
  3 │     allocator.free(self);
    ╰────
-  help: Add `self.* = undefined;` at the end of the destructor.
+  help: Add `self.* = undefined;` at the end of the destructor
+
+  𝙭 lifecycle-conventions: Constructors that return a pointer should be named `create`, not `init`
+   ╭─[lifecycle-conventions.zig:3:46]
+ 2 │   x: u32,
+ 3 │   pub fn init(allocator: std.mem.Allocator) !*Foo {
+   ·                                              ──┬──
+   ·                                                ╰── `init` returns a pointer to its own type
+ 4 │     const self = try allocator.create(Foo);
+   ╰────
+  help: Rename it to `create`, and free it with `destroy`
+
+  𝙭 lifecycle-conventions: Constructors that return a pointer should be named `create`, not `init`
+   ╭─[lifecycle-conventions.zig:1:64]
+ 1 │ const Foo = struct { pub fn init(allocator: std.mem.Allocator) error{OutOfMemory}!*@This() { return allocator.create(@This()); } };
+   ·                                                                ─────────────┬─────────────
+   ·                                                                             ╰── `init` returns a pointer to its own type
+   ╰────
+  help: Rename it to `create`, and free it with `destroy`
+
+  𝙭 lifecycle-conventions: Constructors that return a pointer should be named `create`, not `init`
+   ╭─[lifecycle-conventions.zig:3:46]
+ 2 │   const Self = @This();
+ 3 │   pub fn init(allocator: std.mem.Allocator) !*Self {
+   ·                                              ──┬──
+   ·                                                ╰── `init` returns a pointer to its own type
+ 4 │     return allocator.create(Self);
+   ╰────
+  help: Rename it to `create`, and free it with `destroy`
+
+  𝙭 lifecycle-conventions: Constructors that return a pointer should be named `create`, not `init`
+   ╭─[lifecycle-conventions.zig:3:44]
+ 2 │ x: u32,
+ 3 │ pub fn init(allocator: std.mem.Allocator) !*Self {
+   ·                                            ──┬──
+   ·                                              ╰── `init` returns a pointer to its own type
+ 4 │   return allocator.create(Self);
+   ╰────
+  help: Rename it to `create`, and free it with `destroy`
+
+  𝙭 lifecycle-conventions: `init` takes no parameters and returns a constant
+   ╭─[lifecycle-conventions.zig:1:37]
+ 1 │ const Foo = struct { x: u32, pub fn init() Foo { return .{ .x = 0 }; } };
+   ·                                     ──┬──
+   ·                                       ╰── This can be a declaration
+   ╰────
+  help: Replace it with `pub const init: Foo = ...;` so callers can use `.init`
+
+  𝙭 lifecycle-conventions: `init` takes no parameters and returns a constant
+   ╭─[lifecycle-conventions.zig:1:33]
+ 1 │ const Foo = struct { x: u32, fn init() @This() { return .{ .x = 0 }; } };
+   ·                                 ──┬──
+   ·                                   ╰── This can be a declaration
+   ╰────
+  help: Replace it with `const init: @This() = ...;` so callers can use `.init`
+
+  𝙭 lifecycle-conventions: `init` takes no parameters and returns a constant
+   ╭─[lifecycle-conventions.zig:1:33]
+ 1 │ const Foo = enum { a, b, pub fn init() Foo { return .a; } };
+   ·                                 ──┬──
+   ·                                   ╰── This can be a declaration
+   ╰────
+  help: Replace it with `pub const init: Foo = ...;` so callers can use `.init`
+
+  𝙭 lifecycle-conventions: `init` takes no parameters and returns a constant
+   ╭─[lifecycle-conventions.zig:3:10]
+ 2 │   x: u32,
+ 3 │   pub fn init() Foo {
+   ·          ──┬──
+   ·            ╰── This can be a declaration
+ 4 │     return .{ .x = 0 };
+   ╰────
+  help: Replace it with `pub const init: Foo = ...;` so callers can use `.init`
+
+  𝙭 lifecycle-conventions: `init` takes no parameters and returns a constant
+   ╭─[lifecycle-conventions.zig:6:10]
+ 5 │   list: [2]u8,
+ 6 │   pub fn init() Foo {
+   ·          ──┬──
+   ·            ╰── This can be a declaration
+ 7 │     return .{ .x = -default_x, .inner = .{ .name = "foo", .ok = true }, .list = .{ 'a', 2 } };
+   ╰────
+  help: Replace it with `pub const init: Foo = ...;` so callers can use `.init`
+
+  𝙭 lifecycle-conventions: `init` takes no parameters and returns a constant
+   ╭─[lifecycle-conventions.zig:5:12]
+ 4 │     value: u64,
+ 5 │     pub fn init() Self {
+   ·            ──┬──
+   ·              ╰── This can be a declaration
+ 6 │       return Self{ .value = offset };
+   ╰────
+  help: Replace it with `pub const init: Self = ...;` so callers can use `.init`
+
+  𝙭 lifecycle-conventions: `init` takes no parameters and returns a constant
+   ╭─[lifecycle-conventions.zig:3:10]
+ 2 │   x: u32,
+ 3 │   pub fn init() Foo {
+   ·          ──┬──
+   ·            ╰── This can be a declaration
+ 4 │     return .{ .x = 0 };
+   ╰────
+  help: Replace it with `pub const init: Foo = ...;` so callers can use `.init`
+
+  𝙭 lifecycle-conventions: Constructors that return a pointer should be named `create`, not `init`
+   ╭─[lifecycle-conventions.zig:1:64]
+ 1 │ const Foo = struct { pub fn init(allocator: std.mem.Allocator) ?*Foo { return allocator.create(Foo) catch null; } };
+   ·                                                                ──┬──
+   ·                                                                  ╰── `init` returns a pointer to its own type
+   ╰────
+  help: Rename it to `create`, and free it with `destroy`
+
+  𝙭 lifecycle-conventions: Constructors that return a pointer should be named `create`, not `init`
+   ╭─[lifecycle-conventions.zig:1:65]
+ 1 │ const Foo = struct { pub fn init(allocator: std.mem.Allocator) !?*Foo { return try allocator.create(Foo); } };
+   ·                                                                 ──┬──
+   ·                                                                   ╰── `init` returns a pointer to its own type
+   ╰────
+  help: Rename it to `create`, and free it with `destroy`
+
+  𝙭 lifecycle-conventions: Constructors that return a pointer should be named `create`, not `init`
+   ╭─[lifecycle-conventions.zig:4:46]
+ 3 │   const This = Self;
+ 4 │   pub fn init(allocator: std.mem.Allocator) !*This {
+   ·                                              ──┬──
+   ·                                                ╰── `init` returns a pointer to its own type
+ 5 │     return allocator.create(This);
+   ╰────
+  help: Rename it to `create`, and free it with `destroy`
 

@@ -8,27 +8,32 @@ rule: '{"name":"lifecycle-conventions","category":"pedantic","default":"off","fi
 
 ## What This Rule Does
 
-Enforces conventions for destructors (functions named `deinit`):
+Enforces conventions for constructors (`init`) and destructors (`deinit`):
 
-1. Destructors should never fail. They must not return an error union.
-2. Destructors taking `self: *T` should invalidate `self` by assigning
-   `undefined` to it (`self.* = undefined;`).
+1. Destructors never fail, so they must not return an error union.
+2. Destructors taking `self: *T` invalidate it with `self.* = undefined;`.
+   In safe builds this fills `self` with `0xaa` bytes, so using it after
+   `deinit` crashes instead of silently working. In unsafe builds it
+   compiles to nothing.
+3. `init` returns a value (`T` or `!T`). Constructors that return a pointer
+   to their own type (`*T`, `!*T`, `?*T`) are named `create` and freed with
+   `destroy`.
+4. A parameterless `init` that returns a constant (literals, enum literals,
+   and references to constants) is a declaration instead:
+   `pub const init: T = .{ ... };`. Callers can then write `.init`.
 
-In safe build modes, assigning `undefined` fills memory with `0xaa` bytes.
-Any use of the value after it has been deinitialized then reads garbage and
-is far more likely to crash or trip a safety check than to silently "work".
-In unsafe build modes the assignment compiles to nothing, so it has no
-runtime cost.
+These are not reported:
 
-Destructors are skipped when invalidating `self` is impossible or harmful:
+- destructors whose `self` is a value, `*anyopaque`, or a pointer to an
+  `opaque` type
+- destructors that free `self` (e.g. `allocator.destroy(self)`)
+- `init` functions that initialize in place (`self: *T`), return `*const T`,
+  or return a singleton (`return &instance;`)
+- constant `init` functions used as function values (e.g. `callback(Foo.init)`)
+- anything declared inside a `test` block
 
-- `self` is taken by value, or is a pointer to `anyopaque` or an `opaque` type
-- `self` is freed inside the destructor (e.g. `allocator.destroy(self)`).
-  Writing to it afterwards would be a use-after-free.
-- the destructor is declared inside a `test` block
-
-Destructors that delegate to a helper method (e.g. `self.discard()`) are
-not followed into that helper and will still be reported.
+Destructors that delegate to a helper method (e.g. `self.discard()`) are not
+followed into it.
 
 ## Examples
 
@@ -59,6 +64,24 @@ const Baz = struct {
     self.* = .{ .x = 0 };
   }
 };
+
+const Qux = struct {
+  x: u32,
+  // returns a pointer, so it should be named `create`
+  pub fn init(allocator: std.mem.Allocator) !*Qux {
+    const self = try allocator.create(Qux);
+    self.* = .{ .x = 0 };
+    return self;
+  }
+};
+
+const Quux = struct {
+  x: u32,
+  // should be `pub const init: Quux = .{ .x = 0 };`
+  pub fn init() Quux {
+    return .{ .x = 0 };
+  }
+};
 ```
 
 Examples of **correct** code for this rule:
@@ -79,18 +102,21 @@ const Bar = struct {
     self.allocator.destroy(self);
   }
 };
+
+const Qux = struct {
+  x: u32,
+  pub fn create(allocator: std.mem.Allocator) !*Qux {
+    const self = try allocator.create(Qux);
+    self.* = .{ .x = 0 };
+    return self;
+  }
+};
+
+const Quux = struct {
+  x: u32,
+  pub const init: Quux = .{ .x = 0 };
+};
 ```
-
-## Configuration
-
-- `deinitializers` - names of functions treated as destructors. Defaults to `["deinit"]`.
-- `allow_reset` - accept destructors that reset `self` instead of
-  invalidating it, which makes them safe to call more than once. This
-  includes `self.* = .{}`, `self.* = .empty` (or any other decl literal),
-  and setting a field to `null`, `false`, `0`, or `-1`. Defaults to `false`.
-- `require_mutable_self` - report destructors that take `self: *const T`,
-  since they cannot invalidate `self`. Defaults to `false`, as `*const T`
-  destructors are a common, deliberate choice for small value types.
 
 ## Configuration
 
@@ -99,3 +125,4 @@ This rule accepts the following options:
 - allow_reset: boolean
 - require_mutable_self: boolean
 - deinitializers: array
+- require_create_for_pointer_init: boolean

@@ -79,6 +79,20 @@ pub fn isUndefinedLiteral(ctx: *const Context, token: Ast.TokenIndex) bool {
         std.mem.eql(u8, ctx.semantic.tokenSlice(token), "undefined");
 }
 
+/// `@This()`
+pub fn isThisCall(ctx: *const Context, node: Node.Index) bool {
+    const ast = ctx.ast();
+    return switch (ast.nodeTag(node)) {
+        // `@This()` never has arguments, so `.builtin_call` can be ignored.
+        .builtin_call_two, .builtin_call_two_comma => std.mem.eql(
+            u8,
+            ctx.semantic.tokenSlice(ast.nodeMainToken(node)),
+            "@This",
+        ),
+        else => false,
+    };
+}
+
 pub inline fn isStructInit(tag: Node.Tag) bool {
     return switch (tag) {
         .struct_init,

@@ -142,14 +142,9 @@ pub fn runOnNode(self: *const AllocatorFirstParam, wrapper: NodeWrapper, ctx: *L
                 // `?*@This()` -> `@This()`
                 const ty = ast_utils.getInnerType(ast, type_expr);
                 switch (ast.nodeTag(ty)) {
-                    // check for `@This()`. we can ignore .builtin_call b/c
-                    // @This() will never have >2 parameters
-                    .builtin_call_two, .builtin_call_two_comma => {
-                        const builtin_name = ctx.semantic.tokenSlice(ast.nodeMainToken(ty));
-                        if (std.mem.eql(u8, builtin_name, "@This")) {
-                            self_pos = i;
-                            continue;
-                        }
+                    .builtin_call_two, .builtin_call_two_comma => if (ast_utils.isThisCall(ctx, ty)) {
+                        self_pos = i;
+                        continue;
                     },
                     .identifier => {
                         // name of referenced type
