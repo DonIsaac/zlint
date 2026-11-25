@@ -18,8 +18,8 @@
     "fmt:some": "oxfmt"
   },
   "devDependencies": {
-    "@types/bun": "1.3.14",
-    "oxfmt": "0.68.0"
+    "@types/bun": "1.4.5",
+    "oxfmt": "0.80.0"
   },
-  "packageManager": "bun@1.3.14"
+  "packageManager": "bun@1.4.6"
 }

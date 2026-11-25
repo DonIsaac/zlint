@@ -58,7 +58,7 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Typecheck
         working-directory: apps/vscode-extension
-        run: bun tsc --noEmit
+        run: bun typecheck
 
   check-site:
     runs-on: ubuntu-latest
