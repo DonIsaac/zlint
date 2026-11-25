@@ -15,7 +15,7 @@ pub const Source = struct {
 
     /// Create a source from an opened file. This file must be opened with at least read permissions.
     ///
-    /// Both `file` and `pathname` are moved into the source.
+    /// Always closes `file`. Takes ownership of `pathname` on success.
     pub fn init(gpa: Allocator, io: Io, file: Io.File, pathname: ?[]const u8) !Source {
         defer file.close(io);
         const meta = try file.stat(io);
