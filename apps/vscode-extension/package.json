@@ -23,15 +23,13 @@
   "scripts": {
     "package": "vsce package --no-dependencies -o zlint.vsix",
     "build:prod": "bun build.ts --production",
+    "typecheck": "bun check",
     "install-extension": "code --install-extension zlint.vsix --force",
     "all": "bun run build && bun package && bun install-extension"
   },
   "devDependencies": {
-    "@types/bun": "1.3.14",
-    "@types/vscode": "^1.125.0"
-  },
-  "peerDependencies": {
-    "typescript": "^7.0.2"
+    "@types/bun": "1.4.5",
+    "@types/vscode": "^1.146.0"
   },
   "contributes": {
     "commands": [
