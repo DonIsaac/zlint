@@ -14,42 +14,43 @@ pub fn readToEndAlloc(file: File, io: std.Io, allocator: Allocator, max_bytes: u
     };
 }
 
-// Reader.StreamError without EndOfStream
-pub const ReadWriteError = error{
+pub const ReadLineError = error{
     /// See the `Reader` implementation for detailed diagnostics.
     ReadFailed,
-    /// See the `Writer` implementation for detailed diagnostics.
-    WriteFailed,
+    /// The line did not fit in the output buffer. The remainder of the line
+    /// has been discarded, so the next call resumes at the following line.
+    StreamTooLong,
 };
 
 /// Modified version of `streamUntilDelimiterOrEof` from zig v0.14.1's stdlib.
 ///
 /// Reads from the stream until specified byte is found. If the buffer is not
-/// large enough to hold the entire contents, `error.StreamTooLong` is returned.
+/// large enough to hold the entire contents, the rest of the line is discarded
+/// and `error.StreamTooLong` is returned.
 /// If end-of-stream is found, returns the rest of the stream. If this
 /// function is called again after that, returns null.
+/// Empty lines are returned as empty slices; only end-of-stream yields null.
 /// Returns a slice of the stream data, with ptr equal to `buf.ptr`. The
-/// delimiter byte is written to the output buffer but is not included
-/// in the returned slice.
+/// delimiter byte is not included in the returned slice.
 pub fn readUntilDelimiterOrEof(
     reader: *std.Io.Reader,
     buffer: []u8,
     delimiter: u8,
-) ReadWriteError!?[]u8 {
+) ReadLineError!?[]u8 {
     var fbw = std.Io.Writer.fixed(buffer);
-    const bytes_read = reader.streamDelimiter(&fbw, delimiter) catch |err| switch (err) {
-        error.EndOfStream => if (fbw.end == 0) {
-            return null;
-        } else {
-            // Partial data at EOF (e.g. last line without trailing newline)
-            return buffer[0..fbw.end];
+    _ = reader.streamDelimiter(&fbw, delimiter) catch |err| switch (err) {
+        error.EndOfStream => return if (fbw.end == 0) null else buffer[0..fbw.end],
+        error.ReadFailed => return error.ReadFailed,
+        error.WriteFailed => {
+            _ = reader.discardDelimiterInclusive(delimiter) catch |e| switch (e) {
+                error.EndOfStream => {},
+                error.ReadFailed => return error.ReadFailed,
+            };
+            return error.StreamTooLong;
         },
-
-        else => |e| return e,
     };
-    if (bytes_read == 0) return null;
     reader.toss(1); // throw out the delimiter
-    return buffer[0..bytes_read];
+    return buffer[0..fbw.end];
 }
 
 test readUntilDelimiterOrEof {
@@ -64,4 +65,25 @@ test readUntilDelimiterOrEof {
     try expectEqualString(try readUntilDelimiterOrEof(&reader, &buffer, '\n') orelse return error.ExpectedLine, "line2");
     try expectEqualString(try readUntilDelimiterOrEof(&reader, &buffer, '\n') orelse return error.ExpectedLine, "line3");
     try expect(try readUntilDelimiterOrEof(&reader, &buffer, '\n') == null);
+}
+
+test "readUntilDelimiterOrEof: empty lines and CRLF" {
+    const t = std.testing;
+    var buffer: [16]u8 = undefined;
+    var reader = std.Io.Reader.fixed("a\n\nb\r\n\n");
+    try t.expectEqualStrings("a", (try readUntilDelimiterOrEof(&reader, &buffer, '\n') orelse return error.TestUnexpectedResult));
+    try t.expectEqualStrings("", (try readUntilDelimiterOrEof(&reader, &buffer, '\n') orelse return error.TestUnexpectedResult));
+    try t.expectEqualStrings("b\r", (try readUntilDelimiterOrEof(&reader, &buffer, '\n') orelse return error.TestUnexpectedResult));
+    try t.expectEqualStrings("", (try readUntilDelimiterOrEof(&reader, &buffer, '\n') orelse return error.TestUnexpectedResult));
+    try t.expect(try readUntilDelimiterOrEof(&reader, &buffer, '\n') == null);
+}
+
+test "readUntilDelimiterOrEof: overlong line is skipped" {
+    const t = std.testing;
+    var buffer: [4]u8 = undefined;
+    var reader = std.Io.Reader.fixed("toolongline\nok\ntoolongtail");
+    try t.expectError(error.StreamTooLong, readUntilDelimiterOrEof(&reader, &buffer, '\n'));
+    try t.expectEqualStrings("ok", (try readUntilDelimiterOrEof(&reader, &buffer, '\n') orelse return error.TestUnexpectedResult));
+    try t.expectError(error.StreamTooLong, readUntilDelimiterOrEof(&reader, &buffer, '\n'));
+    try t.expect(try readUntilDelimiterOrEof(&reader, &buffer, '\n') == null);
 }
