@@ -34,10 +34,14 @@ const LintSink = struct {
 var buf: [4096]u8 = undefined;
 
 pub fn lint(alloc: Allocator, io: std.Io, environ: std.process.Environ, options: Options) !u8 {
+    return lintToFile(alloc, io, environ, options, File.stdout());
+}
+
+fn lintToFile(alloc: Allocator, io: std.Io, environ: std.process.Environ, options: Options, output: File) !u8 {
     // writer cannot live on the stack.
     // this gets moved into Reporter, which runs on a different thread.
     const writer = try alloc.create(File.Writer);
-    writer.* = File.stdout().writer(io, &buf);
+    writer.* = output.writerStreaming(io, &buf);
     defer alloc.destroy(writer);
     var stdout = &writer.interface;
     defer stdout.flush() catch @panic("failed to flush writer");
@@ -193,6 +197,32 @@ pub fn normalizeTarget(target: []const u8) []const u8 {
         normalized = normalized[0 .. normalized.len - 1];
     }
     return if (std.mem.eql(u8, normalized, ".")) "" else normalized;
+}
+
+test "invalid config diagnostic is written at the output file's current offset" {
+    const t = std.testing;
+    var tmp = t.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(t.io, .{ .sub_path = "zlint.json", .data = "{" });
+    const config = try tmp.dir.realPathFileAlloc(t.io, "zlint.json", t.allocator);
+    defer t.allocator.free(config);
+
+    const marker = "existing output\n";
+    {
+        const output = try tmp.dir.createFile(t.io, "output", .{});
+        defer output.close(t.io);
+        try output.writeStreamingAll(t.io, marker);
+        try t.expectEqual(@as(u8, 1), try lintToFile(t.allocator, t.io, .empty, .{
+            .config = config,
+            .format = .json,
+        }, output));
+    }
+
+    const actual = try tmp.dir.readFileAlloc(t.io, "output", t.allocator, .limited(4096));
+    defer t.allocator.free(actual);
+    try t.expect(std.mem.startsWith(u8, actual, marker));
+    try t.expect(std.mem.indexOf(u8, actual[marker.len..], "\"code\":\"invalid-config\"") != null);
 }
 
 test normalizeTarget {
