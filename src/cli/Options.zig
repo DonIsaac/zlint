@@ -146,12 +146,13 @@ fn parse(alloc: Allocator, io: std.Io, args_iter: anytype, err: ?*Error) ParseEr
             var buf: [512]u8 = undefined;
             var writer = std.Io.File.stdout().writer(io, &buf);
             var stdout = &writer.interface;
-            defer stdout.flush() catch @panic("failed to flush writer");
 
             try stdout.writeAll(usage);
             try stdout.writeAll(util.NEWLINE ++ util.NEWLINE);
             try stdout.writeAll(help);
             try stdout.writeAll(util.NEWLINE);
+            // Process exit does not run defers.
+            try stdout.flush();
             std.process.exit(0);
         } else if (eq(arg, "--")) {
             continue;
