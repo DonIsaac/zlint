@@ -248,6 +248,7 @@ pub fn resolveContainer(
     node: Node.Index,
     depth: u8,
 ) ?Ast.full.ContainerDecl {
+    if (depth >= max_depth) return null;
     if (ctx.ast().fullContainerDecl(buf, node)) |container| return container;
     const decl_init = resolveDeclInit(max_depth, ctx, node, depth) orelse return null;
     return resolveContainer(max_depth, ctx, buf, decl_init, depth + 1);
@@ -384,10 +385,10 @@ test "resolveDeclInit stops after max_depth steps" {
     defer tc.deinit();
     const target = try tc.target();
 
-    // 4 steps: look up `.R`, then `A2` -> `A1` -> `S` -> `struct { ... }`
-    try t.expectEqualStrings("u8", tc.ctx.ast().getNodeSource(resolveDeclInit(4, &tc.ctx, target, 0).?));
-    try t.expectEqual(null, resolveDeclInit(3, &tc.ctx, target, 0));
-    try t.expectEqual(null, resolveDeclInit(4, &tc.ctx, target, 1));
+    // 5 steps: look up `.R`, then `A2` -> `A1` -> `S` -> `struct { ... }`
+    try t.expectEqualStrings("u8", tc.ctx.ast().getNodeSource(resolveDeclInit(5, &tc.ctx, target, 0).?));
+    try t.expectEqual(null, resolveDeclInit(4, &tc.ctx, target, 0));
+    try t.expectEqual(null, resolveDeclInit(5, &tc.ctx, target, 1));
 }
 
 test resolveContainer {
@@ -418,4 +419,17 @@ test resolveContainer {
         };
         if (container) |c| try t.expectEqual(case.members, c.ast.members.len);
     }
+}
+
+test "resolveContainer stops after max_depth steps" {
+    var tc: TestContext = undefined;
+    try tc.init("const S = struct {}; const A = S; const target = A;");
+    defer tc.deinit();
+    const target = try tc.target();
+
+    var buf: [2]Node.Index = undefined;
+    // 3 steps: `A` -> `S` -> `struct {}`
+    try t.expect(resolveContainer(3, &tc.ctx, &buf, target, 0) != null);
+    try t.expectEqual(null, resolveContainer(2, &tc.ctx, &buf, target, 0));
+    try t.expectEqual(null, resolveContainer(3, &tc.ctx, &buf, target, 1));
 }
