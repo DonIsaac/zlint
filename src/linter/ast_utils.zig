@@ -248,7 +248,6 @@ pub fn resolveContainer(
     node: Node.Index,
     depth: u8,
 ) ?Ast.full.ContainerDecl {
-    if (depth >= max_depth) return null;
     if (ctx.ast().fullContainerDecl(buf, node)) |container| return container;
     const decl_init = resolveDeclInit(max_depth, ctx, node, depth) orelse return null;
     return resolveContainer(max_depth, ctx, buf, decl_init, depth + 1);
