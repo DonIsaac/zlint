@@ -151,7 +151,6 @@ fn parse(alloc: Allocator, io: std.Io, args_iter: anytype, err: ?*Error) ParseEr
             try stdout.writeAll(util.NEWLINE ++ util.NEWLINE);
             try stdout.writeAll(help);
             try stdout.writeAll(util.NEWLINE);
-            // Process exit does not run defers.
             try stdout.flush();
             std.process.exit(0);
         } else if (eq(arg, "--")) {
