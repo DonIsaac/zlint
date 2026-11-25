@@ -187,6 +187,20 @@
    ╰────
   help: It should be in snake_case
 
+  𝙭 case-convention: Payload 'myFoo' is in camelCase
+   ╭─[case-convention.zig:1:35]
+ 1 │ fn f(opt: ??Foo) void { if (opt) |myFoo| myFoo.?.baz(); }
+   ·                                   ─────
+   ╰────
+  help: It should be in snake_case
+
+  𝙭 case-convention: Payload 'idxVal' is in camelCase
+   ╭─[case-convention.zig:1:54]
+ 1 │ fn f(xs: []const usize, arr: []Foo) void { for (xs) |idxVal| arr[idxVal].baz(); }
+   ·                                                      ──────
+   ╰────
+  help: It should be in snake_case
+
   𝙭 case-convention: Function 'foo_bar' is in snake_case
    ╭─[case-convention.zig:1:4]
  1 │ fn foo_bar() callconv(.auto) void {}

@@ -329,6 +329,98 @@ test "Reference flags - `x` - member access" {
             "const x = 1; fn f(a: u32) struct { y: u32 } { return .{ .y = a }; } const z = f(x).y;",
             .{ .read = true },
         },
+        // write context does not leak into arguments of a call on the LHS.
+        .{
+            "const x = 1; var s: struct { y: u32 } = undefined; fn f(_: u32) *@TypeOf(s) { return &s; } fn g() void { f(x).y = 1; }",
+            .{ .read = true },
+        },
+        // destructuring targets
+        .{
+            "var x: struct { y: u32 } = undefined; var z: u32 = 0; fn f() void { x.y, z = .{ 1, 2 }; }",
+            .{ .read = true, .member = true },
+        },
+        .{
+            "var x: ?struct { y: u32 } = undefined; var z: u32 = 0; fn f() void { x.?.y, z = .{ 1, 2 }; }",
+            .{ .read = true, .member = true },
+        },
+        .{
+            "var x: *u32 = undefined; var z: u32 = 0; fn f() void { x.*, z = .{ 1, 2 }; }",
+            .{ .read = true },
+        },
+        // `.?`, `.*`, and parentheses are transparent.
+        .{
+            "const S = struct { fn foo(_: S) void {} }; var x: ?S = null; fn f() void { x.?.foo(); }",
+            .{ .call = true, .member = true },
+        },
+        .{
+            "const S = struct { fn foo(_: S) void {} }; var x: *S = undefined; fn f() void { x.*.foo(); }",
+            .{ .call = true, .member = true },
+        },
+        .{
+            "const S = struct { fn foo(_: S) void {} }; var x: S = .{}; fn f() void { (x).foo(); }",
+            .{ .call = true, .member = true },
+        },
+        .{
+            "const S = struct { fn foo(_: S) void {} }; var x: ?*S = null; fn f() void { (x.?).*.foo(); }",
+            .{ .call = true, .member = true },
+        },
+        .{
+            "var x: ?struct { y: u32 } = null; fn f() u32 { return x.?.y; }",
+            .{ .read = true, .member = true },
+        },
+        // operands of a parenthesized expression are not member references.
+        .{
+            "const x: u32 = 1; const y = (x + 1).foo;",
+            .{ .read = true },
+        },
+        // `.?` / `.*` without a member access are not member references.
+        .{
+            "var x: ?u32 = null; fn f() u32 { return x.?; }",
+            .{ .read = true },
+        },
+    });
+}
+
+test "Reference flags - `x` - array access" {
+    try testRefsOnX(&[_]RefTestCase{
+        // array operand: element access is transparent
+        .{
+            "var x: [1]u32 = undefined; fn f() void { x[0] += 1; }",
+            .{ .read = true, .write = true },
+        },
+        .{
+            "var x: [1]*const fn () void = undefined; fn f() void { x[0](); }",
+            .{ .call = true },
+        },
+        .{
+            "const S = struct { fn foo(_: S) void {} }; var x: [1]S = undefined; fn f() void { x[0].foo(); }",
+            .{ .call = true, .member = true },
+        },
+        .{
+            "var x: [1]struct { y: u32 } = undefined; fn f() void { x[0].y = 1; }",
+            .{ .write = true, .member = true },
+        },
+        .{
+            "var x: [1]?struct { y: u32 } = undefined; fn f() u32 { return x[0].?.y; }",
+            .{ .read = true, .member = true },
+        },
+        // index is always a plain read
+        .{
+            "var arr: [1]u32 = undefined; const x = 0; fn f() u32 { return arr[x]; }",
+            .{ .read = true },
+        },
+        .{
+            "var arr: [1]u32 = undefined; const x = 0; fn f() void { arr[x] = 1; }",
+            .{ .read = true },
+        },
+        .{
+            "const S = struct { fn foo(_: S) void {} }; var arr: [1]S = undefined; const x = 0; fn f() void { arr[x].foo(); }",
+            .{ .read = true },
+        },
+        .{
+            "var arr: [1]struct { y: u32 } = undefined; const x = 0; fn f() void { arr[x].y = 1; }",
+            .{ .read = true },
+        },
     });
 }
 
