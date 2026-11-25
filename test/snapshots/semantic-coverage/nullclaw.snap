@@ -1,5 +1,5 @@
-Passed: 86.77966% (256/295)
-Panics: 0% (0/295)
+Passed: 86.824326% (257/296)
+Panics: 0% (0/296)
 
 src/agent/commands.zig: error.AnalysisFailed
 src/agent/root.zig: error.AnalysisFailed
@@ -7,6 +7,7 @@ src/agent_routing.zig: error.AnalysisFailed
 src/audit/envelope.zig: error.AnalysisFailed
 src/channels/irc.zig: error.AnalysisFailed
 src/channels/line.zig: error.AnalysisFailed
+src/channels/matrix.zig: error.AnalysisFailed
 src/channels/mattermost.zig: error.AnalysisFailed
 src/channels/max.zig: error.AnalysisFailed
 src/channels/nostr.zig: error.AnalysisFailed
@@ -39,4 +40,3 @@ src/session.zig: error.AnalysisFailed
 src/tools/composio.zig: error.AnalysisFailed
 src/tools/image.zig: error.AnalysisFailed
 src/tools/web_fetch.zig: error.AnalysisFailed
-src/tools/web_search.zig: error.AnalysisFailed

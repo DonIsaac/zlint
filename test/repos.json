@@ -2,21 +2,21 @@
   {
     "name": "zig",
     "repo_url": "https://codeberg.org/ziglang/zig",
-    "hash": "d4f6ff278391611890ed654adf37c6b8d5dd7708"
+    "hash": "9e21007069c1ec4f42d50cd220f72c43be411601"
   },
   {
     "name": "lightpanda",
     "repo_url": "https://github.com/lightpanda-io/browser",
-    "hash": "f6fdec3300bbeb66ebd9026cb98b3fffa0185759"
+    "hash": "240f6b81a5d948301cc2c21bbef6d8c5580da09d"
   },
   {
     "name": "ghostty",
     "repo_url": "https://github.com/ghostty-org/ghostty",
-    "hash": "d560c645488d158c3e554e13025c0eaad68d1f43"
+    "hash": "107f44866c1af539f44f72a636c742fc1f604543"
   },
   {
     "name": "nullclaw",
     "repo_url": "https://github.com/nullclaw/nullclaw",
-    "hash": "9967eb9cacbf70e617602b6c36056ea67557614f"
+    "hash": "5f1cade05c19b6ecdfb9565ae3305e892e484da9"
   }
 ]
