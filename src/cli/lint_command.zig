@@ -1,5 +1,6 @@
 const std = @import("std");
 const zlint = @import("zlint");
+const util = @import("util");
 const fs = @import("../io/fs.zig");
 const walk = @import("../io/Walker.zig");
 
@@ -99,11 +100,10 @@ pub fn lint(alloc: Allocator, io: std.Io, environ: std.process.Environ, options:
         } else {
             // SAFETY: initialized by reader
             var msg_buf: [4096]u8 = undefined;
-            var delim_buf: [1024]u8 = undefined;
+            var delim_buf: [std.fs.max_path_bytes]u8 = undefined;
             var stdin = File.stdin();
             var reader = stdin.readerStreaming(io, &msg_buf);
-            while (try fs.readUntilDelimiterOrEof(&reader.interface, &delim_buf, '\n')) |filepath| {
-                if (!std.mem.endsWith(u8, filepath, ".zig")) continue;
+            while (try nextStdinPath(&reader.interface, &delim_buf)) |filepath| {
                 const owned = try alloc.dupe(u8, filepath);
                 service.lintFileParallel(owned);
             }
@@ -195,6 +195,25 @@ pub fn normalizeTarget(target: []const u8) []const u8 {
     return if (std.mem.eql(u8, normalized, ".")) "" else normalized;
 }
 
+/// Reads the next Zig file path from a newline-delimited `reader`, or null at
+/// end of stream. Surrounding whitespace (e.g. the `\r` of CRLF) is trimmed;
+/// blank lines, non-Zig paths, and lines longer than `line_buf` are skipped.
+///
+/// The returned slice borrows from `line_buf`.
+fn nextStdinPath(reader: *std.Io.Reader, line_buf: []u8) error{ReadFailed}!?[]const u8 {
+    while (true) {
+        const line = fs.readUntilDelimiterOrEof(reader, line_buf, '\n') catch |err| switch (err) {
+            error.StreamTooLong => {
+                std.log.warn("skipping stdin line longer than {d} bytes", .{line_buf.len});
+                continue;
+            },
+            error.ReadFailed => return error.ReadFailed,
+        } orelse return null;
+        const filepath = util.trimWhitespace(line);
+        if (std.mem.endsWith(u8, filepath, ".zig")) return filepath;
+    }
+}
+
 test normalizeTarget {
     const t = std.testing;
     // already in the shape patterns are written in
@@ -224,6 +243,18 @@ test normalizeTarget {
 
     // degenerate
     try t.expectEqualStrings("", normalizeTarget(""));
+}
+
+test nextStdinPath {
+    const t = std.testing;
+    var line_buf: [16]u8 = undefined;
+    var reader = std.Io.Reader.fixed("a.zig\r\n\nREADME.md\n  b.zig  \n" ++
+        "this/path/is/too/long.zig\nc.zig\nd.zig");
+    try t.expectEqualStrings("a.zig", (try nextStdinPath(&reader, &line_buf) orelse return error.TestUnexpectedResult));
+    try t.expectEqualStrings("b.zig", (try nextStdinPath(&reader, &line_buf) orelse return error.TestUnexpectedResult));
+    try t.expectEqualStrings("c.zig", (try nextStdinPath(&reader, &line_buf) orelse return error.TestUnexpectedResult));
+    try t.expectEqualStrings("d.zig", (try nextStdinPath(&reader, &line_buf) orelse return error.TestUnexpectedResult));
+    try t.expect(try nextStdinPath(&reader, &line_buf) == null);
 }
 
 test {
