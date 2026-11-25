@@ -82,14 +82,22 @@ fn bar() u32 {
 }
 ```
 
-Named aliases for error unions are resolved through the semantic model, so
-functions returning them are not flagged.
+Named aliases for error unions declared in the same file, including ones
+inside a container, are resolved, so functions returning them are not
+flagged.
 
 ```zig
 const Error = error{Oops};
 const Result = Error!void;
+const mod = struct {
+  pub const Result = Error!u32;
+};
 fn foo() Result {
   try bar();
+}
+fn baz() mod.Result {
+  try bar();
+  return 1;
 }
 ```
 

@@ -69,13 +69,21 @@
 //! }
 //! ```
 //!
-//! Named aliases for error unions are resolved through the semantic model, so
-//! functions returning them are not flagged.
+//! Named aliases for error unions declared in the same file, including ones
+//! inside a container, are resolved, so functions returning them are not
+//! flagged.
 //! ```zig
 //! const Error = error{Oops};
 //! const Result = Error!void;
+//! const mod = struct {
+//!   pub const Result = Error!u32;
+//! };
 //! fn foo() Result {
 //!   try bar();
+//! }
+//! fn baz() mod.Result {
+//!   try bar();
+//!   return 1;
 //! }
 //! ```
 //!
@@ -183,10 +191,9 @@ fn classifyTry(ctx: *LinterContext, try_node: Node.Index, boundary: Node.Index) 
     return if (in_comptime) .@"comptime" else .runtime;
 }
 
-/// Max const/var alias hops to follow. Bounds recursion, so alias cycles
-/// (`const A = B; const B = A;`) terminate as `null` (unknown) instead of
-/// blowing the stack. No visited-set needed.
-const MAX_ALIAS_DEPTH: u8 = 8;
+/// How many aliases and `mod.Foo` lookups to follow before giving up. This
+/// also stops alias cycles like `const A = B; const B = A;`.
+const MAX_RESOLVE_DEPTH: u8 = 8;
 
 /// Whether `node` is a type expression that can never be an error union.
 ///
@@ -234,47 +241,45 @@ fn isNeverErrorUnion(ctx: *LinterContext, node: Node.Index) bool {
     };
 }
 
-/// Classify a type node as an error union, following named `const`/`var`
-/// aliases through the semantic model.
+/// Is this return type an error union? Follows aliases declared in this
+/// file, like `Result` or `mod.Result`.
 ///
-/// - `true`  - is, or resolves through aliases to, an error union
-/// - `false` - definitively not an error union (a primitive, a fully resolved
-///             concrete type, or - at depth 0 only - a return type that is
-///             syntactically not an error union)
-/// - `null`  - not statically classifiable (unresolved identifier, or an alias
-///             chain we failed to follow to the end). Callers must treat this
-///             like `true` and stay silent.
+/// Returns null when we can't tell (imports, `Result(u32)`, `@This()`
+/// namespaces, too many aliases). Callers should stay quiet in that case.
 fn resolveAliasErrorUnion(ctx: *LinterContext, node: Node.Index, depth: u8) ?bool {
     const ast = ctx.ast();
 
     if (a.hasErrorUnion(ast, node)) return true;
-    if (a.getRightmostIdentifier(ctx, node)) |ident| {
-        if (std.mem.endsWith(u8, ident, "Error")) return true;
-    }
     // Structural type expressions that definitively cannot be an error union.
     // Without this, aliases like `const Self = @This();` or
     // `const Str = []const u8;` would fall into the conservative bail below
     // and silently lose real violations.
     if (isNeverErrorUnion(ctx, node)) return false;
 
-    // Field access (`mod.Result`), generic instantiation (`std.ArrayList(u8)`),
-    // conditional return types, other builtin calls. We don't evaluate types,
-    // so we can't rule out an error union.
-    //
-    // At depth 0 this is the return type as written: it is syntactically not an
-    // error union, so report it - that is what the rule has always done. Past
-    // depth 0 we're inside an alias chain we failed to follow, so bail rather
-    // than risk a false positive on a `.compiler` rule.
-    if (ast.nodeTag(node) != .identifier) return if (depth == 0) false else null;
+    switch (ast.nodeTag(node)) {
+        .identifier => {
+            const name = ctx.semantic.tokenSlice(ast.nodeMainToken(node));
+            // `anyerror` is an error set, so `try` is allowed.
+            if (std.mem.eql(u8, name, "anyerror")) return true;
+            // Other primitives are never in the symbol table (see the TODO in
+            // `Semantic/Builder.zig`), so they're a terminal "definitely not
+            // fallible".
+            if (builtins.isPrimitiveType(name)) return false;
+        },
+        // `if (c) A else B` can fail if either branch can. No `else` means
+        // `void`.
+        .if_simple, .@"if" => {
+            const if_full = ast.fullIf(node).?;
+            const then_eu = resolveAliasErrorUnion(ctx, if_full.ast.then_expr, depth) orelse return null;
+            const else_expr = if_full.ast.else_expr.unwrap() orelse return then_eu;
+            const else_eu = resolveAliasErrorUnion(ctx, else_expr, depth) orelse return null;
+            return then_eu or else_eu;
+        },
+        else => {},
+    }
 
-    // Primitives are never in the symbol table (see the TODO in
-    // `Semantic/Builder.zig`), so they're a terminal "definitely not fallible".
-    const name = ctx.semantic.tokenSlice(ast.nodeMainToken(node));
-    if (builtins.isPrimitiveType(name)) return false;
-
-    if (depth >= MAX_ALIAS_DEPTH) return null;
-    const init_node = a.resolveConstAlias(ctx, node) orelse return null;
-    return resolveAliasErrorUnion(ctx, init_node, depth + 1);
+    const decl_init = a.resolveDeclInit(MAX_RESOLVE_DEPTH, ctx, node, depth) orelse return null;
+    return resolveAliasErrorUnion(ctx, decl_init, depth + 1);
 }
 
 fn checkFnDecl(ctx: *LinterContext, decl_node: Node.Index, try_node: Node.Index) void {
@@ -545,7 +550,7 @@ test HomelessTry {
         ,
         // aliases we cannot resolve stay silent rather than risk a false
         // positive
-        \\const mod = struct { pub const Result = error{A}!void; };
+        \\const mod = @import("mod.zig");
         \\const Result = mod.Result;
         \\fn bar() mod.Result { return error.A; }
         \\pub fn foo() Result {
@@ -558,6 +563,20 @@ test HomelessTry {
         \\fn bar() E!void { return error.A; }
         \\pub fn foo() E {
         \\  try bar();
+        \\}
+        ,
+        // `anyerror` is an error set too, directly or through an alias
+        \\fn bar() !void {}
+        \\pub fn foo() anyerror {
+        \\  try bar();
+        \\  return error.A;
+        \\}
+        ,
+        \\const E = anyerror;
+        \\fn bar() !void {}
+        \\pub fn foo() E {
+        \\  try bar();
+        \\  return error.A;
         \\}
         ,
         // aliases resolve from the scope of the reference, so the inner
@@ -586,6 +605,121 @@ test HomelessTry {
         \\var Result = E!void;
         \\fn bar() E!void { return error.A; }
         \\pub fn foo() Result {
+        \\  try bar();
+        \\}
+        ,
+        // imported, `@This()`, and generic return types are unresolvable, so
+        // they stay silent
+        \\const errs = @import("errs.zig");
+        \\fn work() !u32 { return 1; }
+        \\pub fn run() errs.Result {
+        \\  const x = try work();
+        \\  _ = x;
+        \\}
+        ,
+        \\const Self = @This();
+        \\const Result = void;
+        \\fn bar() !void {}
+        \\fn foo() Self.Result {
+        \\  try bar();
+        \\}
+        ,
+        \\fn Result(comptime T: type) type { return error{A}!T; }
+        \\fn bar() !void {}
+        \\fn foo() Result(u32) {
+        \\  try bar();
+        \\  return 1;
+        \\}
+        ,
+        \\const std = @import("std");
+        \\fn foo() std.array_list.Managed(u8) {
+        \\  _ = try std.heap.page_allocator.alloc(u8, 8);
+        \\}
+        ,
+        // a conditional return type is unresolvable if any branch is
+        \\const mod = @import("mod.zig");
+        \\const E = error{A};
+        \\fn bar() E!void { return error.A; }
+        \\pub fn foo(comptime c: bool) if (c) void else mod.Result {
+        \\  try bar();
+        \\}
+        ,
+        // declarations inside containers in the same file are resolved
+        \\const E = error{A};
+        \\const mod = struct { pub const Result = E!void; };
+        \\fn bar() E!void { return error.A; }
+        \\pub fn foo() mod.Result {
+        \\  try bar();
+        \\}
+        ,
+        \\const E = error{A};
+        \\fn bar() E!void { return error.A; }
+        \\const outer = struct {
+        \\  pub const inner = struct {
+        \\    const Inner = E!void;
+        \\    pub const Result = Inner;
+        \\  };
+        \\};
+        \\const alias = outer.inner;
+        \\pub fn foo() alias.Result {
+        \\  try bar();
+        \\}
+        ,
+        \\const E = error{A};
+        \\fn bar() E!void { return error.A; }
+        \\const mod = struct { pub const Result = error{A}; };
+        \\pub fn foo() mod.Result {
+        \\  try bar();
+        \\}
+        ,
+        \\const E = error{A};
+        \\fn bar() E!void { return error.A; }
+        \\pub fn foo() struct { const Result = E!void; }.Result {
+        \\  try bar();
+        \\}
+        ,
+        // only the container's own declarations are members, not locals
+        // inside its methods
+        \\const E = error{A};
+        \\fn bar() E!void { return error.A; }
+        \\const mod = struct {
+        \\  fn baz() void { const Result = void; _ = Result; }
+        \\  pub const Result = E!void;
+        \\};
+        \\pub fn foo() mod.Result {
+        \\  try bar();
+        \\}
+        ,
+        // unknown members, and namespaces that are not containers, stay
+        // silent
+        \\fn bar() !void {}
+        \\const mod = struct {};
+        \\pub fn foo() mod.Missing {
+        \\  try bar();
+        \\}
+        ,
+        \\fn bar() !void {}
+        \\const mod = if (true) struct { pub const Result = void; } else struct {};
+        \\pub fn foo() mod.Result {
+        \\  try bar();
+        \\}
+        ,
+        \\fn bar() !void {}
+        \\fn foo(x: anytype) @TypeOf(x).Result {
+        \\  try bar();
+        \\}
+        ,
+        // cyclic namespace aliases terminate
+        \\fn bar() !void {}
+        \\const A = A.B;
+        \\pub fn foo() A.B {
+        \\  try bar();
+        \\}
+        ,
+        \\fn bar() !void {}
+        \\const A = B.Inner;
+        \\const B = struct { const Inner = A; };
+        \\pub fn foo() A.C {
         \\  try bar();
         \\}
     };
@@ -650,10 +784,46 @@ test HomelessTry {
         \\  }
         \\};
         ,
-        // field-access return types are unresolvable, but still reported
+        \\fn bar() !void {}
+        \\fn foo(comptime c: bool) if (c) u32 {
+        \\  try bar();
+        \\}
+        ,
+        \\const std = @import("std");
+        \\const Result = void;
+        \\pub fn foo(comptime c: bool) if (c) Result else []const u8 {
+        \\  _ = try std.heap.page_allocator.alloc(u8, 8);
+        \\}
+        ,
+        // declarations inside containers in the same file are resolved
         \\const mod = struct { pub const Result = void; };
         \\fn bar() !void {}
         \\fn foo() mod.Result {
+        \\  try bar();
+        \\}
+        ,
+        \\fn bar() !void {}
+        \\const outer = struct {
+        \\  pub const inner = struct {
+        \\    pub const Point = struct { x: u32 };
+        \\  };
+        \\};
+        \\const alias = outer.inner;
+        \\fn foo() alias.Point {
+        \\  try bar();
+        \\}
+        ,
+        // a name ending in `Error` is not an error set
+        \\const ParseError = struct { msg: []const u8 };
+        \\fn bar() !void {}
+        \\fn foo() ParseError {
+        \\  try bar();
+        \\}
+        ,
+        // `@"anyerror"` names a declaration, not the primitive error set
+        \\const @"anyerror" = void;
+        \\fn bar() !void { return error.A; }
+        \\fn foo() @"anyerror" {
         \\  try bar();
         \\}
         ,
@@ -757,12 +927,6 @@ test HomelessTry {
         \\    };
         \\    _ = S;
         \\  }
-        \\}
-        ,
-        // generic instantiation, likewise
-        \\const std = @import("std");
-        \\fn foo() std.array_list.Managed(u8) {
-        \\  _ = try std.heap.page_allocator.alloc(u8, 8);
         \\}
     };
 
