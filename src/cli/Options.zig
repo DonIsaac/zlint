@@ -39,6 +39,9 @@ config: ?[]const u8 = null,
 /// Positional arguments
 args: std.ArrayList([]const u8) = .empty,
 
+/// Arg iterators on these platforms free their strings on `deinit`.
+const needs_copy = util.IS_WINDOWS or (builtin.os.tag == .wasi and !builtin.link_libc);
+
 pub const usage =
     \\Usage: zlint [options] [<dirs>]
     \\       zlint update
@@ -88,7 +91,9 @@ fn parse(alloc: Allocator, io: std.Io, args_iter: anytype, err: ?*Error) ParseEr
     while (argv.next()) |arg| {
         if (arg.len == 0) continue;
         if (arg[0] != '-') {
-            try opts.args.append(alloc, arg);
+            const owned = try own(alloc, arg);
+            errdefer if (needs_copy) alloc.free(owned);
+            try opts.args.append(alloc, owned);
             continue;
         }
         if (eq(arg, "--fix")) {
@@ -141,7 +146,9 @@ fn parse(alloc: Allocator, io: std.Io, args_iter: anytype, err: ?*Error) ParseEr
                 }
                 return error.InvalidArgValue;
             }
-            opts.config = config;
+            const owned = try own(alloc, config);
+            if (needs_copy) if (opts.config) |prev| alloc.free(prev);
+            opts.config = owned;
         } else if (eq(arg, "-h") or eq(arg, "--help") or eq(arg, "--hlep") or eq(arg, "-help")) {
             var buf: [512]u8 = undefined;
             var writer = std.Io.File.stdout().writer(io, &buf);
@@ -167,7 +174,15 @@ fn parse(alloc: Allocator, io: std.Io, args_iter: anytype, err: ?*Error) ParseEr
 }
 
 pub fn deinit(self: *Options, alloc: std.mem.Allocator) void {
+    if (needs_copy) {
+        for (self.args.items) |arg| alloc.free(arg);
+        if (self.config) |config| alloc.free(config);
+    }
     self.args.deinit(alloc);
+}
+
+inline fn own(alloc: Allocator, arg: []const u8) ![]const u8 {
+    return if (comptime needs_copy) alloc.dupe(u8, arg) else arg;
 }
 
 inline fn eq(arg: anytype, name: @TypeOf(arg)) bool {
@@ -178,6 +193,7 @@ const FORMAT_NAMES: []const u8 = "default, graphical, ascii, json, github, gh";
 
 const Options = @This();
 const std = @import("std");
+const builtin = @import("builtin");
 const util = @import("util");
 const Allocator = std.mem.Allocator;
 const formatter = @import("zlint").report.formatter;
@@ -307,4 +323,32 @@ test "--config without a value" {
         defer err.deinit(t.allocator);
         try t.expect(std.mem.indexOf(u8, err.message.borrow(), "requires a path") != null);
     }
+}
+
+test "parsed arguments outlive the argument iterator" {
+    const vector: std.process.Args.Vector = if (comptime util.IS_WINDOWS)
+        std.unicode.utf8ToUtf16LeStringLiteral("zlint.exe --config ignored.json --config custom-config.json src")
+    else if (comptime std.process.Args.Vector == void)
+        return error.SkipZigTest
+    else
+        &.{ "zlint", "--config", "ignored.json", "--config", "custom-config.json", "src" };
+
+    var opts = try parseArgv(t.allocator, t.io, .{ .vector = vector }, null);
+    defer opts.deinit(t.allocator);
+    try t.expectEqualStrings("custom-config.json", opts.config.?);
+    try t.expectEqual(1, opts.args.items.len);
+    try t.expectEqualStrings("src", opts.args.items[0]);
+}
+
+test "parse errors free copied arguments" {
+    const vector: std.process.Args.Vector = if (comptime util.IS_WINDOWS)
+        std.unicode.utf8ToUtf16LeStringLiteral("zlint.exe src --config")
+    else if (comptime std.process.Args.Vector == void)
+        return error.SkipZigTest
+    else
+        &.{ "zlint", "src", "--config" };
+
+    var err: Error = undefined;
+    try t.expectError(error.InvalidArg, parseArgv(t.allocator, t.io, .{ .vector = vector }, &err));
+    err.deinit(t.allocator);
 }
