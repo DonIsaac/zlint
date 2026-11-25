@@ -1,0 +1,52 @@
+  𝙭 lifecycle-conventions: Destructor should invalidate `self` with `undefined`
+   ╭─[lifecycle-conventions.zig:1:30]
+ 1 │ fn deinit(self: *Foo) void { self.* = .{ .x = 0 }; }
+   ·                              ──────────┬──────────
+   ·                                        ╰── `self` is assigned a value other than `undefined` here
+   ╰────
+  help: Assign `undefined` instead
+
+  𝙭 lifecycle-conventions: Destructor should invalidate `self` with `undefined`
+   ╭─[lifecycle-conventions.zig:1:30]
+ 1 │ fn deinit(self: *Foo) void { self.* = Foo.init(); }
+   ·                              ─────────┬─────────
+   ·                                       ╰── `self` is assigned a value other than `undefined` here
+   ╰────
+  help: Assign `undefined` instead
+
+  𝙭 lifecycle-conventions: Destructor does not invalidate `self`
+   ╭─[lifecycle-conventions.zig:1:11]
+ 1 │ fn deinit(self: *Foo) void { self.fd = 5; }
+   ·           ────
+   ╰────
+  help: Add `self.* = undefined;` at the end of the destructor
+
+  𝙭 lifecycle-conventions: Destructor does not invalidate `self`
+   ╭─[lifecycle-conventions.zig:1:11]
+ 1 │ fn deinit(self: *Foo) void { self.fd = -2; }
+   ·           ────
+   ╰────
+  help: Add `self.* = undefined;` at the end of the destructor
+
+  𝙭 lifecycle-conventions: Destructor does not invalidate `self`
+   ╭─[lifecycle-conventions.zig:1:11]
+ 1 │ fn deinit(self: *Foo) void { self.inner.fd = -1; }
+   ·           ────
+   ╰────
+  help: Add `self.* = undefined;` at the end of the destructor
+
+  𝙭 lifecycle-conventions: Destructor should invalidate `self` with `undefined`
+   ╭─[lifecycle-conventions.zig:1:30]
+ 1 │ fn deinit(self: *Foo) void { self.* = .{ .x = 1 }; self.fd = -1; }
+   ·                              ──────────┬──────────
+   ·                                        ╰── `self` is assigned a value other than `undefined` here
+   ╰────
+  help: Assign `undefined` instead
+
+  𝙭 lifecycle-conventions: Destructor does not invalidate `self`
+   ╭─[lifecycle-conventions.zig:1:11]
+ 1 │ fn deinit(self: *Foo) void { _ = self; }
+   ·           ────
+   ╰────
+  help: Add `self.* = undefined;` at the end of the destructor
+

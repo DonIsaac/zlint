@@ -1,4 +1,5 @@
-const Context = @import("./lint_context.zig");
+const std = @import("std");
+const Context = @import("lint_context.zig");
 const Semantic = @import("../Semantic.zig");
 const Ast = Semantic.Ast;
 const Node = Ast.Node;
@@ -69,6 +70,25 @@ pub fn isInTest(ctx: *const Context, node: Node.Index) bool {
 pub fn isBlock(ast: *const Ast, node: Node.Index) bool {
     return switch (ast.nodeTag(node)) {
         .block, .block_semicolon, .block_two, .block_two_semicolon => true,
+        else => false,
+    };
+}
+
+pub fn isUndefinedLiteral(ctx: *const Context, token: Ast.TokenIndex) bool {
+    return ctx.ast().tokens.items(.tag)[token] == .identifier and
+        std.mem.eql(u8, ctx.semantic.tokenSlice(token), "undefined");
+}
+
+/// `@This()`
+pub fn isThisCall(ctx: *const Context, node: Node.Index) bool {
+    const ast = ctx.ast();
+    return switch (ast.nodeTag(node)) {
+        // `@This()` never has arguments, so `.builtin_call` can be ignored.
+        .builtin_call_two, .builtin_call_two_comma => std.mem.eql(
+            u8,
+            ctx.semantic.tokenSlice(ast.nodeMainToken(node)),
+            "@This",
+        ),
         else => false,
     };
 }

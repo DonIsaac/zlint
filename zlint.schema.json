@@ -458,6 +458,28 @@
                         }
                     ]
                 },
+                "lifecycle-conventions": {
+                    "description": "## What This Rule Does\nEnforces conventions for constructors (`init`) and destructors (`deinit`):\n\n1. Destructors never fail, so they must not return an error union.\n2. Destructors taking `self: *T` invalidate it with `self.* = undefined;`.\n   In safe builds this fills `self` with `0xaa` bytes, so using it after\n   `deinit` crashes instead of silently working. In unsafe builds it\n   compiles to nothing.\n3. `init` returns a value (`T` or `!T`). Constructors that return a pointer\n   to their own type (`*T`, `!*T`, `?*T`) are named `create` and freed with\n   `destroy`.\n4. A parameterless `init` that returns a constant (literals, enum literals,\n   and references to constants) is a declaration instead:\n   `pub const init: T = .{ ... };`. Callers can then write `.init`.\n\nThese are not reported:\n- destructors whose `self` is a value, `*anyopaque`, or a pointer to an\n  `opaque` type\n- destructors that free `self` (e.g. `allocator.destroy(self)`)\n- `init` functions that initialize in place (`self: *T`), return `*const T`,\n  or return a singleton (`return &instance;`)\n- constant `init` functions used as function values (e.g. `callback(Foo.init)`)\n- anything declared inside a `test` block\n\nDestructors that delegate to a helper method (e.g. `self.discard()`) are not\nfollowed into it.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst Foo = struct {\n  list: std.ArrayList(u32),\n  // fallible destructor\n  pub fn deinit(self: *Foo, allocator: std.mem.Allocator) !void {\n    self.list.deinit(allocator);\n    self.* = undefined;\n  }\n};\n\nconst Bar = struct {\n  list: std.ArrayList(u32),\n  // `self` is never invalidated\n  pub fn deinit(self: *Bar, allocator: std.mem.Allocator) void {\n    self.list.deinit(allocator);\n  }\n};\n\nconst Baz = struct {\n  x: u32,\n  // resets `self` instead of invalidating it\n  pub fn deinit(self: *Baz) void {\n    self.* = .{ .x = 0 };\n  }\n};\n\nconst Qux = struct {\n  x: u32,\n  // returns a pointer, so it should be named `create`\n  pub fn init(allocator: std.mem.Allocator) !*Qux {\n    const self = try allocator.create(Qux);\n    self.* = .{ .x = 0 };\n    return self;\n  }\n};\n\nconst Quux = struct {\n  x: u32,\n  // should be `pub const init: Quux = .{ .x = 0 };`\n  pub fn init() Quux {\n    return .{ .x = 0 };\n  }\n};\n```\n\nExamples of **correct** code for this rule:\n```zig\nconst Foo = struct {\n  list: std.ArrayList(u32),\n  pub fn deinit(self: *Foo, allocator: std.mem.Allocator) void {\n    self.list.deinit(allocator);\n    self.* = undefined;\n  }\n};\n\nconst Bar = struct {\n  allocator: std.mem.Allocator,\n  // `self` is freed, so it cannot be invalidated\n  pub fn deinit(self: *Bar) void {\n    self.allocator.destroy(self);\n  }\n};\n\nconst Qux = struct {\n  x: u32,\n  pub fn create(allocator: std.mem.Allocator) !*Qux {\n    const self = try allocator.create(Qux);\n    self.* = .{ .x = 0 };\n    return self;\n  }\n};\n\nconst Quux = struct {\n  x: u32,\n  pub const init: Quux = .{ .x = 0 };\n};\n```",
+                    "default": "off",
+                    "markdownDescription": "## What This Rule Does\nEnforces conventions for constructors (`init`) and destructors (`deinit`):\n\n1. Destructors never fail, so they must not return an error union.\n2. Destructors taking `self: *T` invalidate it with `self.* = undefined;`.\n   In safe builds this fills `self` with `0xaa` bytes, so using it after\n   `deinit` crashes instead of silently working. In unsafe builds it\n   compiles to nothing.\n3. `init` returns a value (`T` or `!T`). Constructors that return a pointer\n   to their own type (`*T`, `!*T`, `?*T`) are named `create` and freed with\n   `destroy`.\n4. A parameterless `init` that returns a constant (literals, enum literals,\n   and references to constants) is a declaration instead:\n   `pub const init: T = .{ ... };`. Callers can then write `.init`.\n\nThese are not reported:\n- destructors whose `self` is a value, `*anyopaque`, or a pointer to an\n  `opaque` type\n- destructors that free `self` (e.g. `allocator.destroy(self)`)\n- `init` functions that initialize in place (`self: *T`), return `*const T`,\n  or return a singleton (`return &instance;`)\n- constant `init` functions used as function values (e.g. `callback(Foo.init)`)\n- anything declared inside a `test` block\n\nDestructors that delegate to a helper method (e.g. `self.discard()`) are not\nfollowed into it.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nconst Foo = struct {\n  list: std.ArrayList(u32),\n  // fallible destructor\n  pub fn deinit(self: *Foo, allocator: std.mem.Allocator) !void {\n    self.list.deinit(allocator);\n    self.* = undefined;\n  }\n};\n\nconst Bar = struct {\n  list: std.ArrayList(u32),\n  // `self` is never invalidated\n  pub fn deinit(self: *Bar, allocator: std.mem.Allocator) void {\n    self.list.deinit(allocator);\n  }\n};\n\nconst Baz = struct {\n  x: u32,\n  // resets `self` instead of invalidating it\n  pub fn deinit(self: *Baz) void {\n    self.* = .{ .x = 0 };\n  }\n};\n\nconst Qux = struct {\n  x: u32,\n  // returns a pointer, so it should be named `create`\n  pub fn init(allocator: std.mem.Allocator) !*Qux {\n    const self = try allocator.create(Qux);\n    self.* = .{ .x = 0 };\n    return self;\n  }\n};\n\nconst Quux = struct {\n  x: u32,\n  // should be `pub const init: Quux = .{ .x = 0 };`\n  pub fn init() Quux {\n    return .{ .x = 0 };\n  }\n};\n```\n\nExamples of **correct** code for this rule:\n```zig\nconst Foo = struct {\n  list: std.ArrayList(u32),\n  pub fn deinit(self: *Foo, allocator: std.mem.Allocator) void {\n    self.list.deinit(allocator);\n    self.* = undefined;\n  }\n};\n\nconst Bar = struct {\n  allocator: std.mem.Allocator,\n  // `self` is freed, so it cannot be invalidated\n  pub fn deinit(self: *Bar) void {\n    self.allocator.destroy(self);\n  }\n};\n\nconst Qux = struct {\n  x: u32,\n  pub fn create(allocator: std.mem.Allocator) !*Qux {\n    const self = try allocator.create(Qux);\n    self.* = .{ .x = 0 };\n    return self;\n  }\n};\n\nconst Quux = struct {\n  x: u32,\n  pub const init: Quux = .{ .x = 0 };\n};\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.lifecycle_conventions"
+                                }
+                            ]
+                        }
+                    ]
+                },
                 "must-return-ref": {
                     "description": "## What This Rule Does\nDisallows returning copies of types that store a `capacity`.\n\nZig does not have move semantics. Returning a value by value copies it.\nReturning a copy of a struct's field that records how much memory it has\nallocated can easily lead to memory leaks.\n\n```zig\nconst std = @import(\"std\");\npub const Foo = struct {\n  list: std.array_list.Managed(u32),\n  pub fn getList(self: *Foo) std.array_list.Managed(u32) {\n      return self.list;\n  }\n};\n\npub fn main() !void {\n  var foo: Foo = .{\n    .list = try std.array_list.Managed(u32).init(std.heap.page_allocator)\n  };\n  defer foo.list.deinit();\n  var list = foo.getList();\n  try list.append(1); // leaked!\n}\n```\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\nfn foo(self: *Foo) std.array_list.Managed(u32) {\n  return self.list;\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\n// pass by reference\nfn foo(self: *Foo) *std.array_list.Managed(u32) {\n  return &self.list;\n}\n\n// new instances are fine\nfn foo() ArenaAllocator {\n  return std.mem.ArenaAllocator.init(std.heap.page_allocator);\n}\n```",
                     "default": "warn",
@@ -492,6 +514,33 @@
             "type": "object",
             "title": "duplicate-case config",
             "properties": {}
+        },
+        "linter.rules.lifecycle_conventions": {
+            "type": "object",
+            "title": "lifecycle-conventions config",
+            "properties": {
+                "allow_reset": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "require_mutable_self": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "deinitializers": {
+                    "type": "array",
+                    "default": [
+                        "deinit"
+                    ],
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "require_create_for_pointer_init": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
         },
         "linter.rules.homeless_try": {
             "type": "object",

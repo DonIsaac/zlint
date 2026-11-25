@@ -1,0 +1,8 @@
+{
+    "$schema": "./zlint.schema.json",
+    "rules": {
+        "lifecycle-conventions": "warn",
+        "sort-imports": "off",
+        "no-print": "off"
+    }
+}

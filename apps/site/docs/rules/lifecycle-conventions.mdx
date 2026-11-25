@@ -1,0 +1,128 @@
+---
+rule: '{"name":"lifecycle-conventions","category":"pedantic","default":"off","fix":{"kind":"fix","dangerous":true},"needs_cfg":false}'
+---
+
+# `lifecycle-conventions`
+
+<RuleBanner category="pedantic" default="off" fix={{ kind: 'fix', dangerous: true }} />
+
+## What This Rule Does
+
+Enforces conventions for constructors (`init`) and destructors (`deinit`):
+
+1. Destructors never fail, so they must not return an error union.
+2. Destructors taking `self: *T` invalidate it with `self.* = undefined;`.
+   In safe builds this fills `self` with `0xaa` bytes, so using it after
+   `deinit` crashes instead of silently working. In unsafe builds it
+   compiles to nothing.
+3. `init` returns a value (`T` or `!T`). Constructors that return a pointer
+   to their own type (`*T`, `!*T`, `?*T`) are named `create` and freed with
+   `destroy`.
+4. A parameterless `init` that returns a constant (literals, enum literals,
+   and references to constants) is a declaration instead:
+   `pub const init: T = .{ ... };`. Callers can then write `.init`.
+
+These are not reported:
+
+- destructors whose `self` is a value, `*anyopaque`, or a pointer to an
+  `opaque` type
+- destructors that free `self` (e.g. `allocator.destroy(self)`)
+- `init` functions that initialize in place (`self: *T`), return `*const T`,
+  or return a singleton (`return &instance;`)
+- constant `init` functions used as function values (e.g. `callback(Foo.init)`)
+- anything declared inside a `test` block
+
+Destructors that delegate to a helper method (e.g. `self.discard()`) are not
+followed into it.
+
+## Examples
+
+Examples of **incorrect** code for this rule:
+
+```zig
+const Foo = struct {
+  list: std.ArrayList(u32),
+  // fallible destructor
+  pub fn deinit(self: *Foo, allocator: std.mem.Allocator) !void {
+    self.list.deinit(allocator);
+    self.* = undefined;
+  }
+};
+
+const Bar = struct {
+  list: std.ArrayList(u32),
+  // `self` is never invalidated
+  pub fn deinit(self: *Bar, allocator: std.mem.Allocator) void {
+    self.list.deinit(allocator);
+  }
+};
+
+const Baz = struct {
+  x: u32,
+  // resets `self` instead of invalidating it
+  pub fn deinit(self: *Baz) void {
+    self.* = .{ .x = 0 };
+  }
+};
+
+const Qux = struct {
+  x: u32,
+  // returns a pointer, so it should be named `create`
+  pub fn init(allocator: std.mem.Allocator) !*Qux {
+    const self = try allocator.create(Qux);
+    self.* = .{ .x = 0 };
+    return self;
+  }
+};
+
+const Quux = struct {
+  x: u32,
+  // should be `pub const init: Quux = .{ .x = 0 };`
+  pub fn init() Quux {
+    return .{ .x = 0 };
+  }
+};
+```
+
+Examples of **correct** code for this rule:
+
+```zig
+const Foo = struct {
+  list: std.ArrayList(u32),
+  pub fn deinit(self: *Foo, allocator: std.mem.Allocator) void {
+    self.list.deinit(allocator);
+    self.* = undefined;
+  }
+};
+
+const Bar = struct {
+  allocator: std.mem.Allocator,
+  // `self` is freed, so it cannot be invalidated
+  pub fn deinit(self: *Bar) void {
+    self.allocator.destroy(self);
+  }
+};
+
+const Qux = struct {
+  x: u32,
+  pub fn create(allocator: std.mem.Allocator) !*Qux {
+    const self = try allocator.create(Qux);
+    self.* = .{ .x = 0 };
+    return self;
+  }
+};
+
+const Quux = struct {
+  x: u32,
+  pub const init: Quux = .{ .x = 0 };
+};
+```
+
+## Configuration
+
+This rule accepts the following options:
+
+- allow_reset: boolean
+- require_mutable_self: boolean
+- deinitializers: array
+- require_create_for_pointer_init: boolean
