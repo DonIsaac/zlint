@@ -211,21 +211,21 @@ fn printUpdateError(io: Io, err: anyerror, current_version: []const u8) void {
 
 fn printStdout(io: Io, comptime format: []const u8, args: anytype) void {
     var buffer: [1024]u8 = undefined;
-    var writer = Io.File.stdout().writer(io, &buffer);
+    var writer = Io.File.stdout().writerStreaming(io, &buffer);
     writer.interface.print(format, args) catch return;
     writer.interface.flush() catch return;
 }
 
 fn printStderr(io: Io, comptime format: []const u8, args: anytype) void {
     var buffer: [1024]u8 = undefined;
-    var writer = Io.File.stderr().writer(io, &buffer);
+    var writer = Io.File.stderr().writerStreaming(io, &buffer);
     writer.interface.print(format, args) catch return;
     writer.interface.flush() catch return;
 }
 
 fn printError(io: Io, comptime format: []const u8, args: anytype) void {
     var buffer: [1024]u8 = undefined;
-    var writer = Io.File.stderr().writer(io, &buffer);
+    var writer = Io.File.stderr().writerStreaming(io, &buffer);
     writer.interface.writeAll("error: ") catch return;
     writer.interface.print(format, args) catch return;
     writer.interface.writeByte('\n') catch return;

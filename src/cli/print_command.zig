@@ -36,7 +36,7 @@ pub fn parseAndPrint(alloc: Allocator, io_: io, opts: Options, source: Source, w
     var stdout: ?io.File.Writer = null;
     defer if (stdout) |*out| out.interface.flush() catch @panic("failed to flush writer");
     var writer = writer_ orelse blk: {
-        stdout = io.File.stdout().writer(io_, &buf);
+        stdout = io.File.stdout().writerStreaming(io_, &buf);
         break :blk &stdout.?.interface;
     };
     defer writer.flush() catch @panic("failed to flush writer");
@@ -77,7 +77,7 @@ pub fn printCfg(alloc: Allocator, io_: io, opts: Options, source: Source, writer
     var stdout: ?io.File.Writer = null;
     defer if (stdout) |*out| out.interface.flush() catch @panic("failed to flush writer");
     const writer = writer_ orelse blk: {
-        stdout = io.File.stdout().writer(io_, &buf);
+        stdout = io.File.stdout().writerStreaming(io_, &buf);
         break :blk &stdout.?.interface;
     };
     defer writer.flush() catch @panic("failed to flush writer");

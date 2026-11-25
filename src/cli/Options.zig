@@ -151,7 +151,7 @@ fn parse(alloc: Allocator, io: std.Io, args_iter: anytype, err: ?*Error) ParseEr
             opts.config = owned;
         } else if (eq(arg, "-h") or eq(arg, "--help") or eq(arg, "--hlep") or eq(arg, "-help")) {
             var buf: [512]u8 = undefined;
-            var writer = std.Io.File.stdout().writer(io, &buf);
+            var writer = std.Io.File.stdout().writerStreaming(io, &buf);
             var stdout = &writer.interface;
 
             try stdout.writeAll(usage);

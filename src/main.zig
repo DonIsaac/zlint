@@ -71,7 +71,7 @@ pub fn main(init: std.process.Init) !u8 {
     defer opts.deinit(stack_alloc);
 
     if (opts.version) {
-        var stdout = Io.File.stdout().writer(io, &.{});
+        var stdout = Io.File.stdout().writerStreaming(io, &.{});
         stdout.interface.print("{s}\n", .{config.version}) catch |e| {
             std.debug.panic("Failed to write version: {s}\n", .{@errorName(e)});
         };
