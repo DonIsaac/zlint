@@ -324,7 +324,11 @@ fn lint(
     defer semantic_result.deinit();
     const semantic = semantic_result.value;
 
-    return self.linter.runOnSource(std.testing.io, &semantic, &source, @ptrCast(errors));
+    var diagnostics: ?Linter.Diagnostic.List = null;
+    defer if (diagnostics) |list| {
+        errors.* = list;
+    };
+    return self.linter.runOnSource(std.testing.io, &semantic, &source, &diagnostics);
 }
 
 fn saveSnapshot(self: *RuleTester) SnapshotError!void {
