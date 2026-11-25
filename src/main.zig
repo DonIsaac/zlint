@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const util = @import("util");
 const Source = @import("zlint").Source;
 const config = @import("config");
@@ -82,11 +83,10 @@ pub fn main(init: std.process.Init) !u8 {
         }
 
         const relative_path = opts.args.items[0];
-        print("Printing AST for {s}\n", .{relative_path});
         const file = try Io.Dir.cwd().openFile(io, relative_path, .{});
-        errdefer file.close(io);
         var source = try Source.init(alloc, io, file, null);
         defer source.deinit();
+        print("Printing AST for {s}\n", .{relative_path});
         try print_cmd.parseAndPrint(alloc, io, opts, source, null);
         return 0;
     } else if (opts.print_cfg) {
@@ -97,7 +97,6 @@ pub fn main(init: std.process.Init) !u8 {
 
         const relative_path = opts.args.items[0];
         const file = try Io.Dir.cwd().openFile(io, relative_path, .{});
-        errdefer file.close(io);
         var source = try Source.init(alloc, io, file, null);
         defer source.deinit();
         try print_cmd.printCfg(alloc, io, opts, source, null);
@@ -114,4 +113,36 @@ test {
     std.testing.refAllDecls(lint_cmd);
     std.testing.refAllDecls(print_cmd);
     std.testing.refAllDecls(update_cmd);
+}
+
+test "print commands reject directories" {
+    if (comptime util.IS_WINDOWS or builtin.os.tag == .wasi) return error.SkipZigTest;
+
+    const t = std.testing;
+    var tmp = t.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.createDir(t.io, "d.zig", .default_dir);
+    const path = try tmp.dir.realPathFileAlloc(t.io, "d.zig", t.allocator);
+    defer t.allocator.free(path);
+
+    var arena = std.heap.ArenaAllocator.init(t.allocator);
+    defer arena.deinit();
+    var environ_map: std.process.Environ.Map = .init(t.allocator);
+    defer environ_map.deinit();
+
+    inline for (.{ "--print-ast", "--print-cfg" }) |flag| {
+        // main deinitializes debug_allocator.
+        defer debug_allocator = .init;
+        try t.expectError(error.IsDir, main(.{
+            .minimal = .{
+                .args = .{ .vector = &.{ "zlint", flag, path.ptr } },
+                .environ = .empty,
+            },
+            .arena = &arena,
+            .gpa = t.allocator,
+            .io = t.io,
+            .environ_map = &environ_map,
+            .preopens = .empty,
+        }));
+    }
 }
