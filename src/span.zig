@@ -120,7 +120,7 @@ pub const Span = struct {
     }
 
     pub inline fn contains(self: Span, point: u32) bool {
-        self.start >= point and point < self.end;
+        return point >= self.start and point < self.end;
     }
 
     pub fn eql(self: Span, other: Span) bool {
@@ -140,6 +140,14 @@ test "Span.shiftLeft" {
     const moved = span.shiftLeft(5);
     try t.expectEqual(Span.new(0, 2), moved);
     try t.expectEqual(Span.new(5, 7), span); // original span is not mutated
+}
+
+test "Span.contains" {
+    const span = Span.new(5, 8);
+    try t.expect(span.contains(5));
+    try t.expect(span.contains(7));
+    try t.expect(!span.contains(8));
+    try t.expect(!span.contains(4));
 }
 
 pub const LabeledSpan = struct {
