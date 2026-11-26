@@ -80,6 +80,11 @@
                 }
             ]
         },
+        "linter.rules.explicit_error_unions": {
+            "type": "object",
+            "title": "explicit-error-unions config",
+            "properties": {}
+        },
         "linter.config.rules_config.RulesConfig": {
             "type": "object",
             "description": "Configure which rules are enabled and how.",
@@ -387,6 +392,28 @@
                                 },
                                 {
                                     "$ref": "#/definitions/linter.rules.no_unresolved"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "explicit-error-unions": {
+                    "description": "## What This Rule Does\nDisallows `pub` functions that return an error union with an inferred\nerror set (`!T`).\n\nAn inferred error set changes whenever the function body changes. For a\npublic function, that set is part of the API: adding a new `try` can add a\nnew error that callers must now handle, without any change to the\nsignature. Naming the error set keeps that contract explicit and stable.\nThis is most useful for library authors.\n\nOnly `pub` functions are checked. Private functions may keep using\ninferred error sets.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\npub fn foo() !void {\n  // ...\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\npub fn foo() Allocator.Error!void {\n  // ...\n}\n\npub fn bar() error{ OutOfMemory, InvalidInput }!u32 {\n  // ...\n}\n\nfn baz() !void {\n  // ...\n}\n```",
+                    "default": "off",
+                    "markdownDescription": "## What This Rule Does\nDisallows `pub` functions that return an error union with an inferred\nerror set (`!T`).\n\nAn inferred error set changes whenever the function body changes. For a\npublic function, that set is part of the API: adding a new `try` can add a\nnew error that callers must now handle, without any change to the\nsignature. Naming the error set keeps that contract explicit and stable.\nThis is most useful for library authors.\n\nOnly `pub` functions are checked. Private functions may keep using\ninferred error sets.\n\n## Examples\n\nExamples of **incorrect** code for this rule:\n```zig\npub fn foo() !void {\n  // ...\n}\n```\n\nExamples of **correct** code for this rule:\n```zig\npub fn foo() Allocator.Error!void {\n  // ...\n}\n\npub fn bar() error{ OutOfMemory, InvalidInput }!u32 {\n  // ...\n}\n\nfn baz() !void {\n  // ...\n}\n```",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/Error.Severity"
+                        },
+                        {
+                            "type": "array",
+                            "items": false,
+                            "prefixItems": [
+                                {
+                                    "$ref": "#/definitions/Error.Severity"
+                                },
+                                {
+                                    "$ref": "#/definitions/linter.rules.explicit_error_unions"
                                 }
                             ]
                         }

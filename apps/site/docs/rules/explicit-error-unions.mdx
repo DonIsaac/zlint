@@ -1,0 +1,51 @@
+---
+rule: '{"name":"explicit-error-unions","category":"pedantic","default":"off","fix":{"kind":"none","dangerous":false},"needs_cfg":false}'
+---
+
+# `explicit-error-unions`
+
+<RuleBanner category="pedantic" default="off" />
+
+## What This Rule Does
+
+Disallows `pub` functions that return an error union with an inferred
+error set (`!T`).
+
+An inferred error set changes whenever the function body changes. For a
+public function, that set is part of the API: adding a new `try` can add a
+new error that callers must now handle, without any change to the
+signature. Naming the error set keeps that contract explicit and stable.
+This is most useful for library authors.
+
+Only `pub` functions are checked. Private functions may keep using
+inferred error sets.
+
+## Examples
+
+Examples of **incorrect** code for this rule:
+
+```zig
+pub fn foo() !void {
+  // ...
+}
+```
+
+Examples of **correct** code for this rule:
+
+```zig
+pub fn foo() Allocator.Error!void {
+  // ...
+}
+
+pub fn bar() error{ OutOfMemory, InvalidInput }!u32 {
+  // ...
+}
+
+fn baz() !void {
+  // ...
+}
+```
+
+## Configuration
+
+This rule has no configuration.
