@@ -1,0 +1,60 @@
+  𝙭 explicit-error-unions: Public function `foo` returns an inferred error set.
+   ╭─[explicit-error-unions.zig:1:14]
+ 1 │ pub fn foo() !void {}
+   ·              ┬
+   ·              ╰── error set is inferred here
+   ╰────
+  help: Name the errors it can return, e.g. `Allocator.Error!T` or `error{OutOfMemory}!T`.
+
+  𝙭 explicit-error-unions: Public function `foo` returns an inferred error set.
+   ╭─[explicit-error-unions.zig:1:20]
+ 1 │ pub fn foo(x: u32) !u32 { return x; }
+   ·                    ┬
+   ·                    ╰── error set is inferred here
+   ╰────
+  help: Name the errors it can return, e.g. `Allocator.Error!T` or `error{OutOfMemory}!T`.
+
+  𝙭 explicit-error-unions: Public function `foo` returns an inferred error set.
+   ╭─[explicit-error-unions.zig:1:14]
+ 1 │ pub fn foo() !?*const u8 { return null; }
+   ·              ┬
+   ·              ╰── error set is inferred here
+   ╰────
+  help: Name the errors it can return, e.g. `Allocator.Error!T` or `error{OutOfMemory}!T`.
+
+  𝙭 explicit-error-unions: Public function `foo` returns an inferred error set.
+   ╭─[explicit-error-unions.zig:1:21]
+ 1 │ pub inline fn foo() !void {}
+   ·                     ┬
+   ·                     ╰── error set is inferred here
+   ╰────
+  help: Name the errors it can return, e.g. `Allocator.Error!T` or `error{OutOfMemory}!T`.
+
+  𝙭 explicit-error-unions: Public function `foo` returns an inferred error set.
+   ╭─[explicit-error-unions.zig:1:42]
+ 1 │ pub fn foo(allocator: Allocator, x: u32) ![]u8 { return allocator.alloc(u8, x); }
+   ·                                          ┬
+   ·                                          ╰── error set is inferred here
+   ╰────
+  help: Name the errors it can return, e.g. `Allocator.Error!T` or `error{OutOfMemory}!T`.
+
+  𝙭 explicit-error-unions: Public function `bar` returns an inferred error set.
+   ╭─[explicit-error-unions.zig:2:26]
+ 1 │ const Foo = struct {
+ 2 │   pub fn bar(self: *Foo) !void {
+   ·                          ┬
+   ·                          ╰── error set is inferred here
+ 3 │     _ = self;
+   ╰────
+  help: Name the errors it can return, e.g. `Allocator.Error!T` or `error{OutOfMemory}!T`.
+
+  𝙭 explicit-error-unions: Public function `get` returns an inferred error set.
+   ╭─[explicit-error-unions.zig:3:18]
+ 2 │   return struct {
+ 3 │     pub fn get() !T {
+   ·                  ┬
+   ·                  ╰── error set is inferred here
+ 4 │       return error.Oops;
+   ╰────
+  help: Name the errors it can return, e.g. `Allocator.Error!T` or `error{OutOfMemory}!T`.
+
